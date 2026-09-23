@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://project-petra.local/schema/scenario-v1.json",
+  "title": "Petra scenario",
+  "type": "object",
+  "required": ["schemaVersion", "id", "version", "title", "warning", "seedPolicy", "organism", "environment", "citations"],
+  "properties": {
+    "schemaVersion": {"const": "1.0.0"},
+    "id": {"type": "string", "minLength": 1},
+    "version": {"type": "string", "minLength": 1},
+    "title": {"type": "string"},
+    "status": {"enum": ["science", "research", "experimental", "sandbox"]},
+    "warning": {"type": "string", "minLength": 20},
+    "seedPolicy": {"enum": ["user", "fixed-demo", "random-recorded"]},
+    "organism": {"type": "object"},
+    "environment": {"type": "object"},
+    "drug": {"type": ["object", "null"]},
+    "genotypes": {"type": "array"},
+    "mutationTransitions": {"type": "array"},
+    "validationTargets": {"type": "object"},
+    "citations": {"type": "object", "minProperties": 1},
+    "transferAssumptions": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": true
+}

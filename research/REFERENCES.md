@@ -3,10 +3,12 @@
 ## Stochastic/numerical
 - Gillespie, D.T. (1977). Exact stochastic simulation of coupled chemical reactions. DOI `10.1021/j100540a008`.
 - Cao, Y., Gillespie, D.T., Petzold, L.R. (2006). Efficient step size selection for the tau-leaping simulation method. DOI `10.1063/1.2159468`.
+- Cao, Y., Gillespie, D.T., Petzold, L.R. (2005). Avoiding negative populations in explicit Poisson tau-leaping. DOI `10.1063/1.1992473`.
 
 ## Growth/spatial ecology
 - Ratkowsky, D.A. et al. (1982). Relationship between temperature and growth rate of bacterial cultures. DOI `10.1128/jb.149.1.1-5.1982`.
 - Ratkowsky et al. (1983). Model for bacterial culture growth rate throughout the entire biokinetic temperature range. DOI `10.1128/JB.154.3.1222-1226.1983`.
+- Rosso, L., Lobry, J.R., Bajard, S., Flandrois, J.P. (1995). Convenient Model To Describe the Combined Effects of Temperature and pH on Microbial Growth. DOI `10.1128/AEM.61.2.610-616.1995`.
 - Ginovart, M. et al. (2002). Individual based simulations of bacterial growth on agar plates. DOI `10.1016/S0378-4371(01)00581-7`.
 - Shao, X. et al. (2017). Growth of bacteria in 3-d colonies. DOI `10.1371/journal.pcbi.1005679`.
 - Modeling Competitive Mixtures With the Lotka-Volterra Framework for More Complex Fitness Assessment Between Strains (2020). DOI `10.3389/FMICB.2020.572487`.

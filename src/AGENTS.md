@@ -21,7 +21,7 @@ Implementation of Petra's simulation, workers, rendering, UI, analysis, and appl
 - ML output is advisory/accelerative unless a separately validated contract explicitly gives it authority.
 
 ## Work guidance
-The intended long-term core is Rust with a native test/sweep target and WebAssembly browser target, hosted in a Web Worker. The presentation layer is TypeScript/React with WebGL/Three.js or an equivalent GPU path. A temporary TypeScript reference implementation is acceptable if it obeys the same interface.
+Start the authoritative core in TypeScript inside a Web Worker so the scientific vertical slice stays inspectable and iteration remains fast. Keep the worker protocol and simulation state independent from React/rendering so a stable hot kernel can later move to Rust/WASM and share a native sweep/test target **only when profiling or batch-sweep needs justify the migration**. The live dish should use a 2D/WebGL-oriented renderer (PixiJS or equivalent); Three.js is reserved for genuinely useful 3D explanatory scenes rather than being the default.
 
 ## Verification
 Unit/determinism tests for the core, reference-vs-accelerated numerical comparisons, browser interaction tests, and measured performance budgets. Never claim device/browser acceptance without running it.

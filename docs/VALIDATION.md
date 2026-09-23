@@ -1,0 +1,74 @@
+# Validation Plan
+
+A scientific validation suite is a major differentiator between PETRA and a polished toy.
+
+## Numerical invariants
+
+- same seed + same actions -> identical checkpoint hashes;
+- no NaN/Inf;
+- non-negative populations and concentrations;
+- passive no-flux diffusion conserves total mass within tolerance;
+- mutation events never exceed births;
+- destructive stochastic events never exceed available cells.
+
+## Growth tests
+
+- high nutrient / no drug -> approximately exponential early growth;
+- nutrient depletion slows growth;
+- `S = K_s` -> Monod multiplier approximately 0.5;
+- increasing local nutrient cannot decrease the Monod growth term.
+
+## Temperature tests
+
+If enabled:
+
+- maximum near source-defined optimum;
+- near-zero growth at source-defined limits;
+- suboptimal branch matches the chosen Ratkowsky/cardinal relation.
+
+## Pharmacodynamic tests
+
+- `A = 0` recovers untreated behavior;
+- net growth decreases with concentration over calibrated range;
+- reference curve crosses approximately zero near `zMIC`;
+- high concentration asymptotes toward finite `psi_min`;
+- resistant phenotype shifts the response rather than giving absolute immunity.
+
+## Mutation and selection tests
+
+- mutation probability zero -> no new lineages;
+- mutations arise from division events;
+- changing drug concentration does not directly create mutations;
+- replicate seeds show variable emergence timing;
+- under selective conditions, resistant frequency can rise;
+- without drug, a genotype with measured lower fitness loses in a controlled pairwise test.
+
+## Spatial tests
+
+- radially symmetric initial conditions remain statistically symmetric without asymmetric interventions;
+- a drug band produces a spatial response only where concentration is present;
+- nutrient gradients alter local growth;
+- no-flux rim prevents field leakage.
+
+## Competition tests
+
+- identical strains remain symmetric on replicate average;
+- resource sharing couples competitors even without pairwise “attack” terms.
+
+## Phage tests
+
+When enabled:
+
+- no host -> decay/diffusion only;
+- no phage -> normal host model;
+- zero adsorption -> zero new infections;
+- infection precedes lysis by the transit-chain delay;
+- lysis releases burst phage.
+
+## Literature validation
+
+For curated scenarios, compare selected normalized trajectories/relationships against the relevant paper's submodel or qualitative result. Do not claim whole-system validation from one matching curve.
+
+## Provenance test
+
+CI should fail Science-Mode scenario validation if a required parameter has no value, unit, source, context or evidence tier.

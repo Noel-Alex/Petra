@@ -1,0 +1,82 @@
+{
+  "registry_version": "0.1.0",
+  "scenario_id": "ecoli_ciprofloxacin_flagship",
+  "status": "DRAFT_TRANSFER_ASSUMPTIONS_DOCUMENTED",
+  "parameters": [
+    {
+      "key": "drug.reference_pd.psi_max",
+      "value": 0.88,
+      "units": "per_hour_log10_density_slope",
+      "organism": "Escherichia coli CAB1",
+      "context": "LB, 37 C, ciprofloxacin; Regoes et al. 2004",
+      "source": "10.1128/AAC.48.10.3670-3676.2004",
+      "evidence_tier": "A",
+      "notes": "Reference PD dataset; rate convention must be converted consistently before combining with local biomass model."
+    },
+    {
+      "key": "drug.reference_pd.psi_min",
+      "value": -6.5,
+      "units": "per_hour_log10_density_slope",
+      "organism": "Escherichia coli CAB1",
+      "source": "10.1128/AAC.48.10.3670-3676.2004",
+      "evidence_tier": "A"
+    },
+    {
+      "key": "drug.reference_pd.kappa",
+      "value": 1.1,
+      "units": "dimensionless",
+      "source": "10.1128/AAC.48.10.3670-3676.2004",
+      "evidence_tier": "A"
+    },
+    {
+      "key": "drug.reference_pd.zMIC",
+      "value": 0.017,
+      "units": "microgram_per_mL",
+      "source": "10.1128/AAC.48.10.3670-3676.2004",
+      "evidence_tier": "A"
+    },
+    {
+      "key": "genotype.WT.cipro_MIC",
+      "value": 0.016,
+      "units": "microgram_per_mL",
+      "organism": "Escherichia coli MG1655",
+      "source": "10.1371/journal.ppat.1000541",
+      "evidence_tier": "A"
+    },
+    {
+      "key": "genotype.WT.relative_fitness",
+      "value": 1.0,
+      "units": "relative",
+      "source": "10.1371/journal.ppat.1000541",
+      "evidence_tier": "A"
+    },
+    {
+      "key": "genotype.gyrA_S83L.cipro_MIC",
+      "value": 0.38,
+      "units": "microgram_per_mL",
+      "organism": "Escherichia coli MG1655",
+      "source": "10.1371/journal.ppat.1000541",
+      "evidence_tier": "A"
+    },
+    {
+      "key": "genotype.gyrA_S83L.relative_fitness",
+      "value": 1.01,
+      "units": "relative",
+      "source": "10.1371/journal.ppat.1000541",
+      "evidence_tier": "A"
+    },
+    {
+      "key": "mutation.aggregate.WT_to_reduced_cipro_susceptibility_at_4xMIC",
+      "value": 3.6e-9,
+      "units": "mutations_per_cell_per_generation",
+      "source": "10.1093/molbev/msx052",
+      "evidence_tier": "A",
+      "notes": "Aggregate selected phenotype rate, not automatically a single genotype-edge probability."
+    }
+  ],
+  "transfer_assumptions": [
+    "The reference pharmacodynamic curve and the MG1655 genotype table come from different experimental systems.",
+    "Before calling the combined scenario quantitatively calibrated, normalize/fit the PD response to the selected genotype MICs and verify rate conventions.",
+    "Spatial diffusion and colony-dispersal coefficients remain scenario-calibration parameters until source-matched values are chosen."
+  ]
+}

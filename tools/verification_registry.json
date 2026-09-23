@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "checks": [
+    {
+      "id": "repository-contract",
+      "modes": ["quick", "premerge"],
+      "command": ["python", "tools/verify.py", "_contract"]
+    },
+    {
+      "id": "structured-data",
+      "modes": ["quick", "premerge"],
+      "command": ["python", "tools/verify.py", "_json"]
+    },
+    {
+      "id": "provenance-basics",
+      "modes": ["premerge"],
+      "command": ["python", "tools/verify.py", "_provenance"]
+    }
+  ]
+}

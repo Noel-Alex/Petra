@@ -1,0 +1,166 @@
+# Petra ML Training Plan
+
+## Principle
+
+A trained model is valuable if it makes Petra faster, easier to explore or easier to understand **without becoming an uninspectable biological authority**.
+
+Training begins only after a mechanistic engine can generate validated data.
+
+## Use case A — aggregate outcome surrogate
+
+### Inputs
+Examples:
+- scenario/version;
+- initial population by genotype;
+- initial resource;
+- intervention schedule;
+- drug geometry summary;
+- environment parameters;
+- selected engine parameters;
+- current time/state summary.
+
+### Outputs
+At requested future horizons:
+- total population;
+- resistant fraction;
+- genotype frequencies;
+- remaining resource;
+- diversity;
+- probability-like summary across stochastic replicas where dataset supports it.
+
+### First baselines
+Before neural networks:
+- linear/regularized regression;
+- gradient-boosted trees;
+- small MLP.
+
+A neural model must beat simple baselines on held-out parameter combinations to justify complexity.
+
+## Use case B — spatial emulator
+
+### Inputs
+Image-like channels:
+- resource;
+- drug;
+- active lineage density channels or compressed genotype classes;
+- optional environment/phage;
+- time delta.
+
+### Outputs
+Same/derived fields at `t + Δt`.
+
+Candidate families:
+- U-Net;
+- ConvLSTM/recurrent conv net;
+- Fourier Neural Operator after sufficient dataset scale.
+
+Start with a small U-Net because it is straightforward to train/debug and naturally maps spatial channels to spatial channels.
+
+## Dataset generation
+
+Every sample/run records:
+- engine commit/version;
+- parameter-set hash;
+- scenario/version;
+- seed;
+- intervention timeline;
+- state normalization metadata;
+- snapshot interval;
+- run termination reason.
+
+Sampling strategy:
+- Latin hypercube / Sobol-like parameter coverage where continuous;
+- deliberate edge cases;
+- multiple stochastic seeds per parameter point;
+- intervention-pattern families;
+- train/validation/test splits by **parameter/scenario groups**, not adjacent frames from the same run.
+
+Avoid leakage where snapshots from one trajectory land in both training and validation.
+
+## Targets and losses
+
+Aggregate:
+- relative/normalized trajectory losses;
+- special weighting on rare but product-important outcomes if justified;
+- calibration metrics if predicting distributions.
+
+Spatial:
+- per-channel normalized error;
+- mass/population conservation diagnostics;
+- structural metrics for fronts;
+- derived-observable error, not pixels alone.
+
+## Out-of-domain handling
+
+The model receives explicit domain bounds.
+
+At runtime:
+- reject or warn when parameters/interventions are outside training envelope;
+- expose nearest-training-domain distance/flag;
+- never silently extrapolate and present result as authoritative.
+
+## Validation
+
+Report:
+- aggregate MAE/RMSE;
+- relative error by magnitude;
+- error across future horizon;
+- resistant-fraction error;
+- spatial mass error;
+- front-position error where relevant;
+- failure modes by scenario.
+
+Compare against:
+1. mechanistic simulation;
+2. simple baseline;
+3. model ablations.
+
+## Product integration
+
+Modes:
+- **Mechanistic** — authoritative;
+- **Turbo / Emulated** — learned approximation.
+
+UI must show which is active.
+
+A useful interaction:
+1. user previews many scenarios with surrogate;
+2. picks one;
+3. runs authoritative mechanistic simulation;
+4. Petra overlays emulator error for the chosen case.
+
+This turns AI into a teachable modeling concept rather than judge-bait.
+
+## Explanation assistant
+
+A separate LLM/RAG assistant may consume:
+- structured event log;
+- active scenario/preset;
+- claim ledger;
+- relevant research notes.
+
+It may answer:
+- “Why did this lineage expand?”
+- “What does MIC mean here?”
+- “Which assumption is transferred?”
+
+It must cite Petra's evidence layer and never create new parameter values.
+
+## Compute strategy
+
+Mechanistic dataset generation can run:
+- local multicore workers;
+- Modal/GPU only if the trained spatial model benefits;
+- batch jobs partitioned by parameter block and seed.
+
+Do not use GPU simply because one is available; the simulator itself may be CPU-bound until a GPU numerical implementation exists.
+
+## Promotion gate
+
+No surrogate enters the main product until:
+- mechanistic engine is validated for its intended claims;
+- dataset is versioned/reproducible;
+- simple baseline is beaten;
+- OOD policy works;
+- error is visible;
+- a mechanistic spot-check path remains available.

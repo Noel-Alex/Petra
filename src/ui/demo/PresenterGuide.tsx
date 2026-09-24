@@ -28,6 +28,11 @@ export function PresenterGuide({
 }: PresenterGuideProps): ReactElement {
   const presentation = resolveDemoPresenterPresentation(state, motionPreference);
   const cues = cuesForProfile(state.profile);
+  const announcement =
+    `Cue ${presentation.cueNumber} of ${presentation.cueCount}: ${presentation.cue.title} ` +
+    (presentation.waitingFor === null
+      ? "Required authoritative evidence is available."
+      : gateLabel(presentation.waitingFor));
   const style = {
     "--presenter-motion-ms": String(presentation.motion.durationMs) + "ms",
     "--presenter-ease":
@@ -87,7 +92,16 @@ export function PresenterGuide({
         })}
       </ol>
 
-      <section className="presenter-guide__card" aria-live="polite">
+      <section className="presenter-guide__card">
+        <p
+          className="presenter-guide__announcement"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          aria-relevant="text"
+        >
+          {announcement}
+        </p>
         <div
           key={presentation.cue.id}
           className="presenter-guide__card-content"
@@ -181,7 +195,6 @@ function GateStatus({
     <div
       className="presenter-guide__gate presenter-guide__gate--waiting"
       id="presenter-guide-gate-status"
-      role="status"
     >
       <span aria-hidden="true">◇</span>
       <span>{gateLabel(waitingFor)}</span>

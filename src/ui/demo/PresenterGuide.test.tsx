@@ -28,6 +28,13 @@ describe("PresenterGuide", () => {
 
     expect(html).toContain("Expo presenter mode");
     expect(html).toContain("Waiting for the authoritative flagship runtime.");
+    expect(html.match(/role="status"/g)).toHaveLength(1);
+    expect(html).toContain(
+      'class="presenter-guide__announcement" role="status" aria-live="polite" aria-atomic="true" aria-relevant="text"',
+    );
+    expect(html).toContain(
+      "Cue 1 of 6: One reproducible state drives the scene. Waiting for the authoritative flagship runtime.",
+    );
     expect(html).toContain('data-run-identity="unbound"');
     expect(html).toContain("Scientific boundary");
     expect(html).toContain("presenter pacing only");
@@ -64,7 +71,7 @@ describe("PresenterGuide", () => {
     }
   });
 
-  it("projects cue identity onto an inner visual layer while keeping the live region stable", () => {
+  it("projects cue identity onto an inner visual layer while keeping the bounded announcement stable", () => {
     const initial = initialDemoPresenterState("90-second", "run-a");
     const ready = reduceDemoPresenter(initial, {
       type: "evidence",
@@ -88,11 +95,21 @@ describe("PresenterGuide", () => {
       />,
     );
 
-    expect(initialHtml).toContain(
+    expect(initialHtml).toContain('class="presenter-guide__card"');
+    expect(nextHtml).toContain('class="presenter-guide__card"');
+    expect(initialHtml).not.toContain(
       'class="presenter-guide__card" aria-live="polite"',
     );
-    expect(nextHtml).toContain(
+    expect(nextHtml).not.toContain(
       'class="presenter-guide__card" aria-live="polite"',
+    );
+    expect(initialHtml.match(/role="status"/g)).toHaveLength(1);
+    expect(nextHtml.match(/role="status"/g)).toHaveLength(1);
+    expect(initialHtml).toContain(
+      "Cue 1 of 6: One reproducible state drives the scene. Waiting for the authoritative flagship runtime.",
+    );
+    expect(nextHtml).toContain(
+      "Cue 2 of 6: Resources shape growth. Waiting for authoritative growth evidence.",
     );
     expect(initialHtml).toContain(
       'class="presenter-guide__card-content" data-cue-id="world"',
@@ -146,6 +163,10 @@ describe("PresenterGuide", () => {
     );
 
     expect(html).toContain("Required authoritative evidence is available.");
+    expect(html.match(/role="status"/g)).toHaveLength(1);
+    expect(html).toContain(
+      "Cue 1 of 6: One reproducible state drives the scene. Required authoritative evidence is available.",
+    );
     expect(html).toContain('data-motion="off"');
     expect(html).toContain('data-run-identity="run-a"');
     const actions = presenterActions(html);

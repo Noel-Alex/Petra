@@ -25,7 +25,10 @@ import {
   projectOnboardingRuntime,
   reconcileOnboardingRuntimeSession,
 } from "./onboardingRuntime";
-import { planAppKeyboardShortcut } from "./appKeyboard";
+import {
+  canDispatchAppShortcut,
+  planAppKeyboardShortcut,
+} from "./appKeyboard";
 import {
   closeSourcesSurface,
   completeSourcesExit,
@@ -200,6 +203,17 @@ export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
         if (plan.type === "close-sources") {
           event.preventDefault();
           closeSources();
+          return;
+        }
+
+        if (
+          !canDispatchAppShortcut(plan.action, {
+            playing: experiment.view.playing,
+            canTogglePlayback: experiment.view.canTogglePlayback,
+            canChangeSpeed: experiment.view.canChangeSpeed,
+            canStep: experiment.view.status === "ready",
+          })
+        ) {
           return;
         }
 

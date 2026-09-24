@@ -309,8 +309,8 @@ function spread(
     const delta = deltas[lineageIndex]!
     for (let index = 0; index < lineage.length; index += 1) {
       const next = source[index]! + delta[index]!
-      if (!Number.isFinite(next) || next < -1e-10) throw new Error('spread flux became invalid')
-      lineage[index] = Math.max(0, next)
+      if (!Number.isFinite(next) || next < 0) throw new Error('spread flux became invalid')
+      lineage[index] = next
     }
   }
 }

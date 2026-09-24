@@ -345,13 +345,17 @@ export function cloneDiscretePopulationAuthorityState(
     width: state.width,
     height: state.height,
     lineageIds: [...state.lineageIds],
-    standingHostCounts: state.standingHostCounts.map((channel) => [
-      ...channel,
-    ]),
+    standingHostCounts: state.standingHostCounts.map((channel) =>
+      Array.from(channel),
+    ),
     standingResidualCellEquivalents:
-      state.standingResidualCellEquivalents.map((channel) => [...channel]),
+      state.standingResidualCellEquivalents.map((channel) =>
+        Array.from(channel),
+      ),
     divisionResidualCellEquivalents:
-      state.divisionResidualCellEquivalents.map((channel) => [...channel]),
+      state.divisionResidualCellEquivalents.map((channel) =>
+        Array.from(channel),
+      ),
   }
 }
 
@@ -691,8 +695,8 @@ function sumCounts(
 ): number {
   let total = 0
   for (const channel of channels) {
-    for (const value of channel) {
-      total = safeIntegerAdd(name, total, value)
+    for (let index = 0; index < channel.length; index += 1) {
+      total = safeIntegerAdd(name, total, channel[index]!)
     }
   }
   return total

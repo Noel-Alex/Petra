@@ -15,6 +15,8 @@
 - SVG connecting segments are visual reading guides only; source markers remain visible and the UI must disclose that no intermediate scientific samples are invented.
 - Lineage ancestry must validate parent identity, chronology, extinction timing, and cycles before layout.
 - Lineage geometry is presentation-only. It cannot create ancestry, change lineage IDs, or infer genotype relationships absent from authoritative records.
+- Full `AuthoritativeLineageAnalysis` detail from the simulation projection may enrich an existing ancestry node with genotype label, exact model-biomass abundance, relative fitness, origin cell, mutation class, and source/assumption keys. The UI must preserve those supplied values and keys exactly; ancestry-only callers remain valid but must show the detail as not supplied rather than infer phenotype, resistance, fitness, provenance, or origin from IDs/layout.
+- A `null` origin/mutation field inside supplied scientific detail means the authority explicitly has no recorded value for that field; absence of the entire detail object means the richer authority was not supplied. Presentation must keep those states distinct. Source/assumption keys are identifiers for downstream provenance resolution, not resolved citations or evidence-quality claims by themselves.
 
 ## Accessibility and visual identity
 - Live Analysis chrome consumes the shared `src/design/visualTokens.ts` CSS projection (`--petra-color-*` / `--petra-rgb-*`). Do not reintroduce a local cyan/white dashboard palette or edit shared token values from this subtree; analysis may compose restrained token-derived alpha layers, but scientific meaning still requires labels/pattern/shape rather than hue alone.

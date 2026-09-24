@@ -39,6 +39,7 @@ Own React/browser orchestration around Petra's authoritative worker and presenta
 - React runtime adapters receive an injected `ExperimentRuntimeFactory`. The factory must return a **fresh idle runtime per effect lifetime** so StrictMode cleanup/remount cannot reuse a disposed WorkerSession.
 - The default app has no runtime factory and must remain visibly unavailable/disabled rather than silently instantiating the synthetic worker scaffold as product authority.
 - The React playback scheduler runs at 20 Hz wall-clock cadence as orchestration policy only; playback speed changes authoritative ticks requested per pulse, never the scientific meaning/duration of a tick.
+- App-level playback shortcuts operate only from non-interactive surfaces through `appKeyboard.ts`; focused native/ARIA controls retain their own keyboard semantics, and child surfaces may consume Escape before App. App dispatches only typed experiment-control actions and prevents browser default only after the runtime accepts the action. Visible Play/Pause and speed controls expose the same Space / 1 / 2 / 3 shortcuts through `aria-keyshortcuts`.
 
 ## Verification
 Framework-neutral worker-session behavior requires deterministic tests with a fake port. Real browser Worker startup/responsiveness is a separate manual/local evidence gate; Petra has no hosted CI by project policy.

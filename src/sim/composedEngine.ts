@@ -1,14 +1,12 @@
 import {
-  COMPOSED_STATE_VERSION,
   cloneComposedState,
-  composedConfigurationFingerprint,
   createComposedState,
   stepComposedState,
+  validateComposedStateAgainstConfig,
   type ComposedMetrics,
   type ComposedSimulationConfig,
   type ComposedSimulationState,
 } from './authoritative'
-import { assertEcologyLocalCapacity } from './ecology/capacity'
 import { assertComposedParameterSetBinding } from './parameterSetBinding'
 import type {
   ComposedSimulationCheckpoint,
@@ -102,86 +100,6 @@ function aggregateState(
     occupiedCells,
     lineageBiomass,
     ...flux,
-  }
-}
-
-function validateState(
-  state: ComposedSimulationState,
-  config: ComposedSimulationConfig,
-): void {
-  if (state.version !== COMPOSED_STATE_VERSION) {
-    throw new Error(`unsupported composed state version: ${state.version}`)
-  }
-  if (
-    state.configurationFingerprint !== composedConfigurationFingerprint(config)
-  ) {
-    throw new Error('composed checkpoint configuration fingerprint mismatch')
-  }
-  if (state.width !== config.width || state.height !== config.height) {
-    throw new Error('composed checkpoint dimensions do not match configuration')
-  }
-
-  const cells = state.width * state.height
-  if (
-    state.mask.length !== cells ||
-    state.resource.length !== cells ||
-    state.lineageIds.length !== config.lineages.length ||
-    state.genotypeIds.length !== config.lineages.length ||
-    state.lineageBiomass.length !== config.lineages.length ||
-    state.lineageBiomass.some((channel) => channel.length !== cells)
-  ) {
-    throw new Error('composed checkpoint arrays do not match configuration')
-  }
-
-  for (let cell = 0; cell < cells; cell += 1) {
-    const mask = state.mask[cell]
-    if (mask !== 0 && mask !== 1) {
-      throw new Error('composed checkpoint mask values must be exactly 0 or 1')
-    }
-    if (mask !== config.mask[cell]) {
-      throw new Error('composed checkpoint mask does not match configuration')
-    }
-
-    const resource = state.resource[cell]!
-    finiteNonNegative('composed checkpoint resource', resource)
-    if (mask === 0 && resource !== 0) {
-      throw new Error('composed checkpoint resource must be zero outside the mask')
-    }
-  }
-
-  state.lineageIds.forEach((id, lineageIndex) => {
-    if (id !== config.lineages[lineageIndex]?.id) {
-      throw new Error('composed checkpoint lineage order does not match configuration')
-    }
-    if (
-      state.genotypeIds[lineageIndex] !==
-      config.lineages[lineageIndex]?.genotypeId
-    ) {
-      throw new Error('composed checkpoint genotype order does not match configuration')
-    }
-
-    state.lineageBiomass[lineageIndex]!.forEach((value, cell) => {
-      finiteNonNegative('composed checkpoint lineage biomass', value)
-      if (state.mask[cell] === 0 && value !== 0) {
-        throw new Error(
-          'composed checkpoint lineage biomass must be zero outside the mask',
-        )
-      }
-    })
-  })
-
-  for (let cell = 0; cell < cells; cell += 1) {
-    if (state.mask[cell] !== 1) continue
-    let totalBiomass = 0
-    for (const channel of state.lineageBiomass) {
-      totalBiomass += channel[cell]!
-    }
-    assertEcologyLocalCapacity(
-      totalBiomass,
-      config.growth.localCapacity,
-      state.lineageBiomass.length,
-      cell,
-    )
   }
 }
 
@@ -406,7 +324,7 @@ export class ComposedSimulationEngine {
       )
     }
 
-    validateState(checkpoint.composedState, this.config)
+    validateComposedStateAgainstConfig(checkpoint.composedState, this.config)
     const restoredState = cloneComposedState(checkpoint.composedState)
     const restoredMetrics = validateMetrics(checkpoint.metrics, restoredState)
 

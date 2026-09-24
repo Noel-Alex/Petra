@@ -1,4 +1,14 @@
-import type { SimulationRng } from "../rng";
+import { SimulationRng } from "../rng";
+import {
+  createSamplingDrawBudget,
+  expectedSparseBinomialDraws,
+  requireAcceleratedSampling,
+  runSamplingTransaction,
+  sampleExactSparseBinomial,
+  samplingExecutionPolicyIdentity,
+  validateSamplingExecutionPolicy,
+  type SamplingExecutionPolicy,
+} from "../samplingPolicy";
 
 export const PHAGE_SPATIAL_UNIT_BRIDGE_SCHEMA_VERSION = 1 as const;
 
@@ -197,6 +207,81 @@ export function sampleExactAdsorbedPfu(
     if (rng.nextFloat() < adsorptionProbability) adsorbed += 1;
   }
   return adsorbed;
+}
+
+export type AdsorptionSamplingMode =
+  | "exact-reference"
+  | "exact-sparse-binomial";
+
+export interface AdsorptionSamplingResult {
+  readonly adsorbedPfu: number;
+  readonly diagnostics: Readonly<{
+    readonly mode: AdsorptionSamplingMode;
+    readonly policyIdentity: string;
+    readonly rngDraws: number;
+  }>;
+}
+
+/**
+ * Policy-bounded adsorption sampler for runtime composition. The accelerated
+ * path remains an exact Binomial(freePhagePfu, adsorptionProbability) draw.
+ */
+export function sampleAdsorbedPfuWithPolicy(
+  freePhagePfu: number,
+  adsorptionProbability: number,
+  rng: SimulationRng,
+  policy: SamplingExecutionPolicy,
+): AdsorptionSamplingResult {
+  nonNegativeSafeInteger("freePhagePfu", freePhagePfu);
+  if (
+    !Number.isFinite(adsorptionProbability) ||
+    adsorptionProbability < 0 ||
+    adsorptionProbability > 1
+  ) {
+    throw new RangeError("adsorptionProbability must be finite in [0, 1]");
+  }
+  validateSamplingExecutionPolicy(policy);
+  const policyIdentity = samplingExecutionPolicyIdentity(policy);
+
+  if (freePhagePfu <= policy.exactTrialLimit) {
+    return {
+      adsorbedPfu: sampleExactAdsorbedPfu(
+        freePhagePfu,
+        adsorptionProbability,
+        rng,
+      ),
+      diagnostics: {
+        mode: "exact-reference",
+        policyIdentity,
+        rngDraws: freePhagePfu,
+      },
+    };
+  }
+
+  const expectedDraws = expectedSparseBinomialDraws(
+    freePhagePfu,
+    adsorptionProbability,
+  );
+  requireAcceleratedSampling(freePhagePfu, expectedDraws, policy);
+
+  return runSamplingTransaction(rng, (transactionRng) => {
+    const budget = createSamplingDrawBudget(policy);
+    const adsorbedPfu = sampleExactSparseBinomial(
+      freePhagePfu,
+      adsorptionProbability,
+      transactionRng,
+      budget,
+      policyIdentity,
+    );
+    return {
+      adsorbedPfu,
+      diagnostics: {
+        mode: "exact-sparse-binomial" as const,
+        policyIdentity,
+        rngDraws: budget.used,
+      },
+    };
+  });
 }
 
 export function diffusionCoefficientGridCellsSquaredPerMinute(

@@ -87,7 +87,7 @@ export interface PixiDishOptions {
 export interface PixiDishRenderer {
   update(snapshot: DishRenderSnapshot): void;
   updatePresentation(
-    snapshot: DishVisualState,
+    snapshot: DishRenderSnapshot,
     overlayId: string | null,
   ): void;
   setOverlay(overlayId: string | null): void;
@@ -702,7 +702,7 @@ function drawScene(args: {
 function drawField(
   graphics: Graphics,
   field: RenderField,
-  snapshot: DishRenderSnapshot,
+  snapshot: DishVisualState,
   camera: CameraView,
   centerX: number,
   centerY: number,
@@ -762,7 +762,7 @@ function drawField(
 function drawLineageDensity(
   graphics: Graphics,
   lineage: RenderLineage,
-  snapshot: DishRenderSnapshot,
+  snapshot: DishVisualState,
   camera: CameraView,
   centerX: number,
   centerY: number,

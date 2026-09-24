@@ -176,9 +176,15 @@ const TARGET_UNITS = new Set<string>([
   'grid-cell',
 ])
 
-const PARAMETER_ORDER = new Map<EcologyCalibrationParameter, number>(
-  CALIBRATABLE_ECOLOGY_PARAMETERS.map((parameter, index) => [parameter, index]),
-)
+const PARAMETER_ORDER: Readonly<
+  Record<EcologyCalibrationParameter, number>
+> = Object.freeze({
+  maxDivisionRate: 0,
+  halfSaturation: 1,
+  biomassYield: 2,
+  localCapacity: 3,
+  spreadRate: 4,
+})
 
 function requireRecord(name: string, value: unknown): UnknownRecord {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
@@ -421,8 +427,7 @@ export function parseEcologyCalibrationObjective(
   }
   parameterGrids.sort(
     (left, right) =>
-      PARAMETER_ORDER.get(left.parameter)! -
-      PARAMETER_ORDER.get(right.parameter)!,
+      PARAMETER_ORDER[left.parameter] - PARAMETER_ORDER[right.parameter],
   )
 
   let candidateCount = 1

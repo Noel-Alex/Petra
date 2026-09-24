@@ -18,6 +18,12 @@ import {
 import { applyKeyboardCameraKey } from "./keyboardCamera";
 import { createResizeRedrawScheduler } from "./resizeScheduler";
 import {
+  applyPinchGesture,
+  removeTouchPointer,
+  upsertTouchPointer,
+  type TouchPointerSample,
+} from "./touchGesture";
+import {
   cameraTransitionComplete,
   interpolateCameraTransition,
   type CameraMotionSpec,
@@ -80,6 +86,7 @@ export async function createPixiDishRenderer(
   let destroyed = false;
   let dragging = false;
   let lastPointer: ScreenPoint | null = null;
+  let activeTouchPointers: readonly TouchPointerSample[] = [];
 
   const maxRepresentativeGlyphs = options.maxRepresentativeGlyphs ?? 180;
 
@@ -154,14 +161,74 @@ export async function createPixiDishRenderer(
 
   const onPointerDown = (event: PointerEvent) => {
     if (event.button !== 0) return;
-    dragging = true;
-    lastPointer = localPointer(event);
+    const point = localPointer(event);
     app.canvas.setPointerCapture(event.pointerId);
+
+    if (event.pointerType === "touch") {
+      event.preventDefault();
+      activeTouchPointers = upsertTouchPointer(
+        activeTouchPointers,
+        event.pointerId,
+        point,
+      );
+      dragging = activeTouchPointers.length === 1;
+      lastPointer = dragging ? point : null;
+      return;
+    }
+
+    dragging = true;
+    lastPointer = point;
   };
 
   const onPointerMove = (event: PointerEvent) => {
-    if (!dragging || lastPointer === null || targetCamera.zoom <= 1) return;
     const next = localPointer(event);
+
+    if (event.pointerType === "touch") {
+      if (!activeTouchPointers.some((pointer) => pointer.id === event.pointerId)) return;
+      event.preventDefault();
+      const previousTouchPointers = activeTouchPointers;
+      activeTouchPointers = upsertTouchPointer(
+        activeTouchPointers,
+        event.pointerId,
+        next,
+      );
+
+      if (previousTouchPointers.length >= 2 && activeTouchPointers.length >= 2) {
+        beginCameraTransition(
+          applyPinchGesture(
+            targetCamera,
+            previousTouchPointers,
+            activeTouchPointers,
+            { width: app.screen.width, height: app.screen.height },
+          ),
+        );
+        dragging = false;
+        lastPointer = null;
+        render();
+        return;
+      }
+
+      const previousPointer = previousTouchPointers.find(
+        (pointer) => pointer.id === event.pointerId,
+      )?.point;
+      if (activeTouchPointers.length === 1 && previousPointer !== undefined) {
+        dragging = true;
+        lastPointer = next;
+        if (targetCamera.zoom > 1) {
+          beginCameraTransition(
+            panCamera(
+              targetCamera,
+              { x: next.x - previousPointer.x, y: next.y - previousPointer.y },
+              { width: app.screen.width, height: app.screen.height },
+            ),
+          );
+          render();
+        }
+      }
+      return;
+    }
+
+    if (!dragging || lastPointer === null || targetCamera.zoom <= 1) return;
     beginCameraTransition(
       panCamera(
         targetCamera,
@@ -174,8 +241,17 @@ export async function createPixiDishRenderer(
   };
 
   const finishPointer = (event: PointerEvent) => {
-    dragging = false;
-    lastPointer = null;
+    if (event.pointerType === "touch") {
+      event.preventDefault();
+      activeTouchPointers = removeTouchPointer(activeTouchPointers, event.pointerId);
+      const remainingPointer = activeTouchPointers[0]?.point ?? null;
+      dragging = activeTouchPointers.length === 1;
+      lastPointer = dragging ? remainingPointer : null;
+    } else {
+      dragging = false;
+      lastPointer = null;
+    }
+
     if (app.canvas.hasPointerCapture(event.pointerId)) {
       app.canvas.releasePointerCapture(event.pointerId);
     }

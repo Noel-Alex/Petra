@@ -44,6 +44,27 @@ For humans and coding agents:
 6. [`research/RESEARCH_STATUS.md`](research/RESEARCH_STATUS.md) — what is grounded now vs still needs research.
 7. GitHub Issues — canonical executable work queue.
 
+## Run locally
+
+Prerequisites: a current LTS release of Node.js with npm.
+
+```bash
+git clone https://github.com/Noel-Alex/Petra.git
+cd Petra
+npm ci
+npm run dev
+```
+
+Open the local URL printed by Vite (typically `http://localhost:5173`).
+
+Before submitting changes, run the repository verification suite:
+
+```bash
+npm run verify
+```
+
+Useful individual commands are `npm test` for the deterministic Vitest suite, `npm run typecheck` for strict TypeScript checking, `npm run build` for a production build, and `npm run preview` to serve that production build locally.
+
 ## Repository map
 
 ### Scientific evidence

@@ -130,3 +130,10 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Until runtime #37/#42 supplies exact run/tick/simulation-time identity, this state machine preserves selection + composed-state identity only; adapters must not fabricate a biological timestamp.
 - `RegionInspectorPanel.tsx` is the reusable DOM readout for this lifecycle. It may display only `AuthoritativeRegionInspection` results, must label stale/error-retained results with their original selection identity, and must keep `model-biomass` / `model-resource` explicit rather than upgrading them into physical units. The typed `no-grid-coverage` result is an authoritative absence-of-measurement outcome: present it explicitly and never synthesize zero biomass/resource or lineage fractions from it.
 - Selected-cell count means authoritative simulation grid cells, not bacterial cell count. Configuration fingerprint and composed state version are identity/schema metadata, not a biological timestamp.
+
+## Localized intervention placement preview
+- `interventionPlacement.ts` owns the framework-neutral, presentation-only placement lifecycle and circular normalized target constraint. It may select a tool and target point; it never creates a simulator command.
+- The placement target ring radius is cursor affordance only. It is **not** an antibiotic radius, inoculum footprint, nutrient spread distance, fungal growth radius, prediction, or biological parameter and must never enter simulation authority.
+- `InterventionTool` may include presentation vocabulary before a mechanism is promoted (currently inoculate, fungi, antibiotic, nutrient), but availability to preview must not be presented as scientific support to apply.
+- Keyboard-equivalent target movement is exposed through explicit horizontal/vertical controls; direct dish pointer/touch targeting is an additional input path, not the only path.
+- Escape and the explicit Cancel action end placement without emitting a command. Apply remains disabled until authoritative scenario metadata supplies the real typed command, labels, units, bounds, and parameter semantics.

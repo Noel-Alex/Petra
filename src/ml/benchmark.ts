@@ -52,6 +52,9 @@ export interface SurrogateBenchmarkEvidence {
   readonly baselineId: string;
   readonly datasetVersion: string;
   readonly engineVersion: string;
+  readonly datasetScenarioId: string;
+  readonly datasetScenarioVersion: string;
+  readonly datasetNormalizationProfileId: string;
   readonly datasetSchema: MechanisticDatasetSchemaIdentity;
   readonly compatibility: SurrogateCompatibilityIdentity;
   readonly splitPolicyVersion: string;
@@ -130,6 +133,9 @@ export function buildSurrogateBenchmarkEvidence(args: {
     baselineId: args.baselineId,
     datasetVersion: args.dataset.datasetVersion,
     engineVersion: args.dataset.engineVersion,
+    datasetScenarioId: args.dataset.scenarioId,
+    datasetScenarioVersion: args.dataset.scenarioVersion,
+    datasetNormalizationProfileId: args.dataset.normalizationProfileId,
     datasetSchema: { ...args.dataset.datasetSchema },
     compatibility: {
       ...args.compatibility,
@@ -279,6 +285,24 @@ export function assessSurrogatePromotion(args: {
       kind: "dataset-schema-mismatch",
       message:
         "benchmark evidence dataset schema does not match the model compatibility contract",
+    });
+  }
+
+  const expectedDatasetScenarioSupported =
+    args.expectedCompatibility.supportedScenarios.some(
+      (scenario) =>
+        scenario.scenarioId === evidence.datasetScenarioId &&
+        scenario.scenarioVersion === evidence.datasetScenarioVersion,
+    );
+  if (
+    !expectedDatasetScenarioSupported ||
+    evidence.datasetNormalizationProfileId !==
+      args.expectedCompatibility.normalizationProfileId
+  ) {
+    issues.push({
+      kind: "compatibility-mismatch",
+      message:
+        "benchmark evidence dataset scenario/normalization provenance does not match the model compatibility contract",
     });
   }
 

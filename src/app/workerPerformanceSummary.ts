@@ -14,7 +14,7 @@ export interface WorkerPerformanceSummary {
   readonly workerExecutionMsPerAdvanceTick: number | null;
   readonly totalNonWorkerRoundTripMs: number;
   readonly maxQueuedRequestsBehindAtDispatch: number;
-  readonly maxAuthoritativeEventQueueLength: number;
+  readonly maxAuthoritativeEventArrayLength: number;
   readonly observationWindowMs: number;
   readonly observedPayloadBytesPerSecond: number | null;
 }
@@ -39,7 +39,7 @@ export function summarizeWorkerPerformance(
   let totalMeasuredAdvanceExecutionMs = 0;
   let totalNonWorkerRoundTripMs = 0;
   let maxQueuedRequestsBehindAtDispatch = 0;
-  let maxAuthoritativeEventQueueLength = 0;
+  let maxAuthoritativeEventArrayLength = 0;
   let firstDispatchAtMs = Number.POSITIVE_INFINITY;
   let lastCompletionAtMs = Number.NEGATIVE_INFINITY;
 
@@ -72,9 +72,9 @@ export function summarizeWorkerPerformance(
       maxQueuedRequestsBehindAtDispatch,
       sample.queuedRequestsBehindAtDispatch,
     );
-    maxAuthoritativeEventQueueLength = Math.max(
-      maxAuthoritativeEventQueueLength,
-      sample.authoritativeEventQueueLength ?? 0,
+    maxAuthoritativeEventArrayLength = Math.max(
+      maxAuthoritativeEventArrayLength,
+      sample.authoritativeEventArrayLength ?? 0,
     );
     firstDispatchAtMs = Math.min(
       firstDispatchAtMs,
@@ -107,7 +107,7 @@ export function summarizeWorkerPerformance(
         : totalMeasuredAdvanceExecutionMs / totalMeasuredAdvanceTicks,
     totalNonWorkerRoundTripMs,
     maxQueuedRequestsBehindAtDispatch,
-    maxAuthoritativeEventQueueLength,
+    maxAuthoritativeEventArrayLength,
     observationWindowMs,
     observedPayloadBytesPerSecond:
       observationWindowMs <= 0

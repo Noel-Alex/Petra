@@ -30,6 +30,7 @@ Own Petra's accessible DOM/UI presentation language, motion policy, story transi
 
 ## Scientific timeline
 - Preserve event sequence, tick, simulation time, and command identity.
+- Event sequence is authoritative timeline identity: within one snapshot it must be a non-negative safe integer and strictly increasing. Gaps are valid; duplicates/out-of-order identities fail visibly. UI adapters must never repair them by sorting, renumbering, deduplicating, array-index keys, or last-write-wins.
 - Project each event's supplied authoritative `simulationTimeHours` directly. Never infer an older event's biological time from the latest snapshot/checkpoint tick ratio.
 - Timeline labels may explain events but cannot alter their scientific meaning.
 - User interventions should appear only after/with authoritative event confirmation in the eventual runtime adapter.

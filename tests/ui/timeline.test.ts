@@ -79,6 +79,63 @@ describe('scientific timeline projection', () => {
     ])
   })
 
+  it('preserves valid non-contiguous authoritative sequence identities', () => {
+    const timeline = buildScientificTimeline(
+      snapshotWith([
+        { sequence: 0, tick: 0, simulationTimeHours: 0, type: 'initialized' },
+        { sequence: 2, tick: 30, simulationTimeHours: 0.5, type: 'advanced' },
+        { sequence: 9, tick: 60, simulationTimeHours: 1, type: 'advanced' },
+      ]),
+    )
+
+    expect(timeline.map((entry) => entry.sequence)).toEqual([0, 2, 9])
+    expect(timeline.map((entry) => entry.id)).toEqual([
+      'event-0',
+      'event-2',
+      'event-9',
+    ])
+  })
+
+  it('rejects duplicate authoritative event sequence identity', () => {
+    expect(() =>
+      buildScientificTimeline(
+        snapshotWith([
+          { sequence: 0, tick: 0, simulationTimeHours: 0, type: 'initialized' },
+          { sequence: 0, tick: 1, simulationTimeHours: 0.1, type: 'advanced' },
+        ]),
+      ),
+    ).toThrow(/duplicate authoritative event sequence: 0/)
+  })
+
+  it('rejects decreasing authoritative event sequences instead of sorting them', () => {
+    expect(() =>
+      buildScientificTimeline(
+        snapshotWith([
+          { sequence: 4, tick: 0, simulationTimeHours: 0, type: 'initialized' },
+          { sequence: 3, tick: 1, simulationTimeHours: 0.1, type: 'advanced' },
+        ]),
+      ),
+    ).toThrow(/event sequences must be strictly increasing/)
+  })
+
+  it.each([-1, 0.5, Number.MAX_SAFE_INTEGER + 1])(
+    'rejects invalid authoritative event sequence %s',
+    (sequence) => {
+      expect(() =>
+        buildScientificTimeline(
+          snapshotWith([
+            {
+              sequence,
+              tick: 0,
+              simulationTimeHours: 0,
+              type: 'initialized',
+            },
+          ]),
+        ),
+      ).toThrow(/event sequence must be a non-negative safe integer/)
+    },
+  )
+
   it('never reinterprets an older event from the latest checkpoint ratio', () => {
     const timeline = buildScientificTimeline(
       snapshotWith([

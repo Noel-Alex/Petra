@@ -9,6 +9,16 @@ export interface RegoesPharmacodynamics {
   kappa: number;
 }
 
+export interface PreparedMicShiftedRegoes {
+  readonly psiMaxLog10PerHour: number;
+  readonly psiMinLog10PerHour: number;
+  readonly kappa: number;
+  readonly referenceZMic: number;
+  readonly referenceMic: number;
+  readonly genotypeMic: number;
+  readonly effectiveZMic: number;
+}
+
 export interface MicShiftedResponse {
   referenceZMic: number;
   referenceMic: number;
@@ -24,6 +34,11 @@ function assertFinite(name: string, value: number): void {
   if (!Number.isFinite(value)) throw new RangeError(`${name} must be finite`);
 }
 
+function assertConcentration(concentration: number): void {
+  assertFinite("concentration", concentration);
+  if (concentration < 0) throw new RangeError("concentration must be >= 0");
+}
+
 export function validateRegoesParameters(pd: RegoesPharmacodynamics): void {
   assertFinite("psiMaxLog10PerHour", pd.psiMaxLog10PerHour);
   assertFinite("psiMinLog10PerHour", pd.psiMinLog10PerHour);
@@ -33,6 +48,26 @@ export function validateRegoesParameters(pd: RegoesPharmacodynamics): void {
   if (pd.psiMinLog10PerHour >= 0) throw new RangeError("psiMinLog10PerHour must be < 0");
   if (pd.zMic <= 0) throw new RangeError("zMic must be > 0");
   if (pd.kappa <= 0) throw new RangeError("kappa must be > 0");
+}
+
+function evaluateRegoesNetRateLog10PerHour(
+  concentration: number,
+  psiMaxLog10PerHour: number,
+  psiMinLog10PerHour: number,
+  zMic: number,
+  kappa: number,
+): number {
+  if (concentration === 0) return psiMaxLog10PerHour;
+
+  // Algebraically equivalent to the source form, but evaluated with the
+  // inverse concentration ratio. This avoids Infinity/Infinity at extremely
+  // high finite concentration while preserving the finite psi_min asymptote.
+  const inverseScaled = Math.pow(zMic / concentration, kappa);
+  const denominator = 1 - (psiMinLog10PerHour / psiMaxLog10PerHour) * inverseScaled;
+  return (
+    psiMaxLog10PerHour -
+    (psiMaxLog10PerHour - psiMinLog10PerHour) / denominator
+  );
 }
 
 /**
@@ -46,16 +81,14 @@ export function regoesNetRateLog10PerHour(
   concentration: number,
   pd: RegoesPharmacodynamics,
 ): number {
-  assertFinite("concentration", concentration);
-  if (concentration < 0) throw new RangeError("concentration must be >= 0");
+  assertConcentration(concentration);
   validateRegoesParameters(pd);
-  if (concentration === 0) return pd.psiMaxLog10PerHour;
-
-  const scaled = Math.pow(concentration / pd.zMic, pd.kappa);
-  const denominator = scaled - pd.psiMinLog10PerHour / pd.psiMaxLog10PerHour;
-  return (
-    pd.psiMaxLog10PerHour -
-    ((pd.psiMaxLog10PerHour - pd.psiMinLog10PerHour) * scaled) / denominator
+  return evaluateRegoesNetRateLog10PerHour(
+    concentration,
+    pd.psiMaxLog10PerHour,
+    pd.psiMinLog10PerHour,
+    pd.zMic,
+    pd.kappa,
   );
 }
 
@@ -72,6 +105,53 @@ export function naturalRateToLog10PerHour(rateNaturalPerHour: number): number {
 }
 
 /**
+ * Prepare one genotype-shifted curve once so spatial hot loops do not repeatedly
+ * validate/rebuild the same cross-study MIC transformation for every grid cell.
+ */
+export function prepareMicShiftedRegoes(
+  reference: RegoesPharmacodynamics,
+  referenceMic: number,
+  genotypeMic: number,
+): PreparedMicShiftedRegoes {
+  assertFinite("referenceMic", referenceMic);
+  assertFinite("genotypeMic", genotypeMic);
+  if (referenceMic <= 0) throw new RangeError("referenceMic must be > 0");
+  if (genotypeMic <= 0) throw new RangeError("genotypeMic must be > 0");
+  validateRegoesParameters(reference);
+
+  return {
+    psiMaxLog10PerHour: reference.psiMaxLog10PerHour,
+    psiMinLog10PerHour: reference.psiMinLog10PerHour,
+    kappa: reference.kappa,
+    referenceZMic: reference.zMic,
+    referenceMic,
+    genotypeMic,
+    effectiveZMic: reference.zMic * (genotypeMic / referenceMic),
+  };
+}
+
+export function preparedMicShiftedNetRateLog10PerHour(
+  concentration: number,
+  prepared: PreparedMicShiftedRegoes,
+): number {
+  assertConcentration(concentration);
+  return evaluateRegoesNetRateLog10PerHour(
+    concentration,
+    prepared.psiMaxLog10PerHour,
+    prepared.psiMinLog10PerHour,
+    prepared.effectiveZMic,
+    prepared.kappa,
+  );
+}
+
+export function preparedMicShiftedNetRateNaturalPerHour(
+  concentration: number,
+  prepared: PreparedMicShiftedRegoes,
+): number {
+  return log10RateToNaturalPerHour(preparedMicShiftedNetRateLog10PerHour(concentration, prepared));
+}
+
+/**
  * Transfer the reference curve horizontally by the ratio of genotype MIC to
  * reference MIC. This is an explicit cross-study composition assumption, not a
  * genotype-specific time-kill measurement.
@@ -82,21 +162,14 @@ export function micShiftedRegoesResponse(
   referenceMic: number,
   genotypeMic: number,
 ): MicShiftedResponse {
-  assertFinite("referenceMic", referenceMic);
-  assertFinite("genotypeMic", genotypeMic);
-  if (referenceMic <= 0) throw new RangeError("referenceMic must be > 0");
-  if (genotypeMic <= 0) throw new RangeError("genotypeMic must be > 0");
-  validateRegoesParameters(reference);
-
-  const effectiveZMic = reference.zMic * (genotypeMic / referenceMic);
-  const shifted = { ...reference, zMic: effectiveZMic };
-  const netRateLog10PerHour = regoesNetRateLog10PerHour(concentration, shifted);
+  const prepared = prepareMicShiftedRegoes(reference, referenceMic, genotypeMic);
+  const netRateLog10PerHour = preparedMicShiftedNetRateLog10PerHour(concentration, prepared);
 
   return {
-    referenceZMic: reference.zMic,
-    referenceMic,
-    genotypeMic,
-    effectiveZMic,
+    referenceZMic: prepared.referenceZMic,
+    referenceMic: prepared.referenceMic,
+    genotypeMic: prepared.genotypeMic,
+    effectiveZMic: prepared.effectiveZMic,
     netRateLog10PerHour,
     netRateNaturalPerHour: log10RateToNaturalPerHour(netRateLog10PerHour),
   };

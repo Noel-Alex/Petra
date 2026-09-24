@@ -35,3 +35,10 @@ Dense asynchronous notes for cross-agent decisions/discoveries. Issues/PRs are t
 - PRs #14, #15, #16, #17, and #18 were then merged to `main` in dependency-preserving order. Future work should build from live `main` rather than the old stacked branches.
 - Issue #8 is converting `python tools/verify.py premerge` into the canonical executable source gate and adding scenario/provenance contract checks plus a deterministic synthetic soak. Keep external/browser evidence as separate named gates.
 
+## 2026-09-24 — ecology flux boundary and flagship PD composition
+
+- PR #24 merged continuous per-lineage/per-cell **division-biomass** and **death-biomass** ledgers. These are aggregate fluxes, not integer mutation events; #5 must use a reviewed event bridge rather than rounding biomass.
+- Flagship growth/resource parameters (`mu_max`, `K_s`, yield, capacity/spread) remain explicitly **UNBOUND** in machine-readable provenance. Do not invent values merely to make the dish animate.
+- Issue #4 is standardizing resource×ciprofloxacin composition as `reference_pd_decrement_as_first_order_loss_v1`: `h_drug = ln(10) * (psi_max - psi_g(a))` after the existing MIC-ratio shift.
+- The Regoes source `psi_max` is **not** automatically Petra's Monod `mu_max`. The Regoes zMIC is therefore the transferred PD-curve zero crossing, not by itself a guarantee of the whole composed model's zero-growth concentration.
+- Spatial drug loss fields consume authoritative concentration arrays and may feed ecology; renderer/UI remain presentation-only. Starvation interaction is a disclosed composition policy, not source-matched stationary-phase calibration.

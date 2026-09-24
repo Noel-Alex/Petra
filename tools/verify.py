@@ -138,6 +138,23 @@ def scenario_contracts() -> int:
             if isinstance(value, dict) and "minProperties" in spec and len(value) < int(spec["minProperties"]):
                 errors.append(f"{prefix}: field {key!r} has fewer than minProperties={spec['minProperties']}")
 
+        drug = obj.get("drug")
+        if isinstance(drug, dict) and "resourceDrugCompositionPolicy" in drug:
+            policy = drug["resourceDrugCompositionPolicy"]
+            policy_path = f"{prefix}: drug.resourceDrugCompositionPolicy"
+            if not isinstance(policy, dict):
+                errors.append(f"{policy_path} must be an object")
+            else:
+                for key in ("id", "classification", "equation", "stationaryPhaseCalibration"):
+                    value = policy.get(key)
+                    if not isinstance(value, str) or not value.strip():
+                        errors.append(f"{policy_path}.{key} must be a non-empty string")
+                zero_loss = policy.get("zeroDrugIncrementalLoss")
+                if not isinstance(zero_loss, (int, float)) or isinstance(zero_loss, bool) or not math.isfinite(zero_loss):
+                    errors.append(f"{policy_path}.zeroDrugIncrementalLoss must be a finite number")
+                elif zero_loss != 0:
+                    errors.append(f"{policy_path}.zeroDrugIncrementalLoss must be exactly 0")
+
         citations = obj.get("citations", {})
         if not isinstance(citations, dict) or not citations:
             continue

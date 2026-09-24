@@ -21,6 +21,22 @@ Reference form recorded for implementation review:
 
 The implementation must verify units and rate convention before combining with a local natural-log/biomass growth engine.
 
+## Resource × drug composition boundary
+
+The Regoes curve is a **net** population response in its source context, while Petra separately models resource-limited positive division. To avoid double-counting the drug-free baseline, the flagship composition uses only the drug-associated decrement from the reference state:
+
+`delta_drug,g(a) = ln(10) * [psi_g(a) - psi_max]`
+
+and supplies the non-negative loss hazard
+
+`h_drug,g(a) = ln(10) * [psi_max - psi_g(a)]`
+
+to the ecology loss channel.
+
+This is a Petra **transferred mechanistic composition rule**, not an additional measured ciprofloxacin parameter. The MIC-shifted `psi_g` still combines Regoes CAB1/LB shape with Marcusson MG1655 MICs. The resource-limited growth baseline remains separately provenance-owned; do not assume its `mu_max` equals the Regoes drug-free slope unless that seam is explicitly calibrated.
+
+At zero concentration the incremental loss is exactly zero. Under zero resource the current composition can still apply PD-derived loss, but that behavior is a declared modeling choice and must not be presented as quantitatively validated stationary-phase fluoroquinolone action.
+
 ## Spatial drug field
 
 Minimal spatial equation:

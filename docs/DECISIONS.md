@@ -41,3 +41,8 @@ This file records durable decisions that multiple workstreams need to know. It i
 
 ## D-010 — No universal environmental slider
 **Decision:** temperature, pH, phage, HGT and additional species enter Science Mode only through named parameterized systems with explicit evidence and validity ranges.
+
+## D-011 — Compose ciprofloxacin as a PD decrement loss channel
+**Decision:** for flagship policy `reference_pd_decrement_as_first_order_loss_v1`, convert the genotype-shifted Regoes decrement relative to `psi_max` into a non-negative first-order ecology loss hazard. Keep resource-limited division as a separate positive channel.
+
+**Why:** this avoids double-counting the source PD baseline, preserves zero-drug behavior, makes the cross-study seam inspectable, and keeps mutation tied to division rather than antibiotic exposure. Regoes `psi_max` and Petra's Monod `mu_max` remain distinct until explicitly calibrated.

@@ -10,6 +10,8 @@ This is the compact contract between Petra's interface, simulator, and evidence 
 | A generic first-order death hazard is itself a measured ciprofloxacin killing law | **false** | model-composition boundary | hazard is an input mechanism; #4 must derive/provenance drug-associated loss from the named PD policy |
 | Spatial colonies can become diffusion-limited | measured/model-validated mechanism | Shao et al. 2017, DOI 10.1371/journal.pcbi.1005679 | Petra begins in 2-D |
 | Ciprofloxacin effect changes continuously with concentration | measured model form | Regoes et al. 2004, DOI 10.1128/AAC.48.10.3670-3676.2004 | CAB1/LB parameters are context-specific |
+| Petra may compose the MIC-shifted Regoes decrement as a non-negative first-order ecology loss hazard | transferred mechanistic approximation | Regoes model form + explicit Petra resource×drug composition | separates drug decrement from Monod division; starvation interaction is not source-matched calibration |
+| Regoes zMIC automatically guarantees zero net growth in Petra's full resource-limited model | **false** | model-composition boundary | zMIC is the transferred PD-curve crossing; whole-model crossing also depends on the separately calibrated ecology baseline |
 | MG1655 resistance genotypes differ in MIC and fitness | measured | Marcusson et al. 2009, DOI 10.1371/journal.ppat.1000541 | assay/background specific |
 | More resistance mutations do not imply a monotonic fitness cost | measured | Marcusson genotype table | only curated genotypes |
 | Resistant mutants can arise before selection | established mechanism | Luria–Delbrück; Huseby fluctuation tests | curated transitions rather than whole genome |

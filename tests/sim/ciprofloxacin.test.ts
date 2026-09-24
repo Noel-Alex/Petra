@@ -12,6 +12,9 @@ import {
   log10RateToNaturalPerHour,
   micShiftedRegoesResponse,
   naturalRateToLog10PerHour,
+  prepareMicShiftedRegoes,
+  preparedMicShiftedNetRateLog10PerHour,
+  preparedMicShiftedNetRateNaturalPerHour,
   regoesNetRateLog10PerHour,
   type RegoesPharmacodynamics,
 } from "../../src/sim/pharmacodynamics/ciprofloxacin";
@@ -34,9 +37,19 @@ describe("Regoes ciprofloxacin pharmacodynamics", () => {
     expect(regoesNetRateLog10PerHour(REGOES_CAB1_CIPRO.zMic, REGOES_CAB1_CIPRO)).toBeCloseTo(0, 12);
   });
 
-  it("approaches the finite high-concentration lower asymptote", () => {
+  it("approaches the finite high-concentration lower asymptote without overflow", () => {
     const response = regoesNetRateLog10PerHour(1e12, REGOES_CAB1_CIPRO);
     expect(response).toBeCloseTo(REGOES_CAB1_CIPRO.psiMinLog10PerHour, 6);
+
+    const extreme = regoesNetRateLog10PerHour(Number.MAX_VALUE, REGOES_CAB1_CIPRO);
+    expect(Number.isFinite(extreme)).toBe(true);
+    expect(extreme).toBeCloseTo(REGOES_CAB1_CIPRO.psiMinLog10PerHour, 12);
+  });
+
+  it("remains finite and tends to the drug-free maximum at tiny positive concentration", () => {
+    const response = regoesNetRateLog10PerHour(Number.MIN_VALUE, REGOES_CAB1_CIPRO);
+    expect(Number.isFinite(response)).toBe(true);
+    expect(response).toBeCloseTo(REGOES_CAB1_CIPRO.psiMaxLog10PerHour, 12);
   });
 
   it("converts rate conventions without changing population dynamics", () => {
@@ -53,6 +66,22 @@ describe("Regoes ciprofloxacin pharmacodynamics", () => {
     expect(resistant.effectiveZMic).toBeCloseTo(0.017 * (1.0 / 0.03), 14);
     expect(resistant.netRateLog10PerHour).toBeGreaterThan(wt.netRateLog10PerHour);
     expect(resistant.netRateLog10PerHour).toBeLessThanOrEqual(REGOES_CAB1_CIPRO.psiMaxLog10PerHour);
+  });
+
+  it("keeps the prepared spatial evaluator numerically equivalent to the reference path", () => {
+    const prepared = prepareMicShiftedRegoes(REGOES_CAB1_CIPRO, REFERENCE_MIC, 1.0);
+    for (const concentration of [0, 0.001, REGOES_CAB1_CIPRO.zMic, 0.1, 1, 100]) {
+      const reference = micShiftedRegoesResponse(
+        concentration,
+        REGOES_CAB1_CIPRO,
+        REFERENCE_MIC,
+        1.0,
+      );
+      expect(preparedMicShiftedNetRateLog10PerHour(concentration, prepared))
+        .toBeCloseTo(reference.netRateLog10PerHour, 14);
+      expect(preparedMicShiftedNetRateNaturalPerHour(concentration, prepared))
+        .toBeCloseTo(reference.netRateNaturalPerHour, 14);
+    }
   });
 
   it("does not turn resistance into immunity at sufficiently high concentration", () => {

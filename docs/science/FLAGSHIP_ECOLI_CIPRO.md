@@ -66,10 +66,11 @@ A high-value canonical path is:
 2. Diffuse/consume limiting nutrient.
 3. Grow/reproduce locally according to resource state and genotype relative fitness.
 4. Apply ciprofloxacin as a uniform pulse, painted region, radial/linear gradient, or MEGA-like bands.
-5. Convert local drug concentration to genotype-specific net drug response by shifting the reference PD curve using genotype MIC ratios.
-6. Sample mutations from births; create child lineages at their local origin.
-7. Allow fronts to spread into neighboring capacity; no lineage receives a hidden “selection bonus.”
-8. Record lineage ancestry, mutation event, spatial origin, extinction, and front breakthroughs.
+5. Convert local drug concentration to a genotype-specific MIC-shifted PD response, then map only the decrement from the Regoes drug-free reference to the versioned first-order ecology loss policy `reference_pd_decrement_as_first_order_loss_v1`.
+6. Keep the resource-limited division baseline separately provenance-owned; do not silently set it equal to the Regoes `psi_max`.
+7. Sample mutations from reviewed birth/event opportunities; create child lineages at their local origin.
+8. Allow fronts to spread into neighboring capacity; no lineage receives a hidden “selection bonus.”
+9. Record lineage ancestry, mutation event, spatial origin, extinction, and front breakthroughs.
 
 ## Demonstrations Petra should be able to produce
 

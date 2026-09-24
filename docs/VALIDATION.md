@@ -47,7 +47,12 @@ If enabled:
 - net growth decreases with concentration over calibrated range;
 - reference curve crosses approximately zero near `zMIC`;
 - high concentration asymptotes toward finite `psi_min`;
-- resistant phenotype shifts the response rather than giving absolute immunity.
+- resistant phenotype shifts the response rather than giving absolute immunity;
+- zero drug produces zero incremental PD-derived loss;
+- at the reference zMIC, the incremental loss equals the converted reference drug-free PD rate while the transferred PD response itself crosses zero;
+- the spatial loss field follows the authoritative drug mask/concentration state and remains finite/non-negative;
+- zero-resource + drug behavior is tested as a declared composition policy, not reported as stationary-phase calibration;
+- the whole-model zero-growth concentration is not assumed to equal Regoes zMIC until the independent ecology baseline is calibrated.
 
 ## Mutation and selection tests
 

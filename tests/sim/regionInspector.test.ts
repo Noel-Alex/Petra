@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { createComposedState, type ComposedSimulationConfig } from '../../src/sim/authoritative'
-import { inspectAuthoritativeRegion, selectedRegionCellIndices } from '../../src/sim/regionInspector'
+import {
+  inspectAuthoritativeRegion,
+  selectedRegionCellIndices,
+  type AuthoritativeRegionInspection,
+  type AuthoritativeRegionReadout,
+} from '../../src/sim/regionInspector'
 
 const config: ComposedSimulationConfig = {
   width: 3,
@@ -25,6 +30,15 @@ const config: ComposedSimulationConfig = {
   hoursPerTick: 0.01,
 }
 
+function requireCovered(
+  inspection: AuthoritativeRegionInspection,
+): AuthoritativeRegionReadout {
+  if (inspection.coverage !== 'covered') {
+    throw new Error('expected authoritative region coverage')
+  }
+  return inspection
+}
+
 describe('authoritative region inspector', () => {
   it('uses cell-centred normalized coordinates and respects the simulation mask', () => {
     const state = createComposedState(config)
@@ -45,14 +59,60 @@ describe('authoritative region inspector', () => {
     })).toEqual([])
   })
 
-  it('aggregates only authoritative state and preserves explicit abstract units', () => {
+  it('returns explicit no-grid coverage instead of scientific zero values', () => {
     const state = createComposedState(config)
     const inspection = inspectAuthoritativeRegion(state, {
+      id: 'masked-center',
+      centerX: 0.5,
+      centerY: 0.75,
+      radius: 0.2,
+    })
+
+    expect(inspection).toEqual({
+      coverage: 'no-grid-coverage',
+      selectionId: 'masked-center',
+      stateVersion: state.version,
+      configurationFingerprint: state.configurationFingerprint,
+      selectedCellCount: 0,
+    })
+    expect('totalBiomass' in inspection).toBe(false)
+    expect('totalResource' in inspection).toBe(false)
+  })
+
+  it('preserves genuine zero values when at least one authoritative cell is covered', () => {
+    const zeroConfig: ComposedSimulationConfig = {
+      ...config,
+      initialResource: [1, 0, 3, 4, 0, 6],
+      initialLineageBiomass: [
+        [1, 0, 3, 4, 0, 6],
+        [6, 0, 4, 3, 0, 1],
+      ],
+    }
+    const state = createComposedState(zeroConfig)
+    const inspection = requireCovered(inspectAuthoritativeRegion(state, {
+      id: 'covered-zero',
+      centerX: 0.5,
+      centerY: 0.25,
+      radius: 0.1,
+    }))
+
+    expect(inspection.selectedCellCount).toBe(1)
+    expect(inspection.totalResource).toBe(0)
+    expect(inspection.totalBiomass).toBe(0)
+    expect(inspection.lineageBiomass).toEqual([
+      { lineageId: 'ancestor', biomass: 0, fractionOfRegionBiomass: 0 },
+      { lineageId: 'variant', biomass: 0, fractionOfRegionBiomass: 0 },
+    ])
+  })
+
+  it('aggregates only authoritative state and preserves explicit abstract units', () => {
+    const state = createComposedState(config)
+    const inspection = requireCovered(inspectAuthoritativeRegion(state, {
       id: 'upper-row',
       centerX: 0.5,
       centerY: 0.25,
       radius: 0.4,
-    })
+    }))
 
     expect(inspection.selectedCellCount).toBe(3)
     expect(inspection.totalResource).toBe(6)
@@ -75,12 +135,12 @@ describe('authoritative region inspector', () => {
     state.lineageBiomass[0]![4] = 99
     state.lineageBiomass[1]![4] = 99
 
-    const inspection = inspectAuthoritativeRegion(state, {
+    const inspection = requireCovered(inspectAuthoritativeRegion(state, {
       id: 'whole-grid',
       centerX: 0.5,
       centerY: 0.5,
       radius: 1,
-    })
+    }))
     expect(inspection.selectedCellCount).toBe(5)
     expect(inspection.totalResource).toBe(16)
     expect(inspection.totalBiomass).toBe(35)

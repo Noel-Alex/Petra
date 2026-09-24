@@ -5,6 +5,7 @@ import {
   type SimulationSnapshot,
 } from "../sim/protocol";
 import type { ExperimentRuntimeState } from "./experimentRuntime";
+import { runtimeFailure } from "./runtimeRecovery";
 import {
   projectExperimentRuntimeView,
 } from "./runtimeView";
@@ -120,11 +121,14 @@ describe("experiment runtime view", () => {
     expect(runtimeError.statusRole).toBe("alert");
     expect(runtimeError.canTogglePlayback).toBe(false);
 
-    const setupError = projectExperimentRuntimeView(
+    const setupFailure = projectExperimentRuntimeView(
       null,
-      "runtime factory failed",
+      runtimeFailure("runtime", "setup", "runtime factory failed"),
     );
-    expect(setupError.status).toBe("error");
-    expect(setupError.statusText).toBe("runtime factory failed");
+    expect(setupFailure.status).toBe("error");
+    expect(setupFailure.statusText).toContain("authoritative simulation");
+    expect(setupFailure.statusText).not.toContain("runtime factory failed");
+    expect(setupFailure.error).toBe("runtime factory failed");
+    expect(setupFailure.failure?.kind).toBe("runtime");
   });
 });

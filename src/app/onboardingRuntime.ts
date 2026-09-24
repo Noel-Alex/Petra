@@ -7,7 +7,7 @@ import {
   type ScientificGate,
 } from "../ui/onboarding/story";
 import type { ExperimentRuntimeState } from "./experimentRuntime";
-import { runIdentityKey } from "./runIdentityKey";
+import { runIdentityKey as serializeRunIdentityKey } from "./runIdentityKey";
 
 export type OnboardingUserAction = Extract<
   OnboardingEvent,
@@ -46,7 +46,7 @@ export function projectOnboardingRuntime(
   runtime: ExperimentRuntimeState | null,
 ): OnboardingRuntimeProjection {
   const runIdentityKey =
-    runtime === null ? null : runIdentityKey(runtime.controls.identity);
+    runtime === null ? null : serializeRunIdentityKey(runtime.controls.identity);
   const hasAuthoritativeSnapshot = runtime?.snapshot !== null && runtime?.snapshot !== undefined;
   const gates: ScientificGate[] = [];
 

@@ -1,3 +1,9 @@
+import {
+  DEFAULT_ADVANCE_EXECUTION_POLICY,
+  enforceAdvanceExecutionPolicy,
+  validateAdvanceExecutionPolicy,
+  type AdvanceExecutionPolicy,
+} from './advanceExecutionPolicy'
 import { SimulationRng } from './rng'
 import { assertReplayCompatibility } from './replayCompatibility'
 import type {
@@ -80,9 +86,15 @@ export class SimulationEngine {
   private syntheticPopulation = 1_000
   private commandCount = 0
   private readonly events: SimulationEvent[] = []
+  private readonly advanceExecutionPolicy: AdvanceExecutionPolicy
 
-  constructor(identity: RunIdentity) {
+  constructor(
+    identity: RunIdentity,
+    advanceExecutionPolicy: AdvanceExecutionPolicy = DEFAULT_ADVANCE_EXECUTION_POLICY,
+  ) {
+    validateAdvanceExecutionPolicy(advanceExecutionPolicy)
     this.identity = structuredClone(identity)
+    this.advanceExecutionPolicy = Object.freeze({ ...advanceExecutionPolicy })
     this.rng = new SimulationRng(identity.seed)
     this.pushEvent({ type: 'initialized' })
   }
@@ -101,6 +113,7 @@ export class SimulationEngine {
 
     if (command.type === 'advance') {
       if (!Number.isSafeInteger(command.ticks) || command.ticks < 0) throw new Error('advance.ticks must be a non-negative safe integer')
+      enforceAdvanceExecutionPolicy(command.ticks, this.advanceExecutionPolicy)
 
       // Preflight every scalar transition before consuming RNG or mutating state.
       // A rejected command must leave replay authority exactly unchanged.

@@ -163,6 +163,12 @@ export function parseWorkerResponse(
     ) {
       return responseFailure('error.commandId must be a string when present')
     }
+    if (
+      record.code !== undefined &&
+      record.code !== 'advance-execution-policy-refusal'
+    ) {
+      return responseFailure('error.code is not a supported worker error code')
+    }
     if (typeof record.message !== 'string') {
       return responseFailure('error.message must be a string')
     }

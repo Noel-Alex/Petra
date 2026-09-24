@@ -1,6 +1,7 @@
 import {
   type SimulationCommand,
   type SimulationSnapshot,
+  type WorkerErrorCode,
   type WorkerRequest,
   type WorkerResponse,
 } from "../sim/protocol";
@@ -26,6 +27,7 @@ export interface WorkerSessionState {
   readonly pendingCommandId: string | null;
   readonly queuedRequests: number;
   readonly error: string | null;
+  readonly errorCode: WorkerErrorCode | null;
 }
 
 export interface WorkerPortHandlers {
@@ -89,6 +91,7 @@ const INITIAL_STATE: WorkerSessionState = {
   pendingCommandId: null,
   queuedRequests: 0,
   error: null,
+  errorCode: null,
 };
 
 interface ActivePerformanceMeasurement {
@@ -173,6 +176,7 @@ export class WorkerSession {
       pendingCommandId: null,
       queuedRequests: 0,
       error: null,
+      errorCode: null,
     });
     this.listeners.clear();
   }
@@ -188,6 +192,7 @@ export class WorkerSession {
         pendingCommandId: null,
         queuedRequests: 0,
         error: null,
+        errorCode: null,
       });
       return;
     }
@@ -200,6 +205,7 @@ export class WorkerSession {
       pendingCommandId,
       queuedRequests: this.queue.length,
       error: null,
+      errorCode: null,
     });
 
     const outbound: InstrumentedWorkerRequest =
@@ -258,7 +264,7 @@ export class WorkerSession {
         return;
       }
       this.recordPerformance(response, "worker-error");
-      this.fail(response.message, actualId);
+      this.fail(response.message, actualId, response.code ?? null);
       return;
     }
 
@@ -420,6 +426,7 @@ export class WorkerSession {
         pendingCommandId: null,
         queuedRequests: 0,
         error: null,
+        errorCode: null,
       });
       return;
     }
@@ -432,6 +439,7 @@ export class WorkerSession {
       pendingCommandId: null,
       queuedRequests: this.queue.length,
       error: null,
+      errorCode: null,
     };
     this.pump();
   }
@@ -440,7 +448,11 @@ export class WorkerSession {
     return this.active?.type === "command" ? this.active.command.id : null;
   }
 
-  private fail(message: string, commandId: string | null): void {
+  private fail(
+    message: string,
+    commandId: string | null,
+    errorCode: WorkerErrorCode | null = null,
+  ): void {
     this.queue.length = 0;
     this.active = null;
     this.activePerformance = null;
@@ -450,6 +462,7 @@ export class WorkerSession {
       pendingCommandId: commandId,
       queuedRequests: 0,
       error: message,
+      errorCode,
     });
   }
 

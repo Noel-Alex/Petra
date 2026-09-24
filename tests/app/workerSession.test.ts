@@ -656,4 +656,37 @@ describe("worker session", () => {
       ]),
     ).toThrow("WorkerSession is disposed");
   });
+  it('preserves typed execution-policy refusals separately from their message', () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+
+    session.enqueue([
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: {
+          id: "too-many-ticks",
+          type: "advance",
+          ticks: Number.MAX_SAFE_INTEGER,
+        },
+      },
+    ]);
+
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "error",
+      commandId: "too-many-ticks",
+      code: "advance-execution-policy-refusal",
+      message: "advance request exceeds execution policy",
+    });
+
+    expect(session.state).toMatchObject({
+      phase: "error",
+      pendingCommandId: "too-many-ticks",
+      error: "advance request exceeds execution policy",
+      errorCode: "advance-execution-policy-refusal",
+      queuedRequests: 0,
+    });
+  })
+
 });

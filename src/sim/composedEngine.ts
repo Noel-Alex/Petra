@@ -7,6 +7,12 @@ import {
   type ComposedSimulationConfig,
   type ComposedSimulationState,
 } from './authoritative'
+import {
+  DEFAULT_ADVANCE_EXECUTION_POLICY,
+  enforceAdvanceExecutionPolicy,
+  validateAdvanceExecutionPolicy,
+  type AdvanceExecutionPolicy,
+} from './advanceExecutionPolicy'
 import { assertComposedParameterSetBinding } from './parameterSetBinding'
 import { assertReplayCompatibility } from './replayCompatibility'
 import type {
@@ -186,8 +192,14 @@ export class ComposedSimulationEngine {
   private tick = 0
   private commandCount = 0
   private readonly events: SimulationEvent[] = []
+  private readonly advanceExecutionPolicy: AdvanceExecutionPolicy
 
-  constructor(identity: RunIdentity, config: ComposedSimulationConfig) {
+  constructor(
+    identity: RunIdentity,
+    config: ComposedSimulationConfig,
+    advanceExecutionPolicy: AdvanceExecutionPolicy = DEFAULT_ADVANCE_EXECUTION_POLICY,
+  ) {
+    validateAdvanceExecutionPolicy(advanceExecutionPolicy)
     assertComposedParameterSetBinding(identity, config)
 
     if (
@@ -201,6 +213,7 @@ export class ComposedSimulationEngine {
 
     this.identity = structuredClone(identity)
     this.config = structuredClone(config)
+    this.advanceExecutionPolicy = Object.freeze({ ...advanceExecutionPolicy })
     this.state = createComposedState(this.config)
     this.metrics = aggregateState(this.state)
     this.pushEvent({ type: 'initialized' })
@@ -229,6 +242,7 @@ export class ComposedSimulationEngine {
     if (!Number.isSafeInteger(command.ticks) || command.ticks < 0) {
       throw new Error('advance.ticks must be a non-negative safe integer')
     }
+    enforceAdvanceExecutionPolicy(command.ticks, this.advanceExecutionPolicy)
     if (!Number.isSafeInteger(this.tick + command.ticks)) {
       throw new Error('advance would exceed the safe integer tick domain')
     }

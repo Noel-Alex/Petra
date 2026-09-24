@@ -358,10 +358,17 @@ function LineageSourceData({
             <tr>
               <th scope="col">Lineage</th>
               <th scope="col">Parent lineage</th>
-              <th scope="col">Genotype</th>
+              <th scope="col">Genotype ID</th>
+              <th scope="col">Genotype label</th>
               <th scope="col">Created</th>
               <th scope="col">Status</th>
               <th scope="col">Extinct</th>
+              <th scope="col">Abundance</th>
+              <th scope="col">Relative fitness</th>
+              <th scope="col">Origin cell</th>
+              <th scope="col">Mutation class</th>
+              <th scope="col">Source keys</th>
+              <th scope="col">Assumption keys</th>
             </tr>
           </thead>
           <tbody>
@@ -372,13 +379,52 @@ function LineageSourceData({
               >
                 <th scope="row">{node.lineageId}</th>
                 <td>{node.parentLineageId ?? "root"}</td>
-                <td>{node.genotypeId}</td>
+                <td><code>{node.genotypeId}</code></td>
+                <td>
+                  {node.scientificDetail?.genotypeLabel ?? "Not supplied"}
+                </td>
                 <td>{formatSourceNumber(node.createdAtHours)} h</td>
                 <td>{node.status}</td>
                 <td>
                   {node.extinctAtHours === null
                     ? "—"
                     : `${formatSourceNumber(node.extinctAtHours)} h`}
+                </td>
+                <td>
+                  {node.scientificDetail === undefined
+                    ? "Not supplied"
+                    : `${formatSourceNumber(node.scientificDetail.abundanceModelBiomass)} model-biomass`}
+                </td>
+                <td>
+                  {node.scientificDetail === undefined
+                    ? "Not supplied"
+                    : formatSourceNumber(node.scientificDetail.relativeFitness)}
+                </td>
+                <td>
+                  {node.scientificDetail === undefined
+                    ? "Not supplied"
+                    : node.scientificDetail.originCellIndex === null
+                      ? "Not recorded"
+                      : node.scientificDetail.originCellIndex}
+                </td>
+                <td>
+                  {node.scientificDetail === undefined
+                    ? "Not supplied"
+                    : node.scientificDetail.mutationClass ?? "Not recorded"}
+                </td>
+                <td>
+                  {node.scientificDetail === undefined
+                    ? "Not supplied"
+                    : node.scientificDetail.sourceKeys.length === 0
+                      ? "None supplied"
+                      : node.scientificDetail.sourceKeys.join(", ")}
+                </td>
+                <td>
+                  {node.scientificDetail === undefined
+                    ? "Not supplied"
+                    : node.scientificDetail.assumptionKeys.length === 0
+                      ? "None supplied"
+                      : node.scientificDetail.assumptionKeys.join(", ")}
                 </td>
               </tr>
             ))}

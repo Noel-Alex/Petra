@@ -57,6 +57,35 @@ describe("authoritative timeline history", () => {
     expect(markup).toContain("2 events");
   });
 
+  it.each([0, 1, 4, 5, 6])(
+    "keeps timeline history static rather than becoming a second live narrator at %i events",
+    (count) => {
+      const entries = Array.from({ length: count }, (_, index) => event(index));
+      const markup = renderToStaticMarkup(
+        <TimelineHistory entries={entries} />,
+      );
+
+      expect(markup).not.toContain('aria-live=');
+      expect(markup).not.toContain('role="status"');
+
+      if (count === 0) {
+        expect(markup).toContain("No authoritative events yet");
+      } else if (count <= 4) {
+        expect(markup).toContain(
+          `${count} ${count === 1 ? "event" : "events"}`,
+        );
+      } else {
+        expect(markup).toContain("Full history");
+        expect(markup).toContain(`${count} events`);
+      }
+    },
+  );
+
+  it("keeps the component source free of event-arrival live-region ownership", () => {
+    expect(timelineHistorySource).not.toContain("aria-live");
+    expect(timelineHistorySource).not.toContain('role="status"');
+  });
+
   it("rejects invalid recent limits instead of silently dropping history", () => {
     expect(() => planTimelineHistory([event(0)], 0)).toThrow(RangeError);
     expect(() => planTimelineHistory([event(0)], 1.5)).toThrow(RangeError);

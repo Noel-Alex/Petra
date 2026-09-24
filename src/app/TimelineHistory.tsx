@@ -100,7 +100,7 @@ export function TimelineHistory({
           </div>
         </details>
       ) : (
-        <p className="timeline-history__count" aria-live="polite">
+        <p className="timeline-history__count">
           {entries.length} {entries.length === 1 ? "event" : "events"}
         </p>
       )}

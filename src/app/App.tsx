@@ -5,6 +5,7 @@ import {
   type MotionPreference,
 } from "../ui/motion/policy";
 import { MOTION } from "../ui/motion/tokens";
+import { PixiDish } from "./PixiDish";
 
 function useSystemReducedMotion(): boolean {
   const [reduced, setReduced] = useState(() =>
@@ -102,21 +103,7 @@ export function App() {
 
         <section className="dish-stage" aria-label="Petri dish viewport">
           <div className="dish-stage__halo" aria-hidden="true" />
-          <div
-            className="dish-mount"
-            role="img"
-            aria-label="Petri dish renderer mount point"
-          >
-            <div className="dish-placeholder" aria-hidden="true">
-              <span className="dish-placeholder__colony dish-placeholder__colony--a" />
-              <span className="dish-placeholder__colony dish-placeholder__colony--b" />
-              <span className="dish-placeholder__colony dish-placeholder__colony--c" />
-            </div>
-            <div className="dish-caption">
-              <strong>Renderer boundary ready</strong>
-              <span>Pixi/WebGL scene mounts here without owning biology.</span>
-            </div>
-          </div>
+          <PixiDish motionPreference={motionPreference} />
         </section>
 
         <aside className="petra-panel petra-panel--inspector" aria-label="Inspector">

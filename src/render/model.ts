@@ -25,8 +25,21 @@ export function isOverlayKind(value: unknown): value is OverlayKind {
 
 export interface RenderField { readonly id: string; readonly kind: OverlayKind; readonly label: string; readonly unit: string; readonly width: number; readonly height: number; readonly values: Float32Array; readonly minimum: number; readonly maximum: number; }
 export interface RenderLineage { readonly id: string; readonly label: string; readonly appearanceToken: LineageAppearanceToken; readonly patternToken: LineagePatternToken; readonly density: Float32Array; }
+export interface RenderPoint { readonly x: number; readonly y: number; }
+/**
+ * Presentation geometry for an explicitly identified fungal structure.
+ *
+ * Upstream adapters may populate this channel only when authoritative/runtime
+ * metadata identifies the represented organism kind as fungus. The renderer
+ * must never infer fungal identity from lineage color, array order, or density.
+ */
+export interface RenderHyphalPath {
+  readonly id: string;
+  readonly organismKind: "fungus";
+  readonly points: readonly RenderPoint[];
+}
 export interface RenderEvent { readonly id: string; readonly kind: string; readonly simulationTimeHours: number; readonly x: number; readonly y: number; readonly lineageId?: string; readonly label: string; }
-export interface DishRenderSnapshot { readonly snapshotId: string; /** Stable presentation-only domain for deterministic representative-glyph sampling across related snapshots. */ readonly samplingIdentity: string; readonly simulationTimeHours: number; readonly gridWidth: number; readonly gridHeight: number; readonly dishMask: Uint8Array; readonly biomass: Float32Array; readonly fields: readonly RenderField[]; readonly lineages: readonly RenderLineage[]; readonly events: readonly RenderEvent[]; }
+export interface DishRenderSnapshot { readonly snapshotId: string; /** Stable presentation-only domain for deterministic representative-glyph sampling across related snapshots. */ readonly samplingIdentity: string; readonly simulationTimeHours: number; readonly gridWidth: number; readonly gridHeight: number; readonly dishMask: Uint8Array; readonly biomass: Float32Array; readonly fields: readonly RenderField[]; readonly lineages: readonly RenderLineage[]; /** Optional explicit fungal geometry; absence means no render-authorized hyphal structure data is available. */ readonly hyphalPaths?: readonly RenderHyphalPath[]; readonly events: readonly RenderEvent[]; }
 export interface CameraView { readonly centerX: number; readonly centerY: number; readonly zoom: number; }
 export interface SemanticZoomPolicy { readonly colonyAt: number; readonly representativeCellAt: number; }
 
@@ -67,7 +80,50 @@ export function validateRenderSnapshot(snapshot: DishRenderSnapshot): void {
     if (lineageIds.has(lineage.id)) throw new RangeError(`duplicate lineage id: ${lineage.id}`); lineageIds.add(lineage.id);
     assertLength(`lineage ${lineage.id}`, lineage.density.length, cells); assertFiniteNonNegativeArray(`lineage ${lineage.id}`, lineage.density);
   }
+  validateRenderHyphalPaths(snapshot.hyphalPaths ?? []);
   for (const mask of snapshot.dishMask) if (mask !== 0 && mask !== 1) throw new RangeError("dishMask values must be 0 or 1");
+}
+
+export function validateRenderHyphalPaths(
+  paths: readonly RenderHyphalPath[],
+): void {
+  const ids = new Set<string>();
+  for (const path of paths) {
+    if (!path.id) throw new TypeError("render hyphal paths require a non-empty id");
+    if (ids.has(path.id)) throw new RangeError(`duplicate render hyphal path id: ${path.id}`);
+    ids.add(path.id);
+    if (path.organismKind !== "fungus") {
+      throw new RangeError("render hyphal paths require explicit fungus organismKind evidence");
+    }
+    if (path.points.length < 2) {
+      throw new RangeError(`render hyphal path ${path.id} requires at least two points`);
+    }
+    let previous: RenderPoint | null = null;
+    for (const point of path.points) {
+      if (
+        !Number.isFinite(point.x) ||
+        !Number.isFinite(point.y) ||
+        point.x < 0 ||
+        point.x > 1 ||
+        point.y < 0 ||
+        point.y > 1
+      ) {
+        throw new RangeError(
+          `render hyphal path ${path.id} points must be finite normalized dish coordinates`,
+        );
+      }
+      if (
+        previous !== null &&
+        previous.x === point.x &&
+        previous.y === point.y
+      ) {
+        throw new RangeError(
+          `render hyphal path ${path.id} contains a zero-length segment`,
+        );
+      }
+      previous = point;
+    }
+  }
 }
 function assertPositiveInteger(name: string, value: number): void { if (!Number.isInteger(value) || value <= 0) throw new RangeError(`${name} must be a positive integer`); }
 function assertFinitePositive(name: string, value: number): void { if (!Number.isFinite(value) || value <= 0) throw new RangeError(`${name} must be finite and > 0`); }

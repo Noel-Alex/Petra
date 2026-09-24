@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -6,6 +7,19 @@ import {
   resolveScenarioProvenance,
   resolveScenarioTransferAssumptions,
 } from "./scenarioAdapter";
+
+const PANEL_SOURCE = readFileSync(
+  new URL("./ProvenancePanel.tsx", import.meta.url),
+  "utf8",
+);
+const PANEL_CSS = readFileSync(
+  new URL("./provenancePanel.css", import.meta.url),
+  "utf8",
+);
+const APP_SOURCE = readFileSync(
+  new URL("../../app/App.tsx", import.meta.url),
+  "utf8",
+);
 
 describe("provenance panel", () => {
   it("renders complete evidence with text, icon geometry, pattern identity, and sources", () => {
@@ -30,7 +44,7 @@ describe("provenance panel", () => {
     });
 
     const markup = renderToStaticMarkup(
-      <ProvenancePanel records={[record]} />,
+      <ProvenancePanel records={[record]} motionPreference="off" />,
     );
 
     expect(markup).toContain("Ciprofloxacin MIC");
@@ -64,7 +78,7 @@ describe("provenance panel", () => {
     });
 
     const markup = renderToStaticMarkup(
-      <ProvenancePanel records={[record]} />,
+      <ProvenancePanel records={[record]} motionPreference="off" />,
     );
 
     expect(markup).toContain("Needs provenance");
@@ -99,7 +113,7 @@ describe("provenance panel", () => {
     });
 
     const markup = renderToStaticMarkup(
-      <ProvenancePanel records={[record]} />,
+      <ProvenancePanel records={[record]} motionPreference="off" />,
     );
 
     expect(markup).toContain("Unsupported source locator");
@@ -117,7 +131,11 @@ describe("provenance panel", () => {
     });
 
     const markup = renderToStaticMarkup(
-      <ProvenancePanel records={[]} assumptions={assumptions} />,
+      <ProvenancePanel
+        records={[]}
+        assumptions={assumptions}
+        motionPreference="off"
+      />,
     );
 
     expect(markup).toContain("Scenario assumptions");
@@ -136,7 +154,7 @@ describe("provenance panel", () => {
     });
 
     const markup = renderToStaticMarkup(
-      <ProvenancePanel records={[record]} />,
+      <ProvenancePanel records={[record]} motionPreference="off" />,
     );
 
     expect(markup).toContain('role="search"');
@@ -148,6 +166,43 @@ describe("provenance panel", () => {
       "Needs-provenance records always remain visible",
     );
     expect(markup).toContain("1 of 1 records shown");
+  });
+
+
+  it("routes Clear through the shared action policy with explicit app motion projection", () => {
+    const record = resolveScenarioProvenance({
+      id: "motion-contract",
+      label: "Motion contract fixture",
+      record: { classification: "engineering" },
+      scenario: {},
+    });
+
+    for (const motionPreference of ["full", "reduced", "off"] as const) {
+      const markup = renderToStaticMarkup(
+        <ProvenancePanel
+          records={[record]}
+          motionPreference={motionPreference}
+        />,
+      );
+
+      expect(markup).toContain(
+        'class="petra-compact-action provenance-panel__clear"',
+      );
+      expect(markup).toContain(`data-motion="${motionPreference}"`);
+      expect(markup).toContain("disabled");
+      expect(markup).toContain(">Clear</button>");
+    }
+
+    expect(PANEL_SOURCE).toContain("<PetraCompactAction");
+    expect(PANEL_SOURCE).toContain("motionPreference={motionPreference}");
+    expect(PANEL_SOURCE).not.toContain("matchMedia");
+    expect(APP_SOURCE).toContain(
+      "motionPreference={motionPreference}",
+    );
+    expect(PANEL_CSS).not.toContain(
+      ".provenance-panel__filters button:disabled",
+    );
+    expect(PANEL_CSS).not.toMatch(/transition\s*:/);
   });
 
   it("renders transferred mechanistic meaning as two distinct patterned badges", () => {
@@ -169,7 +224,7 @@ describe("provenance panel", () => {
     });
 
     const markup = renderToStaticMarkup(
-      <ProvenancePanel records={[record]} />,
+      <ProvenancePanel records={[record]} motionPreference="off" />,
     );
 
     expect(markup).toContain("Transferred");

@@ -29,6 +29,8 @@ Own React/browser orchestration around Petra's authoritative worker and presenta
 ## Coordination
 - #37 may evolve the composed simulation snapshot/protocol. Keep the browser session generic over WorkerRequest/WorkerResponse so product integration can follow protocol changes without moving biology into React.
 - #39 owns persisted motion preference and onboarding shell presentation. App code must use the shared MotionSetting load/save/parse/resolve helpers; storage failure degrades to in-memory preference rather than breaking controls.
+- `onboardingRuntime.ts` is the only app-layer bridge from runtime state into canonical onboarding `ScientificGate` values. Current synthetic protocol events satisfy **no** causal gates; event-type coverage is exhaustive so protocol expansion requires an explicit gate/no-gate review rather than a silent fallback.
+- Onboarding navigation is presentation-only. Changing run identity, or dropping a previously seen authoritative snapshot during reset/replay reinitialization, resets the controlled guide; Back/Continue/Skip never dispatch worker commands or manufacture simulator evidence.
 - #42 owns the worker/session/control/timeline integration seam.
 - React runtime adapters receive an injected `ExperimentRuntimeFactory`. The factory must return a **fresh idle runtime per effect lifetime** so StrictMode cleanup/remount cannot reuse a disposed WorkerSession.
 - The default app has no runtime factory and must remain visibly unavailable/disabled rather than silently instantiating the synthetic worker scaffold as product authority.

@@ -195,6 +195,20 @@ describe("mechanistic ML dataset generator", () => {
         results,
       ),
     ).toThrow(/group count does not match/);
+
+    expect(() =>
+      buildMechanisticDatasetArtifact(
+        {
+          ...plan,
+          splitCoveragePolicy: {
+            version: "stricter-test-coverage-v1",
+            requiredSplits: ["train"],
+            minimumGroupsPerSplit: plan.splitGroupCounts.train + 1,
+          },
+        },
+        results,
+      ),
+    ).toThrow(/group coverage does not satisfy policy/);
   });
 
   it("refuses missing, duplicate, or unknown trajectory results", () => {
@@ -344,5 +358,26 @@ describe("mechanistic ML dataset generator", () => {
         ...results.slice(1),
       ]),
     ).toThrow(/non-JSON value/);
+
+    const sparse = Array<number>(2);
+    sparse[0] = 1;
+    const sparseInput = {
+      population: initial.input.population,
+      resource: initial.input.resource,
+      sparse,
+    } as unknown as FixtureInput;
+
+    expect(() =>
+      buildMechanisticDatasetArtifact(plan, [
+        {
+          ...first,
+          samples: [
+            { ...initial, input: sparseInput },
+            first.samples[1]!,
+          ],
+        },
+        ...results.slice(1),
+      ]),
+    ).toThrow(/sparse array slot/);
   });
 });

@@ -41,6 +41,7 @@ Own React/browser orchestration around Petra's authoritative worker and presenta
 - The default app has no runtime factory and must remain visibly unavailable/disabled rather than silently instantiating the synthetic worker scaffold as product authority.
 - The React playback scheduler runs at 20 Hz wall-clock cadence as orchestration policy only; playback speed changes authoritative ticks requested per pulse, never the scientific meaning/duration of a tick.
 - App-level playback shortcuts operate only from non-interactive surfaces through `appKeyboard.ts`; focused native/ARIA controls retain their own keyboard semantics, and child surfaces may consume Escape before App. App dispatches only typed experiment-control actions and prevents browser default only after the runtime accepts the action. Visible Play/Pause and speed controls expose the same Space / 1 / 2 / 3 shortcuts through `aria-keyshortcuts`.
+- ARIA `role` values used for global-shortcut shielding are token lists, not one opaque string: normalize/split fallback tokens and block when any recognized interactive role is present; unknown tokens alone do not make a presentation surface interactive.
 - Global shortcuts must also pass the same runtime availability gates as the visible controls: disabled Play/speed states cannot be bypassed by Space or 1/2/3, step requires authoritative `ready`, and global Escape dispatches pause only while playback is running (including pending-running state). Unavailable shortcuts must not suppress normal browser behavior.
 
 ## Verification

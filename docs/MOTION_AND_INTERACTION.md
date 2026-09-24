@@ -130,3 +130,19 @@ Use scroll-driven illustration only on the intro/learn surface. Respect reduced 
 - touch controls remain possible, though desktop is the primary competition target;
 - inspector/tooltips work with keyboard focus;
 - avoid hover-only required actions.
+
+
+## Replay and scrubbing presentation
+
+Replay rendering separates scientific authority from visual continuity. An ordered set of authoritative dish snapshots supplies the keyframes. Exact keyframes remain authoritative; a compatible in-between dish frame may be evaluated deterministically from normalized timeline progress for visual continuity only. Interactive scrub adapters keep one presenter for the current history so validation is not repeated per pointer event and the active keyframe pair reuses its presentation buffers.
+
+Interpolated biomass, fields, and lineage density are never valid substitutes for authoritative scientific readouts, event identity, or checkpoint state. If adjacent keyframes differ in sampling identity, grid/mask geometry, field metadata, or lineage metadata, the presentation fails closed to the previous authoritative keyframe instead of inventing a morph. Until runtime history exposes a stronger ordering identity, ambiguous same-time snapshot keyframes are rejected rather than silently ordered.
+
+
+## Semantic dish motion vocabulary
+
+Petra names recurring dish transitions instead of scattering one-off animation constants through components. The shared vocabulary covers appearance, growth, division, aggregate LOD merging, recession, migration, fungal branching, field diffusion, selection, intervention placement, and focus.
+
+The vocabulary is deliberately evidence-gated. Growth, division, recession, migration, branching, and diffusion may animate only when a caller supplies the required authoritative state or event evidence. Missing evidence fails closed. Aggregate merging is explicitly a presentation-only LOD transition, while selection, placement, and focus are presentation intents.
+
+Each phase exposes a bounded set of visual channels such as opacity, density, radius, contour, path length, outline, position, field texture, or camera. This keeps adapters from turning a convenient animation into a new scientific claim. Timing/easing comes only from existing Petra motion tokens and remains wall-clock presentation time, never biological duration.

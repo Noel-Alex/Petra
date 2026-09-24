@@ -172,7 +172,7 @@ describe('authoritative composed state', () => {
           config.lineages[1]!,
         ],
       }),
-    ).toThrow(/non-empty/)
+    ).toThrow(/non-empty|canonical/)
     expect(() =>
       createComposedState({
         ...config,
@@ -188,6 +188,63 @@ describe('authoritative composed state', () => {
         evolutionScenario: { scenarioId: 'other', scenarioVersion: '1' },
       }),
     ).toThrow(/scenario mismatch/)
+  })
+
+  it('rejects non-canonical replay identities before fitness binding or fingerprinting', () => {
+    expect(() =>
+      createComposedState({
+        ...config,
+        lineages: [
+          { ...config.lineages[0]!, id: ' ancestor ' },
+          config.lineages[1]!,
+        ],
+      }),
+    ).toThrow(/lineage id.*canonical/)
+    expect(() =>
+      createComposedState({
+        ...config,
+        lineages: [
+          { ...config.lineages[0]!, genotypeId: ' WT ' },
+          config.lineages[1]!,
+        ],
+      }),
+    ).toThrow(/genotype id.*canonical/)
+    expect(() =>
+      createComposedState({
+        ...config,
+        evolutionScenario: {
+          scenarioId: ' test-scenario ',
+          scenarioVersion: '1',
+        },
+      }),
+    ).toThrow(/scenario id.*canonical/)
+    expect(() =>
+      createComposedState({
+        ...config,
+        evolutionScenario: {
+          scenarioId: 'test-scenario',
+          scenarioVersion: ' 1 ',
+        },
+      }),
+    ).toThrow(/scenario version.*canonical/)
+  })
+
+  it('rejects malformed serialized identity with explicit validation errors', () => {
+    const malformedValue = createComposedState(config)
+    ;(malformedValue.genotypeIds as unknown[])[0] = 7
+    expect(() => stepComposedState(malformedValue, config)).toThrow(
+      /composed state genotype id.*non-empty string/,
+    )
+
+    const malformedContainer = createComposedState(config)
+    ;(
+      malformedContainer as unknown as {
+        genotypeIds: unknown
+      }
+    ).genotypeIds = 'WT'
+    expect(() => stepComposedState(malformedContainer, config)).toThrow(
+      /identity channels must be arrays/,
+    )
   })
 
   it('rejects non-zero initial ecology state outside the dish mask', () => {

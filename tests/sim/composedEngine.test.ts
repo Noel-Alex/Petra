@@ -16,6 +16,10 @@ import {
   createFixtureComposedParameterSetBinding,
 } from '../../src/sim/parameterSetBinding'
 import { createRunIdentity } from '../../src/sim/protocol'
+import {
+  CELL_EQUIVALENT_CALIBRATION_SCHEMA_VERSION,
+  FRACTIONAL_CARRY_POPULATION_POLICY,
+} from '../../src/sim/populationAuthority'
 
 const evolutionGraph: CuratedMutationGraph = {
   scenarioId: 'composed-worker-fixture',
@@ -101,6 +105,38 @@ const drugIntervention = {
   blendMode: 'set',
   geometry: { kind: 'global' },
 } as const
+
+const populationConfig: ComposedSimulationConfig = {
+  ...config,
+  populationAuthority: {
+    calibration: {
+      schemaVersion: CELL_EQUIVALENT_CALIBRATION_SCHEMA_VERSION,
+      id: 'fixture-engine-cell-scale-v1',
+      modelBiomassPerCellEquivalent: 0.01,
+      provenance: {
+        classification: 'engineering',
+        sourceKeys: [],
+        limitation:
+          'Test-only engineering scale for composed engine population replay.',
+      },
+    },
+    policy: FRACTIONAL_CARRY_POPULATION_POLICY,
+  },
+}
+
+const populationParameterSetId = 'fixture:population-authority-test-config'
+const populationIdentity = createRunIdentity({
+  scenarioId: evolutionGraph.scenarioId,
+  scenarioVersion: evolutionGraph.scenarioVersion,
+  parameterSetId: populationParameterSetId,
+  parameterSetVersion,
+  parameterSetBinding: createFixtureComposedParameterSetBinding(
+    populationParameterSetId,
+    parameterSetVersion,
+    populationConfig,
+  ),
+  seed: 0x5eed562,
+})
 
 const identity = createRunIdentity({
   scenarioId: 'composed-worker-fixture',
@@ -310,6 +346,66 @@ describe('ComposedSimulationEngine', () => {
     expect(noAuthority.snapshot()).toEqual(beforeNoAuthority)
   })
 
+  it('checkpoints discrete population residuals and restores the exact future sequence', () => {
+    const original = new ComposedSimulationEngine(
+      populationIdentity,
+      populationConfig,
+    )
+    const initial = original.snapshot().checkpoint
+    expect(initial.composedState.discretePopulation).not.toBeNull()
+    expect(initial.composedState.discretePopulation?.revision).toBe(0)
+
+    original.execute({ id: 'population-prefix', type: 'advance', ticks: 1 })
+    const checkpoint = original.snapshot().checkpoint
+    expect(checkpoint.composedState.discretePopulation?.revision).toBe(1)
+
+    original.execute({ id: 'population-future', type: 'advance', ticks: 7 })
+    const expected = original.snapshot().checkpoint
+
+    const restored = new ComposedSimulationEngine(
+      populationIdentity,
+      populationConfig,
+    )
+    restored.execute({
+      id: 'population-restore',
+      type: 'restore',
+      checkpoint,
+    })
+    restored.execute({ id: 'population-future', type: 'advance', ticks: 7 })
+
+    expect(restored.snapshot().checkpoint).toEqual(expected)
+    expect(
+      restored.snapshot().checkpoint.composedState.discretePopulation?.revision,
+    ).toBe(8)
+  })
+
+  it('refuses corrupted discrete population checkpoints atomically', () => {
+    const source = new ComposedSimulationEngine(
+      populationIdentity,
+      populationConfig,
+    )
+    source.execute({ id: 'population-prefix', type: 'advance', ticks: 2 })
+    const checkpoint = source.snapshot().checkpoint
+    ;(
+      checkpoint.composedState.discretePopulation!.standingHostCounts[0] as number[]
+    )[0] += 1
+
+    const target = new ComposedSimulationEngine(
+      populationIdentity,
+      populationConfig,
+    )
+    const before = target.snapshot()
+
+    expect(() =>
+      target.execute({
+        id: 'restore-corrupt-population',
+        type: 'restore',
+        checkpoint,
+      }),
+    ).toThrow(/standing|biomass/i)
+    expect(target.snapshot()).toEqual(before)
+  })
+
   it('replays deterministically for identical identity, config, and commands', () => {
     const first = new ComposedSimulationEngine(identity, config)
     const second = new ComposedSimulationEngine(identity, config)
@@ -378,6 +474,25 @@ describe('ComposedSimulationEngine', () => {
     expect(fresh.composedState.ciprofloxacinConcentrationMgPerL[0]).toBe(0)
     expect(fresh.composedState.genotypeIds[0]).toBe('WT')
     expect(fresh.metrics.lineageBiomass.ancestor).toBe(1)
+  })
+
+  it('deep-copies discrete population checkpoint channels out of transport state', () => {
+    const engine = new ComposedSimulationEngine(
+      populationIdentity,
+      populationConfig,
+    )
+    engine.execute({ id: 'population-step', type: 'advance', ticks: 1 })
+    const exported = engine.snapshot()
+    const population = exported.checkpoint.composedState.discretePopulation
+    if (population === null) throw new Error('expected population authority')
+    ;(population.standingHostCounts[0] as number[])[0] = 999
+    ;(population.divisionResidualCellEquivalents[0] as number[])[0] = 0.99
+
+    const fresh =
+      engine.snapshot().checkpoint.composedState.discretePopulation
+    expect(fresh).not.toBeNull()
+    expect(fresh?.standingHostCounts[0]?.[0]).not.toBe(999)
+    expect(fresh?.divisionResidualCellEquivalents[0]?.[0]).not.toBe(0.99)
   })
 
   it('uses one scientific-state validator for direct continuation and restore', () => {

@@ -481,13 +481,10 @@ function insideViewport(
   centerY: number,
   dishSize: number,
 ): boolean {
-  const half = dishSize * 0.54;
-  return (
-    point.x >= centerX - half &&
-    point.x <= centerX + half &&
-    point.y >= centerY - half &&
-    point.y <= centerY + half
-  );
+  const dx = point.x - centerX;
+  const dy = point.y - centerY;
+  const radius = dishSize * 0.5;
+  return dx * dx + dy * dy <= radius * radius;
 }
 
 function mix(current: number, target: number, amount: number): number {

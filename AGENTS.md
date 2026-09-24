@@ -11,6 +11,18 @@ Petra uses a hierarchical **DOX / AGENTS.md** system so humans and short-lived c
 - Rendering may interpolate or explain simulation state; it must never secretly determine biological outcomes.
 - Petra is an educational/research simulator, not a clinical dosing or treatment tool.
 
+## Current execution priority — functional flagship first
+
+Petra's immediate project priority is **a genuinely working authoritative flagship simulation**, not further surface polish in isolation. Current `main` contains substantial mechanism kernels, infrastructure, renderer/UI systems, tests, and research, but those pieces must not be mistaken for an end-to-end functional product while the composed flagship runtime remains incomplete.
+
+- **P0 functionality:** prefer work that closes the authoritative path from scenario/configuration → composed simulation state → worker/runtime commands → checkpoints/replay → real snapshots/events/metrics → product adapters. Issue #37 is the central integration seam; its prerequisites and blockers inherit this priority.
+- **Dependencies count as functionality work:** numerical correctness, missing science contracts, parameter binding/calibration, deterministic tooling, local experiments, datasets, and validation are P0 when they directly unblock the working flagship.
+- **UI/design/motion remains a core quality requirement, but is secondary in scheduling:** continue it in parallel when spare/non-conflicting agent capacity exists, or when functional work is blocked. Do not let cosmetic polish consume ownership needed by an available P0 functional blocker.
+- **ML is downstream of mechanistic authority:** dataset generation or model training is useful only after/where authoritative mechanistic trajectories and validation gates exist. Never use a learned model to hide a missing functional simulation path.
+- **Architecture stays evidence-driven:** do not introduce WASM, a hosted backend, GPU services, or other complexity merely to appear advanced. Adopt them only when profiling, batch-workload, data, or validation needs justify them.
+
+When choosing between an unblocked functional blocker and a cosmetic improvement of similar scope, take the functional blocker first. A polished shell is not completion until the science/runtime underneath it actually works.
+
 ## Work selection and claims
 
 1. Read open Issues/PRs and `docs/TEAM_BOARD.md`.

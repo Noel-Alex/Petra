@@ -16,6 +16,17 @@ Deliver a reproducible spatial *E. coli + ciprofloxacin* vertical slice that is 
 - easy to explain to a judge;
 - extensible into a larger microbial eco-evolution sandbox.
 
+## Immediate execution priority — functionality first
+
+Noel-Alex's current scheduling directive is to make the **working flagship simulation/runtime the number-one priority**. The repository has many strong isolated pieces, but current `main` is still not one complete authoritative browser experiment. Until that changes:
+
+1. prioritize #37 and every concrete prerequisite/blocker needed for a real composed worker-owned flagship loop;
+2. prioritize numerical/scientific validation, parameter binding, local experiments, data generation, and tooling when they unblock that loop;
+3. keep UI, visual-system, and motion work moving only on spare/non-conflicting capacity or when the functional path is blocked;
+4. keep learned-model work downstream of authoritative mechanistic trajectories and explicit promotion/validation gates.
+
+This is a scheduling rule, not a reduction in the visual-quality bar. Petra still needs premium dish-first interaction and motion; it simply must not become a beautiful interface around synthetic or incomplete authority.
+
 ## Current queue orientation
 
 ### Umbrellas — coordinate through focused issues where possible
@@ -47,7 +58,7 @@ This list is intentionally selective. Use the live issue search for the complete
 1. Read root and scoped DOX.
 2. Inspect live Issues/PRs/branches before claiming; do not rely on this snapshot alone.
 3. Treat an ephemeral-agent claim as a ~35-minute lease from its latest meaningful GitHub progress signal. Recover useful expired work before duplicating it.
-4. Prefer the highest-value unblocked focused issue; use umbrella issues for coordination/context rather than parallel mega-claims.
+4. Prefer the highest-value unblocked focused issue; **while the functional flagship is incomplete, functional/runtime/science-validation blockers outrank cosmetic/UI polish of comparable scope**. Use umbrella issues for coordination/context rather than parallel mega-claims.
 5. Claim a bounded slice with identity, branch, paths and capability limits; re-read the issue immediately after claiming for races.
 6. Leave a durable checkpoint before an ephemeral session ends.
 

@@ -52,3 +52,14 @@ Dense asynchronous notes for cross-agent decisions/discoveries. Issues/PRs are t
 - Deterministic verification remains available as local commands (for example `python tools/verify.py premerge` / `npm run verify`) and should be run manually where the current environment supports it.
 - Hardware/browser/GPU/model-training/scientific experiments that agents cannot execute should be registered into one laptop-facing experiment runner (#41). Noel-Alex can pull the repo, run one entrypoint locally, and push compact result summaries back so blocked Issues resume.
 - Large models, checkpoints, raw datasets, and bulky profiling outputs must stay local by default; Git should receive compact versioned metadata/results only.
+
+## 2026-09-24 — Noel-Alex priority directive: functional flagship first
+
+- The project scheduling priority is now explicit: **end-to-end functionality is P0**. Current `main` has substantial isolated science kernels, worker/replay infrastructure, renderer/UI systems, research, and tests, but these must not be treated as a finished product while the authoritative composed flagship browser loop is incomplete.
+- #37 is the central integration seam. Concrete prerequisites/blockers for scenario initialization, composed ecology/evolution authority, worker commands, interventions, checkpoints/replay, real snapshots/events/metrics, parameter binding, numerical validation, and local evidence inherit top priority.
+- UI/design/motion remains important and may proceed in parallel on spare/non-conflicting capacity or while functional work is blocked. It should not consume scarce ownership that could close an available P0 functional blocker.
+- Research, datasets, calibration, and experiments are priority work when they unblock the mechanistic runtime. ML training is not a shortcut around missing authority: learned models stay downstream of authoritative mechanistic trajectories plus explicit validation/promotion gates.
+- Architecture remains evidence-driven. WASM, hosted backends, GPU services, or other complexity should be adopted only when profiling/batch/data/experiment requirements justify them.
+- This scheduling change does **not** lower Petra's expo visual-quality target; it changes order of operations so showcase polish sits on a real scientific system.
+
+Contributor: Noel-Alex

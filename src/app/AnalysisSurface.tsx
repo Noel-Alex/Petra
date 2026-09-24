@@ -61,7 +61,7 @@ export function AnalysisSurface({
       </summary>
 
       <AnalysisPanel
-        chart={view.chart}
+        charts={view.charts}
         lineageTree={view.lineageTree}
         motion={motion}
       />

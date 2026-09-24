@@ -16,6 +16,7 @@ import {
   createNoInterventionExecutionDefinition,
   createNoInterventionSweepFamily,
   createSweepParameterPointForBinding,
+  mechanisticInitialStateFingerprint,
   mechanisticInterventionFingerprint,
   mechanisticParameterSetHash,
   type NoInterventionExecutionDefinition,
@@ -72,7 +73,11 @@ function makeTask(args?: {
   interventionFamilyId?: string;
   interventionFingerprint?: string;
 }): MechanisticSweepTask {
-  const parameterPoint = createSweepParameterPointForBinding("baseline", binding);
+  const parameterPoint = createSweepParameterPointForBinding(
+    "baseline",
+    binding,
+    config,
+  );
   const family = createNoInterventionSweepFamily("untreated");
   const parameterSetHash = args?.parameterSetHash ?? parameterPoint.parameterSetHash;
   const interventionFamilyId = args?.interventionFamilyId ?? family.id;
@@ -116,25 +121,63 @@ function executionDefinition(familyId = "untreated") {
 
 describe("mechanistic execution-definition provenance", () => {
   it("derives sweep parameter identity from the exact composed binding", () => {
-    const hash = mechanisticParameterSetHash(binding);
-    expect(createSweepParameterPointForBinding("baseline", binding)).toEqual({
+    const hash = mechanisticParameterSetHash(binding, config);
+    expect(
+      createSweepParameterPointForBinding("baseline", binding, config),
+    ).toEqual({
       id: "baseline",
       parameterSetHash: hash,
     });
 
     expect(
-      mechanisticParameterSetHash({
-        ...binding,
-        parameterSetVersion: "2",
-      }),
+      mechanisticParameterSetHash(
+        {
+          ...binding,
+          parameterSetVersion: "2",
+        },
+        config,
+      ),
     ).not.toBe(hash);
-    expect(
-      mechanisticParameterSetHash({
-        ...binding,
-        configurationFingerprint:
-          binding.configurationFingerprint + "-different",
-      }),
-    ).not.toBe(hash);
+    expect(() =>
+      mechanisticParameterSetHash(
+        {
+          ...binding,
+          configurationFingerprint:
+            binding.configurationFingerprint + "-different",
+        },
+        config,
+      ),
+    ).toThrow(/configuration fingerprint/);
+  });
+
+  it("binds exact initial resource and inoculum state outside the mechanism fingerprint", () => {
+    const resourceDrift: ComposedSimulationConfig = {
+      ...config,
+      initialResource: [9, 8],
+    };
+    const inoculumDrift: ComposedSimulationConfig = {
+      ...config,
+      initialLineageBiomass: [[0.5, 0], [2, 0]],
+    };
+
+    expect(composedConfigurationFingerprint(resourceDrift)).toBe(
+      composedConfigurationFingerprint(config),
+    );
+    expect(composedConfigurationFingerprint(inoculumDrift)).toBe(
+      composedConfigurationFingerprint(config),
+    );
+    expect(mechanisticInitialStateFingerprint(resourceDrift)).not.toBe(
+      mechanisticInitialStateFingerprint(config),
+    );
+    expect(mechanisticInitialStateFingerprint(inoculumDrift)).not.toBe(
+      mechanisticInitialStateFingerprint(config),
+    );
+    expect(mechanisticParameterSetHash(binding, resourceDrift)).not.toBe(
+      mechanisticParameterSetHash(binding, config),
+    );
+    expect(mechanisticParameterSetHash(binding, inoculumDrift)).not.toBe(
+      mechanisticParameterSetHash(binding, config),
+    );
   });
 
   it("refuses fixture parameter authority for authoritative ML execution", () => {
@@ -144,8 +187,8 @@ describe("mechanistic execution-definition provenance", () => {
       parameterSetId: "fixture:ml-execution-fixture-parameters",
     };
 
-    expect(mechanisticParameterSetHash(fixtureBinding)).not.toBe(
-      mechanisticParameterSetHash(binding),
+    expect(mechanisticParameterSetHash(fixtureBinding, config)).not.toBe(
+      mechanisticParameterSetHash(binding, config),
     );
     expect(() =>
       createMechanisticExecutionDefinition({
@@ -199,6 +242,32 @@ describe("mechanistic execution-definition provenance", () => {
         config,
       ),
     ).toThrow(/intervention fingerprint/);
+  });
+
+  it("refuses initial-state drift before projection under the same mechanism binding", async () => {
+    let projected = false;
+    const driftedInitialState: ComposedSimulationConfig = {
+      ...config,
+      initialResource: [9, 8],
+    };
+    const executor = createComposedMechanisticTaskExecutor(() => ({
+      executionDefinition: executionDefinition(),
+      config: driftedInitialState,
+      totalTicks: 0,
+      snapshotEveryTicks: 1,
+      project: () => {
+        projected = true;
+        return {
+          input: { biomass: 0 },
+          target: { resource: 0 },
+        };
+      },
+    }));
+
+    await expect(executor.execute(makeTask())).rejects.toThrow(
+      /parameterSetHash/,
+    );
+    expect(projected).toBe(false);
   });
 
   it("refuses a binding/config mismatch before composed execution", () => {

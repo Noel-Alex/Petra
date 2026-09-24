@@ -139,3 +139,10 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Phase plans expose only permitted visual channels and existing named Petra motion tokens. Adapters may further simplify a plan but must not add a new biological channel or local timing constant.
 - Full/Reduced/Off behavior continues to come exclusively from `resolveMotion()`; causal Off states retain static emphasis while non-causal movement settles instantly.
 - Motion duration is presentation wall time only. A 600 ms visual growth/recede/diffusion treatment never claims that the biological process took 600 ms.
+
+## Localized intervention placement preview
+- `interventionPlacement.ts` owns the framework-neutral, presentation-only placement lifecycle and circular normalized target constraint. It may select a tool and target point; it never creates a simulator command.
+- The placement target ring radius is cursor affordance only. It is **not** an antibiotic radius, inoculum footprint, nutrient spread distance, fungal growth radius, prediction, or biological parameter and must never enter simulation authority.
+- `InterventionTool` may include presentation vocabulary before a mechanism is promoted (currently inoculate, fungi, antibiotic, nutrient), but availability to preview must not be presented as scientific support to apply.
+- Keyboard-equivalent target movement is exposed through explicit horizontal/vertical controls; direct dish pointer/touch targeting is an additional input path, not the only path.
+- Escape and the explicit Cancel action end placement without emitting a command. Apply remains disabled until authoritative scenario metadata supplies the real typed command, labels, units, bounds, and parameter semantics.

@@ -135,3 +135,10 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - `sourcesDrawer.css` owns responsive drawer geometry and consumes shared Petra `--petra-color-*` / `--petra-rgb-*` variables for stable chrome. Do not introduce a drawer-local numeric hex/RGB/RGBA palette or blur-heavy glass treatment.
 - Theme work must preserve the non-modal disclosure contract, requested-visible vs exiting lifecycle, Escape/focus-restoration behavior, inert exit state, overscroll containment, and shared `--panel-motion-*` timing authority.
 - Provenance/source identity and evidence semantics remain upstream authority; the drawer palette may reinforce hierarchy but must never imply source quality or scientific confidence.
+
+## Recovery hardening
+- `runtimeRecovery.ts` owns bounded user-facing failure categories for preset, protocol, model, runtime, and presentation failures. Raw diagnostics may remain available to tests/logging but must never be rendered directly into the expo UI.
+- Product/science runtime factories that depend on scenario/preset validation must use the prevalidated runtime-factory seam (or an equivalent validate-before-construction contract). Failed validation must occur before `ExperimentRuntime` / `WorkerSession` construction so no partial authoritative run exists.
+- Runtime recovery is explicit. A failed live runtime may be restarted only through a fresh factory result with the exact same run identity/seed; a changed identity is rejected. The current restart path is a fresh authoritative runtime, not an implied checkpoint resume, and the UI must say so.
+- Last-valid snapshot/timeline evidence may remain visible while a runtime is failed, because it is explicitly historical. Starting recovery clears that stale runtime binding before new authority arrives; never relabel prior evidence as current.
+- `AppErrorBoundary.tsx` is presentation containment only. It must not manufacture simulator state, swallow typed worker/runtime failures that already have a recovery path, or expose raw stacks/payloads. Its reload action is explicit and warns that unsaved run state may be lost.

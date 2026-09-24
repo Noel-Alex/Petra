@@ -241,11 +241,6 @@ function validateSnapshot(snapshot: ComposedSimulationSnapshot): void {
     }
   }
 
-  if (events.length !== checkpoint.commandCount + 1) {
-    throw new Error(
-      'event history no longer matches one initialization event plus one event per accepted advance command',
-    )
-  }
   for (let index = 0; index < events.length; index += 1) {
     const event = events[index]
     if (event === undefined || event.sequence !== index) {
@@ -349,6 +344,12 @@ function runSeed(
     advanceWallMs += performance.now() - startedAt
 
     validateSnapshot(finalSnapshot)
+    const expectedDirectEventCount = chunkIndex + 2
+    if (finalSnapshot.events.length !== expectedDirectEventCount) {
+      throw new Error(
+        `uninterrupted event history expected ${expectedDirectEventCount} events after chunk ${chunkIndex}, received ${finalSnapshot.events.length}`,
+      )
+    }
     maxEventCount = Math.max(maxEventCount, finalSnapshot.events.length)
     peakMemory = maxMemory(peakMemory, memorySample())
 

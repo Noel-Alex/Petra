@@ -20,5 +20,11 @@ Own framework-neutral presentation of authoritative scientific/source provenance
 - `needs-provenance` must be visible in text and must not degrade into a reassuring neutral badge.
 - Sources/assumptions panels must remain keyboard/focus operable; motion is presentation-only.
 
+## Discovery and filtering
+- Search/evidence filters are presentation-only discoverability aids; they must never rewrite evidence class, source metadata, or scientific status.
+- Records in `needs-provenance` state remain visible regardless of search/evidence filters. A filter may narrow complete records, but it must not accidentally conceal missing/invalid provenance.
+- Search may index resolved labels, sources, context/details, disclosures, and explicit classifications already present in the resolution. It must not infer relevance from unstated scientific relationships.
+- Filter result counts should state when complete records are hidden and when incomplete records were retained by the safety rule.
+
 ## Verification
 Deterministic tests cover explicit-class normalization, missing/unknown classifications, citation resolution, missing citation records, and separation of scenario assumptions from field claims. Browser/focus/visual QA is a manual local evidence gate; Petra has no hosted CI.

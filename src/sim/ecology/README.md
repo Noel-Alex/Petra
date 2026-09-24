@@ -21,6 +21,8 @@ All numeric parameters are passed by the scenario/composition layer. This module
 
 `maxDivisionRate`, `halfSaturation`, `biomassYield`, and lineage `relativeFitness` require biological provenance in a Science-Mode preset. `localCapacity` and `spreadRate` may be calibrated/engineering parameters but must be labeled as such. The spread operator is an effective colony-front approximation, **not bacterial motility or single-cell mechanics**.
 
+`localCapacity` is also enforced on incoming scientific state before a step begins. Petra rejects materially over-capacity cells instead of clipping biomass. A tiny overage is accepted only when it fits the analytically derived Float32 storage bound for independently rounded lineage channels; this is numerical representation tolerance, not extra biological capacity.
+
 `deathHazardPerTime` is an input contract, not a hidden stress model. The caller must identify the mechanism and provenance that produced it. For the ciprofloxacin flagship, Issue #4 owns the resource×drug composition that will derive spatial loss pressure from the documented Regoes/MIC policy.
 
 Division demand and death are computed from the same pre-step biomass. Death uses the exact constant-hazard survival fraction `1 - exp(-h * dt)`, which prevents a finite non-negative first-order hazard from deleting more than the available pre-step biomass. Same-step death does not create extra growth capacity until the next step; that operator-order policy is deterministic and should be versioned if changed.

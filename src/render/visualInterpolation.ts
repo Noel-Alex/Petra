@@ -79,7 +79,7 @@ export interface DishVisualTransition {
   readonly from: DishVisualState;
   readonly to: DishRenderSnapshot;
   readonly motion: DishVisualMotionSpec;
-  readonly frame: MutableDishPresentationFrame;
+  readonly frame: DishPresentationFrame;
   readonly fieldChannels: readonly FieldTransitionChannel[];
   readonly lineageChannels: readonly LineageTransitionChannel[];
 }
@@ -263,11 +263,12 @@ function writeFrame(
   progress: number,
   easedProgress: number,
 ): void {
-  transition.frame.progress = progress;
-  transition.frame.easedProgress = easedProgress;
+  const frame = transition.frame as MutableDishPresentationFrame;
+  frame.progress = progress;
+  frame.easedProgress = easedProgress;
 
   mixArray(
-    transition.frame.biomass,
+    frame.biomass,
     transition.from.biomass,
     transition.to.biomass,
     easedProgress,

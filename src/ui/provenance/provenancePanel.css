@@ -47,8 +47,7 @@
 }
 
 .provenance-panel__filters input,
-.provenance-panel__filters select,
-.provenance-panel__filters button {
+.provenance-panel__filters select {
   min-height: 2.55rem;
   padding: 0.55rem 0.7rem;
   border: 1px solid currentColor;
@@ -58,19 +57,20 @@
   font: inherit;
 }
 
-.provenance-panel__filters button {
-  cursor: pointer;
+.provenance-panel__clear {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid currentColor;
+  border-radius: 0.7rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   font-weight: 700;
-}
-
-.provenance-panel__filters button:disabled {
-  cursor: default;
-  opacity: 0.48;
+  cursor: pointer;
 }
 
 .provenance-panel__filters input:focus-visible,
 .provenance-panel__filters select:focus-visible,
-.provenance-panel__filters button:focus-visible {
+.provenance-panel__clear:focus-visible {
   outline: 3px solid currentColor;
   outline-offset: 2px;
 }

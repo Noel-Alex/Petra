@@ -1,0 +1,11 @@
+:root {
+  /*
+   * Petra's essential UI text floor is 12px at the default 16px root.
+   * Preserve hierarchy with weight, opacity, spacing, and the larger tokens
+   * below rather than shrinking scientific/status/disclosure copy.
+   */
+  --petra-type-caption: 0.75rem;
+  --petra-type-eyebrow: 0.75rem;
+  --petra-type-metadata: 0.8125rem;
+  --petra-type-body-small: 0.875rem;
+}

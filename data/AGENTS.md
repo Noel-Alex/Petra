@@ -14,6 +14,7 @@ Machine-readable science and scenario configuration.
 - A preset must declare an engine/schema version and warning/usage scope.
 - Do not average conflicting assays. Keep separate records and choose explicitly at scenario composition time.
 - Engineering-normalized values must never be labeled physical measurements.
+- A scenario resource field must carry an explicit `environment.resourceContext`. When physical substrate/medium/biomass mapping is unbound, expose it as dimensionless `model-resource` with engineering provenance; UI/render/runtime code must not relabel it glucose or attach physical concentration units. A later physical/calibrated binding requires a scenario-version change and compatible source context.
 - Changes to a science preset require matching research/claim-ledger review.
 
 ## Work guidance

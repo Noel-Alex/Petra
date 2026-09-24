@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "id": "ecoli-ciprofloxacin-spatial",
-  "version": "1.1.0-research",
+  "version": "1.2.0-research",
   "title": "E. coli / ciprofloxacin spatial evolution",
   "status": "research",
   "warning": "Educational mechanistic scenario, not clinical guidance and not a quantitative prediction of an arbitrary laboratory culture.",
@@ -20,6 +20,23 @@
       "gridSize": 160,
       "dishRadiusCells": 76,
       "note": "Resolution and normalized numerical coefficients are engineering values, not physical measurements."
+    },
+    "resourceContext": {
+      "version": "unbound-model-resource-v1",
+      "bindingStatus": "unbound",
+      "representation": "dimensionless_model_resource",
+      "concentrationUnit": "model-resource",
+      "limitingSubstrate": null,
+      "medium": null,
+      "referenceTemperatureC": 37,
+      "boundary": "no_flux",
+      "initialCondition": "Scenario-specific authoritative initialization is not yet bound to a physical substrate concentration.",
+      "biomassMapping": "No physical biomass/CFU mapping is claimed for the current model-resource field.",
+      "provenance": {
+        "classification": "engineering",
+        "context": "Petra flagship resource-limited growth mechanism before a source-compatible substrate/medium/biomass-unit calibration is selected.",
+        "limitation": "This field is a dimensionless model resource. It must not be labelled glucose, mg/L, g/L, or another physical concentration until a later version binds a compatible resource context."
+      }
     }
   },
   "drug": {
@@ -373,7 +390,8 @@
     "Regoes pharmacodynamic shape is measured in E. coli CAB1/LB and transferred to an MG1655 genotype table.",
     "Genotype curves are shifted primarily using relative MIC until genotype-specific time-kill curves are curated.",
     "Spatial transport and mechanical spread coefficients require scenario calibration before physical quantitative claims.",
-    "Resource-by-ciprofloxacin interaction under starvation is a model composition policy, not a complete stationary-phase killing model."
+    "Resource-by-ciprofloxacin interaction under starvation is a model composition policy, not a complete stationary-phase killing model.",
+    "The current limiting-resource field is explicitly dimensionless/model-scale; physical substrate identity, concentration units, and model-biomass mapping remain unbound pending a compatible calibration."
   ],
   "citations": {
     "regoes_2004": {

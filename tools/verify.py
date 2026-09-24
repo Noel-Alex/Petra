@@ -268,6 +268,101 @@ def scenario_contracts() -> int:
                 errors.append(f"{prefix}: citation {source_key!r} needs a DOI or URL")
 
         if obj.get("id") == "ecoli-ciprofloxacin-spatial":
+            environment = obj.get("environment")
+            resource_context = (
+                environment.get("resourceContext")
+                if isinstance(environment, dict)
+                else None
+            )
+            if not isinstance(resource_context, dict):
+                errors.append(f"{prefix}: flagship environment.resourceContext must be an object")
+            else:
+                for key in (
+                    "version",
+                    "bindingStatus",
+                    "representation",
+                    "concentrationUnit",
+                    "boundary",
+                    "initialCondition",
+                    "biomassMapping",
+                ):
+                    if not _nonempty_string(resource_context.get(key)):
+                        errors.append(
+                            f"{prefix}: environment.resourceContext.{key} must be a non-empty string"
+                        )
+
+                binding_status = resource_context.get("bindingStatus")
+                if binding_status not in {
+                    "unbound",
+                    "calibrated",
+                    "measured_or_transferred",
+                }:
+                    errors.append(
+                        f"{prefix}: environment.resourceContext.bindingStatus is invalid"
+                    )
+
+                if binding_status == "unbound":
+                    if resource_context.get("representation") != "dimensionless_model_resource":
+                        errors.append(
+                            f"{prefix}: unbound resource context must use dimensionless_model_resource"
+                        )
+                    if resource_context.get("concentrationUnit") != "model-resource":
+                        errors.append(
+                            f"{prefix}: unbound resource context must use model-resource units"
+                        )
+                    if resource_context.get("limitingSubstrate") is not None:
+                        errors.append(
+                            f"{prefix}: unbound resource context must not name a physical limiting substrate"
+                        )
+                    if resource_context.get("medium") is not None:
+                        errors.append(
+                            f"{prefix}: unbound resource context must not name a physical medium"
+                        )
+
+                reference_temperature = resource_context.get("referenceTemperatureC")
+                organism = obj.get("organism")
+                organism_temperature = (
+                    organism.get("referenceTemperatureC")
+                    if isinstance(organism, dict)
+                    else None
+                )
+                if reference_temperature != organism_temperature:
+                    errors.append(
+                        f"{prefix}: resource context referenceTemperatureC must match organism referenceTemperatureC"
+                    )
+
+                if (
+                    isinstance(environment, dict)
+                    and resource_context.get("boundary") != environment.get("boundary")
+                ):
+                    errors.append(
+                        f"{prefix}: resource context boundary must match environment boundary"
+                    )
+
+                _validate_presentation_provenance(
+                    {"provenance": resource_context.get("provenance")},
+                    f"{prefix}: environment.resourceContext",
+                    errors,
+                    require_context=True,
+                )
+                provenance_record = resource_context.get("provenance")
+                if (
+                    binding_status == "unbound"
+                    and isinstance(provenance_record, dict)
+                    and provenance_record.get("classification") != "engineering"
+                ):
+                    errors.append(
+                        f"{prefix}: unbound resource context must be classified engineering"
+                    )
+                if (
+                    binding_status == "unbound"
+                    and isinstance(provenance_record, dict)
+                    and not _nonempty_string(provenance_record.get("limitation"))
+                ):
+                    errors.append(
+                        f"{prefix}: unbound resource context requires an explicit limitation"
+                    )
+
             genotypes = obj.get("genotypes")
             if not isinstance(genotypes, list) or not genotypes:
                 errors.append(f"{prefix}: flagship genotypes must be a non-empty array")

@@ -10,14 +10,14 @@
 - A death hazard is a mechanism-owned first-order loss input. This subtree must not infer ciprofloxacin killing from concentration; the pharmacodynamic composition layer owns that derivation.
 - Shared resource/capacity allocation must remain independent of lineage iteration order.
 - Growth and death fluxes are computed from the same pre-step biomass. Same-step deaths do not create new capacity until the next ecology step. Changing that operator order is a numerical/model change requiring tests and replay/version review.
-- Coarse spread is an effective colony-front approximation, not literal single-cell motility.
+- Coarse spread is an effective colony-front approximation, not literal single-cell motility. Capacity-aware spread uses pre-spread free capacity; competing incoming source/lineage flows are accepted proportionally and rejected flux remains at its source, so no biomass is clipped or silently deleted.
 - No renderer/UI state may feed back into ecology authority.
 
 ## Provenance
 Biological rates and relative fitness require source/provenance at scenario composition time. Capacity/spread may be calibrated or engineering values but must remain labeled. Unbound flagship parameters must stay visibly unbound rather than receiving convenient source-looking constants.
 
 ## Verification
-Run `python tools/verify.py premerge`. Ecology tests must cover Monod identities, resource/yield/capacity limits, lineage-order independence, nutrient-depletion slowdown, relative-fitness scaling, bounded death, spatial death fields, finite/non-negative state, and spread conservation.
+Run `python tools/verify.py premerge`. Ecology tests must cover Monod identities, resource/yield/capacity limits, lineage-order independence, nutrient-depletion slowdown, relative-fitness scaling, bounded death, spatial death fields, finite/non-negative state, spread conservation, full/partial destination capacity, proportional multi-source/lineage spread acceptance, and post-spread local-capacity bounds.
 
 ## Child DOX index
 No child contracts yet.

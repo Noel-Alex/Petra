@@ -10,6 +10,7 @@ import { resolveT4Transport } from "./transport";
 import {
   PHAGE_SPATIAL_UNIT_BRIDGE_SCHEMA_VERSION,
   adsorptionHazardPerPfuPerMinute,
+  cellEquivalentCalibrationFromPhageSpatialUnitBridge,
   adsorptionProbabilityOverMinutes,
   diffusionCoefficientGridCellsSquaredPerMinute,
   effectiveLayerThicknessMeters,
@@ -102,6 +103,19 @@ describe("phage spatial unit bridge", () => {
         effectiveInteractionVolumeMl: parameter(0.25),
       }),
     ).not.toBe(phageSpatialUnitBridgeIdentity(withSourcesB));
+  });
+
+  it("projects the exact biomass-per-cell calibration into shared population authority", () => {
+    const projected =
+      cellEquivalentCalibrationFromPhageSpatialUnitBridge(bridge());
+
+    expect(projected.id).toBe(
+      "synthetic-test-bridge/model-biomass-cell-equivalent",
+    );
+    expect(projected.modelBiomassPerCellEquivalent).toBe(2);
+    expect(projected.provenance).toEqual(
+      bridge().modelBiomassPerCellEquivalent.provenance,
+    );
   });
 
   it("converts continuous model biomass without opportunistic rounding", () => {

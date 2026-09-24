@@ -138,7 +138,10 @@ export function PixiDish({
             semanticZoomCallbackRef.current?.(level);
           },
           onDishPointActivate(point) {
-            dishPointActivateCallbackRef.current?.(point);
+            const callback = dishPointActivateCallbackRef.current;
+            if (callback === undefined) return false;
+            callback(point);
+            return true;
           },
         }),
       {

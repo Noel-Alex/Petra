@@ -1,7 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { DishRenderSnapshot, SemanticZoomLevel } from "../model";
 import type { CameraMotionSpec } from "./cameraMotion";
-import { createRendererDemoSnapshot } from "./demoSnapshot";
 import {
   createPixiDishRenderer,
   type PixiDishRenderer,
@@ -20,8 +19,11 @@ export interface PixiDishProps {
   /** Monotonic presentation-only request counter from the React shell. */
   readonly resetCameraSignal?: number;
   readonly onSemanticZoomLevelChange?: (level: SemanticZoomLevel) => void;
-  /** Explicit opt-in for the deterministic presentation-only fixture. */
-  readonly demoMode?: boolean;
+  /** Explicit source identity supplied by the owning presentation adapter. */
+  readonly sourceKind?:
+    | "authoritative-snapshot"
+    | "visual-demo"
+    | "awaiting-authoritative-snapshot";
 }
 
 export type RendererStartupStatus = "idle" | "initializing" | "ready" | "failed";
@@ -46,7 +48,7 @@ export function PixiDish({
   ariaDescribedBy,
   resetCameraSignal = 0,
   onSemanticZoomLevelChange,
-  demoMode = false,
+  sourceKind,
 }: PixiDishProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const rendererRef = useRef<PixiDishRenderer | null>(null);
@@ -54,23 +56,19 @@ export function PixiDish({
   const cameraMotionRef = useRef(cameraMotion);
   const overlayRef = useRef(overlayId);
   const semanticZoomCallbackRef = useRef(onSemanticZoomLevelChange);
-  const demoSnapshotRef = useRef<DishRenderSnapshot | null>(null);
   const resetCameraSignalRef = useRef(resetCameraSignal);
   const [startup, setStartup] = useState<RendererStartupState>(IDLE_STARTUP);
   const [retryAttempt, setRetryAttempt] = useState(0);
   const failureDescriptionId = useId();
 
-  const usingAuthoritative = snapshot !== null && snapshot !== undefined;
-  const usingDemo = !usingAuthoritative && demoMode;
-  if (usingDemo && demoSnapshotRef.current === null) {
-    demoSnapshotRef.current = createRendererDemoSnapshot();
-  }
-
-  const renderSnapshot = usingAuthoritative
-    ? snapshot
-    : usingDemo
-      ? demoSnapshotRef.current
-      : null;
+  const renderSnapshot = snapshot ?? null;
+  const source =
+    sourceKind ??
+    (renderSnapshot === null
+      ? "awaiting-authoritative-snapshot"
+      : "authoritative-snapshot");
+  const usingAuthoritative = source === "authoritative-snapshot";
+  const usingDemo = source === "visual-demo";
   const renderEnabled = renderSnapshot !== null;
   const snapshotRef = useRef<DishRenderSnapshot | null>(renderSnapshot);
 
@@ -149,12 +147,6 @@ export function PixiDish({
       rendererRef.current?.updatePresentation(renderSnapshot, overlayId);
     }
   }, [renderSnapshot, overlayId]);
-
-  const source = usingAuthoritative
-    ? "authoritative-snapshot"
-    : usingDemo
-      ? "visual-demo"
-      : "awaiting-authoritative-snapshot";
 
   const resolvedAriaLabel =
     startup.status === "failed"

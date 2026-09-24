@@ -48,6 +48,27 @@ describe("InterventionPlacementOverlay", () => {
     expect(html).not.toMatch(/<img|background-image|url\(/i);
   });
 
+  it("reuses the shared Petra semantic icon geometry for every placement tool", () => {
+    const expected = {
+      inoculate: "inoculate",
+      fungus: "fungus",
+      antibiotic: "antibiotic",
+      nutrient: "nutrient",
+    } as const;
+
+    for (const [tool, iconName] of Object.entries(expected)) {
+      const html = renderToStaticMarkup(
+        <InterventionPlacementOverlay
+          tool={tool as keyof typeof expected}
+          point={{ x: 0.5, y: 0.5 }}
+          motion="off"
+        />,
+      );
+      expect(html).toContain(`data-petra-icon="${iconName}"`);
+      expect(html).not.toMatch(/<img|background-image|url\(/i);
+    }
+  });
+
   it("uses the shared semantic placement token for Full motion instead of a local loop", () => {
     const html = renderToStaticMarkup(
       <InterventionPlacementOverlay

@@ -7,6 +7,7 @@ Petra uses a hierarchical **DOX / AGENTS.md** system so humans and short-lived c
 - `AGENTS.md` files are binding work contracts for their subtrees.
 - Before editing, read this root file and every nearer `AGENTS.md` on the path to files you will touch.
 - GitHub Issues and Pull Requests are the canonical shared state. Chat context is disposable.
+- Contributor identity comes from the authenticated account/session actually doing the work. Never copy the repository owner's name or a historical `Contributor:` label into claims, branches, commits, PRs, or handoffs unless that is genuinely your authenticated identity.
 - Scientific behavior must remain traceable to `research/`, the claim ledger, and parameter provenance. Never invent a biological constant because it makes a demo look better.
 - Rendering may interpolate or explain simulation state; it must never secretly determine biological outcomes.
 - Petra is an educational/research simulator, not a clinical dosing or treatment tool.
@@ -18,15 +19,25 @@ Petra's immediate project priority is **a genuinely working authoritative flagsh
 - **P0 functionality:** prefer work that closes the authoritative path from scenario/configuration → composed simulation state → worker/runtime commands → checkpoints/replay → real snapshots/events/metrics → product adapters. Issue #37 is the central integration seam; its prerequisites and blockers inherit this priority.
 - **Dependencies count as functionality work:** numerical correctness, missing science contracts, parameter binding/calibration, deterministic tooling, local experiments, datasets, and validation are P0 when they directly unblock the working flagship.
 - **UI/design/motion remains a core quality requirement, but is secondary in scheduling:** continue it in parallel when spare/non-conflicting agent capacity exists, or when functional work is blocked. Do not let cosmetic polish consume ownership needed by an available P0 functional blocker.
-- **ML is downstream of mechanistic authority:** dataset generation or model training is useful only after/where authoritative mechanistic trajectories and validation gates exist. Never use a learned model to hide a missing functional simulation path.
+- **ML authority is downstream, ML preparation is not:** model training/promotion requires authoritative mechanistic trajectories and validation gates, but batch runners, dataset schemas, experiment registrations, baseline/evaluation tooling, checkpoint policy, and OOD/promotion contracts should be prepared as soon as stable prerequisites permit. Never use a learned model to hide a missing functional simulation path.
 - **Architecture stays evidence-driven:** do not introduce WASM, a hosted backend, GPU services, or other complexity merely to appear advanced. Adopt them only when profiling, batch-workload, data, or validation needs justify them.
 
 When choosing between an unblocked functional blocker and a cosmetic improvement of similar scope, take the functional blocker first. A polished shell is not completion until the science/runtime underneath it actually works.
 
+## Latency-adjusted swarm scheduling
+
+Optimize for **project wall-clock progress**, not local code volume or visual activity.
+
+- **Recover/integrate before duplicating:** inspect open PRs before starting new implementation. Rebase, repair, merge, supersede, or explicitly abandon useful stale work before creating another branch for the same slice.
+- **Long-lead work is a critical path:** prepare local experiments, calibration/statistical sweeps, mechanistic datasets, model-training/benchmark commands, profiling, soak runs, browser acceptance, and offline/demo rehearsal as early as their real prerequisites allow. If a run is blocked, prepare the runner/registration/output contract now and name the exact blocker.
+- **Balance swarm lanes:** when several agents already occupy presentation-only work, prefer an unclaimed simulation/science/integration, experiment/ML, or hardening blocker. UI/render/motion remains essential, but parallelism should reduce schedule risk rather than amplify the currently fashionable file.
+- **Integration is the completion unit:** code on a private or stale branch is inventory, not progress. Prefer bounded changes that can be reviewed, verified, rebased, and merged quickly. Lines changed, number of issues touched, and visual polish are not success metrics.
+- **Phase numbers are not global gates:** any truthful, non-conflicting later-phase preparation may begin once its own prerequisites are stable. Do not idle the swarm behind one blocked phase.
+
 ## Work selection and claims
 
-1. Read open Issues/PRs and `docs/TEAM_BOARD.md`.
-2. Recover useful abandoned executable work before duplicating it.
+1. Inspect open Pull Requests first, then open Issues and `docs/TEAM_BOARD.md`; stale integration work can dominate the schedule even when the issue queue looks busy.
+2. Recover useful abandoned executable work before duplicating it. Do not open a competing implementation/PR for the same bounded slice while an active or recoverable one exists without documenting why recovery is unsafe or slower.
 3. Claim an Issue or a bounded slice before editing. State session identity, branch, scope, expected paths, and capability limits.
 4. Re-read the Issue after claiming. If another still-valid claim reached overlapping scope first, yield or coordinate.
 5. Prefer one active implementation branch per contributor; target `main`.
@@ -87,7 +98,7 @@ Petra should feel like a premium interactive science animation, not a dashboard 
 ## Verification and evidence
 
 ### CI freeze — binding project policy
-- **Do not use GitHub Actions or any other hosted CI for Petra until Noel-Alex explicitly lifts this rule.**
+- **Do not use GitHub Actions or any other hosted CI for Petra until the repository maintainers explicitly lift this rule in durable project DOX.**
 - Do not add, restore, enable, schedule, or depend on `.github/workflows/**`, required checks, hosted benchmark jobs, hosted GPU jobs, automated experiment jobs, or CI artifact uploads.
 - Pull requests must not be blocked on CI. Verification is local/manual for now.
 - Existing historical Actions results are evidence from past runs only; they do not authorize future CI use.
@@ -105,7 +116,7 @@ Maintain `docs/ORCHESTRATOR_COMMUNICATION.md` as a dense asynchronous science/en
 
 A durable handoff includes: Issue/PR and branch, commit SHA/checkpoint, changed paths, completed work, verification actually run, scientific claims/parameters changed, limitations/capability gates, conflict risk, and next useful action.
 
-When work is blocked on Noel-Alex's local machine, the handoff must also name the local experiment id/registration, expected compact evidence, and the blocked Issue(s). Agents must not create ad-hoc "run these five scripts" instructions; use the repository's single local experiment entrypoint once available. Large models/checkpoints/raw datasets stay local unless explicitly approved; only compact results/metadata should be committed.
+When work is blocked on the maintainer/local experiment machine, the handoff must also name the local experiment id/registration, expected compact evidence, and the blocked Issue(s). Agents must not create ad-hoc "run these five scripts" instructions; use the repository's single local experiment entrypoint once available. Large models/checkpoints/raw datasets stay local unless explicitly approved; only compact results/metadata should be committed.
 
 ## DOX update rule
 

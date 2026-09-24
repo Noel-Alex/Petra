@@ -85,3 +85,13 @@ Contributor: Noel-Alex
 - A later physical/calibrated resource profile is a new scenario/profile/parameter-set identity and must satisfy the #227 evidence compatibility gate.
 
 Contributor: Noel-Alex
+
+
+## 2026-09-24 — latency-adjusted swarm scheduling + contributor identity
+
+- #568 makes project wall-clock progress the scheduling objective: recover/integrate useful stale PRs before duplicating implementation, prepare long-lead local work before its final prerequisite lands, and treat mergeable integrated capability as the completion unit rather than code volume.
+- #517 phase numbers are capability groupings, not global gates. Non-conflicting work may proceed across simulation/science/integration, experiments/data/ML, frontend/renderer/UX, and release hardening when each task's own prerequisites are satisfied.
+- #542's experiment queue is a critical path. Registrations/helpers/result contracts for calibration, replicate statistics, mechanistic datasets, model benchmarks, profiling, soaks, browser acceptance, offline rehearsal, and performance runs should be prepared early so expensive local-machine time can begin immediately when valid inputs exist.
+- Learned-model authority remains downstream of trustworthy mechanistic trajectories, but ML infrastructure preparation is explicitly allowed and encouraged before those trajectories are ready.
+- Active DOX now uses role-based language for local experiment/CI ownership. Historical references to individuals remain historical facts, not contributor templates.
+- Claims, branches, commits, PRs, and handoffs must use the actual authenticated contributor identity. Repository ownership or old `Contributor:` lines are never permission to impersonate that identity.

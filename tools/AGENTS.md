@@ -26,9 +26,9 @@ Run `python tools/verify.py quick` for local contract validation.
 Run `python tools/verify.py premerge` locally for the broader deterministic suite. With the TypeScript implementation substrate present, the premerge registry owns strict typechecking + Vitest through the `typescript-deterministic-suite` check.
 
 ## No hosted CI
-- Petra currently has **no CI by project policy**. Do not add or restore GitHub Actions/workflows, hosted checks, scheduled jobs, or automated experiment uploads until Noel-Alex explicitly lifts the freeze.
+- Petra currently has **no CI by project policy**. Do not add or restore GitHub Actions/workflows, hosted checks, scheduled jobs, or automated experiment uploads until repository maintainers explicitly lift the freeze in durable project DOX.
 - Verification commands remain useful, but agents/humans run them locally and record exact evidence in the relevant Issue/PR.
-- The local experiment pipeline must refuse execution inside common CI environments; it is designed for Noel-Alex's laptop, not hosted runners.
+- The local experiment pipeline must refuse execution inside common CI environments; it is designed for the maintainer/local experiment machine, not hosted runners.
 - Any future change to this rule requires an explicit repository-wide DOX update, not an agent convenience decision.
 
 ## Local experiment handoff
@@ -42,4 +42,4 @@ No child contracts yet.
 
 
 ## Human laptop entrypoint
-The single manual experiment entrypoint is `python run_local_experiments.py`, governed by `experiments/AGENTS.md`. Register requested hardware/browser/GPU/ML/scientific runs in `experiments/local_manifest.json`; do not create alternative user-facing runbooks for Noel-Alex.
+The single manual experiment entrypoint is `python run_local_experiments.py`, governed by `experiments/AGENTS.md`. Register requested hardware/browser/GPU/ML/scientific runs in `experiments/local_manifest.json`; do not create alternative user-facing runbooks for a specific person.

@@ -730,6 +730,54 @@ def motion_pass(cdp: CDP) -> list[dict[str, Any]]:
     return checks
 
 
+
+def dispatch_renderer_key_probe(
+    cdp: CDP,
+    key: str,
+    code: str,
+    *,
+    alt_key: bool = False,
+    ctrl_key: bool = False,
+    meta_key: bool = False,
+    shift_key: bool = False,
+) -> dict[str, Any]:
+    init = json.dumps(
+        {
+            "key": key,
+            "code": code,
+            "altKey": alt_key,
+            "ctrlKey": ctrl_key,
+            "metaKey": meta_key,
+            "shiftKey": shift_key,
+        }
+    )
+    expression = """(() => {
+      const host = document.querySelector(
+        '.dish-renderer-canvas[data-render-status="ready"] [role="region"]'
+      );
+      if (!host) return { dispatched: false, canceled: false };
+      host.focus();
+      const event = new KeyboardEvent('keydown', {
+        ...__INIT__,
+        bubbles: true,
+        cancelable: true
+      });
+      const uncanceled = host.dispatchEvent(event);
+      return {
+        dispatched: true,
+        canceled: event.defaultPrevented || !uncanceled,
+        defaultPrevented: event.defaultPrevented,
+        activeElement: document.activeElement === host
+      };
+    })()""".replace("__INIT__", init)
+    result = cdp.eval(expression)
+    return result if isinstance(result, dict) else {
+        "dispatched": False,
+        "canceled": False,
+    }
+
+
+
 def keyboard_pass(cdp: CDP) -> list[dict[str, Any]]:
     cdp.eval("document.body.focus();")
     seen: list[str] = []
@@ -745,11 +793,56 @@ def keyboard_pass(cdp: CDP) -> list[dict[str, Any]]:
                 })()"""
             )
         )
+
+    plain_specs = [
+        ("ArrowRight", "ArrowRight", {}),
+        ("Home", "Home", {}),
+        ("0", "Digit0", {}),
+        ("+", "Equal", {"shift_key": True}),
+        ("-", "Minus", {}),
+    ]
+    plain = [
+        {
+            "label": key,
+            **dispatch_renderer_key_probe(cdp, key, code, **modifiers),
+        }
+        for key, code, modifiers in plain_specs
+    ]
+
+    modified_specs = [
+        ("Ctrl++", "+", "Equal", {"ctrl_key": True, "shift_key": True}),
+        ("Ctrl+-", "-", "Minus", {"ctrl_key": True}),
+        ("Ctrl+0", "0", "Digit0", {"ctrl_key": True}),
+        ("Meta++", "+", "Equal", {"meta_key": True, "shift_key": True}),
+        ("Meta+-", "-", "Minus", {"meta_key": True}),
+        ("Meta+0", "0", "Digit0", {"meta_key": True}),
+        ("Ctrl+ArrowRight", "ArrowRight", "ArrowRight", {"ctrl_key": True}),
+        ("Alt+Home", "Home", "Home", {"alt_key": True}),
+        ("Meta+ArrowLeft", "ArrowLeft", "ArrowLeft", {"meta_key": True}),
+    ]
+    modified = [
+        {
+            "label": label,
+            **dispatch_renderer_key_probe(cdp, key, code, **modifiers),
+        }
+        for label, key, code, modifiers in modified_specs
+    ]
+
     focusable = sum(not item.startswith("BODY:") for item in seen)
     return [
         check("keyboard: tab reaches interactive controls", focusable >= 6, seen),
         check("keyboard: motion control reachable", any("Motion preference" in item for item in seen), seen),
         check("keyboard: timeline controls reachable", any(any(name in item for name in ("Pause", "1×", "4×", "16×")) for item in seen), seen),
+        check(
+            "keyboard: plain camera keys are Petra-owned",
+            all(item.get("dispatched") is True and item.get("canceled") is True for item in plain),
+            plain,
+        ),
+        check(
+            "keyboard: browser and OS modified shortcuts stay unowned",
+            all(item.get("dispatched") is True and item.get("canceled") is False for item in modified),
+            modified,
+        ),
     ]
 
 
@@ -781,23 +874,303 @@ def click_overview_reset(cdp: CDP) -> bool:
     )
 
 
-def dispatch_renderer_wheel(cdp: CDP, delta_y: float) -> bool:
+
+def dispatch_renderer_wheel_probe(
+    cdp: CDP,
+    delta_y: float,
+    *,
+    client_x: float | None = None,
+    client_y: float | None = None,
+) -> dict[str, Any]:
     expression = """(() => {
-      const host = document.querySelector(
-        '.dish-renderer-canvas[data-render-status="ready"] [role="region"]'
+      const canvas = document.querySelector(
+        '.dish-renderer-canvas[data-render-status="ready"] canvas'
       );
-      if (!host) return false;
-      const r = host.getBoundingClientRect();
-      host.dispatchEvent(new WheelEvent('wheel', {
+      if (!(canvas instanceof HTMLCanvasElement)) {
+        return { dispatched: false, canceled: false };
+      }
+      const r = canvas.getBoundingClientRect();
+      const clientX = __CLIENT_X__ === null ? r.x + r.width / 2 : __CLIENT_X__;
+      const clientY = __CLIENT_Y__ === null ? r.y + r.height / 2 : __CLIENT_Y__;
+      const event = new WheelEvent('wheel', {
         bubbles: true,
         cancelable: true,
-        clientX: r.x + r.width / 2,
-        clientY: r.y + r.height / 2,
-        deltaY: __DELTA__
-      }));
-      return true;
-    })()""".replace("__DELTA__", json.dumps(delta_y))
-    return cdp.eval(expression) is True
+        clientX,
+        clientY,
+        deltaY: __DELTA_Y__,
+        deltaMode: WheelEvent.DOM_DELTA_PIXEL
+      });
+      const uncanceled = canvas.dispatchEvent(event);
+      return {
+        dispatched: true,
+        canceled: event.defaultPrevented || !uncanceled,
+        defaultPrevented: event.defaultPrevented,
+        clientX,
+        clientY
+      };
+    })()"""
+    expression = expression.replace("__DELTA_Y__", json.dumps(delta_y))
+    expression = expression.replace("__CLIENT_X__", json.dumps(client_x))
+    expression = expression.replace("__CLIENT_Y__", json.dumps(client_y))
+    result = cdp.eval(expression)
+    return result if isinstance(result, dict) else {
+        "dispatched": False,
+        "canceled": False,
+    }
+
+
+def dispatch_renderer_wheel(cdp: CDP, delta_y: float) -> bool:
+    probe = dispatch_renderer_wheel_probe(cdp, delta_y)
+    return probe.get("dispatched") is True and probe.get("canceled") is True
+
+
+
+def wheel_ownership_pass(cdp: CDP) -> list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    cdp.call(
+        "Emulation.setDeviceMetricsOverride",
+        {"width": 1440, "height": 900, "deviceScaleFactor": 1, "mobile": False},
+    )
+    set_motion_setting(cdp, "off")
+    time.sleep(0.1)
+    render = wait_renderer_settled(cdp)
+    rect = renderer_interaction_rect(cdp)
+    ready = (
+        render.get("status") == "ready"
+        and render.get("canvas") is True
+        and render.get("fallback") is False
+        and rect is not None
+    )
+    checks.append(check("wheel ownership: renderer target ready", ready, {"renderer": render, "rect": rect}))
+    if not ready or rect is None:
+        return checks
+
+    click_overview_reset(cdp)
+    time.sleep(0.1)
+    overview = capture_browser_png(cdp, "wheel-overview-before.png")
+    overview_hash = hashlib.sha256(overview).hexdigest()
+
+    overview_zoom_out = dispatch_renderer_wheel_probe(cdp, 650)
+    time.sleep(0.08)
+    after_zoom_out_hash = hashlib.sha256(
+        capture_browser_png(cdp, "wheel-overview-after-zoom-out.png")
+    ).hexdigest()
+
+    outside = dispatch_renderer_wheel_probe(
+        cdp,
+        -650,
+        client_x=float(rect["x"]) + 2,
+        client_y=float(rect["y"]) + 2,
+    )
+    time.sleep(0.08)
+    after_outside_hash = hashlib.sha256(
+        capture_browser_png(cdp, "wheel-outside-aperture.png")
+    ).hexdigest()
+
+    center_zoom_in = dispatch_renderer_wheel_probe(cdp, -650)
+    time.sleep(0.08)
+    center_zoom_hash = hashlib.sha256(
+        capture_browser_png(cdp, "wheel-center-zoom-in.png")
+    ).hexdigest()
+
+    saturation: list[dict[str, Any]] = []
+    for _ in range(24):
+        probe = dispatch_renderer_wheel_probe(cdp, -1200)
+        saturation.append(probe)
+        if probe.get("dispatched") is True and probe.get("canceled") is False:
+            break
+        time.sleep(0.01)
+    max_reverse = dispatch_renderer_wheel_probe(cdp, 650)
+
+    checks.extend(
+        [
+            check(
+                "wheel ownership: overview zoom-out chains to page",
+                overview_zoom_out.get("dispatched") is True
+                and overview_zoom_out.get("canceled") is False
+                and overview_hash == after_zoom_out_hash,
+                {
+                    "probe": overview_zoom_out,
+                    "beforeSha256": overview_hash,
+                    "afterSha256": after_zoom_out_hash,
+                },
+            ),
+            check(
+                "wheel ownership: outside circular aperture stays unowned",
+                outside.get("dispatched") is True
+                and outside.get("canceled") is False
+                and after_zoom_out_hash == after_outside_hash,
+                {
+                    "probe": outside,
+                    "beforeSha256": after_zoom_out_hash,
+                    "afterSha256": after_outside_hash,
+                },
+            ),
+            check(
+                "wheel ownership: center zoom-in is owned and changes presentation",
+                center_zoom_in.get("dispatched") is True
+                and center_zoom_in.get("canceled") is True
+                and after_outside_hash != center_zoom_hash,
+                {
+                    "probe": center_zoom_in,
+                    "beforeSha256": after_outside_hash,
+                    "afterSha256": center_zoom_hash,
+                },
+            ),
+            check(
+                "wheel ownership: saturated zoom-in releases scroll chaining",
+                bool(saturation)
+                and saturation[-1].get("dispatched") is True
+                and saturation[-1].get("canceled") is False,
+                {"attempts": len(saturation), "probes": saturation},
+            ),
+            check(
+                "wheel ownership: reverse direction at max zoom is owned",
+                max_reverse.get("dispatched") is True
+                and max_reverse.get("canceled") is True,
+                max_reverse,
+            ),
+        ]
+    )
+    click_overview_reset(cdp)
+    time.sleep(0.05)
+    return checks
+
+
+
+def pointer_capture_pass(cdp: CDP) -> list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    cdp.call(
+        "Emulation.setDeviceMetricsOverride",
+        {"width": 1440, "height": 900, "deviceScaleFactor": 1, "mobile": False},
+    )
+    set_motion_setting(cdp, "off")
+    time.sleep(0.1)
+    render = wait_renderer_settled(cdp)
+    rect = renderer_interaction_rect(cdp)
+    ready = (
+        render.get("status") == "ready"
+        and render.get("canvas") is True
+        and render.get("fallback") is False
+        and rect is not None
+    )
+    checks.append(check("pointer continuity: renderer target ready", ready, {"renderer": render, "rect": rect}))
+    if not ready or rect is None:
+        return checks
+
+    click_overview_reset(cdp)
+    time.sleep(0.05)
+    zoom_probe = dispatch_renderer_wheel_probe(cdp, -650)
+    time.sleep(0.05)
+    before_hash = hashlib.sha256(
+        capture_browser_png(cdp, "pointer-capture-before.png")
+    ).hexdigest()
+
+    armed = cdp.eval(
+        """(() => {
+          const canvas = document.querySelector(
+            '.dish-renderer-canvas[data-render-status="ready"] canvas'
+          );
+          if (!(canvas instanceof HTMLCanvasElement)) return false;
+          globalThis.__petraQaPointerCaptureEvents = [];
+          canvas.addEventListener('gotpointercapture', (event) => {
+            globalThis.__petraQaPointerCaptureEvents.push({
+              type: 'got',
+              pointerId: event.pointerId
+            });
+          }, { once: true });
+          canvas.addEventListener('lostpointercapture', (event) => {
+            globalThis.__petraQaPointerCaptureEvents.push({
+              type: 'lost',
+              pointerId: event.pointerId
+            });
+          }, { once: true });
+          return true;
+        })()"""
+    ) is True
+
+    cx = float(rect["centerX"])
+    cy = float(rect["centerY"])
+    outside_x = float(rect["x"]) + float(rect["width"]) + 48
+    return_x = cx + min(120.0, float(rect["width"]) * 0.18)
+    return_y = cy + min(48.0, float(rect["height"]) * 0.08)
+    try:
+        cdp.call(
+            "Input.dispatchMouseEvent",
+            {
+                "type": "mousePressed",
+                "x": cx,
+                "y": cy,
+                "button": "left",
+                "buttons": 1,
+                "clickCount": 1,
+            },
+        )
+        cdp.call(
+            "Input.dispatchMouseEvent",
+            {
+                "type": "mouseMoved",
+                "x": outside_x,
+                "y": cy,
+                "button": "left",
+                "buttons": 1,
+            },
+        )
+        cdp.call(
+            "Input.dispatchMouseEvent",
+            {
+                "type": "mouseMoved",
+                "x": return_x,
+                "y": return_y,
+                "button": "left",
+                "buttons": 1,
+            },
+        )
+        cdp.call(
+            "Input.dispatchMouseEvent",
+            {
+                "type": "mouseReleased",
+                "x": return_x,
+                "y": return_y,
+                "button": "left",
+                "buttons": 0,
+                "clickCount": 1,
+            },
+        )
+    finally:
+        time.sleep(0.08)
+
+    capture_events = cdp.eval("globalThis.__petraQaPointerCaptureEvents ?? []")
+    after_hash = hashlib.sha256(
+        capture_browser_png(cdp, "pointer-capture-after.png")
+    ).hexdigest()
+    kinds = [
+        item.get("type")
+        for item in capture_events
+        if isinstance(item, dict)
+    ] if isinstance(capture_events, list) else []
+
+    checks.append(
+        check(
+            "pointer continuity: captured drag survives leaving and re-entering dish host",
+            zoom_probe.get("canceled") is True
+            and armed
+            and "got" in kinds
+            and "lost" in kinds
+            and before_hash != after_hash,
+            {
+                "zoomProbe": zoom_probe,
+                "captureEvents": capture_events,
+                "beforeSha256": before_hash,
+                "afterSha256": after_hash,
+                "outsideX": outside_x,
+                "returnPoint": {"x": return_x, "y": return_y},
+            },
+        )
+    )
+    click_overview_reset(cdp)
+    time.sleep(0.05)
+    return checks
 
 
 def touch_pass(cdp: CDP) -> list[dict[str, Any]]:
@@ -1273,6 +1646,8 @@ def main() -> int:
         checks += viewport_pass(cdp, "narrow", 768, 900)
         checks += motion_pass(cdp)
         checks += keyboard_pass(cdp)
+        checks += wheel_ownership_pass(cdp)
+        checks += pointer_capture_pass(cdp)
         checks += accessibility_pass(cdp)
         checks += touch_pass(cdp)
         checks += performance_pass(cdp)
@@ -1307,7 +1682,7 @@ def main() -> int:
         "summary": {"pass": passed, "fail": failed, "blocked": blocked},
         "evidence_boundary": (
             "Headless browser evidence checks layout, accessibility plumbing, motion modes, "
-            "input smoke, screenshots, representative renderer frame/redraw time, WebGL draw-call "
+            "input event ownership/cancellation, pointer continuity, screenshots, representative renderer frame/redraw time, WebGL draw-call "
             "counts from a separate profiled redraw workload, Chromium heap/DOM trends, and "
             "long-task/GC symptoms where exposed. The GPU "
             "record is explicitly a canvas/capability proxy, not measured VRAM. Human visible-browser "

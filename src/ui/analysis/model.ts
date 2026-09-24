@@ -56,12 +56,27 @@ export interface ScientificChartProjection {
   readonly interpolation: "none";
 }
 
+export interface LineageScientificDetail {
+  readonly genotypeLabel: string;
+  readonly originCellIndex: number | null;
+  readonly mutationClass: string | null;
+  readonly abundanceModelBiomass: number;
+  readonly relativeFitness: number;
+  readonly sourceKeys: readonly string[];
+  readonly assumptionKeys: readonly string[];
+}
+
 export interface LineageAncestryInput {
   readonly lineageId: string;
   readonly parentLineageId: string | null;
   readonly genotypeId: string;
   readonly createdAtHours: number;
   readonly extinctAtHours: number | null;
+  /**
+   * Optional already-authoritative scientific detail. Generic ancestry-only
+   * callers may omit it; presentation must never infer these fields.
+   */
+  readonly scientificDetail?: LineageScientificDetail;
 }
 
 export interface LineageTreeNode extends LineageAncestryInput {
@@ -347,6 +362,15 @@ export function buildLineageTree(
     );
     return {
     ...lineage,
+    ...(lineage.scientificDetail === undefined
+      ? {}
+      : {
+          scientificDetail: {
+            ...lineage.scientificDetail,
+            sourceKeys: [...lineage.scientificDetail.sourceKeys],
+            assumptionKeys: [...lineage.scientificDetail.assumptionKeys],
+          },
+        }),
     depth: depthMemo.get(lineage.lineageId)!,
     x: normalize(lineage.createdAtHours, domain.minimum, domain.maximum),
     y: ordered.length === 1 ? 0.5 : index / (ordered.length - 1),
@@ -465,6 +489,65 @@ function validateLineage(lineage: LineageAncestryInput): void {
   }
   if (lineage.parentLineageId === lineage.lineageId) {
     throw new RangeError("lineage cannot be its own parent");
+  }
+
+  if (lineage.scientificDetail !== undefined) {
+    const detail = lineage.scientificDetail;
+    assertNonEmpty("lineage scientific genotypeLabel", detail.genotypeLabel);
+    if (
+      detail.originCellIndex !== null &&
+      (!Number.isSafeInteger(detail.originCellIndex) || detail.originCellIndex < 0)
+    ) {
+      throw new RangeError(
+        "lineage scientific originCellIndex must be null or a non-negative safe integer",
+      );
+    }
+    if (detail.mutationClass !== null) {
+      assertNonEmpty("lineage scientific mutationClass", detail.mutationClass);
+    }
+    if (
+      !Number.isFinite(detail.abundanceModelBiomass) ||
+      detail.abundanceModelBiomass < 0
+    ) {
+      throw new RangeError(
+        "lineage scientific abundanceModelBiomass must be finite and non-negative",
+      );
+    }
+    if (!Number.isFinite(detail.relativeFitness) || detail.relativeFitness < 0) {
+      throw new RangeError(
+        "lineage scientific relativeFitness must be finite and non-negative",
+      );
+    }
+    validateCanonicalKeys(
+      "lineage scientific sourceKeys",
+      detail.sourceKeys,
+    );
+    validateCanonicalKeys(
+      "lineage scientific assumptionKeys",
+      detail.assumptionKeys,
+    );
+  }
+}
+
+function validateCanonicalKeys(
+  name: string,
+  keys: readonly string[],
+): void {
+  if (!Array.isArray(keys)) {
+    throw new TypeError(name + " must be an array");
+  }
+
+  const seen = new Set<string>();
+  for (let index = 0; index < keys.length; index += 1) {
+    if (!(index in keys)) {
+      throw new TypeError(name + " must be dense");
+    }
+    const key = keys[index]!;
+    assertNonEmpty(name + "[" + index + "]", key);
+    if (seen.has(key)) {
+      throw new RangeError(name + " contains duplicate key: " + key);
+    }
+    seen.add(key);
   }
 }
 

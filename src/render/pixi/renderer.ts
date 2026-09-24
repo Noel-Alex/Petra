@@ -99,11 +99,16 @@ export async function createPixiDishRenderer(
 
   const root = new Container();
   const plateLayer = new Graphics();
+  const dishInteriorMask = new Graphics();
+  const dataLayer = new Container();
   const fieldLayer = new Graphics();
   const densityLayer = new Graphics();
   const glyphLayer = new Graphics();
   const accentLayer = new Graphics();
-  root.addChild(plateLayer, fieldLayer, densityLayer, glyphLayer, accentLayer);
+
+  dataLayer.addChild(fieldLayer, densityLayer, glyphLayer);
+  dataLayer.mask = dishInteriorMask;
+  root.addChild(plateLayer, dishInteriorMask, dataLayer, accentLayer);
   app.stage.addChild(root);
 
   let snapshot: DishRenderSnapshot | null = null;
@@ -129,6 +134,7 @@ export async function createPixiDishRenderer(
       motion,
       maxRepresentativeGlyphs,
       plateLayer,
+      dishInteriorMask,
       fieldLayer,
       densityLayer,
       glyphLayer,
@@ -448,6 +454,7 @@ function drawScene(args: {
   readonly motion: RendererMotionMode;
   readonly maxRepresentativeGlyphs: number;
   readonly plateLayer: Graphics;
+  readonly dishInteriorMask: Graphics;
   readonly fieldLayer: Graphics;
   readonly densityLayer: Graphics;
   readonly glyphLayer: Graphics;
@@ -461,6 +468,7 @@ function drawScene(args: {
     motion,
     maxRepresentativeGlyphs,
     plateLayer,
+    dishInteriorMask,
     fieldLayer,
     densityLayer,
     glyphLayer,
@@ -477,9 +485,20 @@ function drawScene(args: {
   const radius = geometry.radius;
   const level = semanticZoomLevel(camera.zoom);
 
-  for (const layer of [plateLayer, fieldLayer, densityLayer, glyphLayer, accentLayer]) {
+  for (const layer of [
+    plateLayer,
+    dishInteriorMask,
+    fieldLayer,
+    densityLayer,
+    glyphLayer,
+    accentLayer,
+  ]) {
     layer.clear();
   }
+
+  dishInteriorMask
+    .circle(geometry.centerX, geometry.centerY, geometry.radius)
+    .fill({ color: 0xffffff });
 
   plateLayer
     .circle(centerX, centerY, radius)

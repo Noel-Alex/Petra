@@ -953,11 +953,27 @@ button:hover {
 }
 
 .petra-app[data-dish-focus="focused"] .dish-stage {
+  /*
+   * The renderer shell is taller than its square frame because controls and
+   * semantic guidance remain mounted below it. Keep a vertical escape hatch
+   * for zoom/short-height cases instead of clipping those controls.
+   */
   min-height: min(76vh, 52rem);
+  min-height: min(76dvh, 52rem);
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable both-edges;
 }
 
 .petra-app[data-dish-focus="focused"] .dish-renderer-shell {
-  width: min(78vh, 50rem);
+  /*
+   * Reserve block space for the persistent top bar, timeline, shell controls,
+   * semantic guide, app gaps, and focus outlines before deriving dish size.
+   * 100vh is the compatibility fallback; dynamic viewport units are the
+   * authoritative modern path when browser chrome changes usable height.
+   */
+  width: min(50rem, 96%, max(12rem, calc(100vh - 24rem)));
+  width: min(50rem, 96%, max(12rem, calc(100dvh - 24rem)));
   max-width: 96%;
 }
 

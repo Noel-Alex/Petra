@@ -21,6 +21,7 @@ Presentation-only side-by-side and swipe comparison of already-authoritative bra
 ## Motion and accessibility
 
 - Consume `../motion/policy.ts` and named tokens; do not introduce local timing constants for semantic transitions.
+- The resolved motion treatment supplied by React is the compare CSS authority. Raw `prefers-reduced-motion` media queries must not override an explicit in-app Full choice; OS preference is resolved before the component.
 - Reduced/off motion must preserve every divergence label and synchronized-time status.
 - Swipe must remain keyboard operable through an ordinary range control.
 - Critical distinction is never color-only: text labels and geometric marks remain present.

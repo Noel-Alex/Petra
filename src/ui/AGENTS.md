@@ -97,3 +97,11 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Full motion may use small decorative lift/compression. Reduced and off modes remove spatial movement while retaining focus/selection through border/background/static emphasis.
 - Touch devices must not depend on hover state. Keyboard focus must remain visibly distinct, and disabled state must be static.
 - Micro-interaction duration is presentation wall time only and must come from named Petra motion tokens.
+
+
+## Causal event narration
+- Screen-reader narration for authoritative causal events uses `src/ui/motion/announcements.ts`; do not write each event directly into an independent live region.
+- One new event may use its event-specific explanation. Multi-event batches collapse to one bounded count summary while the scientific timeline remains complete and ordered.
+- The caller stores the returned sequence + event-id cursor per run identity so React re-renders do not re-announce accepted events. A run/branch identity change must reset that cursor explicitly.
+- Spoken narration is independent of full/reduced/off motion and of animation stagger/wall time.
+- `CausalAnnouncementRegion.tsx` is a stable `role=status`, polite, atomic adapter. Keep it mounted; update its planned text rather than creating/removing many live regions.

@@ -26,6 +26,7 @@ export interface PointerGestureUpdate {
 }
 
 const NO_INTENT: PointerGestureIntent = Object.freeze({ kind: "none" });
+const MIN_PINCH_DISTANCE_PX = 4;
 
 export function createPointerGestureState(): PointerGestureState {
   return { active: [] };
@@ -93,7 +94,10 @@ export function movePointerGesture(
   if (previous.length === 2) {
     const before = pinchGeometry(previous);
     const after = pinchGeometry(nextActive);
-    if (before.distance <= Number.EPSILON || after.distance <= Number.EPSILON) {
+    if (
+      before.distance < MIN_PINCH_DISTANCE_PX ||
+      after.distance < MIN_PINCH_DISTANCE_PX
+    ) {
       return { state: nextState, accepted: true, intent: NO_INTENT };
     }
 

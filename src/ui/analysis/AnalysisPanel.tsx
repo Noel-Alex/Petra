@@ -298,8 +298,8 @@ function ScientificSourceData({
                 >
                   <th scope="row">{series.label}</th>
                   <td><code>{series.id}</code></td>
-                  <td>{formatNumber(point.timeHours)} h</td>
-                  <td>{formatNumber(point.value)}</td>
+                  <td>{formatSourceNumber(point.timeHours)} h</td>
+                  <td>{formatSourceNumber(point.value)}</td>
                   <td>{series.unit}</td>
                 </tr>
               )),
@@ -355,12 +355,12 @@ function LineageSourceData({
                 <th scope="row">{node.lineageId}</th>
                 <td>{node.parentLineageId ?? "root"}</td>
                 <td>{node.genotypeId}</td>
-                <td>{formatNumber(node.createdAtHours)} h</td>
+                <td>{formatSourceNumber(node.createdAtHours)} h</td>
                 <td>{node.status}</td>
                 <td>
                   {node.extinctAtHours === null
                     ? "—"
-                    : `${formatNumber(node.extinctAtHours)} h`}
+                    : `${formatSourceNumber(node.extinctAtHours)} h`}
                 </td>
               </tr>
             ))}
@@ -593,6 +593,14 @@ const DASH_PATTERNS = [
 function safeCssToken(token: string): string {
   const normalized = token.trim().replace(/[^a-zA-Z0-9_-]/g, "-");
   return normalized.length === 0 ? "analysis-series-fallback" : normalized;
+}
+
+/**
+ * Semantic source-data tables use JavaScript's round-trip numeric spelling.
+ * Visual SVG labels deliberately keep the compact formatter below.
+ */
+function formatSourceNumber(value: number): string {
+  return String(value);
 }
 
 function formatNumber(value: number): string {

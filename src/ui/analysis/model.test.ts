@@ -110,10 +110,10 @@ describe("scientific analysis projection", () => {
 
     expect(chart.timeMinimumHours).toBe(0);
     expect(chart.timeMaximumHours).toBe(1.5);
-    expect(chart.series.map((series) => series.points[0]!.x)).toEqual([
-      expect.closeTo(1 / 3),
-      expect.closeTo(1 / 3),
-    ]);
+    expect(chart.series).toHaveLength(2);
+    for (const series of chart.series) {
+      expect(series.points[0]!.x).toBeCloseTo(1 / 3);
+    }
   });
 
   it("preserves ordinary time bounds exactly and leaves signed value domains unconstrained", () => {

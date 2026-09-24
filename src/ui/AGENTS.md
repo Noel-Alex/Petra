@@ -130,3 +130,12 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Until runtime #37/#42 supplies exact run/tick/simulation-time identity, this state machine preserves selection + composed-state identity only; adapters must not fabricate a biological timestamp.
 - `RegionInspectorPanel.tsx` is the reusable DOM readout for this lifecycle. It may display only `AuthoritativeRegionInspection` results, must label stale/error-retained results with their original selection identity, and must keep `model-biomass` / `model-resource` explicit rather than upgrading them into physical units. The typed `no-grid-coverage` result is an authoritative absence-of-measurement outcome: present it explicitly and never synthesize zero biomass/resource or lineage fractions from it.
 - Selected-cell count means authoritative simulation grid cells, not bacterial cell count. Configuration fingerprint and composed state version are identity/schema metadata, not a biological timestamp.
+
+
+## Semantic dish motion vocabulary
+- `src/ui/motion/dishVocabulary.ts` is the framework-neutral vocabulary for named dish phases: appear, grow, divide, aggregate-merge, recede, migrate, fungal-branch, field-diffusion, select, intervention-placement, and focus.
+- The vocabulary authorizes **presentation treatment only**. Biological-looking phases require explicit authoritative state/event evidence from the caller; missing/mismatched evidence returns a refusal rather than synthesizing an animation.
+- `aggregate-merge` is presentation-only LOD continuity and must never be described as biological fusion. Selection, placement, and focus require explicit presentation intent.
+- Phase plans expose only permitted visual channels and existing named Petra motion tokens. Adapters may further simplify a plan but must not add a new biological channel or local timing constant.
+- Full/Reduced/Off behavior continues to come exclusively from `resolveMotion()`; causal Off states retain static emphasis while non-causal movement settles instantly.
+- Motion duration is presentation wall time only. A 600 ms visual growth/recede/diffusion treatment never claims that the biological process took 600 ms.

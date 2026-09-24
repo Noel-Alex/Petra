@@ -15,6 +15,7 @@ import {
   zoomAroundDishPoint,
   type ScreenPoint,
 } from "./camera";
+import { createResizeRedrawScheduler } from "./resizeScheduler";
 
 export type RendererMotionMode = "full" | "reduced" | "off";
 
@@ -90,9 +91,12 @@ export async function createPixiDishRenderer(
     });
   };
 
+  const resizeScheduler = createResizeRedrawScheduler(
+    () => app.resize(),
+    render,
+  );
   const resizeObserver = new ResizeObserver(() => {
-    app.queueResize();
-    render();
+    resizeScheduler.schedule();
   });
   resizeObserver.observe(host);
 
@@ -247,6 +251,7 @@ export async function createPixiDishRenderer(
       if (destroyed) return;
       destroyed = true;
       resizeObserver.disconnect();
+      resizeScheduler.cancel();
       app.canvas.removeEventListener("pointerdown", onPointerDown);
       app.canvas.removeEventListener("pointermove", onPointerMove);
       app.canvas.removeEventListener("pointerup", finishPointer);

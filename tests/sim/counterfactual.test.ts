@@ -186,7 +186,11 @@ describe('counterfactual fork authority', () => {
     const otherEngine = new SimulationEngine(identity)
     otherEngine.execute({ id: 'other-warmup', type: 'advance', ticks: 46 })
     const swappedTrace = structuredClone(bundle)
-    swappedTrace.origin.checkpointTraceHash = otherEngine.snapshot().traceHash
+    ;(
+      swappedTrace.origin as unknown as {
+        checkpointTraceHash: string
+      }
+    ).checkpointTraceHash = otherEngine.snapshot().traceHash
     expect(() => validateCounterfactualForkReplayBundle(swappedTrace)).toThrow(
       /trace provenance mismatch/,
     )

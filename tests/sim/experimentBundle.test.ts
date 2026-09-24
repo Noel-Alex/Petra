@@ -19,10 +19,7 @@ import {
   COMPOSED_PARAMETER_SET_BINDING_SCHEMA_VERSION,
   type ComposedParameterSetBinding,
 } from '../../src/sim/parameterSetBinding'
-import {
-  createRunIdentity,
-  type ExperimentBundle as NeverBundle,
-} from '../../src/sim/protocol'
+import { createRunIdentity } from '../../src/sim/protocol'
 
 const evolutionGraph: CuratedMutationGraph = {
   scenarioId: 'experiment-bundle-fixture',

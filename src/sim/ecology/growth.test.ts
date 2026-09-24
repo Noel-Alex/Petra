@@ -98,6 +98,43 @@ describe('resource-limited ecology step', () => {
     expect(s.lineages[0]![7]).toBeCloseTo(1, 5)
   })
 
+  it('accepts the exact four-neighbour spread bound and refuses a larger interval atomically', () => {
+    const exact: EcologyState = {
+      width: 3,
+      height: 3,
+      mask: new Uint8Array(9).fill(1),
+      resource: new Float32Array(9),
+      lineages: [new Float32Array([0, 0, 0, 0, 10, 0, 0, 0, 0])],
+    }
+    expect(() =>
+      stepEcology(
+        exact,
+        { ...params, maxDivisionRate: 0, spreadRate: 0.25 },
+        neutral(1),
+        1,
+      ),
+    ).not.toThrow()
+    expect(exact.lineages[0]![4]).toBeCloseTo(0, 6)
+
+    const unstable: EcologyState = {
+      width: 3,
+      height: 3,
+      mask: new Uint8Array(9).fill(1),
+      resource: new Float32Array(9),
+      lineages: [new Float32Array([0, 0, 0, 0, 10, 0, 0, 0, 0])],
+    }
+    const before = unstable.lineages[0]!.slice()
+    expect(() =>
+      stepEcology(
+        unstable,
+        { ...params, maxDivisionRate: 0, spreadRate: 0.250001 },
+        neutral(1),
+        1,
+      ),
+    ).toThrow(/spreadRate \* dt must be <= 0\.25/)
+    expect(unstable.lineages[0]).toEqual(before)
+  })
+
   it('approaches exponential early growth when resource and capacity are non-limiting', () => {
     const s = state(1_000_000, [1])
     const p = { ...params, halfSaturation: 1, biomassYield: 1_000_000_000, localCapacity: 1_000_000 }

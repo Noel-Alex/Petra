@@ -4,7 +4,7 @@ import type { CameraMotionSpec } from "./cameraMotion";
 import {
   PixiDish,
   RendererFailureFallback,
-  rendererStartupAnnouncement,
+  rendererStatusAnnouncement,
 } from "./PixiDish";
 import { createRendererDemoSnapshot } from "./demoSnapshot";
 
@@ -33,53 +33,45 @@ describe("PixiDish render-source boundary", () => {
     expect(html).toContain('data-render-source="authoritative-snapshot"');
     expect(html).not.toContain('data-render-demo-disclosure="true"');
   });
+});
 
-  it("keeps one stable polite atomic renderer-status region mounted", () => {
+
+describe("PixiDish renderer status narration", () => {
+  it("keeps a stable non-interactive live region mounted with renderer content", () => {
     const html = renderToStaticMarkup(
-      <PixiDish snapshot={null} cameraMotion={CAMERA_MOTION} />,
+      <PixiDish snapshot={createRendererDemoSnapshot(12)} cameraMotion={CAMERA_MOTION} />,
     );
 
-    expect(html.match(/role="status"/g)).toHaveLength(1);
-    expect(html).toContain('data-render-status-announcement="true"');
+    expect(html).toContain('data-render-status-region="true"');
+    expect(html).toContain('role="status"');
     expect(html).toContain('aria-live="polite"');
     expect(html).toContain('aria-atomic="true"');
-    expect(html).not.toContain("Retry renderer");
   });
 
-  it("keeps the interactive retry action outside live-region semantics", () => {
+  it("keeps retry outside the live-region subtree and describes it from status copy", () => {
     const html = renderToStaticMarkup(
       <RendererFailureFallback
-        errorMessage="webgl unavailable"
-        descriptionId="renderer-failure-description"
+        errorMessage="WebGL unavailable"
+        statusRegionId="renderer-status"
         onRetry={() => undefined}
       />,
     );
 
     expect(html).toContain('data-render-fallback="true"');
-    expect(html).toContain('title="webgl unavailable"');
-    expect(html).toContain("Interactive dish unavailable");
-    expect(html).toContain(
-      "Petra has not substituted demonstration biology or changed the simulation state.",
-    );
-    expect(html).toContain("Retry renderer");
-    expect(html).toContain(
-      'aria-describedby="renderer-failure-description"',
-    );
+    expect(html).toContain('aria-describedby="renderer-status"');
+    expect(html).toContain(">Retry renderer</button>");
     expect(html).not.toContain('role="status"');
-    expect(html).not.toContain("aria-live=");
+    expect(html).not.toContain('aria-live=');
   });
 
-  it("announces renderer startup/failure state without interactive copy", () => {
-    expect(rendererStartupAnnouncement("idle")).toBe("");
-    expect(rendererStartupAnnouncement("ready")).toBe("");
-    expect(rendererStartupAnnouncement("initializing")).toBe(
+  it("announces startup and failure without narrating settled renderer state", () => {
+    expect(rendererStatusAnnouncement(true, "initializing")).toBe(
       "Starting interactive Petra dish renderer.",
     );
-    expect(rendererStartupAnnouncement("failed")).toContain(
-      "Interactive dish unavailable.",
+    expect(rendererStatusAnnouncement(true, "failed")).toBe(
+      "Interactive dish unavailable. The WebGL renderer could not start. Petra has not substituted demonstration biology or changed the simulation state.",
     );
-    expect(rendererStartupAnnouncement("failed")).not.toContain(
-      "Retry renderer",
-    );
+    expect(rendererStatusAnnouncement(true, "ready")).toBe("");
+    expect(rendererStatusAnnouncement(false, "failed")).toBe("");
   });
 });

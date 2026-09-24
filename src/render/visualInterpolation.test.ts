@@ -4,6 +4,7 @@ import visualInterpolationSource from "./visualInterpolation.ts?raw";
 import type { DishRenderSnapshot, RenderLineage } from "./model";
 import {
   advanceDishVisualTransition,
+  evaluateDishVisualTransitionAtProgress,
   planDishVisualTransition,
   type DishPresentationFrame,
   type DishVisualMotionSpec,
@@ -231,6 +232,46 @@ describe("dish visual continuity", () => {
     expect(quarter.state).toBe(half.state);
     expect(Array.from(from.biomass)).toEqual(beforeFrom);
     expect(Array.from(to.biomass)).toEqual(beforeTo);
+  });
+
+  it("evaluates explicit normalized progress for deterministic replay scrubbing", () => {
+    const from = snapshot({
+      id: "a",
+      biomass: [0, 4],
+      field: [2, 6],
+      lineages: [lineage("ancestor", [0, 8])],
+    });
+    const to = snapshot({
+      id: "b",
+      biomass: [10, 8],
+      field: [6, 10],
+      lineages: [lineage("ancestor", [8, 0])],
+    });
+    const plan = planDishVisualTransition(from, to, LINEAR);
+    if (plan.kind !== "interpolate") throw new Error("expected plan");
+
+    const half = evaluateDishVisualTransitionAtProgress(
+      plan.transition,
+      0.5,
+    );
+    expect(half.complete).toBe(false);
+    expect(Array.from(half.state.biomass)).toEqual([5, 6]);
+
+    const repeated = evaluateDishVisualTransitionAtProgress(
+      plan.transition,
+      0.5,
+    );
+    expect(Array.from(repeated.state.biomass)).toEqual([5, 6]);
+
+    expect(
+      evaluateDishVisualTransitionAtProgress(plan.transition, 1),
+    ).toEqual({ complete: true, state: to });
+    expect(() =>
+      evaluateDishVisualTransitionAtProgress(plan.transition, -0.01),
+    ).toThrow(/within \[0, 1\]/);
+    expect(() =>
+      evaluateDishVisualTransitionAtProgress(plan.transition, 1.01),
+    ).toThrow(/within \[0, 1\]/);
   });
 
   it("returns exact authority immediately for a zero-duration policy", () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { SimulationEngine } from '../../src/sim/engine'
-import { createRunIdentity, type SimulationCheckpoint } from '../../src/sim/protocol'
+import { createRunIdentity, type SyntheticSimulationCheckpoint } from '../../src/sim/protocol'
 import { SimulationRng, type RngState } from '../../src/sim/rng'
 
 const identity = createRunIdentity({
@@ -167,7 +167,7 @@ describe('SimulationEngine replay substrate', () => {
 
     const cases: Array<{
       name: string
-      mutate: (checkpoint: SimulationCheckpoint) => void
+      mutate: (checkpoint: SyntheticSimulationCheckpoint) => void
       error: RegExp
     }> = [
       {

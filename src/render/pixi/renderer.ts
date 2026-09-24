@@ -22,6 +22,7 @@ import {
 } from "../overlayPresentation";
 import { resolveLineagePattern, type LineagePatternToken } from "../lineagePatterns";
 import { cubicBezierProgress } from "../motionMath";
+import { planDishMotionPhase } from "../../ui/motion/dishVocabulary";
 import {
   semanticZoomLevel,
   type CameraView,
@@ -73,7 +74,6 @@ import { createSemanticZoomLevelObserver } from "../semanticZoomObserver";
 import { wheelZoomFactor } from "./wheelZoom";
 import {
   advanceDishVisualTransition,
-  DEFAULT_DISH_VISUAL_MOTION,
   planDishVisualTransition,
   type DishDrawableState,
   type DishVisualState,
@@ -164,6 +164,11 @@ export async function createPixiDishRenderer(
   let hyphalElapsedMs = 0;
   let overlayId = options.overlayId ?? null;
   let motion: RendererMotionMode = options.motion ?? "full";
+  let hyphalMotion = planDishMotionPhase({
+    phase: "fungal-branch",
+    preference: motion,
+    evidence: "authoritative-state",
+  });
   let cameraMotion = copyCameraMotionSpec(options.cameraMotion);
   let camera: CameraView = { centerX: 0.5, centerY: 0.5, zoom: 1 };
   let transitionStartCamera = camera;
@@ -377,16 +382,15 @@ export async function createPixiDishRenderer(
 
     if (hyphalTransition !== null) {
       hyphalElapsedMs += app.ticker.deltaMS;
-      const durationMs = DEFAULT_DISH_VISUAL_MOTION.durationMs;
+      const durationMs = hyphalMotion.eligible
+        ? hyphalMotion.durationMs
+        : 0;
       const progress =
         durationMs === 0 ? 1 : Math.min(1, hyphalElapsedMs / durationMs);
       const easedProgress =
-        progress === 1
+        progress === 1 || !hyphalMotion.eligible
           ? 1
-          : cubicBezierProgress(
-              progress,
-              DEFAULT_DISH_VISUAL_MOTION.easing,
-            );
+          : cubicBezierProgress(progress, hyphalMotion.easing);
       const step = evaluateHyphalPathTransitionAtProgress(
         hyphalTransition,
         easedProgress,
@@ -598,6 +602,11 @@ export async function createPixiDishRenderer(
 
     setMotionMode(nextMode) {
       motion = nextMode;
+      hyphalMotion = planDishMotionPhase({
+        phase: "fungal-branch",
+        preference: motion,
+        evidence: "authoritative-state",
+      });
       if (motion !== "full") {
         camera = targetCamera;
         transitionStartCamera = targetCamera;

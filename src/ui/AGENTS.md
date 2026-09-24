@@ -50,3 +50,11 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Side-by-side/swipe views synchronize biological simulation time, not animation wall time, and visibly handle a branch that has not simulated as far as the other.
 - Trajectory differences default to shared authoritative sample times. Any later interpolation/smoothing is a chart-layer presentation choice and must be labelled.
 - Export/share adapters should preserve fork origin, seed, ordered post-fork command identity, and provenance needed to replay the comparison.
+
+
+## Provenance presentation
+- Evidence badges present provenance supplied by science/data/runtime layers; UI code must not infer evidence class from color, source count, DOI presence, or confidence tier.
+- Critical provenance identity is always redundant: text label + icon token + pattern token, never color alone.
+- Transferred + mechanistic composition remains visibly multi-part; do not collapse cross-study seams into a generic “validated” badge.
+- Missing required source, transfer, derivation, calibration, or limitation metadata is a visible `needs-provenance` state, not an excuse to invent a reassuring label.
+- Engineering and visual-only values must explicitly disclose that they are not measured biological constants / do not control simulation outcomes.

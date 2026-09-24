@@ -36,6 +36,7 @@
 - Parent lineage identity, genotype, origin time/location, mutation class, and extinction time are authoritative lineage metadata.
 - Current lineage IDs are deterministic from creation order. Creation order therefore affects replay identity.
 - `LineageRegistry.checkpoint()` / `LineageRegistry.restore()` own the versioned serializable ancestry/extinction/event + next-ID allocator boundary. Restoring only visible records while resetting the allocator would corrupt future identity.
+- Public lineage reads (`create`, `get`, `list`, and `eventLog`) return isolated projections. Consumer mutation must never alter registry authority; extinction mutation is owned by `markExtinct()`.
 - Presentation layers may aggregate or sample lineages visually, but must not imply decorative glyph count equals simulated cell count.
 
 ## Scientific provenance

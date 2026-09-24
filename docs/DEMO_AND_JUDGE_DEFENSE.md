@@ -306,6 +306,8 @@ python run_local_experiments.py
 
 Do not invent a separate collection of expo scripts for Noel-Alex. Browser/performance/accessibility checks required by #59 should be registered in `experiments/local_manifest.json` and run through this entrypoint. Large traces, videos, screenshots, and profiles stay local unless explicitly approved; compact summaries/evidence can be pushed back.
 
+The final frozen 90-second/3-minute human rehearsal has stable experiment id `final-expo-rehearsal`. It is intentionally registered as blocked until the reproducible install/build, authoritative flagship/runtime, typed ciprofloxacin intervention, authoritative region inspector, browser acceptance, offline acceptance, and release-identity freeze gates are complete. Do not reuse the current-build `offline-expo-rehearsal` preflight as evidence that #580 passed; once those blockers land, preserve the stable id and replace its blocked command with the real rehearsal helper.
+
 ### Pre-expo rehearsal checklist
 
 - pull the exact commit intended for the expo;

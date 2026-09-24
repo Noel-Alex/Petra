@@ -88,6 +88,8 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Provenance icon tokens map through `PROVENANCE_ICON_MAP`; do not create a second evidence-icon vocabulary in components.
 - Icon geometry is visual-only and must never encode hidden simulator state, numeric magnitude, or biological confidence.
 - Keep Petra iconography original; do not trace or reproduce another studio's recognizable symbols or branded asset language.
+- Intervention-placement glyphs for inoculate, fungus, antibiotic, and nutrient must reuse the same `src/ui/icons/spec.ts` geometry as other Petra surfaces. Do not reintroduce local SVG paths for the same concept merely because a glyph is nested inside an existing SVG.
+- `PetraIconGeometry` is the inline-SVG adapter for reusing icon primitives inside another Petra SVG. It carries geometry only; the surrounding surface owns decorative/accessibility semantics, placement, and token-derived color.
 
 
 ## Intervention preview semantics

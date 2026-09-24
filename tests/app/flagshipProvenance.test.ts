@@ -111,10 +111,18 @@ describe("flagship provenance presentation projection", () => {
     expect(s83l?.status).toBe("complete");
     expect(s83l?.rawClassification).toBe("measured");
     expect(s83l?.presentation?.details).toContainEqual({
-      label: "Uncertainty",
-      value:
-        "MIC measurement margin ±1 half-doubling step; relative-fitness SD 0.03 across 6 independent competition experiments.",
+      label: "Measurement uncertainty · Ciprofloxacin MIC",
+      value: "Reported margin ±1 half-doubling step",
     });
+    expect(s83l?.presentation?.details).toContainEqual({
+      label: "Measurement uncertainty · Relative fitness",
+      value:
+        "SD 0.03 dimensionless · 6 independent competition experiments",
+    });
+    expect(s83l?.presentation?.ariaLabel).toContain(
+      "Reported margin ±1 half-doubling step",
+    );
+    expect(s83l?.presentation?.ariaLabel).not.toMatch(/confidence score/i);
   });
 
   it("keeps the cross-study drug composition explicitly transferred and mechanistic", () => {

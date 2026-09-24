@@ -37,9 +37,19 @@ describe("Regoes ciprofloxacin pharmacodynamics", () => {
     expect(regoesNetRateLog10PerHour(REGOES_CAB1_CIPRO.zMic, REGOES_CAB1_CIPRO)).toBeCloseTo(0, 12);
   });
 
-  it("approaches the finite high-concentration lower asymptote", () => {
+  it("approaches the finite high-concentration lower asymptote without overflow", () => {
     const response = regoesNetRateLog10PerHour(1e12, REGOES_CAB1_CIPRO);
     expect(response).toBeCloseTo(REGOES_CAB1_CIPRO.psiMinLog10PerHour, 6);
+
+    const extreme = regoesNetRateLog10PerHour(Number.MAX_VALUE, REGOES_CAB1_CIPRO);
+    expect(Number.isFinite(extreme)).toBe(true);
+    expect(extreme).toBeCloseTo(REGOES_CAB1_CIPRO.psiMinLog10PerHour, 12);
+  });
+
+  it("remains finite and tends to the drug-free maximum at tiny positive concentration", () => {
+    const response = regoesNetRateLog10PerHour(Number.MIN_VALUE, REGOES_CAB1_CIPRO);
+    expect(Number.isFinite(response)).toBe(true);
+    expect(response).toBeCloseTo(REGOES_CAB1_CIPRO.psiMaxLog10PerHour, 12);
   });
 
   it("converts rate conventions without changing population dynamics", () => {

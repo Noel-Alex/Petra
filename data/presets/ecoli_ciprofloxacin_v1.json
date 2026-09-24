@@ -457,7 +457,7 @@
   "composedParameterSet": {
     "schemaVersion": 1,
     "id": "ecoli-ciprofloxacin-baseline-composed",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "scenarioId": "ecoli-ciprofloxacin-spatial",
     "scenarioVersion": "1.4.0-research",
     "executionProfileId": "ecoli-ciprofloxacin-ecology-engineering",
@@ -478,7 +478,7 @@
     ],
     "provenance": {
       "classification": "engineering",
-      "context": "Versioned baseline composed mechanism identity for the research-stage flagship. Initial model-resource level and founder placement remain run-state inputs and are not parameter-set constants.",
+      "context": "Versioned baseline composed mechanism identity for the research-stage flagship, including the source-backed ciprofloxacin PD/MIC authority used by the composed loss channel. Initial model-resource level and founder placement remain run-state inputs and are not parameter-set constants.",
       "limitation": "This baseline parameter set is not a physical culture calibration and does not make the continuous ecology channel a discrete-cell mutation authority."
     },
     "lossPolicyId": "reference_pd_decrement_as_first_order_loss_v1"

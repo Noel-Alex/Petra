@@ -17,7 +17,10 @@ This subtree currently owns pure phage evidence resolution only. Infection dynam
 
 ## Pending gates
 
-- #139 owns the concentration/population unit bridge needed before applying the measured `mL min^-1` adsorption constant to authoritative state.
+- `unitBridge.ts` owns #139's versioned scenario/provenance-controlled spatial unit mapping. It converts continuous model biomass to continuous host cell-equivalents, derives cell-equivalents/mL and PFU/mL from an explicit interaction volume, and uses the same physical grid pitch as #140 transport. There are no physical defaults.
+- Free extracellular phage low-count authority is discrete PFU. Exact adsorption sampling consumes Petra's RNG and is replay-sensitive; it removes/binds free PFU only and does not create infected-host state.
+- Renderer density, glyph counts, CSS pixels, canvas geometry, and normalized presentation coordinates are forbidden as sources of cells/mL, PFU/mL, interaction volume, or physical grid pitch.
+- The canonical phage spatial-unit bridge identity is replay-critical configuration and must join the authoritative scenario/configuration fingerprint before enabled phage dynamics can enter checkpoints.
 - #140 binds a narrow host-free 0.5% agarose extracellular transport baseline; live host-bearing transport and general free-phage loss remain outside that calibration.
 - Total latent period may drive a reviewed delayed-infection representation, but a separate eclipse/assembly split remains experimental unless separately sourced.
 

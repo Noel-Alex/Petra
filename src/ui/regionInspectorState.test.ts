@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import type { AuthoritativeRegionInspection } from "../sim/regionInspector";
+import type {
+  AuthoritativeRegionInspection,
+  AuthoritativeRegionReadout,
+} from "../sim/regionInspector";
 import {
   acceptRegionInspection,
   activeSelectionId,
@@ -14,8 +17,9 @@ import {
 function readout(
   selectionId: string,
   stateVersion = 1,
-): AuthoritativeRegionInspection {
+): AuthoritativeRegionReadout {
   return {
+    coverage: "covered",
     selectionId,
     stateVersion,
     configurationFingerprint: "config-v1",
@@ -34,6 +38,19 @@ function readout(
   };
 }
 
+function noGridCoverage(
+  selectionId: string,
+  stateVersion = 1,
+): AuthoritativeRegionInspection {
+  return {
+    coverage: "no-grid-coverage",
+    selectionId,
+    stateVersion,
+    configurationFingerprint: "config-v1",
+    selectedCellCount: 0,
+  };
+}
+
 describe("region inspector presentation state", () => {
   it("starts pending when no authoritative readout exists", () => {
     const state = beginRegionInspection(
@@ -46,6 +63,51 @@ describe("region inspector presentation state", () => {
       selectionId: "region-a",
     });
     expect(visibleReadout(state)).toBeNull();
+  });
+
+  it("accepts no-grid coverage without exposing a scientific readout", () => {
+    const pending = beginRegionInspection(
+      unavailableRegionInspector("No region selected."),
+      "region-empty",
+    );
+
+    const accepted = acceptRegionInspection(
+      pending,
+      noGridCoverage("region-empty", 2),
+    );
+
+    expect(accepted.accepted).toBe(true);
+    expect(accepted.state).toEqual({
+      status: "no-grid-coverage",
+      selectionId: "region-empty",
+      outcome: {
+        coverage: "no-grid-coverage",
+        selectionId: "region-empty",
+        stateVersion: 2,
+        configurationFingerprint: "config-v1",
+        selectedCellCount: 0,
+      },
+    });
+    expect(activeSelectionId(accepted.state)).toBe("region-empty");
+    expect(visibleReadout(accepted.state)).toBeNull();
+  });
+
+  it("does not retain a no-grid outcome as stale scientific data", () => {
+    const noCoverage = acceptRegionInspection(
+      beginRegionInspection(
+        unavailableRegionInspector("No region selected."),
+        "region-empty",
+      ),
+      noGridCoverage("region-empty"),
+    ).state;
+
+    const next = beginRegionInspection(noCoverage, "region-next");
+
+    expect(next).toEqual({
+      status: "pending",
+      selectionId: "region-next",
+    });
+    expect(visibleReadout(next)).toBeNull();
   });
 
   it("marks an old readout stale immediately when selection changes", () => {
@@ -79,6 +141,22 @@ describe("region inspector presentation state", () => {
     expect(current.accepted).toBe(true);
     expect(current.state.status).toBe("ready");
     expect(visibleReadout(current.state)?.selectionId).toBe("region-b");
+  });
+
+  it("ignores a late no-grid outcome for a superseded selection", () => {
+    let state = beginRegionInspection(
+      unavailableRegionInspector("No region selected."),
+      "region-a",
+    );
+    state = beginRegionInspection(state, "region-b");
+
+    const late = acceptRegionInspection(
+      state,
+      noGridCoverage("region-a"),
+    );
+
+    expect(late.accepted).toBe(false);
+    expect(late.state).toBe(state);
   });
 
   it("keeps any previous readout visibly stale when the current query fails", () => {

@@ -1,11 +1,35 @@
 import { describe, expect, it } from "vitest";
-import { planSurfaceTransition } from "../../src/ui/motion/semanticTransitions";
+import {
+  planSemanticTransition,
+  planSurfaceTransition,
+} from "../../src/ui/motion/semanticTransitions";
 import {
   SEMANTIC_ZOOM_GUIDE,
   surfaceMotionCss,
 } from "../../src/app/motionAdapter";
 
 describe("app motion adapter", () => {
+  it("projects semantic and surface plans through the same CSS adapter", () => {
+    const semanticCss = surfaceMotionCss(
+      planSemanticTransition({
+        from: "dish",
+        to: "colony",
+        preference: "reduced",
+      }),
+    );
+    expect(semanticCss.treatment).toBe("crossfade");
+    expect(semanticCss.duration).toBe("150ms");
+
+    const surfaceCss = surfaceMotionCss(
+      planSurfaceTransition({
+        surface: "overlay",
+        action: "show",
+        preference: "full",
+      }),
+    );
+    expect(surfaceCss.treatment).toBe("animate");
+  });
+
   it("projects the shared full-motion surface plan into CSS tokens", () => {
     const css = surfaceMotionCss(
       planSurfaceTransition({

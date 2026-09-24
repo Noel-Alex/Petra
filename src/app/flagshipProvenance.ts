@@ -47,6 +47,9 @@ export function buildFlagshipProvenanceView(
       scenario: context,
       valueText: `MIC ${genotype.mic_mg_L} mg/L · relative fitness ${genotype.relativeFitness}`,
       units: "MIC: mg/L; relative fitness: dimensionless",
+      uncertainty: formatGenotypeMeasurementUncertainty(
+        genotype.measurementUncertainty,
+      ),
     }),
   );
 
@@ -126,4 +129,18 @@ export function buildFlagshipProvenanceView(
     ],
     assumptions: resolveScenarioTransferAssumptions(context),
   };
+}
+
+function formatGenotypeMeasurementUncertainty(
+  uncertainty: FlagshipScenario["genotypes"][number]["measurementUncertainty"],
+): string {
+  const micSteps = uncertainty.mic.plusMinusSteps;
+  const experiments =
+    uncertainty.relativeFitness.independentCompetitionExperiments;
+
+  return `MIC measurement margin ±${micSteps} half-doubling step${
+    micSteps === 1 ? "" : "s"
+  }; relative-fitness SD ${uncertainty.relativeFitness.standardDeviation} across ${experiments} independent competition experiment${
+    experiments === 1 ? "" : "s"
+  }.`;
 }

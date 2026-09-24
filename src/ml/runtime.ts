@@ -75,6 +75,7 @@ export type EmulatedRefusalReason =
   | "feature-disabled"
   | "model-not-promoted"
   | "engine-version-mismatch"
+  | "runtime-compatibility-missing"
   | "compatibility-schema-mismatch"
   | "scenario-compatibility-mismatch"
   | "normalization-profile-mismatch"
@@ -200,7 +201,7 @@ export function checkSurrogateDomain(
 export function resolveExecutionMode(args: {
   readonly requested: ExecutionMode;
   readonly activeEngineVersion: string;
-  readonly activeCompatibility: ActiveSurrogateCompatibility;
+  readonly activeCompatibility?: ActiveSurrogateCompatibility;
   readonly emulatedFeatureEnabled: boolean;
   readonly model: SurrogateModelCard;
   readonly input: SurrogateInput;
@@ -232,6 +233,15 @@ export function resolveExecutionMode(args: {
       mode: "mechanistic",
       requested: "emulated",
       refusalReason: "engine-version-mismatch",
+      violations: [],
+    };
+  }
+
+  if (args.activeCompatibility === undefined) {
+    return {
+      mode: "mechanistic",
+      requested: "emulated",
+      refusalReason: "runtime-compatibility-missing",
       violations: [],
     };
   }

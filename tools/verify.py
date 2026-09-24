@@ -459,8 +459,12 @@ def scenario_contracts() -> int:
                     "conservative-neighbour-spread",
                 }
                 targets = execution_profile.get("behaviorTargets")
+                valid_target_list = (
+                    isinstance(targets, list)
+                    and all(isinstance(target, str) for target in targets)
+                )
                 if (
-                    not isinstance(targets, list)
+                    not valid_target_list
                     or len(targets) != len(expected_targets)
                     or set(targets) != expected_targets
                 ):

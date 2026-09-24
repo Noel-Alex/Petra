@@ -72,16 +72,10 @@ export function createFixtureComposedParameterSetBinding(
  * do not construct one by fingerprinting the caller's config at initialization
  * time, because that would merely self-certify whatever values were supplied.
  */
-export function assertComposedParameterSetBinding(
-  identity: ParameterSetBoundIdentity,
-  config: ComposedSimulationConfig,
-): asserts identity is ParameterSetBoundIdentity & {
-  readonly parameterSetBinding: ComposedParameterSetBinding
-} {
-  canonicalIdentity('run parameter-set id', identity.parameterSetId)
-  canonicalIdentity('run parameter-set version', identity.parameterSetVersion)
-
-  const binding = asRecord(identity.parameterSetBinding)
+export function assertComposedParameterSetBindingRecord(
+  value: unknown,
+): asserts value is ComposedParameterSetBinding {
+  const binding = asRecord(value)
   if (binding === null) {
     throw new Error(
       'composed runs require a versioned parameter-set configuration binding',
@@ -106,13 +100,6 @@ export function assertComposedParameterSetBinding(
     binding.configurationFingerprint,
   )
 
-  if (binding.parameterSetId !== identity.parameterSetId) {
-    throw new Error('run parameter-set id does not match composed binding')
-  }
-  if (binding.parameterSetVersion !== identity.parameterSetVersion) {
-    throw new Error('run parameter-set version does not match composed binding')
-  }
-
   if (binding.authority === 'fixture') {
     if (!binding.parameterSetId.startsWith('fixture:')) {
       throw new Error('fixture parameter-set ids must start with "fixture:"')
@@ -121,6 +108,25 @@ export function assertComposedParameterSetBinding(
     throw new Error(
       'provenance parameter-set bindings cannot use the fixture namespace',
     )
+  }
+}
+
+export function assertComposedParameterSetBinding(
+  identity: ParameterSetBoundIdentity,
+  config: ComposedSimulationConfig,
+): asserts identity is ParameterSetBoundIdentity & {
+  readonly parameterSetBinding: ComposedParameterSetBinding
+} {
+  canonicalIdentity('run parameter-set id', identity.parameterSetId)
+  canonicalIdentity('run parameter-set version', identity.parameterSetVersion)
+  assertComposedParameterSetBindingRecord(identity.parameterSetBinding)
+  const binding = identity.parameterSetBinding
+
+  if (binding.parameterSetId !== identity.parameterSetId) {
+    throw new Error('run parameter-set id does not match composed binding')
+  }
+  if (binding.parameterSetVersion !== identity.parameterSetVersion) {
+    throw new Error('run parameter-set version does not match composed binding')
   }
 
   const actualFingerprint = composedConfigurationFingerprint(config)

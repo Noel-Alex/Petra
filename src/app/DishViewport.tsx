@@ -1,11 +1,12 @@
 import {
+  useEffect,
   useId,
   useMemo,
   useState,
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import type { DishRenderSnapshot } from "../render/model";
+import type { DishRenderSnapshot, SemanticZoomLevel } from "../render/model";
 import { PixiDish } from "../render/pixi/PixiDish";
 import { createRendererDemoSnapshot } from "../render/pixi/demoSnapshot";
 import type { RendererMotionMode } from "../render/pixi/renderer";
@@ -16,10 +17,8 @@ import {
   resolveDishOverlay,
 } from "./dishPresentation";
 import { buildOverlayLegend } from "./overlayLegend";
-import {
-  SEMANTIC_ZOOM_GUIDE,
-  surfaceMotionCss,
-} from "./motionAdapter";
+import { surfaceMotionCss } from "./motionAdapter";
+import { DishSemanticZoomGuide } from "./DishSemanticZoomGuide";
 import { dishEscapeAction } from "./dishKeyboard";
 import { resolveDishCameraMotion } from "./dishCameraMotion";
 
@@ -69,6 +68,10 @@ export function DishViewport({
     () => (activeSnapshot === null ? null : defaultDishOverlayId(activeSnapshot)),
   );
   const [cameraResetSignal, setCameraResetSignal] = useState(0);
+  const [semanticGuide, setSemanticGuide] = useState<{
+    readonly previous: SemanticZoomLevel;
+    readonly current: SemanticZoomLevel;
+  }>({ previous: "dish", current: "dish" });
   const activeOverlay =
     activeSnapshot === null
       ? null
@@ -89,6 +92,19 @@ export function DishViewport({
       ),
     [motion],
   );
+
+  useEffect(() => {
+    if (renderEnabled) return;
+    setSemanticGuide({ previous: "dish", current: "dish" });
+  }, [renderEnabled]);
+
+  const handleSemanticZoomLevelChange = (level: SemanticZoomLevel) => {
+    setSemanticGuide((current) =>
+      current.current === level
+        ? current
+        : { previous: current.current, current: level },
+    );
+  };
 
   const requestOverview = () => {
     setCameraResetSignal((signal) => signal + 1);
@@ -131,6 +147,7 @@ export function DishViewport({
           cameraMotion={cameraPlan.cameraMotion}
           overlayId={resolvedOverlayId}
           resetCameraSignal={cameraResetSignal}
+          onSemanticZoomLevelChange={handleSemanticZoomLevelChange}
           className="dish-renderer-canvas"
           ariaLabel={
             usingAuthoritative
@@ -229,18 +246,11 @@ export function DishViewport({
         </div>
       </div>
 
-      <div
-        className="dish-semantic-guide"
-        role="note"
-        aria-label="Semantic zoom meaning"
-      >
-        {SEMANTIC_ZOOM_GUIDE.map((entry) => (
-          <span key={entry.id} data-semantic-view={entry.id}>
-            <strong>{entry.label}</strong>
-            <span>{entry.meaning}</span>
-          </span>
-        ))}
-      </div>
+      <DishSemanticZoomGuide
+        previousLevel={semanticGuide.previous}
+        currentLevel={semanticGuide.current}
+        motion={motion}
+      />
 
       <p className="dish-interaction-hint" id={interactionHintId}>
         Pointer: wheel to zoom · drag while zoomed · double-click to focus.

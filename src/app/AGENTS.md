@@ -100,6 +100,13 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Authoritative state always takes precedence and must not invoke demo generation. Visual-demo state remains explicit opt-in, visibly disclosed, and presentation-only.
 
 
+## Authoritative dish replay keyframe bridge
+- `dishReplayKeyframe.ts` is the narrow app-layer bridge between worker/runtime authority and renderer replay history. It may bind an already-authoritative `DishRenderSnapshot` to runtime identity; it may not derive biology from renderer state.
+- Replay order is sourced from `SimulationCheckpoint.commandCount`, the existing protocol-v2 accepted mutating-command position. The bridge copies it into the versioned renderer replay-order contract and requires exact equality between runtime checkpoint `simulationTimeHours` and the dish projection's biological timestamp.
+- `runBranchIdentity` is explicit caller/runtime authority. A reset, replay, restore branch, or other history generation that can restart/regress accepted-command position must receive a fresh branch identity; React/Pixi must never infer branch ancestry from array order, snapshot IDs, arrival time, or presentation state.
+- Snapshot-only observations that do not advance `commandCount` are not distinct replay positions. If callers attempt to append two different keyframes with the same order identity, renderer replay validation must reject the history rather than inventing an ordering.
+
+
 ## Shared visual theme
 - `visualTheme.css` is a late-loaded presentation theme that consumes CSS variables installed from `src/design/visualTokens.ts`; it must not become a second hard-coded Petra palette.
 - Theme overrides may change color, border, elevation, and quiet depth, but must not own layout, simulation state, scientific semantics, or intervention capability. Keep issue-specific layout/interaction styles in their owning modules.

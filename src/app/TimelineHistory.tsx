@@ -14,6 +14,24 @@ export interface TimelineHistoryPlan {
   readonly olderCount: number;
 }
 
+export interface TimelineHistoryKeyEvent {
+  readonly key: string;
+  stopPropagation(): void;
+}
+
+/**
+ * Keeps Space inside the focusable history scroller so the browser can perform
+ * its native scroll default without the App-level playback shortcut seeing it.
+ * Deliberately does not call preventDefault().
+ */
+export function keepTimelineHistorySpaceLocal(
+  event: TimelineHistoryKeyEvent,
+): void {
+  if (event.key === " " || event.key === "Spacebar") {
+    event.stopPropagation();
+  }
+}
+
 export function planTimelineHistory(
   entries: readonly TimelineEntry[],
   recentLimit = 4,
@@ -72,6 +90,7 @@ export function TimelineHistory({
             role="region"
             aria-label="Complete authoritative simulation event history"
             tabIndex={0}
+            onKeyDown={keepTimelineHistorySpaceLocal}
           >
             <ol className="timeline-history__events">
               {plan.all.map((entry) => (

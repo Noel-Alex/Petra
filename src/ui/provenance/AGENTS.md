@@ -24,6 +24,7 @@ Own framework-neutral presentation of authoritative scientific/source provenance
 - `needs-provenance` must be visible in text and must not degrade into a reassuring neutral badge.
 - Sources/assumptions panels must remain keyboard/focus operable; motion is presentation-only.
 - `ProvenancePanel.tsx` owns exactly one stable polite + atomic live region for provenance record/filter count updates. Visible header and filter summaries remain ordinary readable text, not competing announcement regions; authoritative record-set and filter changes collapse into one bounded announcement.
+- Search typing keeps visible filtering immediate but defers the spoken result summary through `announcementCadence.ts`; newer keystrokes replace the pending summary. Evidence-filter changes, Clear, and semantic authoritative record-set changes cancel pending query speech and update the same live region immediately. Announcement timing is presentation-only and never evidence/scientific authority.
 - `ProvenancePanel.tsx` always exposes Petra's product-scope disclaimer as ordinary readable text: educational/research simulation, not a clinical dosing or treatment tool, and not patient-specific medical guidance. Filtering, empty-record states, and motion modes must not hide it or move it into a live region.
 - Provenance action controls consume the already-resolved app `MotionPreference` through Petra shared action adapters. Filtering/reset remains presentation-only; provenance components must not query OS motion locally or invent interaction timing.
 - Judge-facing provenance search/select/action controls keep a minimum interactive block size of `2.75rem` (44px at Petra's default root size) without fixed widths that break the narrow Sources drawer. Native search/select semantics remain native.
@@ -35,7 +36,7 @@ Own framework-neutral presentation of authoritative scientific/source provenance
 - Filter result counts should state when complete records are hidden and when incomplete records were retained by the safety rule.
 
 ## Verification
-Deterministic tests cover explicit-class normalization, missing/unknown classifications, citation resolution, missing citation records, duplicate collection-identity rejection, stable source order, incomplete-record safety pinning, and separation of scenario assumptions from field claims. Browser/focus/visual QA is a manual local evidence gate; Petra has no hosted CI.
+Deterministic tests cover explicit-class normalization, missing/unknown classifications, citation resolution, missing citation records, duplicate collection-identity rejection, stable source order, incomplete-record safety pinning, announcement debounce/cancellation lifecycle, and separation of scenario assumptions from field claims. Browser/focus/visual QA is a manual local evidence gate; Petra has no hosted CI.
 
 
 ## Scenario validation evidence presentation

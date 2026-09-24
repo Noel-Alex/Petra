@@ -1,4 +1,4 @@
-import { useId, useMemo, useState, type ReactElement } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactElement } from "react";
 
 import {
   PROVENANCE_ICON_MAP,
@@ -6,6 +6,7 @@ import {
 import { PetraIcon } from "../icons/PetraIcon";
 import { PetraCompactAction } from "../PetraCompactAction";
 import type { MotionPreference } from "../motion/policy";
+import { createProvenanceAnnouncementCadence } from "./announcementCadence";
 import {
   filterProvenanceRecords,
   parseProvenanceEvidenceFilter,
@@ -27,6 +28,30 @@ export interface ProvenancePanelProps {
   readonly motionPreference: MotionPreference;
 }
 
+function buildProvenanceAnnouncement(
+  records: readonly ScenarioProvenanceResolution[],
+  query: string,
+  evidence: ProvenanceEvidenceFilter,
+): string {
+  if (records.length === 0) {
+    return "No provenance records are available for the active selection.";
+  }
+
+  const filtered = filterProvenanceRecords(records, { query, evidence });
+  const complete = records.filter((record) => record.status === "complete").length;
+  const incomplete = records.length - complete;
+
+  return [
+    `${complete} complete${incomplete > 0 ? ` · ${incomplete} need provenance` : ""}`,
+    `${filtered.records.length} of ${records.length} records shown${filtered.hiddenCompleteCount > 0 ? ` · ${filtered.hiddenCompleteCount} complete filtered out` : ""}`,
+    filtered.pinnedNeedsProvenanceCount > 0
+      ? `${filtered.pinnedNeedsProvenanceCount} needs-provenance records pinned by safety rule`
+      : null,
+  ]
+    .filter((part): part is string => part !== null)
+    .join(". ");
+}
+
 export function ProvenancePanel({
   records,
   assumptions,
@@ -38,6 +63,41 @@ export function ProvenancePanel({
   const [query, setQuery] = useState("");
   const [evidence, setEvidence] =
     useState<ProvenanceEvidenceFilter>("all");
+  const [announcement, setAnnouncement] = useState(() =>
+    buildProvenanceAnnouncement(records, "", "all"),
+  );
+  const cadenceRef = useRef<ReturnType<
+    typeof createProvenanceAnnouncementCadence
+  > | null>(null);
+  if (cadenceRef.current === null) {
+    cadenceRef.current = createProvenanceAnnouncementCadence({
+      commit: setAnnouncement,
+    });
+  }
+  const cadence = cadenceRef.current;
+  const recordsAnnouncementKey = useMemo(
+    () => JSON.stringify(records),
+    [records],
+  );
+  const previousRecordsAnnouncementKey = useRef(recordsAnnouncementKey);
+
+  useEffect(() => {
+    if (previousRecordsAnnouncementKey.current === recordsAnnouncementKey) {
+      return;
+    }
+    previousRecordsAnnouncementKey.current = recordsAnnouncementKey;
+    cadence.announceNow(
+      buildProvenanceAnnouncement(records, query, evidence),
+    );
+  }, [cadence, evidence, query, records, recordsAnnouncementKey]);
+
+  useEffect(
+    () => () => {
+      cadence.cancelPending();
+    },
+    [cadence],
+  );
+
   const filtered = useMemo(
     () => filterProvenanceRecords(records, { query, evidence }),
     [records, query, evidence],
@@ -45,18 +105,6 @@ export function ProvenancePanel({
   const complete = records.filter((record) => record.status === "complete").length;
   const incomplete = records.length - complete;
   const hasActiveFilter = query.trim().length > 0 || evidence !== "all";
-  const announcement =
-    records.length === 0
-      ? "No provenance records are available for the active selection."
-      : [
-          `${complete} complete${incomplete > 0 ? ` · ${incomplete} need provenance` : ""}`,
-          `${filtered.records.length} of ${records.length} records shown${filtered.hiddenCompleteCount > 0 ? ` · ${filtered.hiddenCompleteCount} complete filtered out` : ""}`,
-          filtered.pinnedNeedsProvenanceCount > 0
-            ? `${filtered.pinnedNeedsProvenanceCount} needs-provenance records pinned by safety rule`
-            : null,
-        ]
-          .filter((part): part is string => part !== null)
-          .join(". ");
 
   return (
     <aside
@@ -106,7 +154,11 @@ export function ProvenancePanel({
                 value={query}
                 placeholder="Label, source, context…"
                 onChange={(event) => {
-                  setQuery(event.target.value);
+                  const nextQuery = event.target.value;
+                  setQuery(nextQuery);
+                  cadence.defer(
+                    buildProvenanceAnnouncement(records, nextQuery, evidence),
+                  );
                 }}
               />
             </label>
@@ -115,8 +167,12 @@ export function ProvenancePanel({
               <select
                 value={evidence}
                 onChange={(event) => {
-                  setEvidence(
-                    parseProvenanceEvidenceFilter(event.target.value),
+                  const nextEvidence = parseProvenanceEvidenceFilter(
+                    event.target.value,
+                  );
+                  setEvidence(nextEvidence);
+                  cadence.announceNow(
+                    buildProvenanceAnnouncement(records, query, nextEvidence),
                   );
                 }}
               >
@@ -134,6 +190,9 @@ export function ProvenancePanel({
               onClick={() => {
                 setQuery("");
                 setEvidence("all");
+                cadence.announceNow(
+                  buildProvenanceAnnouncement(records, "", "all"),
+                );
               }}
             >
               Clear

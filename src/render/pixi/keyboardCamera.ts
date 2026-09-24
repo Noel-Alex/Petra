@@ -18,6 +18,18 @@ export interface KeyboardCameraResult {
   readonly camera: CameraView;
 }
 
+export interface KeyboardCameraModifiers {
+  readonly altKey: boolean;
+  readonly ctrlKey: boolean;
+  readonly metaKey: boolean;
+}
+
+export function keyboardCameraModifiersAllowInput(
+  modifiers: KeyboardCameraModifiers,
+): boolean {
+  return !modifiers.altKey && !modifiers.ctrlKey && !modifiers.metaKey;
+}
+
 const PAN_FRACTION = 0.09;
 const ZOOM_IN_FACTOR = 1.28;
 const ZOOM_OUT_FACTOR = 1 / ZOOM_IN_FACTOR;

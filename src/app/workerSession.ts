@@ -1,9 +1,16 @@
 import {
   PROTOCOL_VERSION,
+  type SimulationCommand,
   type SimulationSnapshot,
   type WorkerRequest,
   type WorkerResponse,
 } from "../sim/protocol";
+import {
+  WORKER_PERFORMANCE_DIAGNOSTICS_VERSION,
+  estimateStructuredClonePayloadBytes,
+  type InstrumentedWorkerRequest,
+  type InstrumentedWorkerResponse,
+} from "../worker/performanceInstrumentation";
 
 export type WorkerSessionPhase =
   | "idle"
@@ -22,8 +29,37 @@ export interface WorkerSessionState {
 }
 
 export interface WorkerPortHandlers {
-  readonly message: (response: WorkerResponse) => void;
+  readonly message: (response: InstrumentedWorkerResponse) => void;
   readonly error: (message: string) => void;
+}
+
+export type WorkerPerformanceOutcome =
+  | "success"
+  | "worker-error"
+  | "transport-error"
+  | "protocol-error";
+
+export interface WorkerSessionPerformanceSample {
+  readonly version: 1;
+  readonly completedAtMs: number;
+  readonly requestType: WorkerRequest["type"];
+  readonly commandType: SimulationCommand["type"] | null;
+  readonly commandId: string | null;
+  readonly requestedAdvanceTicks: number | null;
+  readonly queuedRequestsBehindAtDispatch: number;
+  readonly requestPayloadBytes: number;
+  readonly responsePayloadBytes: number | null;
+  readonly roundTripMs: number;
+  readonly workerExecutionMs: number | null;
+  readonly workerExecutionMsPerTick: number | null;
+  readonly nonWorkerRoundTripMs: number | null;
+  readonly authoritativeEventQueueLength: number | null;
+  readonly outcome: WorkerPerformanceOutcome;
+}
+
+export interface WorkerSessionPerformanceOptions {
+  readonly observe: (sample: WorkerSessionPerformanceSample) => void;
+  readonly now?: () => number;
 }
 
 export interface WorkerPort {
@@ -42,17 +78,41 @@ const INITIAL_STATE: WorkerSessionState = {
   error: null,
 };
 
+interface ActivePerformanceMeasurement {
+  readonly startedAtMs: number;
+  readonly requestPayloadBytes: number;
+  readonly queuedRequestsBehindAtDispatch: number;
+}
+
 export class WorkerSession {
   private readonly queue: WorkerRequest[] = [];
   private readonly listeners = new Set<WorkerSessionListener>();
   private readonly unsubscribePort: () => void;
+  private readonly performanceOptions: {
+    readonly observe: (sample: WorkerSessionPerformanceSample) => void;
+    readonly now: () => number;
+  } | null;
   private active: WorkerRequest | null = null;
+  private activePerformance: ActivePerformanceMeasurement | null = null;
   private current: WorkerSessionState = INITIAL_STATE;
 
-  constructor(private readonly port: WorkerPort) {
+  constructor(
+    private readonly port: WorkerPort,
+    performanceOptions?: WorkerSessionPerformanceOptions,
+  ) {
+    this.performanceOptions =
+      performanceOptions === undefined
+        ? null
+        : {
+            observe: performanceOptions.observe,
+            now: performanceOptions.now ?? (() => performance.now()),
+          };
     this.unsubscribePort = port.subscribe({
       message: (response) => this.handleResponse(response),
-      error: (message) => this.fail(message, this.activeCommandId()),
+      error: (message) => {
+        this.recordPerformance(null, "transport-error");
+        this.fail(message, this.activeCommandId());
+      },
     });
   }
 
@@ -85,6 +145,7 @@ export class WorkerSession {
     if (this.current.phase === "disposed") return;
     this.queue.length = 0;
     this.active = null;
+    this.activePerformance = null;
     this.unsubscribePort();
     this.port.dispose();
     this.publish({
@@ -122,17 +183,34 @@ export class WorkerSession {
       error: null,
     });
 
+    const outbound: InstrumentedWorkerRequest =
+      this.performanceOptions === null
+        ? next
+        : { ...next, performanceDiagnostics: true };
+
+    this.activePerformance =
+      this.performanceOptions === null
+        ? null
+        : {
+            startedAtMs: this.performanceOptions.now(),
+            requestPayloadBytes:
+              estimateStructuredClonePayloadBytes(outbound),
+            queuedRequestsBehindAtDispatch: this.queue.length,
+          };
+
     try {
-      this.port.post(next);
+      this.port.post(outbound);
     } catch (error) {
+      this.recordPerformance(null, "transport-error");
       this.fail(error instanceof Error ? error.message : String(error), pendingCommandId);
     }
   }
 
-  private handleResponse(response: WorkerResponse): void {
+  private handleResponse(response: InstrumentedWorkerResponse): void {
     if (this.current.phase === "disposed") return;
 
     if (response.protocolVersion !== PROTOCOL_VERSION) {
+      this.recordPerformance(response, "protocol-error");
       this.fail(
         `Worker protocol mismatch: expected ${PROTOCOL_VERSION}, received ${response.protocolVersion}`,
         responseCommandId(response),
@@ -150,12 +228,14 @@ export class WorkerSession {
       const expectedId = active.type === "command" ? active.command.id : null;
       const actualId = response.commandId ?? null;
       if (expectedId !== null && actualId !== expectedId) {
+        this.recordPerformance(response, "protocol-error");
         this.fail(
           `Worker error command mismatch: expected ${expectedId}, received ${actualId ?? "none"}`,
           actualId,
         );
         return;
       }
+      this.recordPerformance(response, "worker-error");
       this.fail(response.message, actualId);
       return;
     }
@@ -165,6 +245,7 @@ export class WorkerSession {
         this.fail("Expected worker ready response after initialization", responseCommandId(response));
         return;
       }
+      this.recordPerformance(response, "success");
       this.complete(response.snapshot);
       return;
     }
@@ -185,7 +266,72 @@ export class WorkerSession {
       return;
     }
 
+    this.recordPerformance(response, "success");
     this.complete(response.snapshot);
+  }
+
+  private recordPerformance(
+    response: InstrumentedWorkerResponse | null,
+    outcome: WorkerPerformanceOutcome,
+  ): void {
+    const active = this.active;
+    const measurement = this.activePerformance;
+    const options = this.performanceOptions;
+    if (active === null || measurement === null || options === null) return;
+
+    this.activePerformance = null;
+    const completedAtMs = options.now();
+    const roundTripMs = Math.max(0, completedAtMs - measurement.startedAtMs);
+    const workerExecutionMs =
+      response?.performanceDiagnostics?.version ===
+        WORKER_PERFORMANCE_DIAGNOSTICS_VERSION &&
+      Number.isFinite(response.performanceDiagnostics.executionDurationMs) &&
+      response.performanceDiagnostics.executionDurationMs >= 0
+        ? response.performanceDiagnostics.executionDurationMs
+        : null;
+    const command = active.type === "command" ? active.command : null;
+    const requestedAdvanceTicks =
+      command?.type === "advance" ? command.ticks : null;
+    const authoritativeEventQueueLength =
+      response?.type === "ready" || response?.type === "snapshot"
+        ? response.snapshot.events.length
+        : null;
+    const sample: WorkerSessionPerformanceSample = {
+      version: 1,
+      completedAtMs,
+      requestType: active.type,
+      commandType: command?.type ?? null,
+      commandId: command?.id ?? null,
+      requestedAdvanceTicks,
+      queuedRequestsBehindAtDispatch:
+        measurement.queuedRequestsBehindAtDispatch,
+      requestPayloadBytes: measurement.requestPayloadBytes,
+      responsePayloadBytes:
+        response === null
+          ? null
+          : estimateStructuredClonePayloadBytes(response),
+      roundTripMs,
+      workerExecutionMs,
+      workerExecutionMsPerTick:
+        workerExecutionMs !== null &&
+        requestedAdvanceTicks !== null &&
+        requestedAdvanceTicks > 0
+          ? workerExecutionMs / requestedAdvanceTicks
+          : null,
+      nonWorkerRoundTripMs:
+        workerExecutionMs === null
+          ? null
+          : Math.max(0, roundTripMs - workerExecutionMs),
+      authoritativeEventQueueLength,
+      outcome,
+    };
+
+    try {
+      options.observe(sample);
+    } catch {
+      // Profiling is observational. A diagnostics sink must never break the
+      // authoritative runtime or alter request ordering.
+    }
   }
 
   private complete(snapshot: SimulationSnapshot): void {
@@ -222,6 +368,7 @@ export class WorkerSession {
   private fail(message: string, commandId: string | null): void {
     this.queue.length = 0;
     this.active = null;
+    this.activePerformance = null;
     this.publish({
       phase: "error",
       latestSnapshot: this.current.latestSnapshot,
@@ -251,7 +398,7 @@ export function createBrowserWorkerPort(worker: Worker): WorkerPort {
       worker.postMessage(request);
     },
     subscribe(handlers) {
-      const onMessage = (event: MessageEvent<WorkerResponse>) => {
+      const onMessage = (event: MessageEvent<InstrumentedWorkerResponse>) => {
         handlers.message(event.data);
       };
       const onError = (event: ErrorEvent) => {

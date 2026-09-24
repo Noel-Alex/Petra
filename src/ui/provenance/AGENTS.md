@@ -18,6 +18,10 @@ Own framework-neutral presentation of authoritative scientific/source provenance
 - Shared icon geometry comes from `src/ui/icons/spec.ts` via the thin `PetraIcon.tsx` adapter; provenance components must not invent a second icon vocabulary.
 - Actionable external source links may be projected only from explicit authoritative citation locators. DOI fields resolve through `https://doi.org/<doi>`; explicit `http://`/`https://` citation URLs may be linked directly. Never synthesize a URL from source title, citation key, evidence class, confidence, or paper count.
 - Unsupported/unsafe citation URL schemes remain visible as non-actionable locator text and a provenance problem; presentation code must never emit them as `href` values. External source links open separately so evidence drill-down does not replace the running expo surface.
+- `uncertainty.ts` owns structured source-uncertainty presentation. SD, SE, CI, range, source-reported margin, and explicit `not-quantified` states retain their exact supplied statistical meaning; the UI must never convert one into another or synthesize a universal confidence percentage.
+- Every structured uncertainty names its scope (measurement, transfer, model, or calibration) and quantity. `not-quantified` means only that the selected source did not quantify that uncertainty; it is not zero uncertainty.
+- Legacy free-text `uncertainty` remains accepted for existing scenario records, but one presentation record may not combine legacy text with structured uncertainty. New structured callers must supply at least one explicit state and all numeric bounds must be finite/order-valid.
+- Uncertainty presentation is informational. It never samples, perturbs, calibrates, or otherwise changes simulation state unless a separate reviewed simulation mechanism explicitly owns that behavior.
 
 ## Accessibility
 - Critical evidence meaning uses text labels plus icon and **visibly distinct** non-color pattern tokens; `data-pattern` metadata alone is not sufficient without a rendered pattern treatment.

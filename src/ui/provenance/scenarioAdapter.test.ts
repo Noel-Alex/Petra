@@ -364,4 +364,34 @@ describe("scenario provenance adapter", () => {
     expect(result.assumptions).toEqual(["Valid assumption."]);
     expect(result.problems).toHaveLength(2);
   });
+
+  it("passes caller-supplied structured uncertainty without inventing a confidence score", () => {
+    const result = resolveScenarioProvenance({
+      id: "fitness-uncertainty",
+      label: "Relative fitness",
+      record: {
+        provenance: {
+          classification: "measured",
+          citation: "marcusson_2009",
+        },
+      },
+      scenario,
+      sourceUncertainty: [
+        {
+          kind: "standard-deviation",
+          scope: "measurement",
+          quantityLabel: "Relative fitness",
+          value: 0.03,
+          supportingText: "6 independent competition experiments",
+        },
+      ],
+    });
+
+    expect(result.status).toBe("complete");
+    expect(result.presentation?.details).toContainEqual({
+      label: "Measurement uncertainty · Relative fitness",
+      value: "SD 0.03 · 6 independent competition experiments",
+    });
+    expect(result.presentation?.ariaLabel).not.toMatch(/confidence score/i);
+  });
 });

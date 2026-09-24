@@ -25,6 +25,7 @@ export interface SurrogateInput {
 }
 
 export interface ActiveSurrogateCompatibility {
+  readonly schemaVersion: "surrogate-compatibility-v1";
   readonly scenarioId: string;
   readonly scenarioVersion: string;
   readonly normalizationProfileId: string;
@@ -74,6 +75,7 @@ export type EmulatedRefusalReason =
   | "feature-disabled"
   | "model-not-promoted"
   | "engine-version-mismatch"
+  | "compatibility-schema-mismatch"
   | "scenario-compatibility-mismatch"
   | "normalization-profile-mismatch"
   | "input-schema-mismatch"
@@ -290,6 +292,9 @@ function resolveCompatibilityRefusal(
   active: ActiveSurrogateCompatibility,
   trained: SurrogateCompatibilityIdentity,
 ): EmulatedRefusalReason | null {
+  if (active.schemaVersion !== trained.schemaVersion) {
+    return "compatibility-schema-mismatch";
+  }
   const scenarioSupported = trained.supportedScenarios.some(
     (scenario) =>
       scenario.scenarioId === active.scenarioId &&

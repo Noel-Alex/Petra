@@ -45,6 +45,7 @@ export interface ScenarioProvenanceResolution {
   readonly presentation: ProvenancePresentation | null;
   readonly rawClassification: string | null;
   readonly sourceKeys: readonly string[];
+  readonly sources: readonly ProvenanceSource[];
   readonly problems: readonly string[];
 }
 
@@ -62,6 +63,8 @@ export function resolveScenarioProvenance(
   args: ResolveScenarioProvenanceArgs,
 ): ScenarioProvenanceResolution {
   const problems: string[] = [];
+  const sourceKeys = citationKeys(args.record, problems);
+  const sources = resolveSources(sourceKeys, args.scenario.citations, problems);
   const rawClassification =
     typeof args.record.classification === "string"
       ? args.record.classification.trim()
@@ -74,7 +77,8 @@ export function resolveScenarioProvenance(
       status: "needs-provenance",
       presentation: null,
       rawClassification,
-      sourceKeys: citationKeys(args.record, problems),
+      sourceKeys,
+      sources,
       problems: [
         "Provenance incomplete: an explicit evidence classification is required.",
         ...problems,
@@ -83,7 +87,6 @@ export function resolveScenarioProvenance(
   }
 
   const evidenceClass = normalizeEvidenceClass(rawClassification);
-  const sourceKeys = citationKeys(args.record, problems);
 
   if (evidenceClass === null) {
     return {
@@ -93,6 +96,7 @@ export function resolveScenarioProvenance(
       presentation: null,
       rawClassification,
       sourceKeys,
+      sources,
       problems: [
         `Provenance incomplete: unsupported explicit evidence classification "${rawClassification}".`,
         ...problems,
@@ -100,7 +104,6 @@ export function resolveScenarioProvenance(
     };
   }
 
-  const sources = resolveSources(sourceKeys, args.scenario.citations, problems);
   const input: ProvenancePresentationInput = {
     id: args.id,
     label: args.label,
@@ -135,6 +138,7 @@ export function resolveScenarioProvenance(
     presentation,
     rawClassification,
     sourceKeys,
+    sources,
     problems,
   };
 }

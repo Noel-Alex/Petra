@@ -501,6 +501,20 @@ def main() -> int:
             if user_data:
                 user_data.cleanup()
 
+    lockfile_path = ROOT / "package-lock.json"
+    checks.append(
+        check(
+            "reproducible clean-install lockfile",
+            lockfile_path.exists(),
+            (
+                str(lockfile_path)
+                if lockfile_path.exists()
+                else "Blocked on #30: current repository has no generated package-lock.json, so clean npm installs are not yet reproducible."
+            ),
+            None if lockfile_path.exists() else "blocked",
+        )
+    )
+
     checks.append(
         check(
             "final 90-second flagship flow offline",

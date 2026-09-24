@@ -1,4 +1,19 @@
 {
   "schema_version": 1,
-  "experiments": []
+  "experiments": [
+    {
+      "id": "expo-browser-acceptance",
+      "description": "Headless Chrome/Chromium expo QA for layout, motion modes, keyboard/touch smoke, accessibility, screenshots, and frame timing.",
+      "command": [
+        "python",
+        "tools/expo_browser_acceptance.py"
+      ],
+      "issues": [
+        6,
+        10,
+        59
+      ],
+      "timeout_seconds": 300
+    }
+  ]
 }

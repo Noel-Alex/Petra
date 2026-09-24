@@ -9,7 +9,6 @@ import {
   createRunIdentity,
   type SimulationSnapshot,
   type WorkerRequest,
-  type WorkerResponse,
 } from "../../src/sim/protocol";
 
 const identity = createRunIdentity({
@@ -55,7 +54,7 @@ class FakePort implements WorkerPort {
     this.disposed = true;
   }
 
-  emit(response: WorkerResponse): void {
+  emit(response: unknown): void {
     this.handlers?.message(response);
   }
 
@@ -140,6 +139,89 @@ describe("worker session", () => {
     expect(session.state.phase).toBe("error");
     expect(session.state.error).toContain("expected expected, received stale");
     expect(session.state.latestSnapshot).toBeNull();
+  });
+
+  it("fails closed on malformed initialization responses and can recover", () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+
+    session.enqueue([
+      { protocolVersion: PROTOCOL_VERSION, type: "initialize", identity },
+    ]);
+    port.emit(null);
+
+    expect(session.state).toMatchObject({
+      phase: "error",
+      pendingCommandId: null,
+      queuedRequests: 0,
+      error: "Malformed worker response",
+    });
+
+    session.enqueue([
+      { protocolVersion: PROTOCOL_VERSION, type: "initialize", identity },
+    ]);
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: snapshot(0),
+    });
+    expect(session.state.phase).toBe("ready");
+  });
+
+  it("retains the active command id when a deserialized response is malformed", () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+
+    session.enqueue([
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: { id: "snapshot-active", type: "snapshot" },
+      },
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: { id: "queued", type: "snapshot" },
+      },
+    ]);
+
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      snapshot: snapshot(0),
+    });
+
+    expect(session.state).toMatchObject({
+      phase: "error",
+      pendingCommandId: "snapshot-active",
+      queuedRequests: 0,
+      error: "Malformed worker response",
+    });
+    expect(port.posted).toHaveLength(1);
+  });
+
+  it("retains active command identity on protocol-version mismatch", () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+
+    session.enqueue([
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: { id: "versioned", type: "snapshot" },
+      },
+    ]);
+
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION + 1,
+      type: "snapshot",
+      commandId: "versioned",
+      snapshot: snapshot(0),
+    });
+
+    expect(session.state.phase).toBe("error");
+    expect(session.state.pendingCommandId).toBe("versioned");
+    expect(session.state.error).toContain("Worker protocol mismatch");
   });
 
   it("surfaces worker errors and can recover with a new request", () => {

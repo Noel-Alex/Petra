@@ -18,7 +18,7 @@ This subtree currently owns pure phage evidence resolution only. Infection dynam
 ## Pending gates
 
 - `unitBridge.ts` owns #139's versioned scenario/provenance-controlled spatial unit mapping. It converts continuous model biomass to continuous host cell-equivalents, derives cell-equivalents/mL and PFU/mL from an explicit interaction volume, and uses the same physical grid pitch as #140 transport. There are no physical defaults.
-- Free extracellular phage low-count authority is discrete PFU. Exact adsorption sampling consumes Petra's RNG and is replay-sensitive; it removes/binds free PFU only and does not create infected-host state.
+- Free extracellular phage authority is discrete PFU. `sampleExactAdsorbedPfu(..., policy)` remains the deterministic trial-by-trial reference sampler but may run only inside the caller-owned Bernoulli exact budget. `sampleAdsorbedPfuWithPolicy` may use the versioned bounded hybrid binomial accelerator for larger counts; both paths remove/bind free PFU only and do not create infected-host state.
 - Renderer density, glyph counts, CSS pixels, canvas geometry, and normalized presentation coordinates are forbidden as sources of cells/mL, PFU/mL, interaction volume, or physical grid pitch.
 - The canonical phage spatial-unit bridge identity is replay-critical configuration and must join the authoritative scenario/configuration fingerprint before enabled phage dynamics can enter checkpoints.
 - #140 binds a narrow host-free 0.5% agarose extracellular transport baseline; live host-bearing transport and general free-phage loss remain outside that calibration.
@@ -26,8 +26,8 @@ This subtree currently owns pure phage evidence resolution only. Infection dynam
 
 ## Replay and provenance
 
-Changing source rows, interpolation policy, measured domain, or units is a science/data version change and must be reflected in scenario/data provenance before it can alter authoritative trajectories.
+Changing source rows, interpolation policy, measured domain, or units is a science/data version change and must be reflected in scenario/data provenance before it can alter authoritative trajectories.\n\nAdsorption sampling execution policy is numerical/replay configuration, not biology. Exact and accelerated paths consume different RNG sequences; the sampling policy identity (schema/id, exact budgets, accelerator version) must join the authoritative configuration/checkpoint fingerprint before enabled phage adsorption enters #37 composition. Exceeding an exact budget with acceleration disabled must fail as a `SamplingPolicyRefusal`, distinct from scientific OOD or missing unit/evidence gates.
 
 ## Verification
 
-Deterministic tests cover all measured rows, source uncertainty round-trip, derived interpolation, OOD refusal, units, host/phage identity, and source context. No browser/render test can substitute for these evidence checks.
+Deterministic tests cover all measured rows, source uncertainty round-trip, derived interpolation, OOD refusal, units, host/phage identity, source context, exact-budget refusal, accelerated PFU bounds, 0/1 limits, and many-seed distribution agreement with the exact reference. No browser/render test can substitute for these evidence checks.

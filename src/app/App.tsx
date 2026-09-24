@@ -17,6 +17,7 @@ import { resolveDishAmbient } from "../ui/motion/dishAmbient";
 import { planSurfaceTransition } from "../ui/motion/semanticTransitions";
 import { OnboardingGuide } from "../ui/onboarding/OnboardingGuide";
 import { ProvenancePanel } from "../ui/provenance/ProvenancePanel";
+import { RegionInspectorPanel } from "../ui/RegionInspectorPanel";
 import { DishViewport } from "./DishViewport";
 import { ExperimentRunControls } from "./ExperimentRunControls";
 import { resolveDishFocusMode } from "./dishFocusMode";
@@ -33,6 +34,11 @@ import { AnalysisSurface } from "./AnalysisSurface";
 import type { AuthoritativeAnalysisRecords } from "./analysisView";
 import { buildFlagshipProvenanceView } from "./flagshipProvenance";
 import { surfaceMotionCss } from "./motionAdapter";
+import {
+  createRegionInspectionRequest,
+  projectRegionInspector,
+  type RegionInspectionRequest,
+} from "./regionInspectorProjection";
 import {
   applyOnboardingUserAction,
   createOnboardingRuntimeSession,
@@ -134,6 +140,8 @@ export function App({
   const [interventionPlacement, setInterventionPlacement] = useState(
     createInterventionPlacementState,
   );
+  const [regionInspectionRequest, setRegionInspectionRequest] =
+    useState<RegionInspectionRequest | null>(null);
   const [motionSetting, setMotionSetting] = useState<MotionSetting>(() => {
     try {
       return loadMotionSetting(globalThis.localStorage);
@@ -151,6 +159,16 @@ export function App({
     });
 
   const provenance = useMemo(() => buildFlagshipProvenanceView(), []);
+  const regionInspector = useMemo(
+    () =>
+      projectRegionInspector(
+        experiment.state?.snapshot ?? null,
+        regionInspectionRequest,
+      ),
+    [experiment.state?.snapshot, regionInspectionRequest],
+  );
+  const regionInspectionAvailable =
+    experiment.state?.snapshot?.checkpoint.authority === "composed";
 
   useEffect(() => {
     setOnboardingSession((current) =>
@@ -516,6 +534,24 @@ export function App({
                 moveInterventionPlacement(current, point),
               );
             }}
+            onRegionPointActivate={
+              regionInspectionAvailable &&
+              interventionPlacement.phase !== "placing"
+                ? (point) => {
+                    const request = createRegionInspectionRequest(
+                      experiment.state?.snapshot ?? null,
+                      point,
+                    );
+                    if (request !== null) {
+                      setRegionInspectionRequest(request);
+                    }
+                  }
+                : undefined
+            }
+            regionSelectionActive={regionInspector.state.status === "ready"}
+            onClearRegionSelection={() => {
+              setRegionInspectionRequest(null);
+            }}
             onEscapeBeforeOverview={() => {
               if (interventionPlacement.phase === "placing") {
                 setInterventionPlacement((current) =>
@@ -547,27 +583,10 @@ export function App({
           )}
         </section>
 
-        <aside className="petra-panel petra-panel--inspector" aria-label="Inspector">
-          <p className="petra-kicker">Inspector</p>
-          <h2>Selected region</h2>
-          <dl className="metric-list">
-            <div>
-              <dt>Lineage</dt>
-              <dd>—</dd>
-            </div>
-            <div>
-              <dt>Population</dt>
-              <dd>—</dd>
-            </div>
-            <div>
-              <dt>Drug</dt>
-              <dd>—</dd>
-            </div>
-          </dl>
-          <p className="panel-note">
-            Scientific values appear only when supplied by authoritative state.
-          </p>
-        </aside>
+        <RegionInspectorPanel
+          state={regionInspector.state}
+          className="petra-panel petra-panel--inspector"
+        />
       </section>
 
       <AnalysisSurface

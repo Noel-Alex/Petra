@@ -159,6 +159,22 @@ describe('SimulationEngine replay substrate', () => {
     expect(() => other.execute({ id: 'restore', type: 'restore', checkpoint })).toThrow(/different run identity/)
   })
 
+  it('rejects checkpoints from an unsupported engine version before restore', () => {
+    const source = new SimulationEngine(identity)
+    const checkpoint = source.snapshot().checkpoint
+    ;(
+      checkpoint.identity as unknown as { engineVersion: string }
+    ).engineVersion = 'petra-ts-core/0.0.9'
+
+    const target = new SimulationEngine(identity)
+    const before = target.snapshot()
+
+    expect(() =>
+      target.execute({ id: 'restore-old-engine', type: 'restore', checkpoint }),
+    ).toThrow(/engine version .* is unsupported.*No migration is registered/i)
+    expect(target.snapshot()).toEqual(before)
+  })
+
   it('rejects malformed checkpoint scalars without mutating live state', () => {
     const engine = new SimulationEngine(identity)
     engine.execute({ id: 'warmup', type: 'advance', ticks: 60 })

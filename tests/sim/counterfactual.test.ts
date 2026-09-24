@@ -139,6 +139,20 @@ describe('counterfactual fork authority', () => {
     ).toThrow(/cannot restore or snapshot/)
   })
 
+  it('refuses replay bundles stamped for an older engine before self-instantiation', () => {
+    const bundle = createFork().exportReplayBundle()
+    ;(
+      bundle.origin.checkpoint.identity as unknown as { engineVersion: string }
+    ).engineVersion = 'petra-ts-core/0.0.9'
+
+    expect(() => validateCounterfactualForkReplayBundle(bundle)).toThrow(
+      /engine version .* is unsupported.*No migration is registered/i,
+    )
+    expect(() => replayCounterfactualFork(bundle)).toThrow(
+      /engine version .* is unsupported.*No migration is registered/i,
+    )
+  })
+
   it('refuses checkpoint payloads that cannot round-trip canonically through the engine', () => {
     const parentSnapshot = createParentSnapshot()
     parentSnapshot.checkpoint.simulationTimeHours += 1

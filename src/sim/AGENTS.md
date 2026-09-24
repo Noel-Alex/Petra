@@ -15,6 +15,7 @@
 - Renderer sampling must not consume the biological RNG stream.
 - Synthetic fixture state may exercise infrastructure but must be named as synthetic and removed/replaced as real mechanisms arrive; never present it as biology.
 - Protocol/state changes require deterministic tests and coordination because they are high-conflict integration surfaces.
+- `replayCompatibility.ts` is the single release compatibility authority for serialized checkpoints/replay artifacts. Current policy is exact-match-only: current engine/protocol, exact authority kind, scenario ID/version, parameter-set ID/version/binding, and seed. No migration is registered. Restore/replay paths must run this gate before mutating state or instantiating an engine from a self-contained artifact. See `REPLAY_COMPATIBILITY.md`.
 - Timeline-worthy protocol events carry exact authoritative `simulationTimeHours` at emission. That timestamp is replay/wire identity and must not be reconstructed later from a newer checkpoint.
 - `SimulationCheckpoint.commandCount` is the authoritative accepted mutating-command position already carried by the current versioned worker protocol. Renderer replay may project it as branch-local keyframe order, but it remains distinct from biological time. Restore/reset/replay histories that restart or regress this count are new history scopes and must not be concatenated under one renderer branch identity.
 - Required worker wire-shape changes bump `PROTOCOL_VERSION`; do not silently extend an existing protocol version with new required fields.
@@ -37,6 +38,7 @@ At minimum, test identical-seed/command replay, RNG state round-trip, checkpoint
 
 ## Child DOX index
 - `COUNTERFACTUAL.md` — deterministic fork ancestry, replay-payload, and branch-authority contract.
+- `REPLAY_COMPATIBILITY.md` — exact-match release compatibility matrix, refusal behavior, and future migration evidence requirements.
 - `PARAMETER_SET_BINDING.md` — parameter-set provenance/configuration binding and fixture namespace contract.
 - `ecology/AGENTS.md` — resource-limited biomass flux, loss-hazard, and event-boundary contract.
 - `evolution/AGENTS.md` — discrete mutation-opportunity, lineage identity, RNG/replay, and evolution-authority contract.

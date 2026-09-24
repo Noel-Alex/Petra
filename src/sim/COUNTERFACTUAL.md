@@ -11,7 +11,7 @@
 - Both branches use the exact same checkpoint, RNG state, command count, and internal restore command. With the same ordered post-fork commands they must remain replay-identical.
 - Branch command history stores authoritative command payloads, not only IDs. The current bounded contract permits mutating `advance` and `synthetic-pulse` commands; caller-controlled `restore` and `snapshot` commands are forbidden inside a branch history because they would make ancestry ambiguous.
 - Command IDs must be non-empty and unique within each branch. Failed commands are not appended to branch history.
-- Fork checkpoints must round-trip canonically through the current `SimulationEngine`; malformed or engine-inconsistent payloads fail closed before branch creation.
+- Fork checkpoints must pass the shared release compatibility gate and round-trip canonically through the current `SimulationEngine`; malformed, stale engine/protocol, or engine-inconsistent payloads fail closed before branch creation.
 - All snapshots, replay bundles, checkpoints, and command arrays returned to callers are copy-isolated. Mutating a returned object cannot mutate branch authority.
 
 ## Replay bundle
@@ -23,7 +23,7 @@
 - branch IDs and labels;
 - ordered post-fork command payloads for both branches.
 
-`replayCounterfactualFork(...)` reconstructs both branches from that payload and must reproduce the same branch snapshots and histories.
+`replayCounterfactualFork(...)` reconstructs both branches from that payload and must reproduce the same branch snapshots and histories. Before reconstruction, validation calls the shared `replayCompatibility.ts` current-runtime gate so an older bundle cannot instantiate an engine from its own old identity and accidentally self-validate.
 
 This is separate from `src/ui/compare/export.ts`, whose existing manifest remains intentionally metadata-only. Presentation code may adapt the authoritative fork state later, but must not become the fork authority.
 
@@ -41,6 +41,7 @@ Required deterministic coverage:
 - exporting then replaying the fork bundle reproduces both branches exactly;
 - parent/returned-object mutation cannot alter internal branch state;
 - duplicate branch IDs/command IDs and restore/snapshot branch commands fail closed;
-- engine-inconsistent checkpoint payloads are rejected.
+- engine-inconsistent checkpoint payloads are rejected;
+- stale engine/protocol replay identities are rejected before branch engines are constructed.
 
 Contributor: Noel-Alex

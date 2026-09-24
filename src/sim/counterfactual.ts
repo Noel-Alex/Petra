@@ -1,4 +1,5 @@
 import { SimulationEngine } from './engine'
+import { assertReplayArtifactUsesCurrentRuntime } from './replayCompatibility'
 import type {
   SimulationCommand,
   SyntheticSimulationCheckpoint,
@@ -236,6 +237,11 @@ function validateBranchCommand(command: CounterfactualBranchCommand): void {
 }
 
 function validateCheckpointForFork(checkpoint: SyntheticSimulationCheckpoint): void {
+  // A self-contained replay bundle must not instantiate the current engine from
+  // an old identity and then accidentally validate that old identity against
+  // itself. Gate current engine/protocol compatibility first.
+  assertReplayArtifactUsesCurrentRuntime(checkpoint.identity)
+
   if (!Number.isSafeInteger(checkpoint.tick) || checkpoint.tick < 0) {
     throw new RangeError('fork checkpoint tick must be a non-negative safe integer')
   }

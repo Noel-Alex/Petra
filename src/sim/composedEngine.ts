@@ -10,6 +10,7 @@ import {
 } from './authoritative'
 import { assertEcologyLocalCapacity } from './ecology/capacity'
 import { assertComposedParameterSetBinding } from './parameterSetBinding'
+import { assertReplayCompatibility } from './replayCompatibility'
 import type {
   ComposedSimulationCheckpoint,
   ComposedSimulationSnapshot,
@@ -376,13 +377,12 @@ export class ComposedSimulationEngine {
   }
 
   private restore(checkpoint: ComposedSimulationCheckpoint): void {
-    if (
-      stableStringify(checkpoint.identity) !== stableStringify(this.identity)
-    ) {
-      throw new Error(
-        'Cannot restore a checkpoint from a different run identity',
-      )
-    }
+    assertReplayCompatibility({
+      artifactIdentity: checkpoint.identity,
+      targetIdentity: this.identity,
+      artifactAuthority: 'composed',
+      targetAuthority: 'composed',
+    })
     if (!Number.isSafeInteger(checkpoint.tick) || checkpoint.tick < 0) {
       throw new Error('checkpoint.tick must be a non-negative safe integer')
     }

@@ -414,20 +414,6 @@ function parseComposedState(
     }
   }
 
-  for (let cell = 0; cell < cellCount; cell += 1) {
-    if (mask.value[cell] !== 0) continue
-    if (resource.value[cell] !== 0) {
-      return failure('.resource must be zero outside the composed mask')
-    }
-    for (const channel of record.lineageBiomass as unknown[][]) {
-      if (channel[cell] !== 0) {
-        return failure(
-          '.lineageBiomass must be zero outside the composed mask',
-        )
-      }
-    }
-  }
-
   return { ok: true, value: value as ComposedSimulationState }
 }
 
@@ -475,44 +461,6 @@ function parseComposedMetrics(
   for (const id of stateIds) {
     if (!isFiniteNonNegative(lineageMetrics[id])) {
       return failure(`.lineageBiomass[${JSON.stringify(id)}] must be finite and non-negative`)
-    }
-  }
-
-  let expectedResource = 0
-  let expectedBiomass = 0
-  let expectedOccupied = 0
-  const expectedLineage = new Map(
-    state.lineageIds.map((id) => [id, 0] as const),
-  )
-  const cells = state.width * state.height
-
-  for (let cell = 0; cell < cells; cell += 1) {
-    if (state.mask[cell] !== 1) continue
-    expectedResource += state.resource[cell]!
-
-    let local = 0
-    for (let lineage = 0; lineage < state.lineageIds.length; lineage += 1) {
-      const amount = state.lineageBiomass[lineage]![cell]!
-      local += amount
-      const id = state.lineageIds[lineage]!
-      expectedLineage.set(id, expectedLineage.get(id)! + amount)
-    }
-    expectedBiomass += local
-    if (local > 0) expectedOccupied += 1
-  }
-
-  if (
-    !numbersAgree(record.totalResource as number, expectedResource) ||
-    !numbersAgree(record.totalBiomass as number, expectedBiomass) ||
-    record.occupiedCells !== expectedOccupied
-  ) {
-    return failure('aggregate values do not match composed state')
-  }
-  for (const [id, expected] of expectedLineage) {
-    if (!numbersAgree(lineageMetrics[id] as number, expected)) {
-      return failure(
-        `.lineageBiomass[${JSON.stringify(id)}] does not match composed state`,
-      )
     }
   }
 
@@ -649,14 +597,6 @@ function isNonNegativeSafeInteger(value: unknown): value is number {
 
 function isPositiveSafeInteger(value: unknown): value is number {
   return isNonNegativeSafeInteger(value) && value > 0
-}
-
-function numbersAgree(left: number, right: number): boolean {
-  if (Object.is(left, right)) return true
-  return (
-    Math.abs(left - right) <=
-    1e-12 * Math.max(1, Math.abs(left), Math.abs(right))
-  )
 }
 
 function failure(error: string): ParseResult<never> {

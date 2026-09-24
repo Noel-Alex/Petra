@@ -180,6 +180,27 @@ describe('ComposedSimulationEngine', () => {
     expect(restored.snapshot().checkpoint).toEqual(expected)
   })
 
+  it('refuses stale protocol checkpoints atomically before composed restore', () => {
+    const source = new ComposedSimulationEngine(identity, config)
+    source.execute({ id: 'warmup', type: 'advance', ticks: 3 })
+    const checkpoint = source.snapshot().checkpoint
+    ;(
+      checkpoint.identity as unknown as { protocolVersion: number }
+    ).protocolVersion -= 1
+
+    const target = new ComposedSimulationEngine(identity, config)
+    const before = target.snapshot()
+
+    expect(() =>
+      target.execute({
+        id: 'restore-old-protocol',
+        type: 'restore',
+        checkpoint,
+      }),
+    ).toThrow(/protocol version .* is unsupported.*No migration is registered/i)
+    expect(target.snapshot()).toEqual(before)
+  })
+
   it('deep-copies transport state and metrics', () => {
     const engine = new ComposedSimulationEngine(identity, config)
     const exported = engine.snapshot()

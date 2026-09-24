@@ -22,6 +22,15 @@ describe("PresenterGuide resolved motion CSS", () => {
     expect(presenterCss).toContain('.presenter-guide[data-motion="off"] *');
   });
 
+  it("does not shrink the shared compact-action touch target locally", () => {
+    const actionRule = presenterCss.match(
+      /\.presenter-guide__actions button \{([\s\S]*?)\}/,
+    )?.[1];
+
+    expect(actionRule).toBeDefined();
+    expect(actionRule).not.toContain("min-height");
+  });
+
   it("keeps reduced motion fade-only while consuming the projected easing", () => {
     expect(presenterCss).toContain(
       "animation: presenter-card-fade var(--presenter-motion-ms) var(--presenter-ease) both;",

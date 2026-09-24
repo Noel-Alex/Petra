@@ -48,6 +48,40 @@ describe('lineage registry', () => {
     expect(restored.eventLog()).toEqual(registry.eventLog())
   })
 
+  it('rejects live backdating while preserving deterministic same-time insertion order', () => {
+    const registry = new LineageRegistry()
+    const founder = registry.create({ parentLineageId: null, genotypeId: 'WT', createdAtHours: 2, originCellIndex: null, mutationClass: null })
+    const sibling = registry.create({ parentLineageId: null, genotypeId: 'A', createdAtHours: 2, originCellIndex: null, mutationClass: null })
+    registry.markExtinct(founder.lineageId, 2)
+
+    expect(registry.eventLog().map((event) => [event.kind, event.lineageId, event.timeHours])).toEqual([
+      ['lineage-created', 'L1', 2],
+      ['lineage-created', 'L2', 2],
+      ['lineage-extinct', 'L1', 2],
+    ])
+    expect(() => registry.create({ parentLineageId: null, genotypeId: 'B', createdAtHours: 1, originCellIndex: null, mutationClass: null })).toThrow(/cannot precede/)
+    expect(() => registry.markExtinct(sibling.lineageId, 1)).toThrow(/cannot precede/)
+    expect(registry.get(sibling.lineageId)?.extinctAtHours).toBeNull()
+  })
+
+  it('rejects checkpoint event streams whose timestamps move backwards', () => {
+    const registry = new LineageRegistry()
+    registry.create({ parentLineageId: null, genotypeId: 'WT', createdAtHours: 0, originCellIndex: null, mutationClass: null })
+    registry.create({ parentLineageId: null, genotypeId: 'A', createdAtHours: 1, originCellIndex: null, mutationClass: null })
+    const checkpoint = registry.checkpoint()
+    const backdated: LineageRegistryCheckpoint = {
+      ...checkpoint,
+      records: checkpoint.records.map((record) => record.lineageId === 'L2' ? { ...record, createdAtHours: 0.5 } : record),
+      events: checkpoint.events.map((event) => event.lineageId === 'L2' ? { ...event, timeHours: 0.5 } : event),
+    }
+    const reordered: LineageRegistryCheckpoint = {
+      ...backdated,
+      events: [backdated.events[1]!, backdated.events[0]!],
+    }
+
+    expect(() => LineageRegistry.restore(reordered)).toThrow(/backdates authoritative event order/)
+  })
+
   it('returns isolated projections from create, get, list, and eventLog', () => {
     const registry = new LineageRegistry()
     const created = registry.create({ parentLineageId: null, genotypeId: 'WT', createdAtHours: 0, originCellIndex: null, mutationClass: null })

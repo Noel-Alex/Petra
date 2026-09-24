@@ -158,6 +158,26 @@ describe('ComposedSimulationEngine', () => {
     ).toThrow(/metrics do not match/)
   })
 
+  it('rejects an over-capacity composed checkpoint atomically at restore', () => {
+    const source = new ComposedSimulationEngine(identity, config)
+    const checkpoint = source.snapshot().checkpoint
+    checkpoint.composedState.lineageBiomass[0]![0] = 15
+    checkpoint.composedState.lineageBiomass[1]![0] = 10
+
+    const target = new ComposedSimulationEngine(identity, config)
+    const before = target.snapshot()
+
+    expect(() =>
+      target.execute({
+        id: 'restore-over-capacity',
+        type: 'restore',
+        checkpoint,
+      }),
+    ).toThrow(/ecology biomass exceeds localCapacity/)
+
+    expect(target.snapshot()).toEqual(before)
+  })
+
   it('keeps synthetic fixture commands out of biological authority', () => {
     expect(
       () =>

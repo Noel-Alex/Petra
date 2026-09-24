@@ -97,23 +97,25 @@
     },
     {
       "id": "ecology-calibration-sweep",
-      "description": "BLOCKED on #3: engineering-profile ecology target/sensitivity sweep.",
+      "description": "Engineering-profile qualitative-identifiability and self-reference sensitivity sweep; explicitly non-promotable without independent targets.",
       "command": [
-        "python",
-        "experiments/blocked.py",
-        "--experiment-id",
-        "ecology-calibration-sweep",
-        "--blocked-on",
-        "3",
-        "--reason",
-        "Issue #494 has landed the engineering execution profile; issue #3 must still land the executable flagship ecology path needed for an integrated calibration sweep."
+        "npm",
+        "exec",
+        "--offline",
+        "--",
+        "vitest",
+        "run",
+        "--config",
+        "experiments/vitest.ecology_calibration_sweep.config.ts"
       ],
       "issues": [
         3,
+        227,
         494,
-        542
+        542,
+        657
       ],
-      "timeout_seconds": 30
+      "timeout_seconds": 1800
     },
     {
       "id": "evolution-replicate-statistics",

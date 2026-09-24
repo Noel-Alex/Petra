@@ -927,3 +927,193 @@ button:hover {
     text-align: left;
   }
 }
+
+
+/* #458 localized intervention placement */
+.tool-stack button {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.tool-stack button small {
+  color: #8292a8;
+  font-size: var(--petra-type-metadata);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.tool-stack button[aria-pressed="true"] {
+  border-color: rgba(137, 213, 190, 0.44);
+  background: rgba(91, 177, 153, 0.11);
+}
+
+.tool-stack button[aria-pressed="true"] small {
+  color: #a7d8c9;
+}
+
+.intervention-placement-drawer {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 0.85rem;
+  padding: 0.8rem;
+  border: 1px solid rgba(137, 213, 190, 0.16);
+  border-radius: 18px;
+  background: rgba(11, 30, 39, 0.64);
+}
+
+.intervention-placement-drawer__heading {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.intervention-placement-drawer__heading strong {
+  color: #e8f0eb;
+  font-size: 0.92rem;
+}
+
+.placement-preview-badge {
+  width: fit-content;
+  padding: 0.2rem 0.42rem;
+  border: 1px solid rgba(242, 202, 104, 0.22);
+  border-radius: 999px;
+  color: #dcc686;
+  font-size: var(--petra-type-metadata);
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.placement-axis-controls {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.placement-axis {
+  display: grid;
+  gap: 0.35rem;
+  color: #aebbc7;
+  font-size: var(--petra-type-caption);
+}
+
+.placement-axis > span {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.placement-axis output {
+  color: #d8e5de;
+  font-variant-numeric: tabular-nums;
+}
+
+.placement-axis input[type="range"] {
+  width: 100%;
+  min-height: 2.25rem;
+  margin: 0;
+  accent-color: #89d5be;
+  cursor: pointer;
+}
+
+.placement-axis input[type="range"]:focus-visible {
+  outline: 3px solid var(--petra-focus-ring);
+  outline-offset: 3px;
+}
+
+.placement-safety-note {
+  margin: 0;
+  color: #8d9caa;
+  font-size: var(--petra-type-metadata);
+  line-height: 1.5;
+}
+
+.placement-drawer-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.dish-placement-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  border-radius: 50%;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.dish-placement-target {
+  color: #89d5be;
+  pointer-events: none;
+}
+
+.dish-placement-target[data-placement-tool="fungus"] {
+  color: #d7c478;
+}
+
+.dish-placement-target[data-placement-tool="antibiotic"] {
+  color: #df8c96;
+}
+
+.dish-placement-target[data-placement-tool="nutrient"] {
+  color: #e1b867;
+}
+
+.dish-placement-target__halo {
+  fill: currentColor;
+  fill-opacity: 0.08;
+  stroke: none;
+}
+
+.dish-placement-target__ring {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 0.42;
+  stroke-dasharray: 2.4 1.65;
+  vector-effect: non-scaling-stroke;
+}
+
+.dish-placement-target > line {
+  stroke: currentColor;
+  stroke-width: 0.52;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.dish-placement-target__glyph {
+  fill: currentColor;
+  fill-opacity: 0.9;
+  stroke: #10252a;
+  stroke-width: 0.24;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.dish-placement-target__glyph path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 0.54;
+}
+
+.dish-placement-target__glyph--fungus path {
+  stroke-width: 0.66;
+}
+
+.dish-placement-overlay[data-motion="full"] .dish-placement-target__ring {
+  animation: petra-placement-ring-drift 4.8s linear infinite;
+}
+
+@keyframes petra-placement-ring-drift {
+  to {
+    stroke-dashoffset: -8.1;
+  }
+}
+
+@media (max-width: 640px) {
+  .placement-drawer-actions {
+    grid-template-columns: 1fr;
+  }
+}

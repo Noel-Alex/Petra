@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import pixiDishCss from "./PixiDish.css?raw";
+import pixiDishSource from "./PixiDish.tsx?raw";
 import type { CameraMotionSpec } from "./cameraMotion";
 import {
   PixiDish,
@@ -10,6 +11,53 @@ import {
 import { createRendererDemoSnapshot } from "./demoSnapshot";
 
 const CAMERA_MOTION: CameraMotionSpec = { durationMs: 0, easing: [0, 0, 1, 1] };
+
+describe("PixiDish committed renderer inputs", () => {
+  it("synchronizes async renderer refs only in commit phase", () => {
+    const syncStart = pixiDishSource.indexOf("useLayoutEffect(() => {");
+    const rendererLifecycleStart = pixiDishSource.indexOf(
+      "useEffect(() => {",
+      syncStart + 1,
+    );
+
+    expect(syncStart).toBeGreaterThan(-1);
+    expect(rendererLifecycleStart).toBeGreaterThan(syncStart);
+
+    for (const assignment of [
+      "motionRef.current = motion;",
+      "cameraMotionRef.current = cameraMotion;",
+      "overlayRef.current = overlayId;",
+      "semanticZoomCallbackRef.current = onSemanticZoomLevelChange;",
+      "snapshotRef.current = renderSnapshot;",
+    ]) {
+      expect(pixiDishSource.split(assignment).length - 1).toBe(1);
+      const index = pixiDishSource.indexOf(assignment);
+      expect(index).toBeGreaterThan(syncStart);
+      expect(index).toBeLessThan(rendererLifecycleStart);
+    }
+  });
+
+  it("hydrates async onReady from the latest committed renderer refs", () => {
+    const onReadyStart = pixiDishSource.indexOf("onReady(renderer) {");
+    const onErrorStart = pixiDishSource.indexOf("onError(error) {", onReadyStart);
+    const onReadySource = pixiDishSource.slice(onReadyStart, onErrorStart);
+
+    expect(onReadyStart).toBeGreaterThan(-1);
+    expect(onErrorStart).toBeGreaterThan(onReadyStart);
+    expect(onReadySource).toContain(
+      "renderer.setCameraMotion(cameraMotionRef.current);",
+    );
+    expect(onReadySource).toContain(
+      "renderer.setMotionMode(motionRef.current);",
+    );
+    expect(onReadySource).toContain(
+      "const currentSnapshot = snapshotRef.current;",
+    );
+    expect(onReadySource).toContain(
+      "renderer.updatePresentation(currentSnapshot, overlayRef.current);",
+    );
+  });
+});
 
 describe("PixiDish render-source boundary", () => {
   it("renders a neutral waiting state without authoritative data", () => {

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { PetraCompactAction } from "../../ui/PetraCompactAction";
 import type { DishRenderSnapshot, SemanticZoomLevel } from "../model";
 import type { CameraMotionSpec } from "./cameraMotion";
@@ -86,11 +86,19 @@ export function PixiDish({
   const renderEnabled = renderSnapshot !== null;
   const snapshotRef = useRef<DishRenderSnapshot | null>(renderSnapshot);
 
-  motionRef.current = motion;
-  cameraMotionRef.current = cameraMotion;
-  overlayRef.current = overlayId;
-  semanticZoomCallbackRef.current = onSemanticZoomLevelChange;
-  snapshotRef.current = renderSnapshot;
+  useLayoutEffect(() => {
+    motionRef.current = motion;
+    cameraMotionRef.current = cameraMotion;
+    overlayRef.current = overlayId;
+    semanticZoomCallbackRef.current = onSemanticZoomLevelChange;
+    snapshotRef.current = renderSnapshot;
+  }, [
+    cameraMotion,
+    motion,
+    onSemanticZoomLevelChange,
+    overlayId,
+    renderSnapshot,
+  ]);
 
   useEffect(() => {
     if (!renderEnabled) {
@@ -155,8 +163,6 @@ export function PixiDish({
   }, [resetCameraSignal]);
 
   useEffect(() => {
-    snapshotRef.current = renderSnapshot;
-    overlayRef.current = overlayId;
     if (renderSnapshot !== null) {
       rendererRef.current?.updatePresentation(renderSnapshot, overlayId);
     }

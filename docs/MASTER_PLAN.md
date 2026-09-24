@@ -8,6 +8,18 @@ A user should be able to change the environment, watch populations respond, insp
 
 The target experience is not “an educational website with animations.” It is a real mechanistic simulation whose presentation is polished enough to feel playful and cinematic.
 
+## 0.1 Immediate build priority — functional authority before polish
+
+Current `main` should be understood as a collection of increasingly mature scientific, runtime, rendering, and UI components—not yet as a fully integrated flagship experiment. The immediate execution priority is to make the authoritative mechanistic experience actually work end to end.
+
+The order of effort is:
+1. compose and integrate the real flagship simulation/runtime, including every scientific/numerical dependency required for it to run correctly;
+2. obtain the validation, calibrated/bound parameters, reproducibility evidence, local experiment results, and mechanistic data needed to trust that functionality;
+3. continue UI/visual/motion work in parallel when capacity does not conflict with those blockers, then push presentation to showcase quality once authority is available;
+4. train/use learned surrogates only after authoritative mechanistic trajectories and promotion gates exist.
+
+This priority does not weaken the dish-first premium design requirement. It prevents Petra from optimizing the shell faster than the scientific system underneath it. A polished synthetic scaffold is not the flagship.
+
 ## 1. Non-negotiable product pillars
 
 ### 1.1 Emergent, not scripted

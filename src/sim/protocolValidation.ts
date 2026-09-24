@@ -55,6 +55,9 @@ function parseIdentity(value: unknown): ProtocolParseResult<RunIdentity> {
       `run identity protocolVersion must equal ${PROTOCOL_VERSION}`,
     );
   }
+  if (typeof value.seed !== "number") {
+    return fail("run identity.seed must be a number");
+  }
   try {
     assertSimulationSeed(value.seed);
   } catch (error) {

@@ -5,6 +5,7 @@ import { PresenterGuide } from "./PresenterGuide";
 import {
   initialDemoPresenterState,
   reduceDemoPresenter,
+  resolveDemoPresenterPresentation,
 } from "./presenter";
 
 describe("PresenterGuide", () => {
@@ -24,6 +25,35 @@ describe("PresenterGuide", () => {
     expect(html).toContain("presenter pacing only");
     expect(html).toContain("disabled");
     expect(html).toContain('data-surface="dish"');
+  });
+
+  it("projects the resolved presenter motion policy into CSS variables", () => {
+    const state = initialDemoPresenterState();
+
+    for (const motionPreference of ["full", "reduced", "off"] as const) {
+      const presentation = resolveDemoPresenterPresentation(
+        state,
+        motionPreference,
+      );
+      const html = renderToStaticMarkup(
+        <PresenterGuide
+          state={state}
+          motionPreference={motionPreference}
+          onEvent={() => undefined}
+        />,
+      );
+      const easing =
+        "cubic-bezier(" + presentation.easing.join(",") + ")";
+
+      expect(html).toContain(`data-motion="${motionPreference}"`);
+      expect(html).toContain(
+        `data-treatment="${presentation.motion.treatment}"`,
+      );
+      expect(html).toContain(
+        `--presenter-motion-ms:${presentation.motion.durationMs}ms`,
+      );
+      expect(html).toContain(`--presenter-ease:${easing}`);
+    }
   });
 
   it("renders an enabled next action only after evidence is supplied", () => {

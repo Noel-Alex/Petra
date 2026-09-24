@@ -1,6 +1,6 @@
 .presenter-guide {
-  --presenter-motion-ms: 220ms;
-  --presenter-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --presenter-motion-ms: 0ms;
+  --presenter-ease: linear;
   display: grid;
   gap: 0.875rem;
   width: min(100%, 34rem);
@@ -221,7 +221,7 @@
 }
 
 .presenter-guide[data-motion="reduced"] .presenter-guide__card {
-  animation: presenter-card-fade var(--presenter-motion-ms) ease both;
+  animation: presenter-card-fade var(--presenter-motion-ms) var(--presenter-ease) both;
 }
 
 .presenter-guide[data-motion="off"] * {
@@ -244,6 +244,3 @@
   .presenter-guide__rail strong { display: none; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .presenter-guide:not([data-motion="full"]) * { animation: none !important; }
-}

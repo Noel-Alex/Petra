@@ -232,7 +232,8 @@ def install_browser_performance_probes(cdp: CDP) -> None:
     longTaskSupported: false,
     gcSupported: false,
     wrappedMethods: [],
-    observers: []
+    observers: [],
+    windowStart: performance.now()
   };
 
   const wrap = (ctor, method) => {
@@ -312,6 +313,7 @@ def reset_browser_performance_probe(cdp: CDP) -> None:
           probe.drawCallsByMethod = {};
           probe.longTasks = [];
           probe.gcEvents = [];
+          probe.windowStart = performance.now();
           return true;
         })()"""
     )
@@ -322,18 +324,24 @@ def browser_performance_probe_snapshot(cdp: CDP) -> dict[str, Any] | None:
         """(() => {
           const probe = globalThis.__petraPerformanceProbe;
           if (!probe) return null;
-          const longTaskDurations = probe.longTasks.map((entry) => entry.duration);
-          const gcDurations = probe.gcEvents.map((entry) => entry.duration);
+          const longTasks = probe.longTasks.filter(
+            (entry) => entry.startTime >= probe.windowStart
+          );
+          const gcEvents = probe.gcEvents.filter(
+            (entry) => entry.startTime >= probe.windowStart
+          );
+          const longTaskDurations = longTasks.map((entry) => entry.duration);
+          const gcDurations = gcEvents.map((entry) => entry.duration);
           return {
             drawCalls: probe.drawCalls,
             drawCallsByMethod: { ...probe.drawCallsByMethod },
             wrappedMethods: [...probe.wrappedMethods],
             longTaskSupported: probe.longTaskSupported,
-            longTaskCount: probe.longTasks.length,
+            longTaskCount: longTasks.length,
             longTaskTotalMs: longTaskDurations.reduce((sum, value) => sum + value, 0),
             longTaskMaxMs: longTaskDurations.length ? Math.max(...longTaskDurations) : 0,
             gcSupported: probe.gcSupported,
-            gcEventCount: probe.gcEvents.length,
+            gcEventCount: gcEvents.length,
             gcTotalMs: gcDurations.reduce((sum, value) => sum + value, 0)
           };
         })()"""
@@ -899,7 +907,8 @@ def renderer_frame_samples(cdp: CDP) -> dict[str, Any] | None:
               resolve({
                 frameIntervalsMs: frameIntervalsMs.slice(5),
                 rendererOwned: rendererOwned.slice(5),
-                synchronousRedrawMs: synchronousRedrawMs.slice(5)
+                synchronousRedrawMs: synchronousRedrawMs.slice(5),
+                totalRendererOwnedRedraws: rendererOwned.filter(Boolean).length
               });
               return;
             }
@@ -945,10 +954,14 @@ def renderer_frame_samples(cdp: CDP) -> dict[str, Any] | None:
     ):
         return None
 
+    total_owned = workload.get("totalRendererOwnedRedraws")
     return {
         "frameIntervalsMs": [float(value) for value in intervals],
         "rendererOwned": [value is True for value in ownership],
         "synchronousRedrawMs": [float(value) for value in redraw_durations],
+        "totalRendererOwnedRedraws": (
+            int(total_owned) if isinstance(total_owned, (int, float)) else None
+        ),
     }
 
 
@@ -998,6 +1011,7 @@ def frame_metrics(workload: dict[str, Any] | None, view: str) -> dict[str, Any]:
         "framesOver33ms": over_33,
         "averageSynchronousRedrawMs": round(redraw_avg, 3),
         "p95SynchronousRedrawMs": round(redraw_p95, 3),
+        "totalRendererOwnedRedraws": workload.get("totalRendererOwnedRedraws"),
     }
 
 
@@ -1091,12 +1105,13 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
                     "drawCallsByMethod": whole_probe.get("drawCallsByMethod") if whole_probe else None,
                     "wrappedMethods": whole_probe.get("wrappedMethods") if whole_probe else None,
                     "profileResetApplied": profile_whole_reset_ok,
-                    "ownedRedraws": whole_profile.get("rendererOwnedRedraws"),
-                    "profileSampleCount": whole_profile.get("sampleCount"),
+                    "ownedRedraws": whole_profile.get("totalRendererOwnedRedraws"),
+                    "postWarmupSampleCount": whole_profile.get("sampleCount"),
                     "drawCallsPerOwnedRedraw": (
-                        round(whole_draw_calls / whole_profile["rendererOwnedRedraws"], 3)
+                        round(whole_draw_calls / whole_profile["totalRendererOwnedRedraws"], 3)
                         if isinstance(whole_draw_calls, (int, float))
-                        and whole_profile.get("rendererOwnedRedraws", 0) > 0
+                        and isinstance(whole_profile.get("totalRendererOwnedRedraws"), int)
+                        and whole_profile["totalRendererOwnedRedraws"] > 0
                         else None
                     ),
                 },
@@ -1155,12 +1170,13 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
                     "drawCallsByMethod": zoom_probe.get("drawCallsByMethod") if zoom_probe else None,
                     "wrappedMethods": zoom_probe.get("wrappedMethods") if zoom_probe else None,
                     "profileZoomApplied": profile_zoom_ok,
-                    "ownedRedraws": zoom_profile.get("rendererOwnedRedraws"),
-                    "profileSampleCount": zoom_profile.get("sampleCount"),
+                    "ownedRedraws": zoom_profile.get("totalRendererOwnedRedraws"),
+                    "postWarmupSampleCount": zoom_profile.get("sampleCount"),
                     "drawCallsPerOwnedRedraw": (
-                        round(zoom_draw_calls / zoom_profile["rendererOwnedRedraws"], 3)
+                        round(zoom_draw_calls / zoom_profile["totalRendererOwnedRedraws"], 3)
                         if isinstance(zoom_draw_calls, (int, float))
-                        and zoom_profile.get("rendererOwnedRedraws", 0) > 0
+                        and isinstance(zoom_profile.get("totalRendererOwnedRedraws"), int)
+                        and zoom_profile["totalRendererOwnedRedraws"] > 0
                         else None
                     ),
                 },

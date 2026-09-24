@@ -82,10 +82,7 @@ export class ExperimentRuntime {
 
   start(): boolean {
     this.assertUsable();
-    if (
-      this.current.worker.phase === "initializing" ||
-      this.current.worker.phase === "pending"
-    ) {
+    if (this.current.worker.phase !== "idle") {
       return false;
     }
 
@@ -103,6 +100,13 @@ export class ExperimentRuntime {
   dispatch(action: ExperimentControlAction): ControlDispatchResult {
     if (this.current.worker.phase === "disposed") {
       return { accepted: false, reason: "disposed" };
+    }
+
+    if (
+      this.current.integrationError !== null &&
+      (action.type === "step" || action.type === "snapshot")
+    ) {
+      return { accepted: false, reason: "worker-not-ready" };
     }
 
     const planned = planExperimentControlAction(
@@ -153,6 +157,7 @@ export class ExperimentRuntime {
    */
   advancePlayback(): boolean {
     if (!this.current.controls.playing) return false;
+    if (this.current.integrationError !== null) return false;
     if (this.current.worker.phase !== "ready") return false;
 
     const result = this.dispatch({

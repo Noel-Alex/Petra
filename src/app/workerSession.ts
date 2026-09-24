@@ -52,7 +52,7 @@ export class WorkerSession {
   constructor(private readonly port: WorkerPort) {
     this.unsubscribePort = port.subscribe({
       message: (response) => this.handleResponse(response),
-      error: (message) => this.fail(message, null),
+      error: (message) => this.fail(message, this.activeCommandId()),
     });
   }
 
@@ -215,6 +215,10 @@ export class WorkerSession {
     this.pump();
   }
 
+  private activeCommandId(): string | null {
+    return this.active?.type === "command" ? this.active.command.id : null;
+  }
+
   private fail(message: string, commandId: string | null): void {
     this.queue.length = 0;
     this.active = null;
@@ -253,11 +257,16 @@ export function createBrowserWorkerPort(worker: Worker): WorkerPort {
       const onError = (event: ErrorEvent) => {
         handlers.error(event.message || "Simulation worker failed");
       };
+      const onMessageError = () => {
+        handlers.error("Simulation worker message could not be deserialized");
+      };
       worker.addEventListener("message", onMessage);
       worker.addEventListener("error", onError);
+      worker.addEventListener("messageerror", onMessageError);
       return () => {
         worker.removeEventListener("message", onMessage);
         worker.removeEventListener("error", onError);
+        worker.removeEventListener("messageerror", onMessageError);
       };
     },
     dispose() {

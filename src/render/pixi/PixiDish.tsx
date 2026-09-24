@@ -15,12 +15,18 @@ export interface PixiDishProps {
   readonly overlayId?: string | null;
   readonly className?: string;
   readonly ariaLabel?: string;
+  /**
+   * Explicitly opt into the deterministic presentation-only fixture.
+   * Product/runtime surfaces should leave this false and wait for an
+   * authoritative snapshot instead of inventing visible biology.
+   */
+  readonly demoMode?: boolean;
 }
 
 /**
  * React owns lifecycle/accessibility; Pixi owns only the canvas presentation.
- * When snapshot is absent this mounts an explicitly visual-only fixture so the
- * scene can be reviewed independently of worker integration.
+ * Missing authoritative state is neutral by default. Renderer review may opt
+ * into a deterministic visual-only fixture with `demoMode`.
  */
 export function PixiDish({
   snapshot,
@@ -29,24 +35,38 @@ export function PixiDish({
   overlayId = null,
   className,
   ariaLabel,
+  demoMode = false,
 }: PixiDishProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const rendererRef = useRef<PixiDishRenderer | null>(null);
   const motionRef = useRef(motion);
   const overlayRef = useRef(overlayId);
   const demoSnapshotRef = useRef<DishRenderSnapshot | null>(null);
-  if (demoSnapshotRef.current === null) {
+
+  const usingAuthoritative = snapshot !== null && snapshot !== undefined;
+  const usingDemo = !usingAuthoritative && demoMode;
+
+  if (usingDemo && demoSnapshotRef.current === null) {
     demoSnapshotRef.current = createRendererDemoSnapshot();
   }
-  const snapshotRef = useRef<DishRenderSnapshot>(
-    snapshot ?? demoSnapshotRef.current,
-  );
+
+  const renderSnapshot = usingAuthoritative
+    ? snapshot
+    : usingDemo
+      ? demoSnapshotRef.current
+      : null;
+  const renderEnabled = renderSnapshot !== null;
+  const snapshotRef = useRef<DishRenderSnapshot | null>(renderSnapshot);
 
   motionRef.current = motion;
   overlayRef.current = overlayId;
-  snapshotRef.current = snapshot ?? demoSnapshotRef.current;
+  snapshotRef.current = renderSnapshot;
 
   useEffect(() => {
+    if (!renderEnabled) {
+      return;
+    }
+
     const host = hostRef.current;
     if (host === null) return;
 
@@ -62,7 +82,10 @@ export function PixiDish({
       instance = renderer;
       rendererRef.current = renderer;
       renderer.setMotionMode(motionRef.current);
-      renderer.update(snapshotRef.current);
+      const currentSnapshot = snapshotRef.current;
+      if (currentSnapshot !== null) {
+        renderer.update(currentSnapshot);
+      }
       renderer.setOverlay(overlayRef.current);
     });
 
@@ -71,7 +94,7 @@ export function PixiDish({
       rendererRef.current = null;
       instance?.destroy();
     };
-  }, []);
+  }, [renderEnabled]);
 
   useEffect(() => {
     const renderer = rendererRef.current;
@@ -86,33 +109,93 @@ export function PixiDish({
   }, [overlayId]);
 
   useEffect(() => {
-    const nextSnapshot = snapshot ?? demoSnapshotRef.current;
-    snapshotRef.current = nextSnapshot;
-    rendererRef.current?.update(nextSnapshot);
-  }, [snapshot]);
+    snapshotRef.current = renderSnapshot;
+    if (renderSnapshot !== null) {
+      rendererRef.current?.update(renderSnapshot);
+    }
+  }, [renderSnapshot]);
 
-  const usingDemo = snapshot === null || snapshot === undefined;
+  const source = usingAuthoritative
+    ? "authoritative-snapshot"
+    : usingDemo
+      ? "visual-demo"
+      : "awaiting-authoritative-snapshot";
+
+  const resolvedAriaLabel =
+    ariaLabel ??
+    (usingAuthoritative
+      ? "Interactive Petra dish renderer"
+      : usingDemo
+        ? "Interactive Petra dish renderer using visual demonstration data, not simulation data"
+        : "Petra dish waiting for authoritative simulation data");
 
   return (
     <div
-      ref={hostRef}
       className={className}
-      data-render-source={usingDemo ? "visual-demo" : "authoritative-snapshot"}
-      role="img"
-      aria-label={
-        ariaLabel ??
-        (usingDemo
-          ? "Interactive Petra dish renderer using visual demonstration data"
-          : "Interactive Petra dish renderer")
-      }
+      data-render-source={source}
       style={{
         width: "100%",
         height: "100%",
         minHeight: "20rem",
-        touchAction: "none",
+        position: "relative",
         overflow: "hidden",
         borderRadius: "inherit",
       }}
-    />
+    >
+      <div
+        ref={hostRef}
+        role="img"
+        aria-label={resolvedAriaLabel}
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "grid",
+          placeItems: "center",
+          touchAction: renderEnabled ? "none" : "auto",
+        }}
+      >
+        {!renderEnabled ? (
+          <span
+            data-render-empty="true"
+            style={{
+              maxWidth: "18rem",
+              padding: "0.85rem 1rem",
+              textAlign: "center",
+              lineHeight: 1.45,
+              color: "rgba(226, 235, 246, 0.72)",
+            }}
+          >
+            Waiting for authoritative simulation data
+          </span>
+        ) : null}
+      </div>
+
+      {usingDemo ? (
+        <div
+          data-render-demo-disclosure="true"
+          role="note"
+          style={{
+            position: "absolute",
+            left: "50%",
+            bottom: "0.8rem",
+            zIndex: 2,
+            transform: "translateX(-50%)",
+            maxWidth: "calc(100% - 1.6rem)",
+            padding: "0.42rem 0.68rem",
+            border: "1px solid rgba(242, 202, 104, 0.34)",
+            borderRadius: "999px",
+            background: "rgba(5, 13, 25, 0.86)",
+            color: "#f2d98e",
+            fontSize: "0.7rem",
+            fontWeight: 700,
+            letterSpacing: "0.04em",
+            textAlign: "center",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Visual demo — not simulation data
+        </div>
+      ) : null}
+    </div>
   );
 }

@@ -64,6 +64,7 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - `TimelineHistory.tsx` is presentation-only: it may reveal/hide history but must not reorder, summarize away, synthesize, pause, or mutate runtime events.
 - Complete-history rows preserve sequence, tick, simulation time, and command identity supplied by `TimelineEntry`; opening history never creates scientific state.
 - New events must not auto-open history, steal focus, or force-scroll a user away from an older record they are inspecting.
+- TimelineHistory is static inspection context, not an event-arrival live region. Generic event counts remain visible text only; `CausalNarrationMount` is the sole bounded scientific-event announcement owner, so the recent/full-history threshold cannot create or destroy narration authority.
 - Native details/scroll behavior deliberately keeps Full/Reduced/Off information-equivalent without introducing a second motion authority.
 - The focusable complete-history scroll region has local first refusal for Space: stop propagation before the App playback shortcut, but never prevent Space's native browser scrolling default. Do not generalize this into blocking every `role="region"`; the dish and other presentation regions retain their own input contracts.
 

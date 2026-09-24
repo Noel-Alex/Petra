@@ -94,8 +94,9 @@ export function PixiDish({
           rendererRef.current = renderer;
           renderer.setMotionMode(motionRef.current);
           const currentSnapshot = snapshotRef.current;
-          if (currentSnapshot !== null) renderer.update(currentSnapshot);
-          renderer.setOverlay(overlayRef.current);
+          if (currentSnapshot !== null) {
+            renderer.updatePresentation(currentSnapshot, overlayRef.current);
+          }
           setStartup({ status: "ready", errorMessage: null });
         },
         onError(error) {
@@ -117,10 +118,6 @@ export function PixiDish({
   }, [motion]);
 
   useEffect(() => {
-    rendererRef.current?.setOverlay(overlayId);
-  }, [overlayId]);
-
-  useEffect(() => {
     if (resetCameraSignal === resetCameraSignalRef.current) return;
     resetCameraSignalRef.current = resetCameraSignal;
     rendererRef.current?.resetCamera();
@@ -128,8 +125,11 @@ export function PixiDish({
 
   useEffect(() => {
     snapshotRef.current = renderSnapshot;
-    if (renderSnapshot !== null) rendererRef.current?.update(renderSnapshot);
-  }, [renderSnapshot]);
+    overlayRef.current = overlayId;
+    if (renderSnapshot !== null) {
+      rendererRef.current?.updatePresentation(renderSnapshot, overlayId);
+    }
+  }, [renderSnapshot, overlayId]);
 
   const source = usingAuthoritative
     ? "authoritative-snapshot"

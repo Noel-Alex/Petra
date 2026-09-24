@@ -1,40 +1,72 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
+import { createInterventionPlacementState, beginInterventionPlacement } from "../ui/interventionPlacement";
 import { App } from "./App";
 import { InterventionPalette } from "./InterventionPalette";
 
 describe("InterventionPalette", () => {
-  it("renders only the current intervention tools as accessible disabled actions", () => {
+  it("offers placement-only tools when runtime is ready while scientific Apply stays locked", () => {
     const html = renderToStaticMarkup(
-      <InterventionPalette motion="full" runtimeStatus="ready" />,
+      <InterventionPalette
+        motion="full"
+        runtimeStatus="ready"
+        placement={createInterventionPlacementState()}
+      />,
     );
 
     expect(html).toContain(
       'data-intervention-capability="authoritative-schema-unavailable"',
     );
     expect(html).toContain('data-intervention-tool="inoculate"');
+    expect(html).toContain('data-intervention-tool="fungus"');
     expect(html).toContain('data-intervention-tool="antibiotic"');
     expect(html).toContain('data-intervention-tool="nutrient"');
-    expect(html).toContain(">Inoculate</button>");
-    expect(html).toContain(">Antibiotic</button>");
-    expect(html).toContain(">Nutrient</button>");
+    expect(html.match(/place preview/g)).toHaveLength(4);
     expect(html).not.toContain(">Inspect</button>");
-    expect(html.match(/ disabled=""/g)).toHaveLength(3);
-    expect(html.match(/aria-describedby="/g)?.length).toBeGreaterThanOrEqual(4);
+    expect(html).not.toContain(' disabled=""');
     expect(html).toContain('role="status"');
     expect(html).toContain("Petra will not substitute synthetic commands");
-    expect(html).not.toMatch(/mg\/l|µg\/ml|dose|radius|concentration/i);
+    expect(html).not.toMatch(/mg\/l|µg\/ml|dose|concentration/i);
   });
 
-  it("uses alert semantics for runtime failure without enabling tools", () => {
+  it("shows keyboard-equivalent coordinates and a disabled Apply gate while placing", () => {
+    const placement = beginInterventionPlacement(
+      createInterventionPlacementState(),
+      "fungus",
+    );
     const html = renderToStaticMarkup(
-      <InterventionPalette motion="off" runtimeStatus="error" />,
+      <InterventionPalette
+        motion="reduced"
+        runtimeStatus="ready"
+        placement={{ ...placement, point: { x: 0.35, y: 0.62 } }}
+      />,
+    );
+
+    expect(html).toContain('data-placement-active="true"');
+    expect(html).toContain("Fungi target");
+    expect(html).toContain("Preview only");
+    expect(html).toContain('aria-label="Horizontal dish target position"');
+    expect(html).toContain('value="35"');
+    expect(html).toContain('aria-label="Vertical dish target position"');
+    expect(html).toContain('value="62"');
+    expect(html).toContain("visual cursor, not a predicted biological footprint");
+    expect(html).toContain("Apply unavailable");
+    expect(html).toContain(' disabled=""');
+  });
+
+  it("uses alert semantics and disables placement tools for runtime failure", () => {
+    const html = renderToStaticMarkup(
+      <InterventionPalette
+        motion="off"
+        runtimeStatus="error"
+        placement={createInterventionPlacementState()}
+      />,
     );
 
     expect(html).toContain('data-intervention-capability="runtime-error"');
     expect(html).toContain('role="alert"');
-    expect(html.match(/ disabled=""/g)).toHaveLength(3);
+    expect(html.match(/ disabled=""/g)).toHaveLength(4);
   });
 
   it("mounts the fail-closed capability surface in the default app", () => {
@@ -44,6 +76,7 @@ describe("InterventionPalette", () => {
     expect(html).toContain(
       "Authoritative simulation is not connected. Intervention tools remain unavailable.",
     );
+    expect(html).toContain('data-intervention-tool="fungus"');
     expect(html).not.toContain(
       "Controls are shell-only in this checkpoint",
     );

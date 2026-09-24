@@ -6,10 +6,10 @@ const config: ComposedSimulationConfig = {
   width: 3,
   height: 2,
   mask: [1, 1, 1, 1, 0, 1],
-  initialResource: [1, 2, 3, 4, 99, 6],
+  initialResource: [1, 2, 3, 4, 0, 6],
   initialLineageBiomass: [
-    [1, 2, 3, 4, 99, 6],
-    [6, 5, 4, 3, 99, 1],
+    [1, 2, 3, 4, 0, 6],
+    [6, 5, 4, 3, 0, 1],
   ],
   growth: {
     maxDivisionRate: 1,
@@ -68,6 +68,13 @@ describe('authoritative region inspector', () => {
 
   it('never lets masked sentinel values leak into scientific readout', () => {
     const state = createComposedState(config)
+    // Deliberately corrupt only the masked cell after valid state creation.
+    // The simulator rejects this state if stepped; the read-only inspector must
+    // still exclude masked cells rather than exposing sentinel values.
+    state.resource[4] = 99
+    state.lineageBiomass[0]![4] = 99
+    state.lineageBiomass[1]![4] = 99
+
     const inspection = inspectAuthoritativeRegion(state, {
       id: 'whole-grid',
       centerX: 0.5,

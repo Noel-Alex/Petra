@@ -33,20 +33,23 @@ DOI: `10.1371/journal.ppat.1000541`
 
 Reported *E. coli* MG1655 ciprofloxacin phenotypes include:
 
-| Genotype | Cipro MIC µg/mL | Relative fitness |
-|---|---:|---:|
-| wild type | 0.016 | 1.00 |
-| gyrA S83L | 0.38 | 1.01 |
-| gyrA D87N | 0.25 | 0.99 |
-| parC S80I | 0.016 | 0.99 |
-| delta-marR | 0.032 | 0.83 |
-| delta-acrR | 0.047 | 0.91 |
-| gyrA S83L + D87N | 0.38 | 0.97 |
-| gyrA S83L + parC S80I | 1.0 | 0.98 |
-| gyrA S83L + delta-marR | 1.0 | 0.86 |
-| gyrA S83L + delta-acrR | 0.5 | 0.95 |
-| gyrA D87N + parC S80I | 0.38 | 1.02 |
-| gyrA D87N + delta-marR | 1.0 | 0.83 |
+| Genotype | Cipro MIC µg/mL | Relative fitness | Fitness SD | Independent competitions (N) |
+|---|---:|---:|---:|---:|
+| wild type | 0.016 | 1.00 | 0.01 | 5 |
+| gyrA S83L | 0.38 | 1.01 | 0.03 | 6 |
+| gyrA D87N | 0.25 | 0.99 | 0.03 | 7 |
+| parC S80I | 0.016 | 0.99 | 0.01 | 5 |
+| delta-marR | 0.032 | 0.83 | 0.03 | 5 |
+| delta-acrR | 0.047 | 0.91 | 0.02 | 5 |
+| gyrA S83L + D87N | 0.38 | 0.97 | 0.03 | 8 |
+| gyrA S83L + parC S80I | 1.0 | 0.98 | 0.03 | 6 |
+| gyrA S83L + delta-marR | 1.0 | 0.86 | 0.03 | 5 |
+| gyrA S83L + delta-acrR | 0.5 | 0.95 | 0.04 | 11 |
+| gyrA D87N + parC S80I | 0.38 | 1.02 | 0.02 | 8 |
+| gyrA D87N + delta-marR | 1.0 | 0.83 | 0.03 | 5 |
+| gyrA S83L + parC S80I + D87N | 32 | 1.01 | 0.02 | 13 |
+
+Marcusson reports fitness as the mean per generation relative to wild type; the parenthesized values in Table 1 are standard deviations from the listed number of independent pairwise competition experiments. Ciprofloxacin MIC uncertainty is reported differently: the Etest measurements have a **±1 half-doubling-step measurement margin**. Petra preserves that ordinal assay margin as reported rather than converting it into a fabricated linear SD/CI or combining it with fitness variability.
 
 Important consequence: fitness is **not** a simple monotonic penalty with mutation count. PETRA must not implement “minus 5% fitness per resistance mutation.”
 

@@ -153,4 +153,22 @@ describe('counterfactual fork authority', () => {
         }),
     ).toThrow(/not canonical/)
   })
+  it('fails closed on composed checkpoints until composed fork authority lands', () => {
+    const composedSnapshot = {
+      checkpoint: { authority: 'composed' },
+      events: [],
+      traceHash: 'composed-fixture',
+    } as never
+
+    expect(
+      () =>
+        new CounterfactualForkController({
+          sourceRunId: 'run-parent-1',
+          parentSnapshot: composedSnapshot,
+          left: { branchId: 'left', label: 'Left' },
+          right: { branchId: 'right', label: 'Right' },
+        }),
+    ).toThrow(/do not yet support composed simulation checkpoints/)
+  })
+
 })

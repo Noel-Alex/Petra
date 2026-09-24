@@ -63,13 +63,20 @@ describe("authoritative timeline history", () => {
   });
   it("keeps Space local without preventing the browser scrolling default", () => {
     let stopped = 0;
-    keepTimelineHistorySpaceLocal({
+    let prevented = 0;
+    const spaceEvent = {
       key: " ",
       stopPropagation: () => {
         stopped += 1;
       },
-    });
+      preventDefault: () => {
+        prevented += 1;
+      },
+    };
+
+    keepTimelineHistorySpaceLocal(spaceEvent);
     expect(stopped).toBe(1);
+    expect(prevented).toBe(0);
 
     keepTimelineHistorySpaceLocal({
       key: "Enter",
@@ -93,11 +100,13 @@ describe("authoritative timeline history", () => {
 
   it("wires local Space ownership only onto the complete-history scroller", () => {
     expect(timelineHistorySource).toContain(
-      "onKeyDown={keepTimelineHistorySpaceLocal}",
+      'aria-label="Complete authoritative simulation event history"\n' +
+        "            tabIndex={0}\n" +
+        "            onKeyDown={keepTimelineHistorySpaceLocal}",
     );
-    expect(timelineHistorySource).not.toContain(
-      'role="region" onKeyDown={keepTimelineHistorySpaceLocal}',
-    );
+    expect(
+      timelineHistorySource.match(/onKeyDown=\{keepTimelineHistorySpaceLocal\}/g),
+    ).toHaveLength(1);
   });
 
 });

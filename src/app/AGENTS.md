@@ -98,3 +98,9 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Demo snapshot factories used during candidate resolution must remain deterministic and side-effect free for the same explicit demo configuration. They are presentation factories, never a place for RNG progression, network work, persistent mutation, or scientific authority.
 - Source identity is explicit and separate from snapshot shape. Passing a demo-shaped `DishRenderSnapshot` through props must never cause it to be relabelled authoritative.
 - Authoritative state always takes precedence and must not invoke demo generation. Visual-demo state remains explicit opt-in, visibly disclosed, and presentation-only.
+
+
+## Shared visual theme
+- `visualTheme.css` is a late-loaded presentation theme that consumes CSS variables installed from `src/design/visualTokens.ts`; it must not become a second hard-coded Petra palette.
+- Theme overrides may change color, border, elevation, and quiet depth, but must not own layout, simulation state, scientific semantics, or intervention capability. Keep issue-specific layout/interaction styles in their owning modules.
+- Browser startup installs shared visual variables before React mounts so DOM chrome and Pixi can consume one token authority. Core text/accent pairs are regression-tested for WCAG AA contrast; critical science still needs non-color cues.

@@ -1,13 +1,13 @@
 import type { CameraMotionSpec } from "../render/pixi/cameraMotion";
-import type { RendererMotionMode } from "../render/pixi/renderer";
 import {
   resolveMotion,
+  type MotionPreference,
   type MotionTreatment,
 } from "../ui/motion/policy";
 import { MOTION } from "../ui/motion/tokens";
 
 export interface DishCameraMotionPlan {
-  readonly mode: RendererMotionMode;
+  readonly mode: MotionPreference;
   readonly treatment: MotionTreatment;
   readonly cameraMotion: CameraMotionSpec;
 }
@@ -21,7 +21,7 @@ export interface DishCameraMotionPlan {
  * the renderer motion mode and surrounding UI rather than a hidden 520 ms spec.
  */
 export function resolveDishCameraMotion(
-  mode: RendererMotionMode,
+  mode: MotionPreference,
 ): DishCameraMotionPlan {
   const resolved = resolveMotion(mode, {
     kind: "navigational",

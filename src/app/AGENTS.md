@@ -175,3 +175,10 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Stable shell/source-badge chrome must not reintroduce blur-heavy `backdrop-filter` glass. Dish ambient `filter: blur(...)` is a separate decorative halo treatment governed by motion policy and is not this glass-material ban.
 - Runtime status color is reinforcement only: ready uses shared mint, pending/starting amber, error coral, while visible status text remains authoritative.
 - Theme cleanup must not change focus geometry, touch targets, dish-first focus-mode layout, intervention-placement semantics, semantic zoom, timeline ordering/content, or renderer scientific mapping.
+
+
+## Historical scrub control
+- `HistoricalScrubControl.tsx` is a presentation-only native range adapter over the exact `AuthoritativeHistoryIndex` contract. It requests an accepted-command cursor and never restores, rewinds, forks, or mutates the live runtime.
+- The visible slider advances in integer accepted-command positions. Positions with a recorded keyframe are labelled authoritative; gaps remain explicitly presentation-only and may disclose only their authoritative command/time bounds. Do not interpolate or infer a biological timestamp for a gap.
+- Range keyboard/touch behavior remains browser-native. Navigation keys stay local so App playback shortcuts cannot reinterpret a scrub gesture; the adapter must not call `preventDefault()` for native range navigation.
+- Historical scrub status is static inspection context, not an event-arrival live region. Final App wiring must resolve dish/charts/inspector/time from the same historical frame and preserve #625's no-hidden-rewind rule.

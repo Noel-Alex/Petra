@@ -164,3 +164,12 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - `regionInspectorPanel.css` consumes Petra's shared `--petra-color-*` / `--petra-rgb-*` variables for stable chrome and status reinforcement; it must not introduce a second numeric hex/RGB/RGBA palette.
 - Region Inspector status remains redundant in visible labels, lifecycle state, border treatment, and semantic structure. Mint/amber/coral are presentation reinforcement only and never scientific authority.
 - Theme work must not alter authoritative selection ownership, stale-result semantics, exact values/units, lineage/genotype identity, focus behavior, or high-contrast behavior.
+
+
+## Timeline targets, bookmarks, and fast-forward planning
+- `timelineTargets.ts` owns framework-neutral presentation metadata and stop-planning over already-authoritative `SimulationEvent` streams.
+- Fast-forward target evaluation preserves supplied event order and exact event `sequence`, `tick`, `simulationTimeHours`, and optional command identity. It may stop only on an explicitly matching authoritative event; wall-clock time, animation completion, array index, or inferred scientific meaning are never stop authority.
+- The planner cursor is the last inspected authoritative event sequence. Biological time is not an ordering cursor because multiple accepted events may share the same exact simulation time.
+- Protocol-v4 generic lifecycle events do not prove resistant-fraction crossing, collapse, depletion, lineage birth/extinction, or similar scientific threshold semantics. Named scientific targets must remain visibly unsupported until runtime authority emits an explicit event vocabulary/definition that proves them.
+- `synthetic-pulse` remains infrastructure-fixture activity and is not a product scientific fast-forward target.
+- Bookmarks are branch-scoped presentation metadata anchored to one exact authoritative event identity. They never mutate, rewind, fork, or otherwise alter simulation authority.

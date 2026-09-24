@@ -316,7 +316,7 @@ export function createComposedState(
   }
 }
 
-function validateStateAgainstConfig(
+export function validateComposedStateAgainstConfig(
   state: ComposedSimulationState,
   config: ComposedSimulationConfig,
 ): void {
@@ -407,7 +407,7 @@ export function stepComposedState(
   config: ComposedSimulationConfig,
 ): ComposedMetrics {
   validateConfig(config)
-  validateStateAgainstConfig(state, config)
+  validateComposedStateAgainstConfig(state, config)
 
   const ecology = asEcologyState(state)
   const fitness = lineageFitness(config)

@@ -28,4 +28,4 @@ Unit/determinism tests for the core, reference-vs-accelerated numerical comparis
 
 ## Child DOX index
 - [`sim/AGENTS.md`](sim/AGENTS.md) — authoritative simulation state, deterministic RNG, replay/checkpoint, and mechanism-core contracts.
-- Create `render/` or `ui/` child contracts when those become active durable boundaries.
+- [`ui/AGENTS.md`](ui/AGENTS.md) — accessible motion, experiment controls, keyboard semantics, replay planning, and scientific timeline presentation.\n- Create `render/AGENTS.md` when the renderer boundary lands on `main`.

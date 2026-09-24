@@ -64,3 +64,12 @@ Any accelerated sampler additionally requires many-seed distribution comparison 
 - Active composed lineage IDs/genotype IDs must match registry records exactly. Extant registry records missing from active abundance authority are an error; extinct records may project zero abundance only after an authoritative extinction time at or before the checkpoint time.
 - Relative fitness is resolved from the curated mutation graph. Labels/source/assumption keys come only from explicit evidence records. Never infer phenotype, resistance, MIC, citation, or evidence class from genotype names, renderer color, tree layout, or abundance.
 - This projection does not create lineage history and does not make the current composed checkpoint lineage-registry-complete. #5/#37 still own integrating replay-critical ancestry/evolution state into the composed runtime before product lineage analysis can be considered end-to-end authoritative.
+
+
+## Mutation child-lineage materialization
+- `materializeMutationLineages.ts` is the transaction boundary from already-sampled `SpatialMutationBatchResult` births into deterministic `LineageRegistry` child identity. It must never resample mutation probability, consume continuous biomass directly, or infer births from renderer/UI state.
+- Every sampled mutant birth creates one child lineage in deterministic supplied batch/cell/target/birth order. Parent lineage, source genotype, target genotype, source cell, biological creation time, mutation class, and sampled citation key remain explicit in the returned handoff.
+- Materialization runs against a restored registry checkpoint clone. Validation failure or runtime work-ceiling refusal returns no new lineage authority and cannot partially mutate the caller checkpoint.
+- Source lineage/genotype identity must match an extant registry record at the child creation time. Unknown, genotype-mismatched, or already-extinct parents fail closed.
+- The materialization work ceiling is runtime safety only. It does not alter mutation probabilities or biology; refusal requires a separately budgeted execution path rather than truncating sampled births.
+- This transaction does not allocate composed biomass or add child channels to composed state. #5/#37 must integrate the returned child mapping with replay-critical composed state/checkpoint identity atomically before evolution is end-to-end active.

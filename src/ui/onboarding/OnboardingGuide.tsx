@@ -5,6 +5,11 @@ import {
 } from "react";
 
 import { PetraCompactAction } from "../PetraCompactAction";
+import {
+  PetraPrimitiveGlyph,
+  type PetraPrimitiveGlyphId,
+  type PetraPrimitiveGlyphTone,
+} from "../PetraPrimitiveGlyph";
 import { PetraIcon } from "../icons/PetraIcon";
 import type { PetraIconName } from "../icons/spec";
 import type { MotionPreference } from "../motion/policy";
@@ -149,7 +154,17 @@ export function OnboardingGuide({
         <div className="petra-onboarding__focus" aria-hidden="true">
           <span className="petra-onboarding__focus-orbit" />
           <span className="petra-onboarding__focus-core">
-            <PetraIcon name={focusIcon(stage)} decorative size={28} />
+            <PetraPrimitiveGlyph
+              className="petra-onboarding__focus-motif"
+              {...focusMotif(stage)}
+              state={ready ? "active" : "idle"}
+              motionPreference={motionPreference}
+              size={42}
+              decorative
+            />
+            <span className="petra-onboarding__focus-icon">
+              <PetraIcon name={focusIcon(stage)} decorative size={15} />
+            </span>
           </span>
         </div>
 
@@ -205,6 +220,26 @@ export function OnboardingGuide({
       </footer>
     </section>
   );
+}
+
+interface OnboardingFocusMotif {
+  readonly primitive: PetraPrimitiveGlyphId;
+  readonly tone: PetraPrimitiveGlyphTone;
+}
+
+function focusMotif(stage: OnboardingStage): OnboardingFocusMotif {
+  switch (stage.focus) {
+    case "dish":
+      return { primitive: "selection-ring", tone: "teal" };
+    case "population":
+      return { primitive: "round-colony-cluster", tone: "mint" };
+    case "pressure":
+      return { primitive: "intervention-marker", tone: "lavender" };
+    case "lineage":
+      return { primitive: "rounded-bacterial-rod", tone: "amber" };
+    case "controls":
+      return { primitive: "selection-ring", tone: "cream" };
+  }
 }
 
 function focusIcon(stage: OnboardingStage): PetraIconName {

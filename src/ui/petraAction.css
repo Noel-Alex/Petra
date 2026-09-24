@@ -1,5 +1,6 @@
 .petra-action {
   --petra-action-duration: 160ms;
+  --petra-action-easing: ease;
   --petra-action-y: 0rem;
   --petra-action-scale: 1;
   width: 100%;
@@ -17,10 +18,10 @@
   touch-action: manipulation;
   transform: translateY(var(--petra-action-y)) scale(var(--petra-action-scale));
   transition:
-    transform var(--petra-action-duration) cubic-bezier(0.2, 0.8, 0.2, 1),
-    border-color var(--petra-action-duration) cubic-bezier(0.2, 0.8, 0.2, 1),
-    background-color var(--petra-action-duration) cubic-bezier(0.2, 0.8, 0.2, 1),
-    box-shadow var(--petra-action-duration) cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform var(--petra-action-duration) var(--petra-action-easing),
+    border-color var(--petra-action-duration) var(--petra-action-easing),
+    background-color var(--petra-action-duration) var(--petra-action-easing),
+    box-shadow var(--petra-action-duration) var(--petra-action-easing);
 }
 
 .petra-action[data-emphasis="hover"],

@@ -125,7 +125,6 @@ export function planDishMotionPhase(
   const motion = resolveMotion(request.preference, {
     kind: spec.kind,
     durationMs: token.durationMs,
-    ...(spec.kind === "navigational" ? { distancePx: 360 } : {}),
   });
 
   return {
@@ -160,7 +159,7 @@ const PHASE_SPECS = {
     preserveUserCamera: true,
   },
   divide: {
-    token: "selectionEmphasis",
+    token: "fieldShift",
     kind: "causal",
     acceptedEvidence: ["authoritative-event"],
     channels: ["opacity", "position", "outline"],
@@ -192,7 +191,7 @@ const PHASE_SPECS = {
     preserveUserCamera: true,
   },
   "fungal-branch": {
-    token: "selectionEmphasis",
+    token: "fieldShift",
     kind: "causal",
     acceptedEvidence: ["authoritative-state", "authoritative-event"],
     channels: ["path-length", "opacity", "outline"],

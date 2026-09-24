@@ -107,6 +107,8 @@ export function AnalysisPanel({
             Markers are authoritative samples. Connecting segments are visual
             guides only; Petra does not create interpolated scientific samples.
           </p>
+
+          <ScientificSourceData chart={chart} />
         </section>
 
         <section
@@ -127,6 +129,8 @@ export function AnalysisPanel({
             Horizontal position is lineage creation time. Circle means extant;
             diamond means extinct. Ancestry comes from simulation records.
           </p>
+
+          <LineageSourceData tree={lineageTree} />
         </section>
       </div>
     </section>
@@ -244,6 +248,126 @@ function ScientificChart({
         ))}
       </ol>
     </div>
+  );
+}
+
+
+function ScientificSourceData({
+  chart,
+}: {
+  readonly chart: ScientificChartProjection;
+}): ReactElement {
+  const sourceSampleCount = chart.series.reduce(
+    (sum, series) => sum + series.sourcePoints.length,
+    0,
+  );
+
+  return (
+    <details className="analysis-data">
+      <summary>
+        <span>Complete source data</span>
+        <span className="analysis-data__summary-meta">
+          {sourceSampleCount} source sample
+          {sourceSampleCount === 1 ? "" : "s"}
+        </span>
+      </summary>
+      <div
+        className="analysis-data__scroll"
+        role="region"
+        aria-label="Complete authoritative scientific source samples"
+        tabIndex={0}
+      >
+        <table className="analysis-data__table">
+          <caption>Complete authoritative source samples</caption>
+          <thead>
+            <tr>
+              <th scope="col">Series</th>
+              <th scope="col">Series ID</th>
+              <th scope="col">Simulation time</th>
+              <th scope="col">Value</th>
+              <th scope="col">Unit</th>
+            </tr>
+          </thead>
+          <tbody>
+            {chart.series.map((series) =>
+              series.sourcePoints.map((point, sourceIndex) => (
+                <tr
+                  key={`${series.id}-source-${sourceIndex}`}
+                  data-source-series-id={series.id}
+                  data-source-sample-index={sourceIndex}
+                >
+                  <th scope="row">{series.label}</th>
+                  <td><code>{series.id}</code></td>
+                  <td>{formatNumber(point.timeHours)} h</td>
+                  <td>{formatNumber(point.value)}</td>
+                  <td>{series.unit}</td>
+                </tr>
+              )),
+            )}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  );
+}
+
+function LineageSourceData({
+  tree,
+}: {
+  readonly tree: LineageTreeLayout;
+}): ReactElement {
+  if (tree.nodes.length === 0) {
+    return <></>;
+  }
+
+  return (
+    <details className="analysis-data">
+      <summary>
+        <span>Complete ancestry data</span>
+        <span className="analysis-data__summary-meta">
+          {tree.nodes.length} lineage{tree.nodes.length === 1 ? "" : "s"}
+        </span>
+      </summary>
+      <div
+        className="analysis-data__scroll"
+        role="region"
+        aria-label="Complete authoritative lineage ancestry records"
+        tabIndex={0}
+      >
+        <table className="analysis-data__table">
+          <caption>Complete authoritative lineage ancestry records</caption>
+          <thead>
+            <tr>
+              <th scope="col">Lineage</th>
+              <th scope="col">Parent lineage</th>
+              <th scope="col">Genotype</th>
+              <th scope="col">Created</th>
+              <th scope="col">Status</th>
+              <th scope="col">Extinct</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tree.nodes.map((node) => (
+              <tr
+                key={node.lineageId}
+                data-lineage-record-id={node.lineageId}
+              >
+                <th scope="row">{node.lineageId}</th>
+                <td>{node.parentLineageId ?? "root"}</td>
+                <td>{node.genotypeId}</td>
+                <td>{formatNumber(node.createdAtHours)} h</td>
+                <td>{node.status}</td>
+                <td>
+                  {node.extinctAtHours === null
+                    ? "—"
+                    : `${formatNumber(node.extinctAtHours)} h`}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </details>
   );
 }
 

@@ -16,8 +16,9 @@
 ## Accessibility and visual identity
 - Every series is identified in visible text and by a numbered endpoint/legend marker, so hue is never the only identity channel. Dash treatment may reinforce identity but is not the sole label.
 - Lineage nodes use visible lineage/genotype text plus distinct extant/extinct geometry. Status may never rely only on color.
-- SVG surfaces carry accessible summary labels; detailed sample values remain available through point titles / surrounding text.
-- Dense presentation may scroll or decimate existing points; it must not drop the underlying authoritative history from application state.
+- SVG surfaces carry accessible summary labels; point titles are progressive enhancement only. Complete authoritative chart samples and lineage ancestry must also remain inspectable through a user-controlled semantic table/list outside image-like SVG geometry.
+- Visual decimation may reduce SVG source markers only. The projection must preserve a separate non-lossy source-sample channel for semantic/accessibility detail; presentation budgets must never discard or reconstruct authoritative records.
+- Dense semantic data may live in a bounded scroll region opened by the user. It is not a live region and must not create an announcement storm.
 
 ## Motion
 - Analysis motion resolves through shared Petra motion policy/tokens only.

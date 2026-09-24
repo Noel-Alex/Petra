@@ -95,6 +95,43 @@ describe("AnalysisPanel", () => {
     expect(html).toContain("gyrA S83L");
   });
 
+
+  it("renders complete semantic records even when SVG geometry is decimated", () => {
+    const denseChart = buildScientificChart(
+      [{
+        id: "dense",
+        label: "Dense lineage",
+        unit: "relative biomass",
+        appearanceToken: "lineage-dense",
+        patternToken: "solid",
+        points: Array.from({ length: 25 }, (_, index) => ({
+          timeHours: index,
+          value: index * 2,
+        })),
+      }],
+      { maxPointsPerSeries: 4 },
+    );
+    expect(denseChart.series[0]!.points).toHaveLength(4);
+
+    const html = renderToStaticMarkup(
+      <AnalysisPanel chart={denseChart} lineageTree={tree} motion="off" />,
+    );
+
+    expect(html).toContain("Complete source data");
+    expect(html).toContain("Complete authoritative source samples");
+    expect(html.match(/data-source-sample-index=/g) ?? []).toHaveLength(25);
+    expect(html).toContain('data-source-series-id="dense"');
+    expect(html).toContain("Series ID");
+    expect(html).toContain("Simulation time");
+
+    expect(html).toContain("Complete ancestry data");
+    expect(html).toContain("Complete authoritative lineage ancestry records");
+    expect(html.match(/data-lineage-record-id=/g) ?? []).toHaveLength(2);
+    expect(html).toContain('data-lineage-record-id="L1"');
+    expect(html).toContain("Parent lineage");
+    expect(html).toContain("gyrA S83L");
+  });
+
   it("projects shared motion policy without tying it to biological time", () => {
     const full = renderToStaticMarkup(
       <AnalysisPanel chart={chart} lineageTree={tree} motion="full" />,

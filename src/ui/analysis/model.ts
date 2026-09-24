@@ -33,6 +33,9 @@ export interface ScientificSeriesProjection {
   readonly appearanceToken: string;
   readonly patternToken: string;
   readonly sourcePointCount: number;
+  /** Complete authoritative samples, independent of the visual point budget. */
+  readonly sourcePoints: readonly ScientificSeriesPoint[];
+  /** Source-selected visual geometry; may be decimated but never interpolated. */
   readonly points: readonly ProjectedSeriesPoint[];
 }
 
@@ -143,21 +146,26 @@ export function buildScientificChart(
     timeMaximumHours: timeDomain.maximum,
     valueMinimum: valueDomain.minimum,
     valueMaximum: valueDomain.maximum,
-    series: inputs.map((series) => ({
-      id: series.id,
-      label: series.label,
-      unit: series.unit,
-      appearanceToken: series.appearanceToken,
-      patternToken: series.patternToken,
-      sourcePointCount: series.points.length,
-      points: decimateSourcePoints(series.points, options.maxPointsPerSeries).map(
-        (point) => ({
+    series: inputs.map((series) => {
+      const sourcePoints = series.points.map((point) => ({ ...point }));
+      return {
+        id: series.id,
+        label: series.label,
+        unit: series.unit,
+        appearanceToken: series.appearanceToken,
+        patternToken: series.patternToken,
+        sourcePointCount: sourcePoints.length,
+        sourcePoints,
+        points: decimateSourcePoints(
+          sourcePoints,
+          options.maxPointsPerSeries,
+        ).map((point) => ({
           ...point,
           x: normalize(point.timeHours, timeDomain.minimum, timeDomain.maximum),
           y: 1 - normalize(point.value, valueDomain.minimum, valueDomain.maximum),
-        }),
-      ),
-    })),
+        })),
+      };
+    }),
     interpolation: "none",
   };
 }

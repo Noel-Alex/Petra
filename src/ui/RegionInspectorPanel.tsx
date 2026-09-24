@@ -203,6 +203,7 @@ function RegionReadout({
               <thead>
                 <tr>
                   <th scope="col">Lineage</th>
+                  <th scope="col">Genotype</th>
                   <th scope="col">Biomass</th>
                   <th scope="col">Region share</th>
                 </tr>
@@ -212,8 +213,12 @@ function RegionReadout({
                   <tr
                     key={lineage.lineageId}
                     data-lineage-id={lineage.lineageId}
+                    data-genotype-id={lineage.genotypeId}
                   >
                     <th scope="row">{lineage.lineageId}</th>
+                    <td>
+                      <code>{lineage.genotypeId}</code>
+                    </td>
                     <td>
                       {formatNumber(lineage.biomass)} {readout.biomassUnit}
                     </td>

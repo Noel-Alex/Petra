@@ -31,11 +31,13 @@ function readout(
     lineageBiomass: [
       {
         lineageId: "ancestor",
+        genotypeId: "WT",
         biomass: 3,
         fractionOfRegionBiomass: 3 / 4.25,
       },
       {
         lineageId: "variant",
+        genotypeId: "VAR",
         biomass: 1.25,
         fractionOfRegionBiomass: 1.25 / 4.25,
       },
@@ -126,7 +128,10 @@ describe("RegionInspectorPanel", () => {
     expect(html).toContain("Composed state schema version");
     expect(html).toContain("config-fingerprint-v1");
     expect(html).toContain('data-lineage-id="ancestor"');
+    expect(html).toContain('data-genotype-id="WT"');
     expect(html).toContain('data-lineage-id="variant"');
+    expect(html).toContain('data-genotype-id="VAR"');
+    expect(html).toContain("<th>Genotype</th>");
     expect(html).toContain("70.6%");
     expect(html).toContain("29.4%");
     expect(html).toContain(

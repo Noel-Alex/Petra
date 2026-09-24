@@ -1,6 +1,6 @@
 import type { SimulationSnapshot } from './protocol'
 
-export function stableReplayStringify(value: unknown) {
+export function stableReplayStringify(value: unknown): string | undefined {
   if (value === null || typeof value !== 'object') return JSON.stringify(value)
   if (Array.isArray(value)) return `[${value.map(stableReplayStringify).join(',')}]`
   const object = value as Record<string, unknown>
@@ -24,6 +24,9 @@ export function simulationSnapshotTraceHash(
     checkpoint: snapshot.checkpoint,
     events: snapshot.events,
   })
+  if (text === undefined) {
+    throw new Error('simulation snapshot trace payload is not serializable')
+  }
   let hash = 0x811c9dc5
   for (let index = 0; index < text.length; index += 1) {
     hash ^= text.charCodeAt(index)

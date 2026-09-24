@@ -17,6 +17,8 @@ Own Petra's accessible DOM/UI presentation language, motion policy, story transi
 - Large camera sweeps, parallax, idle bobbing, and decorative particles must collapse to low-motion alternatives.
 - Wall-clock animation duration must never be presented as biological duration.
 - Use named tokens rather than one-off millisecond values in components.
+- Ordinary control hover/press motion resolves through `src/ui/motion/controls.ts`; adapters must not invent competing transforms or timings.
+- Control selected/pressed meaning must survive with motion reduced/off as a static visual state; focus visibility is a separate accessibility requirement.
 - Do not copy another studio's characters, compositions, palettes, or signature assets; Petra's geometry and timing language must remain original.
 
 ## Accessibility
@@ -42,7 +44,6 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Causal event choreography preserves the user's current camera by default; attention-stealing camera motion requires a separate explicit navigation action.
 - Event cue timing is presentation wall time only. Never label a motion-token duration as mutation, selection, depletion, infection, or drug-response duration.
 
-
 ## Counterfactual compare semantics
 - Compare/fork presentation consumes authoritative fork metadata and command streams; it never performs simulation mutation itself.
 - Two branches may be described as a causal counterfactual pair only when their exact fork origin matches (run identity/checkpoint fingerprint/tick/time/command count).
@@ -51,12 +52,10 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Trajectory differences default to shared authoritative sample times. Any later interpolation/smoothing is a chart-layer presentation choice and must be labelled.
 - Export/share adapters should preserve fork origin, seed, ordered post-fork command identity, and provenance needed to replay the comparison.
 
-
 ## Child DOX index
 - [`onboarding/AGENTS.md`](onboarding/AGENTS.md) — canonical science-gated onboarding/story semantics and presentation metadata.
 - [`compare/AGENTS.md`](compare/AGENTS.md) — accessible counterfactual side-by-side/swipe presentation over authoritative branch state.
 - [`provenance/AGENTS.md`](provenance/AGENTS.md) — evidence-class presentation, strict source resolution, and incomplete-provenance rules.
-
 
 ## Provenance presentation
 - Evidence badges present provenance supplied by science/data/runtime layers; UI code must not infer evidence class from color, source count, DOI presence, or confidence tier.
@@ -65,14 +64,12 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Missing required source, transfer, derivation, calibration, or limitation metadata is a visible `needs-provenance` state, not an excuse to invent a reassuring label.
 - Engineering and visual-only values must explicitly disclose that they are not measured biological constants / do not control simulation outcomes.
 
-
 ## Semantic icon language
 - Shared scientific/product icons come from `src/ui/icons/spec.ts`; React/Pixi adapters render the same framework-neutral geometry rather than inventing incompatible icon sets.
 - Icon meaning is geometry + accessible label first. Color may reinforce meaning but may never be the only distinction.
 - Provenance icon tokens map through `PROVENANCE_ICON_MAP`; do not create a second evidence-icon vocabulary in components.
 - Icon geometry is visual-only and must never encode hidden simulator state, numeric magnitude, or biological confidence.
 - Keep Petra iconography original; do not trace or reproduce another studio's recognizable symbols or branded asset language.
-
 
 ## Intervention preview semantics
 - Spatial intervention previews live in `src/ui/interventionPreview.ts` and are presentation-only until an authoritative simulator command accepts them.

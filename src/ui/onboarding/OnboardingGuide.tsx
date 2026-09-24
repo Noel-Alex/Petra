@@ -45,10 +45,10 @@ export function OnboardingGuide({
   className,
   showSkip = true,
 }: OnboardingGuideProps): ReactElement | null {
-  if (state.completed) return null;
-
   const headingId = useId();
   const statusId = useId();
+
+  if (state.completed) return null;
   const stage = currentStage(state);
   const presentation = resolveOnboardingPresentation(state, motionPreference);
   const ready = canContinue(state);

@@ -113,6 +113,11 @@ export class IncrementalMechanisticDatasetCollector<TInput, TTarget> {
     });
   }
 
+  /** True only after this exact plan's committed stage record was validated. */
+  hasStagedTrajectory(taskId: string): boolean {
+    return this.stagedByTaskId.has(taskId);
+  }
+
   stageTrajectory(
     result: MechanisticTrajectoryResult<TInput, TTarget>,
   ): MechanisticStagedTrajectoryRecord {

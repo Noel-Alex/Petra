@@ -425,6 +425,49 @@ describe("worker session", () => {
     expect(session.state.phase).toBe("ready");
   });
 
+  it("records profiled protocol failures before failing closed", () => {
+    const port = new FakePort();
+    const samples: import("../../src/app/workerSession").WorkerSessionPerformanceSample[] = [];
+    let now = 20;
+    const session = new WorkerSession(port, {
+      observe: (sample) => samples.push(sample),
+      now: () => now,
+    });
+
+    session.enqueue([
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: { id: "expected-profiled", type: "snapshot" },
+      },
+    ]);
+
+    now = 24;
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      commandId: "stale-profiled",
+      snapshot: snapshot(0),
+      performanceDiagnostics: {
+        version: 1,
+        executionDurationMs: 1,
+      },
+    });
+
+    expect(samples).toHaveLength(1);
+    expect(samples[0]).toMatchObject({
+      commandId: "expected-profiled",
+      roundTripMs: 4,
+      workerExecutionMs: 1,
+      nonWorkerRoundTripMs: 3,
+      outcome: "protocol-error",
+    });
+    expect(session.state.phase).toBe("error");
+    expect(session.state.error).toContain(
+      "expected expected-profiled, received stale-profiled",
+    );
+  });
+
   it("keeps profiling observer failures observational", () => {
     const port = new FakePort();
     let now = 0;

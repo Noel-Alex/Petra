@@ -11,13 +11,19 @@ import {
   type RenderLineage,
 } from "../model";
 import {
-  clampCamera,
   panCamera,
   resolveDishViewportGeometry,
   screenToDish,
   zoomAroundDishPoint,
   type ScreenPoint,
 } from "./camera";
+import {
+  applyDirectCamera as applyDirectCameraState,
+  beginRebasedCameraTransition,
+  completeCameraTransitionAtRendered,
+  retargetWheelZoomFromRendered,
+  type CameraTransitionState,
+} from "./cameraInteraction";
 import { applyKeyboardCameraKey } from "./keyboardCamera";
 import {
   beginPointerGesture,
@@ -119,24 +125,41 @@ export async function createPixiDishRenderer(
   });
   resizeObserver.observe(host);
 
-  const beginCameraTransition = (nextTarget: CameraView) => {
-    targetCamera = clampCamera(nextTarget);
-    if (motion !== "full" || options.cameraMotion.durationMs === 0) {
-      camera = targetCamera;
-      transitionStartCamera = targetCamera;
-      cameraElapsedMs = options.cameraMotion.durationMs;
-      return;
-    }
+  const readCameraTransitionState = (): CameraTransitionState => ({
+    camera,
+    transitionStartCamera,
+    targetCamera,
+    elapsedMs: cameraElapsedMs,
+  });
 
-    transitionStartCamera = camera;
-    cameraElapsedMs = 0;
+  const writeCameraTransitionState = (state: CameraTransitionState) => {
+    camera = state.camera;
+    transitionStartCamera = state.transitionStartCamera;
+    targetCamera = state.targetCamera;
+    cameraElapsedMs = state.elapsedMs;
+  };
+
+  const beginCameraTransition = (nextTarget: CameraView) => {
+    writeCameraTransitionState(
+      beginRebasedCameraTransition(
+        readCameraTransitionState(),
+        nextTarget,
+        {
+          animate: motion === "full",
+          durationMs: options.cameraMotion.durationMs,
+        },
+      ),
+    );
   };
 
   const applyDirectCamera = (nextTarget: CameraView) => {
-    targetCamera = clampCamera(nextTarget);
-    camera = targetCamera;
-    transitionStartCamera = targetCamera;
-    cameraElapsedMs = options.cameraMotion.durationMs;
+    writeCameraTransitionState(
+      applyDirectCameraState(
+        readCameraTransitionState(),
+        nextTarget,
+        options.cameraMotion.durationMs,
+      ),
+    );
   };
 
   const ticker = () => {
@@ -178,6 +201,12 @@ export async function createPixiDishRenderer(
     );
     gestureState = started.state;
     if (!started.accepted) return;
+    writeCameraTransitionState(
+      completeCameraTransitionAtRendered(
+        readCameraTransitionState(),
+        options.cameraMotion.durationMs,
+      ),
+    );
     app.canvas.setPointerCapture(event.pointerId);
   };
 
@@ -194,9 +223,9 @@ export async function createPixiDishRenderer(
     const viewport = { width: app.screen.width, height: app.screen.height };
 
     if (moved.intent.kind === "pan") {
-      if (targetCamera.zoom <= 1) return;
+      if (camera.zoom <= 1) return;
       applyDirectCamera(
-        panCamera(targetCamera, moved.intent.deltaScreen, viewport),
+        panCamera(camera, moved.intent.deltaScreen, viewport),
       );
       render();
       return;
@@ -205,10 +234,10 @@ export async function createPixiDishRenderer(
     const anchor = screenToDish(
       moved.intent.anchorScreen,
       viewport,
-      targetCamera,
+      camera,
     );
     const zoomed = zoomAroundDishPoint(
-      targetCamera,
+      camera,
       anchor,
       moved.intent.zoomFactor,
     );
@@ -228,13 +257,19 @@ export async function createPixiDishRenderer(
   const onWheel = (event: WheelEvent) => {
     event.preventDefault();
     const screen = localPointer(event);
-    const anchor = screenToDish(
-      screen,
-      { width: app.screen.width, height: app.screen.height },
-      targetCamera,
-    );
     const factor = Math.exp(-event.deltaY * 0.0015);
-    beginCameraTransition(zoomAroundDishPoint(targetCamera, anchor, factor));
+    writeCameraTransitionState(
+      retargetWheelZoomFromRendered({
+        state: readCameraTransitionState(),
+        screen,
+        viewport: { width: app.screen.width, height: app.screen.height },
+        factor,
+        policy: {
+          animate: motion === "full",
+          durationMs: options.cameraMotion.durationMs,
+        },
+      }),
+    );
     render();
   };
 
@@ -243,7 +278,7 @@ export async function createPixiDishRenderer(
     const anchor = screenToDish(
       screen,
       { width: app.screen.width, height: app.screen.height },
-      targetCamera,
+      camera,
     );
     beginCameraTransition({ centerX: anchor.x, centerY: anchor.y, zoom: 3.2 });
     render();

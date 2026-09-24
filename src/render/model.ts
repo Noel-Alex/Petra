@@ -28,8 +28,11 @@ export function validateRenderSnapshot(snapshot: DishRenderSnapshot): void {
   assertFiniteNonNegative("simulationTimeHours", snapshot.simulationTimeHours); assertPositiveInteger("gridWidth", snapshot.gridWidth); assertPositiveInteger("gridHeight", snapshot.gridHeight);
   const cells = snapshot.gridWidth * snapshot.gridHeight;
   assertLength("dishMask", snapshot.dishMask.length, cells); assertLength("biomass", snapshot.biomass.length, cells); assertFiniteNonNegativeArray("biomass", snapshot.biomass);
+  const fieldIds = new Set<string>();
   for (const field of snapshot.fields) {
     if (!field.id || !field.label || !field.unit) throw new TypeError("render fields require id, label and unit metadata");
+    if (fieldIds.has(field.id)) throw new RangeError(`duplicate render field id: ${field.id}`);
+    fieldIds.add(field.id);
     if (field.width !== snapshot.gridWidth || field.height !== snapshot.gridHeight) throw new RangeError(`field ${field.id} dimensions must match snapshot grid`);
     assertLength(`field ${field.id}`, field.values.length, cells); assertFiniteArray(`field ${field.id}`, field.values);
     if (!Number.isFinite(field.minimum) || !Number.isFinite(field.maximum)) throw new TypeError(`field ${field.id} bounds must be finite`);

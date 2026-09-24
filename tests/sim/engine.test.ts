@@ -261,6 +261,105 @@ describe('SimulationEngine replay substrate', () => {
     }
   })
 
+  it('rejects tick overflow before consuming RNG or mutating replay state', () => {
+    const engine = new SimulationEngine(identity)
+    const checkpoint = structuredClone(engine.snapshot().checkpoint)
+    checkpoint.tick = Number.MAX_SAFE_INTEGER
+    checkpoint.simulationTimeHours = checkpoint.tick * (1 / 60)
+
+    engine.execute({ id: 'restore-max-tick', type: 'restore', checkpoint })
+    const before = engine.snapshot()
+
+    expect(() =>
+      engine.execute({ id: 'overflow-tick', type: 'advance', ticks: 1 }),
+    ).toThrow(/advance tick.*safe integer range/)
+    expect(engine.snapshot()).toEqual(before)
+  })
+
+  it('rejects counted-command overflow atomically for advance and pulse', () => {
+    const engine = new SimulationEngine(identity)
+    const checkpoint = structuredClone(engine.snapshot().checkpoint)
+    checkpoint.commandCount = Number.MAX_SAFE_INTEGER
+
+    engine.execute({
+      id: 'restore-max-command-count',
+      type: 'restore',
+      checkpoint,
+    })
+    const before = engine.snapshot()
+
+    expect(() =>
+      engine.execute({
+        id: 'overflow-count-advance',
+        type: 'advance',
+        ticks: 1,
+      }),
+    ).toThrow(/command count.*safe integer range/)
+    expect(engine.snapshot()).toEqual(before)
+
+    expect(() =>
+      engine.execute({
+        id: 'overflow-count-pulse',
+        type: 'synthetic-pulse',
+        magnitude: 1,
+      }),
+    ).toThrow(/command count.*safe integer range/)
+    expect(engine.snapshot()).toEqual(before)
+  })
+
+  it('allows the last safe command count and keeps its checkpoint restorable', () => {
+    const engine = new SimulationEngine(identity)
+    const checkpoint = structuredClone(engine.snapshot().checkpoint)
+    checkpoint.commandCount = Number.MAX_SAFE_INTEGER - 1
+
+    engine.execute({
+      id: 'restore-near-max-command-count',
+      type: 'restore',
+      checkpoint,
+    })
+    const accepted = engine.execute({
+      id: 'last-safe-counted-command',
+      type: 'synthetic-pulse',
+      magnitude: 1,
+    })
+
+    expect(accepted.checkpoint.commandCount).toBe(Number.MAX_SAFE_INTEGER)
+    expect(Number.isFinite(accepted.checkpoint.syntheticPopulation)).toBe(true)
+
+    const restored = new SimulationEngine(identity)
+    expect(() =>
+      restored.execute({
+        id: 'restore-last-safe-checkpoint',
+        type: 'restore',
+        checkpoint: accepted.checkpoint,
+      }),
+    ).not.toThrow()
+    expect(restored.snapshot().checkpoint).toEqual(accepted.checkpoint)
+  })
+
+  it('rejects finite pulse inputs whose combined population would become non-finite', () => {
+    const engine = new SimulationEngine(identity)
+
+    engine.execute({
+      id: 'large-finite-pulse-1',
+      type: 'synthetic-pulse',
+      magnitude: Number.MAX_VALUE,
+    })
+    const beforeOverflow = engine.snapshot()
+    expect(Number.isFinite(beforeOverflow.checkpoint.syntheticPopulation)).toBe(
+      true,
+    )
+
+    expect(() =>
+      engine.execute({
+        id: 'large-finite-pulse-2',
+        type: 'synthetic-pulse',
+        magnitude: Number.MAX_VALUE,
+      }),
+    ).toThrow(/synthetic population.*finite and non-negative/)
+    expect(engine.snapshot()).toEqual(beforeOverflow)
+  })
+
   it('validates replacement RNG before committing any restored fields or events', () => {
     const engine = new SimulationEngine(identity)
     engine.execute({ id: 'warmup', type: 'advance', ticks: 30 })

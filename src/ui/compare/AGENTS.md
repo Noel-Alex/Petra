@@ -42,5 +42,6 @@ Pure presentation helpers require deterministic unit tests. Browser smoothness, 
 - `export.ts` may package **metadata about already-authoritative branches**; it never creates a fork, checkpoint, intervention, or replay.
 - Export metadata must preserve exact fork origin, branch identity, seed, ordered post-fork intervention command IDs, divergence classification, and caller-supplied engine/protocol/scenario/parameter versions.
 - Current compare export is intentionally **metadata-only**: checkpoint payloads and authoritative command payloads are not present, so `replayReady` must remain false. Do not market or label it as a complete replay bundle until runtime authority supplies those payloads.
+- Metadata validation is not replay authorization. If compare export ever gains authoritative checkpoint/command payloads, its import path must use `src/sim/replayCompatibility.ts` / `REPLAY_COMPATIBILITY.md`; presentation code must not invent a weaker migration or compatibility policy.
 - Validation recomputes divergence identity from the exported branches so a stale/tampered label cannot disagree with branch metadata.
 - Deterministic serialization must not inject wall-clock timestamps into the canonical payload; callers may attach transport metadata outside the replay identity.

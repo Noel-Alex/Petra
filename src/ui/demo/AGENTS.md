@@ -25,6 +25,8 @@ Own Petra's optional presenter-facing cue deck for the expo runbook. This layer 
 
 - The native Presenter runbook selector remains a native `select` and owns at least a 2.75rem minimum block size so profile switching meets Petra's repeated expo/touch target.
 - Back/Next navigation keeps its touch sizing and interaction semantics in `PetraCompactAction`; scoped presenter CSS may style tone/geometry but must not create a smaller competing target.
+- Presenter chrome consumes Petra's shared `--petra-color-*` / `--petra-rgb-*` visual projection instead of defining a local cyan/glass palette. Current/complete/ready/waiting colors are reinforcement only; cue text, gate labels, rail state, and control semantics remain the actual state channels.
+- Theme work must not alter Presenter evidence gates, run binding, announcement ownership, profile order, touch geometry, or shared motion timing.
 
 ## Motion
 

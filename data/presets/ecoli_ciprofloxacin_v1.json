@@ -482,5 +482,47 @@
       "limitation": "This baseline parameter set is not a physical culture calibration and does not make the continuous ecology channel a discrete-cell mutation authority."
     },
     "lossPolicyId": "reference_pd_decrement_as_first_order_loss_v1"
+  },
+  "scienceModeAdmission": {
+    "schemaVersion": 1,
+    "scenarioId": "ecoli-ciprofloxacin-spatial",
+    "scenarioVersion": "1.4.0-research",
+    "requestedMaturity": "validated-educational",
+    "primaryEvidenceCitationKeys": [
+      "regoes_2004",
+      "marcusson_2009",
+      "huseby_2017",
+      "shao_2017",
+      "baym_2016"
+    ],
+    "decisiveParameterPaths": [
+      "drug.resourceDrugCompositionPolicy",
+      "genotypes",
+      "mutationTransitions",
+      "executionProfile"
+    ],
+    "requiredNonEmptyPaths": [
+      "warning",
+      "environment.resourceContext.provenance.context",
+      "executionProfile.units.time",
+      "executionProfile.units.resource",
+      "executionProfile.units.biomass",
+      "executionProfile.provenance.context"
+    ],
+    "limitationPaths": [
+      "warning",
+      "environment.resourceContext.provenance.limitation",
+      "drug.resourceDrugCompositionPolicy.provenance.limitation",
+      "executionProfile.provenance.limitation",
+      "composedParameterSet.provenance.limitation"
+    ],
+    "referenceBindings": [
+      {
+        "path": "environment.resourceContext.bindingStatus",
+        "expected": "bound",
+        "label": "a physically bound limiting-resource context"
+      }
+    ],
+    "engineeringExecutionProfilePath": "executionProfile"
   }
 }

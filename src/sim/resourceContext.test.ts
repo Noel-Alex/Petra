@@ -95,6 +95,7 @@ describe("scenario resource context identity", () => {
         classification: "transferred",
         citations: ["source-b", "source-a"],
         context: "fixture",
+        transferNote: "synthetic cross-context transfer fixture",
       },
     };
 
@@ -113,6 +114,103 @@ describe("scenario resource context identity", () => {
     expect(
       resourceContextIdentity({ ...base, boundary: "external_feed" }),
     ).not.toBe(resourceContextIdentity(base));
+  });
+
+  it("mirrors source requirements for evidence-bearing provenance classes", () => {
+    const physicalBase = {
+      version: "glucose-minimal-v1",
+      bindingStatus: "measured_or_transferred",
+      representation: "physical_concentration",
+      concentrationUnit: "mg/L",
+      limitingSubstrate: "glucose",
+      medium: "defined minimal medium",
+      referenceTemperatureC: 37,
+      boundary: "no_flux",
+      initialCondition: "1 mg/L",
+      biomassMapping: "source-compatible biomass mapping",
+    };
+
+    expect(() =>
+      parseScenarioResourceContext({
+        ...physicalBase,
+        provenance: {
+          classification: "measured",
+          context: "fixture",
+        },
+      }),
+    ).toThrow(/requires at least one citation key for measured/);
+
+    expect(() =>
+      parseScenarioResourceContext({
+        ...physicalBase,
+        provenance: {
+          classification: "derived",
+          citation: "source-a",
+          context: "fixture",
+        },
+      }),
+    ).toThrow(/transformation is required for derived evidence/);
+
+    expect(() =>
+      parseScenarioResourceContext({
+        ...physicalBase,
+        provenance: {
+          classification: "transferred",
+          citation: "source-a",
+          context: "fixture",
+        },
+      }),
+    ).toThrow(/transferNote is required for transferred evidence/);
+
+    expect(() =>
+      parseScenarioResourceContext({
+        ...physicalBase,
+        provenance: {
+          classification: "mechanistic_approximation",
+          citation: "source-a",
+          context: "fixture",
+        },
+      }),
+    ).toThrow(/limitation is required for model approximations/);
+
+    expect(() =>
+      parseScenarioResourceContext({
+        ...physicalBase,
+        provenance: {
+          classification: "transferred_mechanistic_approximation",
+          citation: "source-a",
+          transferNote: "fixture transfer",
+          context: "fixture",
+        },
+      }),
+    ).toThrow(/limitation is required for model approximations/);
+  });
+
+  it("accepts complete evidence-bearing provenance without changing identity semantics", () => {
+    const context = parseScenarioResourceContext({
+      version: "glucose-minimal-v1",
+      bindingStatus: "measured_or_transferred",
+      representation: "physical_concentration",
+      concentrationUnit: "mg/L",
+      limitingSubstrate: "glucose",
+      medium: "defined minimal medium",
+      referenceTemperatureC: 37,
+      boundary: "no_flux",
+      initialCondition: "1 mg/L",
+      biomassMapping: "source-compatible biomass mapping",
+      provenance: {
+        classification: "transferred_mechanistic_approximation",
+        citations: ["source-b", "source-a"],
+        context: "fixture",
+        transferNote: "fixture transfer",
+        limitation: "fixture limitation",
+      },
+    });
+
+    expect(context.provenance.citations).toEqual(["source-b", "source-a"]);
+    expect(resourceContextIdentity(context)).toContain(
+      '"citations":["source-a","source-b"]',
+    );
   });
 
   it("rejects ambiguous provenance and malformed identity fields", () => {

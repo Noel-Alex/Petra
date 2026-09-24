@@ -63,3 +63,10 @@ State when remaining acceptance needs real browser/GPU profiling, visual review,
 ## Definition of a useful handoff
 
 Issue/PR + branch + commit SHA, changed paths, observed verification, science/provenance changes, remaining gates, conflict risk, and the next useful action.
+
+
+## Project-wide CI freeze
+- **No GitHub Actions / hosted CI for Petra until Noel-Alex explicitly re-enables it.**
+- Do not create or restore workflow files, required hosted checks, scheduled Actions, hosted experiment jobs, or artifact-upload automation.
+- Verification is local/manual; record what actually ran in the relevant Issue/PR.
+- Local-only hardware/browser/GPU/ML experiments should be routed through the single laptop experiment runner/evidence inbox tracked by #41, not through CI.

@@ -40,3 +40,20 @@ describe("app shell keyboard focus styling", () => {
     expect(disabled).toContain("cursor: not-allowed");
   });
 });
+
+
+describe("app shell resolved motion attribute", () => {
+  it("keeps reduced decoration behind data-motion instead of raw OS media queries", () => {
+    expect(appCss).toContain(
+      '.petra-app[data-motion="reduced"] .dish-stage__halo',
+    );
+    expect(appCss).not.toContain("@media (prefers-reduced-motion: reduce)");
+  });
+
+  it("does not let CSS override an explicit full motion setting", () => {
+    expect(appCss).not.toContain(
+      '.petra-app[data-motion="full"] .dish-stage__halo',
+    );
+    expect(appCss).toContain('.petra-app[data-motion="off"] *');
+  });
+});

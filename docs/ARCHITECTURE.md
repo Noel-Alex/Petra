@@ -19,7 +19,7 @@ Current `main` contains tested mechanism-level pieces—spatial fields, ecology,
 
 Issue #37 owns that composition and the migration away from the synthetic worker scaffold. Until that lands:
 
-- `src/sim/protocol.ts` protocol v1 is infrastructure/replay scaffolding, not the flagship biological protocol;
+- `src/sim/protocol.ts` protocol v2 is infrastructure/replay scaffolding, not the flagship biological protocol;
 - `syntheticPopulation` and `synthetic-pulse` are explicitly synthetic fixtures and must never be presented or adapted as real biology/interventions;
 - product UI must not invent scientific readouts when authoritative state is unavailable;
 - renderer demo fixtures remain presentation-only and visibly disclosed.
@@ -40,7 +40,7 @@ Lineages use compact metadata plus aggregate spatial biomass/density channels. A
 
 ## Worker protocol
 
-### Implemented protocol v1 on current main
+### Implemented protocol v2 on current main
 
 The current versioned types in `src/sim/protocol.ts` define:
 
@@ -52,6 +52,8 @@ Main → worker:
   - `synthetic-pulse` (**infrastructure fixture only**);
   - `restore`;
   - `snapshot`.
+
+Timeline-worthy `SimulationEvent` records carry exact `simulationTimeHours` stamped by simulation authority when the event is emitted. UI/history consumers project that value directly rather than reconstructing old event time from a newer checkpoint.
 
 Worker → main:
 

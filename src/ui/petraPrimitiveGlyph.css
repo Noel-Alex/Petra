@@ -21,12 +21,12 @@
 }
 
 .petra-primitive-glyph__cluster circle {
-  stroke: rgba(var(--petra-rgb-cream), 0.16);
+  stroke: rgb(var(--petra-rgb-cream) / 0.16);
   stroke-width: 1.7;
 }
 
 .petra-primitive-glyph__rod {
-  stroke: rgba(var(--petra-rgb-cream), 0.18);
+  stroke: rgb(var(--petra-rgb-cream) / 0.18);
   stroke-width: 1.8;
 }
 

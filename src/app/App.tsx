@@ -12,6 +12,7 @@ import { ProvenancePanel } from "../ui/provenance/ProvenancePanel";
 import { DishViewport } from "./DishViewport";
 import { buildFlagshipProvenanceView } from "./flagshipProvenance";
 import { surfaceMotionCss } from "./motionAdapter";
+import "./sourcesDrawer.css";
 import {
   useExperimentRuntime,
   type ExperimentRuntimeFactory,
@@ -45,8 +46,6 @@ const SOURCES_SURFACE_STYLE: CSSProperties = {
   maxHeight: "calc(100vh - 6.5rem)",
   overflow: "auto",
   zIndex: 30,
-  borderRadius: "24px",
-  boxShadow: "0 28px 90px rgba(0, 0, 0, 0.46)",
 };
 
 export function App({ runtimeFactory }: AppProps) {
@@ -130,9 +129,30 @@ export function App({ runtimeFactory }: AppProps) {
       {sourcesOpen ? (
         <section
           id="petra-sources-panel"
+          className="sources-drawer"
           aria-label="Flagship scientific sources and assumptions"
+          data-transition-treatment={panelMotion.treatment}
           style={SOURCES_SURFACE_STYLE}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.stopPropagation();
+              setSourcesOpen(false);
+            }
+          }}
         >
+          <div className="sources-drawer__chrome">
+            <p className="sources-drawer__scope" role="note">
+              Curated flagship scenario evidence. This does not claim that the
+              current runtime has selected this scenario.
+            </p>
+            <button
+              type="button"
+              className="ghost-button"
+              onClick={() => setSourcesOpen(false)}
+            >
+              Close
+            </button>
+          </div>
           <ProvenancePanel
             records={provenance.records}
             assumptions={provenance.assumptions}

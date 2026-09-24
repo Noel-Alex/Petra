@@ -38,6 +38,7 @@ const config: ComposedSimulationConfig = {
   height: 1,
   mask: [1, 1],
   initialResource: [8, 8],
+  ciprofloxacinConcentrationMgPerL: [0, 0],
   initialLineageBiomass: [[1, 0], [2, 0]],
   growth: {
     maxDivisionRate: 0.8,
@@ -56,6 +57,7 @@ const config: ComposedSimulationConfig = {
     { id: "ancestor", genotypeId: "WT", deathHazardPerHour: 0 },
     { id: "variant", genotypeId: "VAR", deathHazardPerHour: 0.1 },
   ],
+  ciprofloxacin: null,
   hoursPerTick: 0.01,
 };
 

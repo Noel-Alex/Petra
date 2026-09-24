@@ -1,4 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import {
+  ADVANCE_EXECUTION_POLICY_SCHEMA_VERSION,
+  AdvanceExecutionPolicyRefusalError,
+} from '../../src/sim/advanceExecutionPolicy'
 import { SimulationEngine } from '../../src/sim/engine'
 import { createRunIdentity, type SyntheticSimulationCheckpoint } from '../../src/sim/protocol'
 import { SimulationRng, type RngState } from '../../src/sim/rng'
@@ -430,4 +434,37 @@ describe('SimulationEngine replay substrate', () => {
     expect(checkpoint.syntheticPopulation).toBe(1_000)
     expect(Number.isFinite(checkpoint.syntheticPopulation)).toBe(true)
   })
+  it('refuses over-budget advance work atomically before consuming RNG', () => {
+    const engine = new SimulationEngine(identity, {
+      schemaVersion: ADVANCE_EXECUTION_POLICY_SCHEMA_VERSION,
+      id: 'synthetic-test-two-tick-cap',
+      maximumTicksPerAdvance: 2,
+    })
+
+    engine.execute({ id: 'within-budget', type: 'advance', ticks: 2 })
+    const before = engine.snapshot()
+
+    let refusal: unknown
+    try {
+      engine.execute({ id: 'over-budget', type: 'advance', ticks: 3 })
+    } catch (error) {
+      refusal = error
+    }
+
+    expect(refusal).toBeInstanceOf(AdvanceExecutionPolicyRefusalError)
+    expect(engine.snapshot()).toEqual(before)
+
+    engine.execute({ id: 'still-replayable', type: 'advance', ticks: 1 })
+    const expected = engine.snapshot()
+
+    const replay = new SimulationEngine(identity, {
+      schemaVersion: ADVANCE_EXECUTION_POLICY_SCHEMA_VERSION,
+      id: 'synthetic-test-two-tick-cap',
+      maximumTicksPerAdvance: 2,
+    })
+    replay.execute({ id: 'within-budget', type: 'advance', ticks: 2 })
+    replay.execute({ id: 'still-replayable', type: 'advance', ticks: 1 })
+    expect(replay.snapshot()).toEqual(expected)
+  })
+
 })

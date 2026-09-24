@@ -10,6 +10,7 @@ import { resolveLineagePattern, type LineagePatternToken } from "../lineagePatte
 import {
   semanticZoomLevel,
   type CameraView,
+  type SemanticZoomLevel,
   type DishRenderSnapshot,
   type RenderField,
   type RenderLineage,
@@ -49,6 +50,7 @@ import {
 } from "./cameraMotion";
 import { updateCameraMotionRuntime } from "./cameraMotionLifecycle";
 import { resolveSnapshotOverlayUpdate } from "./snapshotOverlay";
+import { createSemanticZoomReporter } from "./semanticZoomReporter";
 import { wheelZoomFactor } from "./wheelZoom";
 
 export type RendererMotionMode = "full" | "reduced" | "off";
@@ -58,6 +60,7 @@ export interface PixiDishOptions {
   readonly cameraMotion: CameraMotionSpec;
   readonly overlayId?: string | null;
   readonly maxRepresentativeGlyphs?: number;
+  readonly onSemanticZoomLevelChange?: (level: SemanticZoomLevel) => void;
 }
 
 export interface PixiDishRenderer {
@@ -124,9 +127,14 @@ export async function createPixiDishRenderer(
   let gestureState = createPointerGestureState();
 
   const maxRepresentativeGlyphs = options.maxRepresentativeGlyphs ?? 180;
+  const semanticZoomReporter = createSemanticZoomReporter(
+    camera.zoom,
+    (level) => options.onSemanticZoomLevelChange?.(level),
+  );
 
   const render = () => {
     if (snapshot === null || destroyed) return;
+    semanticZoomReporter.reportZoom(camera.zoom);
     drawScene({
       app,
       snapshot,

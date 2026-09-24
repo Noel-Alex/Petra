@@ -27,7 +27,7 @@ Division demand and death are computed from the same pre-step biomass. Death use
 
 ## Mutation boundary
 
-The division ledger is **continuous biomass production**, not an integer count of cell-division events. It must not be passed directly to `sampleDivisionMutations`, whose input is an integer event count.
+The division ledger is **continuous biomass production**, not an integer count of cell-division events. It must not be passed directly to `sampleDivisionMutations`, whose input is an integer event count plus an explicit numerical sampling-execution policy.
 
 Issue #5 therefore still needs a reviewed bridge from Petra's aggregate population units to discrete/accelerated mutation opportunities (for example, an explicitly defined cell-equivalent scale or a statistically validated aggregate event sampler). This boundary is deliberate: Petra must not manufacture integer births by rounding an unlabeled biomass quantity.
 

@@ -13,6 +13,10 @@ export type RendererTouchAction = "pan-x pan-y" | "none";
 export function onePointerPanOwnedAtGestureStart(
   camera: CameraView,
 ): boolean {
+  if (!Number.isFinite(camera.zoom) || camera.zoom <= 0) {
+    throw new RangeError("camera zoom must be finite and > 0");
+  }
+
   return (
     clampCamera(camera).zoom >
     DEFAULT_CAMERA_LIMITS.minimumZoom

@@ -18,6 +18,20 @@
       "timeout_seconds": 300
     },
     {
+      "id": "cross-browser-release-acceptance",
+      "description": "Build-release compatibility matrix: deep Chromium acceptance plus Firefox and Safari/WebKit smoke when local automation is available.",
+      "command": [
+        "python",
+        "tools/cross_browser_acceptance.py"
+      ],
+      "issues": [
+        59,
+        532,
+        643
+      ],
+      "timeout_seconds": 900
+    },
+    {
       "id": "flagship-runtime-smoke",
       "description": "BLOCKED on #37: composed scenario init/advance/intervention/checkpoint/restore/replay smoke.",
       "command": [

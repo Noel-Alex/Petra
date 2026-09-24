@@ -119,6 +119,7 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 ## Shared visual theme
 - `visualTheme.css` is a late-loaded presentation theme that consumes CSS variables installed from `src/design/visualTokens.ts`; it must not become a second hard-coded Petra palette.
 - Theme overrides may change color, border, elevation, and quiet depth, but must not own layout, simulation state, scientific semantics, or intervention capability. Keep issue-specific layout/interaction styles in their owning modules.
+- App-owned supporting surfaces such as `analysisSurface.css` consume the same `--petra-color-*` / `--petra-rgb-*` projection instead of defining local cyan/white/glass palettes. Token migration must preserve native disclosure, focus, touch, responsive, and available/unavailable semantics; the wrapper never reinterprets scientific analysis identity or values.
 - Browser startup installs shared visual variables before React mounts so DOM chrome and Pixi can consume one token authority. Core text/accent pairs are regression-tested for WCAG AA contrast; critical science still needs non-color cues.
 
 ## Localized placement integration

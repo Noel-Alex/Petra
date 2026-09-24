@@ -25,23 +25,27 @@ export function beginRendererInitialization<T extends DestroyableRenderer>(
   let disposed = false;
   let instance: T | null = null;
 
-  void Promise.resolve()
-    .then(create)
-    .then(
-      (renderer) => {
-        if (disposed) {
-          renderer.destroy();
-          return;
-        }
+  void (async () => {
+    try {
+      const renderer = await create();
 
-        instance = renderer;
+      if (disposed) {
+        renderer.destroy();
+        return;
+      }
+
+      instance = renderer;
+      try {
         callbacks.onReady(renderer);
-      },
-      (reason: unknown) => {
-        if (disposed) return;
-        callbacks.onError(toRendererInitializationError(reason));
-      },
-    );
+      } catch (reason: unknown) {
+        instance = null;
+        renderer.destroy();
+        if (!disposed) callbacks.onError(toRendererInitializationError(reason));
+      }
+    } catch (reason: unknown) {
+      if (!disposed) callbacks.onError(toRendererInitializationError(reason));
+    }
+  })();
 
   return {
     dispose() {

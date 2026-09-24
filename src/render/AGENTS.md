@@ -52,4 +52,5 @@ Pure render-model helpers get deterministic unit tests. Browser/GPU/FPS claims r
 - The interactive dish camera must remain keyboard-operable as well as pointer/touch-operable. Keyboard input may change camera presentation state only; it must never create or mutate simulation state.
 - Keep the adapter compatible with mock snapshots so visual work can proceed independently of worker integration. Authoritative browser wiring belongs to the runtime integration issue, not this subtree.
 - Container resize is presentation scheduling: coalesce ResizeObserver bursts, resize the Pixi renderer before redrawing scene geometry, and preserve camera/semantic-zoom state across the resize.
+- Pixi/WebGL initialization failure must be recoverable and visible: consume async creation rejections, destroy instances that resolve after disposal, expose an accessible retry state, and never substitute demo/scientific state to hide a graphics failure.
 

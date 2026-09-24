@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from expo_browser_acceptance import CDP
+from local_command import resolve_local_command
 
 ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT / "dist"
@@ -360,7 +361,7 @@ def build_release() -> dict[str, Any]:
     try:
         with log.open("wb") as handle:
             proc = subprocess.run(
-                ["npm", "run", "build"],
+                resolve_local_command(["npm", "run", "build"]),
                 cwd=ROOT,
                 stdout=handle,
                 stderr=subprocess.STDOUT,

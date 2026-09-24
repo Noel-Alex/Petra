@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any
 
 from expo_browser_acceptance import CDP
+from local_command import resolve_local_command
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT_DIR = Path(
@@ -708,7 +709,7 @@ def main() -> int:
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     RESULT_JSON.parent.mkdir(parents=True, exist_ok=True)
 
-    build_code, build_error = run_logged(["npm", "run", "build"], "release-build.log", 240)
+    build_code, build_error = run_logged(resolve_local_command(["npm", "run", "build"]), "release-build.log", 240)
     build = {
         "status": "pass" if build_code == 0 else "fail",
         "return_code": build_code,
@@ -733,17 +734,19 @@ def main() -> int:
     deep_chromium = run_deep_chromium()
 
     preview = subprocess.Popen(
-        [
-            "npm",
-            "run",
-            "preview",
-            "--",
-            "--host",
-            HOST,
-            "--port",
-            str(PREVIEW_PORT),
-            "--strictPort",
-        ],
+        resolve_local_command(
+            [
+                "npm",
+                "run",
+                "preview",
+                "--",
+                "--host",
+                HOST,
+                "--port",
+                str(PREVIEW_PORT),
+                "--strictPort",
+            ]
+        ),
         cwd=ROOT,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,

@@ -398,6 +398,100 @@ describe("lineage ancestry layout", () => {
     expect(lineages[1]!.createdAtHours).toBe(2);
   });
 
+  it("keeps a single lineage created at zero on a non-negative time axis", () => {
+    const layout = buildLineageTree([{
+      lineageId: "L0",
+      parentLineageId: null,
+      genotypeId: "WT",
+      createdAtHours: 0,
+      extinctAtHours: null,
+    }]);
+
+    expect(layout.timeMinimumHours).toBe(0);
+    expect(layout.timeMaximumHours).toBe(1);
+    expect(layout.nodes[0]!.x).toBe(0);
+  });
+
+  it("uses one-sided lineage time expansion near zero", () => {
+    const layout = buildLineageTree([{
+      lineageId: "L-early",
+      parentLineageId: null,
+      genotypeId: "WT",
+      createdAtHours: 0.5,
+      extinctAtHours: null,
+    }]);
+
+    expect(layout.timeMinimumHours).toBe(0);
+    expect(layout.timeMaximumHours).toBe(1.5);
+    expect(layout.nodes[0]!.createdAtHours).toBe(0.5);
+    expect(layout.nodes[0]!.x).toBeCloseTo(1 / 3);
+  });
+
+  it("expands later degenerate lineage time symmetrically", () => {
+    const layout = buildLineageTree([{
+      lineageId: "L-later",
+      parentLineageId: null,
+      genotypeId: "WT",
+      createdAtHours: 20,
+      extinctAtHours: null,
+    }]);
+
+    expect(layout.timeMinimumHours).toBe(19);
+    expect(layout.timeMaximumHours).toBe(21);
+    expect(layout.nodes[0]!.x).toBe(0.5);
+  });
+
+  it("keeps equal lineage creation times finite and inside the normalized domain", () => {
+    const layout = buildLineageTree([
+      {
+        lineageId: "root-a",
+        parentLineageId: null,
+        genotypeId: "A",
+        createdAtHours: 0.5,
+        extinctAtHours: null,
+      },
+      {
+        lineageId: "root-b",
+        parentLineageId: null,
+        genotypeId: "B",
+        createdAtHours: 0.5,
+        extinctAtHours: null,
+      },
+    ]);
+
+    expect(layout.timeMinimumHours).toBe(0);
+    expect(layout.timeMaximumHours).toBe(1.5);
+    for (const node of layout.nodes) {
+      expect(Number.isFinite(node.x)).toBe(true);
+      expect(node.x).toBeGreaterThanOrEqual(0);
+      expect(node.x).toBeLessThanOrEqual(1);
+      expect(node.x).toBeCloseTo(1 / 3);
+    }
+  });
+
+  it("preserves ordinary non-degenerate lineage creation-time bounds exactly", () => {
+    const layout = buildLineageTree([
+      {
+        lineageId: "root",
+        parentLineageId: null,
+        genotypeId: "WT",
+        createdAtHours: 1,
+        extinctAtHours: null,
+      },
+      {
+        lineageId: "child",
+        parentLineageId: "root",
+        genotypeId: "mutant",
+        createdAtHours: 3,
+        extinctAtHours: null,
+      },
+    ]);
+
+    expect(layout.timeMinimumHours).toBe(1);
+    expect(layout.timeMaximumHours).toBe(3);
+    expect(layout.nodes.map((node) => node.x)).toEqual([0, 1]);
+  });
+
   it("rejects missing parents, temporal impossibilities and cycles", () => {
     expect(() =>
       buildLineageTree([{

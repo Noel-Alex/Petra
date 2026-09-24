@@ -3,6 +3,10 @@ import { describe, expect, it } from "vitest";
 
 import { createRendererDemoSnapshot } from "../render/pixi/demoSnapshot";
 import { DishViewport } from "./DishViewport";
+// @ts-expect-error Vite raw asset imports are runtime-supported but not in tsconfig globals.
+import dishViewportSource from "./DishViewport.tsx?raw";
+// @ts-expect-error Vite raw asset imports are runtime-supported but not in tsconfig globals.
+import appSource from "./App.tsx?raw";
 
 describe("DishViewport render-source truth boundary", () => {
   it("waits for authority by default instead of substituting demo biology", () => {
@@ -86,5 +90,39 @@ describe("DishViewport render-source truth boundary", () => {
     expect(html).toContain("zero neutral");
     expect(html).toContain("positive growth");
     expect(html).toContain("-2 to 2 1/h");
+  });
+
+  it("keeps Escape single-consumer from dish first refusal through the App Sources owner", () => {
+    const handlerStart = dishViewportSource.indexOf("const handleDishKeyDown");
+    const handlerEnd = dishViewportSource.indexOf("\n\n  return (", handlerStart);
+    const handler = dishViewportSource.slice(handlerStart, handlerEnd);
+
+    expect(handlerStart).toBeGreaterThanOrEqual(0);
+    expect(handlerEnd).toBeGreaterThan(handlerStart);
+    expect(handler).toContain(
+      "const editableTarget = isEditableTarget(event.target);",
+    );
+
+    const preflight = handler.indexOf("dishEscapeAllowsFirstRefusal");
+    const higherPriority = handler.indexOf(
+      "onEscapeBeforeOverview?.() === true",
+    );
+    const fallback = handler.indexOf("const action = dishEscapeAction");
+
+    expect(preflight).toBeGreaterThanOrEqual(0);
+    expect(higherPriority).toBeGreaterThan(preflight);
+    expect(fallback).toBeGreaterThan(higherPriority);
+
+    const consumedBranch = handler.slice(higherPriority, fallback);
+    expect(consumedBranch).toContain("event.preventDefault();");
+    expect(consumedBranch).toContain("event.stopPropagation();");
+    expect(consumedBranch).toContain("return;");
+
+    expect(appSource).toContain("onEscapeBeforeOverview={() => {");
+    expect(appSource).toContain(
+      "if (!sourcesLifecycle.requestedOpen) return false;",
+    );
+    expect(appSource).toContain("closeSources();");
+    expect(appSource).toContain("return true;");
   });
 });

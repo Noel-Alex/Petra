@@ -13,6 +13,11 @@ import { createRendererDemoSnapshot } from "./demoSnapshot";
 const CAMERA_MOTION: CameraMotionSpec = { durationMs: 0, easing: [0, 0, 1, 1] };
 
 describe("PixiDish committed renderer inputs", () => {
+  it("leaves live touch-action ownership to the renderer camera policy", () => {
+    expect(pixiDishSource).not.toContain("touchAction:");
+    expect(pixiDishSource).not.toContain('touchAction: rendererInteractive ? "none" : "auto"');
+  });
+
   it("synchronizes async renderer refs only in commit phase", () => {
     const syncStart = pixiDishSource.indexOf("useLayoutEffect(() => {");
     const rendererLifecycleStart = pixiDishSource.indexOf(

@@ -1,9 +1,10 @@
 import {
   resolveMotion,
+  type MotionKind,
   type MotionPreference,
   type ResolvedMotion,
 } from "../motion/policy";
-import { MOTION } from "../motion/tokens";
+import { MOTION, type MotionTokenName } from "../motion/tokens";
 
 export type OnboardingStageId =
   | "ecosystem"
@@ -27,6 +28,8 @@ export interface OnboardingStage {
   readonly focus: "dish" | "population" | "pressure" | "lineage" | "controls";
   readonly gate?: ScientificGate;
   readonly causal: boolean;
+  readonly motionKind: MotionKind;
+  readonly motionToken: MotionTokenName;
 }
 
 export const ONBOARDING_STAGES: readonly OnboardingStage[] = [
@@ -38,6 +41,8 @@ export const ONBOARDING_STAGES: readonly OnboardingStage[] = [
       "Resources, cells and spatial conditions interact. The animation explains state; it does not create the biology.",
     focus: "dish",
     causal: false,
+    motionKind: "navigational",
+    motionToken: "cameraFocus",
   },
   {
     id: "inoculation",
@@ -48,6 +53,8 @@ export const ONBOARDING_STAGES: readonly OnboardingStage[] = [
     focus: "population",
     gate: "inoculation-recorded",
     causal: true,
+    motionKind: "causal",
+    motionToken: "interventionPulse",
   },
   {
     id: "growth",
@@ -58,6 +65,8 @@ export const ONBOARDING_STAGES: readonly OnboardingStage[] = [
     focus: "population",
     gate: "population-growth-observed",
     causal: true,
+    motionKind: "causal",
+    motionToken: "selectionEmphasis",
   },
   {
     id: "pressure",
@@ -68,6 +77,8 @@ export const ONBOARDING_STAGES: readonly OnboardingStage[] = [
     focus: "pressure",
     gate: "antibiotic-command-recorded",
     causal: true,
+    motionKind: "causal",
+    motionToken: "interventionPulse",
   },
   {
     id: "selection",
@@ -78,6 +89,8 @@ export const ONBOARDING_STAGES: readonly OnboardingStage[] = [
     focus: "lineage",
     gate: "resistant-lineage-frequency-increased",
     causal: true,
+    motionKind: "causal",
+    motionToken: "selectionEmphasis",
   },
   {
     id: "handoff",
@@ -87,6 +100,8 @@ export const ONBOARDING_STAGES: readonly OnboardingStage[] = [
       "The guided layer gets out of the way; the same simulator, controls and provenance remain available.",
     focus: "controls",
     causal: false,
+    motionKind: "navigational",
+    motionToken: "panel",
   },
 ] as const;
 
@@ -161,6 +176,7 @@ export function reduceOnboarding(
 export interface OnboardingPresentation {
   readonly stage: OnboardingStage;
   readonly motion: ResolvedMotion;
+  readonly easing: readonly [number, number, number, number];
   readonly announceText: string;
 }
 
@@ -173,15 +189,16 @@ export function resolveOnboardingPresentation(
   preference: MotionPreference,
 ): OnboardingPresentation {
   const stage = currentStage(state);
-  const token = stage.causal ? MOTION.selectionEmphasis : MOTION.panel;
+  const token = MOTION[stage.motionToken];
   const motion = resolveMotion(preference, {
-    kind: stage.causal ? "causal" : "navigational",
+    kind: stage.motionKind,
     durationMs: token.durationMs,
   });
 
   return {
     stage,
     motion,
+    easing: token.easing,
     announceText: `${stage.eyebrow}. ${stage.title} ${stage.explanation}`,
   };
 }

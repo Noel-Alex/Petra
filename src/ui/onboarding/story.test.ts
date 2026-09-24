@@ -3,6 +3,7 @@ import {
   canContinue,
   currentStage,
   initialOnboardingState,
+  ONBOARDING_STAGES,
   reduceOnboarding,
   resolveOnboardingPresentation,
   type ScientificGate,
@@ -20,6 +21,17 @@ describe("onboarding story", () => {
     const state = initialOnboardingState();
     expect(currentStage(state).id).toBe("ecosystem");
     expect(canContinue(state)).toBe(true);
+  });
+
+  it("uses one deterministic canonical stage order", () => {
+    expect(ONBOARDING_STAGES.map((stage) => stage.id)).toEqual([
+      "ecosystem",
+      "inoculation",
+      "growth",
+      "pressure",
+      "selection",
+      "handoff",
+    ]);
   });
 
   it("cannot narratively fake gated scientific progress", () => {
@@ -60,6 +72,15 @@ describe("onboarding story", () => {
     expect(state.skipped).toBe(false);
   });
 
+  it("retreats without escaping the canonical sequence", () => {
+    const start = initialOnboardingState();
+    expect(reduceOnboarding(start, { type: "back" })).toEqual(start);
+
+    const inoculation = reduceOnboarding(start, { type: "continue" });
+    const back = reduceOnboarding(inoculation, { type: "back" });
+    expect(currentStage(back).id).toBe("ecosystem");
+  });
+
   it("skip exits onboarding without manufacturing scientific gates", () => {
     const skipped = reduceOnboarding(initialOnboardingState(), { type: "skip" });
     expect(skipped.completed).toBe(true);
@@ -73,6 +94,9 @@ describe("onboarding story", () => {
     state = reduceOnboarding(state, { type: "continue" });
 
     const reduced = resolveOnboardingPresentation(state, "reduced");
+    expect(reduced.stage.motionKind).toBe("causal");
+    expect(reduced.stage.motionToken).toBe("interventionPulse");
+    expect(reduced.easing).toEqual([0.22, 0.78, 0.28, 1]);
     expect(reduced.motion.treatment).toBe("crossfade");
     expect(reduced.motion.loops).toBe(false);
     expect(reduced.announceText).toContain("Start with a population.");

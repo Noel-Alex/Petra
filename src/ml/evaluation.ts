@@ -464,17 +464,17 @@ export function assessStratifiedRegressionEvidence(args: {
     }
 
     if (expectedCandidateGroup.length === horizons.length) {
-      assessDerivedMetrics(
+      assessDerivedAggregate(
         targetIds,
         candidateGroup,
-        averageStrata(targetIds, expectedCandidateGroup),
+        expectedCandidateGroup,
         `group:${groupKey}`,
         issues,
       );
-      assessDerivedMetrics(
+      assessDerivedAggregate(
         targetIds,
         baselineGroup,
-        averageStrata(targetIds, expectedBaselineGroup),
+        expectedBaselineGroup,
         `baseline-group:${groupKey}`,
         issues,
       );
@@ -548,17 +548,17 @@ export function assessStratifiedRegressionEvidence(args: {
       }
     }
     if (candidateCells.length === groupKeys.length) {
-      assessDerivedMetrics(
+      assessDerivedAggregate(
         targetIds,
         candidate,
-        averageStrata(targetIds, candidateCells),
+        candidateCells,
         stratum,
         issues,
       );
-      assessDerivedMetrics(
+      assessDerivedAggregate(
         targetIds,
         baseline,
-        averageStrata(targetIds, baselineCells),
+        baselineCells,
         `baseline-${stratum}`,
         issues,
       );
@@ -593,17 +593,17 @@ export function assessStratifiedRegressionEvidence(args: {
     candidateGroups.length === groupKeys.length &&
     baselineGroups.length === groupKeys.length
   ) {
-    assessDerivedMetrics(
+    assessDerivedAggregate(
       targetIds,
       args.candidate.overall,
-      averageStrata(targetIds, candidateGroups),
+      candidateGroups,
       "overall",
       issues,
     );
-    assessDerivedMetrics(
+    assessDerivedAggregate(
       targetIds,
       args.baseline.overall,
-      averageStrata(targetIds, baselineGroups),
+      baselineGroups,
       "baseline-overall",
       issues,
     );
@@ -683,6 +683,28 @@ function assessMetricPair(
       });
     }
   }
+}
+
+function assessDerivedAggregate(
+  targetIds: readonly string[],
+  observed: RegressionMetrics,
+  sourceStrata: readonly RegressionMetrics[],
+  stratum: string,
+  issues: EvaluationAssessmentIssue[],
+): void {
+  let expected: RegressionMetrics;
+  try {
+    expected = averageStrata(targetIds, sourceStrata);
+  } catch {
+    issues.push({
+      kind: "invalid-metrics",
+      stratum,
+      message:
+        `source metrics for ${stratum} are malformed and cannot be aggregated`,
+    });
+    return;
+  }
+  assessDerivedMetrics(targetIds, observed, expected, stratum, issues);
 }
 
 function assessDerivedMetrics(

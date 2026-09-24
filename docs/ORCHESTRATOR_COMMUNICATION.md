@@ -42,3 +42,13 @@ Dense asynchronous notes for cross-agent decisions/discoveries. Issues/PRs are t
 - Issue #4 is standardizing resource×ciprofloxacin composition as `reference_pd_decrement_as_first_order_loss_v1`: `h_drug = ln(10) * (psi_max - psi_g(a))` after the existing MIC-ratio shift.
 - The Regoes source `psi_max` is **not** automatically Petra's Monod `mu_max`. The Regoes zMIC is therefore the transferred PD-curve zero crossing, not by itself a guarantee of the whole composed model's zero-growth concentration.
 - Spatial drug loss fields consume authoritative concentration arrays and may feed ecology; renderer/UI remain presentation-only. Starvation interaction is a disclosed composition policy, not source-matched stationary-phase calibration.
+
+
+## 2026-09-24 — CI disabled; local evidence pipeline becomes project policy
+
+- Noel-Alex explicitly disabled hosted CI for Petra to avoid spending GitHub Actions minutes during active swarm development.
+- `.github/workflows/premerge.yml` was removed from `main`. Agents must not restore GitHub Actions, required hosted checks, scheduled workflows, hosted benchmarks, or CI experiment jobs until Noel-Alex explicitly lifts the freeze.
+- Earlier Actions runs remain valid historical evidence for the commits they tested, but they are not a standing workflow recommendation.
+- Deterministic verification remains available as local commands (for example `python tools/verify.py premerge` / `npm run verify`) and should be run manually where the current environment supports it.
+- Hardware/browser/GPU/model-training/scientific experiments that agents cannot execute should be registered into one laptop-facing experiment runner (#41). Noel-Alex can pull the repo, run one entrypoint locally, and push compact result summaries back so blocked Issues resume.
+- Large models, checkpoints, raw datasets, and bulky profiling outputs must stay local by default; Git should receive compact versioned metadata/results only.

@@ -220,22 +220,84 @@ def check(name: str, passed: bool, detail: Any = None, status: str | None = None
     return {"name": name, "status": status or ("pass" if passed else "fail"), "detail": detail}
 
 
+def renderer_state(cdp: CDP) -> dict[str, Any]:
+    state = cdp.eval(
+        """(() => {
+          const shell = document.querySelector('.dish-renderer-shell');
+          const renderer = document.querySelector('.dish-renderer-canvas');
+          return {
+            source: shell?.dataset.renderSource ?? null,
+            status: renderer?.dataset.renderStatus ?? null,
+            canvas: !!renderer?.querySelector('canvas'),
+            fallback: !!renderer?.querySelector('[data-render-fallback="true"]')
+          };
+        })()"""
+    )
+    return state if isinstance(state, dict) else {
+        "source": None,
+        "status": None,
+        "canvas": False,
+        "fallback": False,
+    }
+
+
+def wait_renderer_settled(cdp: CDP, timeout: float = 10.0) -> dict[str, Any]:
+    deadline = time.monotonic() + timeout
+    latest = renderer_state(cdp)
+    while time.monotonic() < deadline:
+        latest = renderer_state(cdp)
+        if latest.get("status") in {"ready", "failed"}:
+            return latest
+        time.sleep(0.05)
+    return latest
+
+
+def capture_browser_png(cdp: CDP, artifact_name: str) -> bytes:
+    screenshot = cdp.call(
+        "Page.captureScreenshot",
+        {"format": "png", "captureBeyondViewport": False},
+    )
+    raw = base64.b64decode(screenshot["data"])
+    (ARTIFACT_DIR / artifact_name).write_bytes(raw)
+    return raw
+
+
+def renderer_interaction_rect(cdp: CDP) -> dict[str, float] | None:
+    rect = cdp.eval(
+        """(() => {
+          const host = document.querySelector(
+            '.dish-renderer-canvas[data-render-status="ready"] [role="region"]'
+          );
+          if (!host) return null;
+          const r = host.getBoundingClientRect();
+          return {
+            x: r.x,
+            y: r.y,
+            width: r.width,
+            height: r.height,
+            centerX: r.x + r.width / 2,
+            centerY: r.y + r.height / 2
+          };
+        })()"""
+    )
+    return rect if isinstance(rect, dict) else None
+
+
 def viewport_pass(cdp: CDP, label: str, width: int, height: int) -> list[dict[str, Any]]:
     cdp.call(
         "Emulation.setDeviceMetricsOverride",
         {"width": width, "height": height, "deviceScaleFactor": 1, "mobile": False},
     )
     time.sleep(0.3)
+    render = wait_renderer_settled(cdp)
     metrics = cdp.eval(
         """(() => {
           const root = document.querySelector('.petra-app');
           const dish = document.querySelector('.dish-stage');
-          const canvas = document.querySelector('canvas');
           return {
             title: document.title,
             root: !!root,
             dish: !!dish,
-            canvas: !!canvas,
             bodyScrollWidth: document.body.scrollWidth,
             bodyClientWidth: document.body.clientWidth,
             bodyScrollHeight: document.body.scrollHeight,
@@ -245,14 +307,27 @@ def viewport_pass(cdp: CDP, label: str, width: int, height: int) -> list[dict[st
         })()"""
     )
     overflow_x = metrics["bodyScrollWidth"] > metrics["bodyClientWidth"] + 1
-    artifact = ARTIFACT_DIR / f"{label}-{width}x{height}.png"
-    screenshot = cdp.call("Page.captureScreenshot", {"format": "png", "captureBeyondViewport": False})
-    artifact.write_bytes(base64.b64decode(screenshot["data"]))
+    artifact_name = f"{label}-{width}x{height}.png"
+    raw = capture_browser_png(cdp, artifact_name)
+    render_ready = (
+        render.get("status") == "ready"
+        and render.get("canvas") is True
+        and render.get("fallback") is False
+    )
     return [
         check(f"{label}: app root present", bool(metrics["root"]), metrics),
         check(f"{label}: dish present", bool(metrics["dish"]), metrics.get("dishRect")),
+        check(
+            f"{label}: Pixi renderer ready with canvas",
+            render_ready,
+            render,
+        ),
         check(f"{label}: no horizontal clipping", not overflow_x, metrics),
-        check(f"{label}: screenshot captured", artifact.exists() and artifact.stat().st_size > 0, str(artifact)),
+        check(
+            f"{label}: screenshot captured",
+            len(raw) > 0,
+            str(ARTIFACT_DIR / artifact_name),
+        ),
     ]
 
 
@@ -453,32 +528,140 @@ def accessibility_pass(cdp: CDP) -> list[dict[str, Any]]:
     ]
 
 
-def touch_pass(cdp: CDP) -> list[dict[str, Any]]:
-    cdp.call("Emulation.setTouchEmulationEnabled", {"enabled": True, "maxTouchPoints": 1})
-    rect = cdp.eval(
-        """(() => {
-          const dish = document.querySelector('.dish-stage');
-          if (!dish) return null;
-          const r = dish.getBoundingClientRect();
-          return {x:r.x+r.width/2, y:r.y+r.height/2};
-        })()"""
+def click_overview_reset(cdp: CDP) -> bool:
+    return (
+        cdp.eval(
+            """(() => {
+              const button = document.querySelector(
+                'button[aria-label="Return Petri dish camera to whole-dish overview"]'
+              );
+              if (!button) return false;
+              button.click();
+              return true;
+            })()"""
+        )
+        is True
     )
-    if not rect:
-        return [check("touch: dish target available", False)]
-    cdp.call("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": rect["x"], "y": rect["y"], "radiusX": 1, "radiusY": 1}]})
-    cdp.call("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
-    cdp.call("Emulation.setTouchEmulationEnabled", {"enabled": False, "maxTouchPoints": 1})
-    return [check("touch: synthetic pointer smoke completed", True, rect)]
 
 
-def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
+def dispatch_renderer_wheel(cdp: CDP, delta_y: float) -> bool:
+    expression = """(() => {
+      const host = document.querySelector(
+        '.dish-renderer-canvas[data-render-status="ready"] [role="region"]'
+      );
+      if (!host) return false;
+      const r = host.getBoundingClientRect();
+      host.dispatchEvent(new WheelEvent('wheel', {
+        bubbles: true,
+        cancelable: true,
+        clientX: r.x + r.width / 2,
+        clientY: r.y + r.height / 2,
+        deltaY: __DELTA__
+      }));
+      return true;
+    })()""".replace("__DELTA__", json.dumps(delta_y))
+    return cdp.eval(expression) is True
+
+
+def touch_pass(cdp: CDP) -> list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    cdp.call(
+        "Emulation.setDeviceMetricsOverride",
+        {"width": 1440, "height": 900, "deviceScaleFactor": 1, "mobile": False},
+    )
+    set_motion_setting(cdp, "off")
+    time.sleep(0.1)
+    render = wait_renderer_settled(cdp)
+    rect = renderer_interaction_rect(cdp)
+    ready = (
+        render.get("status") == "ready"
+        and render.get("canvas") is True
+        and render.get("fallback") is False
+        and rect is not None
+    )
+    checks.append(check("touch: renderer target ready", ready, {"renderer": render, "rect": rect}))
+    if not ready or rect is None:
+        return checks
+
+    click_overview_reset(cdp)
+    time.sleep(0.1)
+    before = capture_browser_png(cdp, "pinch-before.png")
+    before_hash = hashlib.sha256(before).hexdigest()
+
+    cdp.call("Emulation.setTouchEmulationEnabled", {"enabled": True, "maxTouchPoints": 2})
+    cx = float(rect["centerX"])
+    cy = float(rect["centerY"])
+    try:
+        cdp.call(
+            "Input.dispatchTouchEvent",
+            {
+                "type": "touchStart",
+                "touchPoints": [
+                    {"id": 1, "x": cx - 28, "y": cy, "radiusX": 1, "radiusY": 1},
+                    {"id": 2, "x": cx + 28, "y": cy, "radiusX": 1, "radiusY": 1},
+                ],
+            },
+        )
+        for spread in (42, 58, 76, 96):
+            cdp.call(
+                "Input.dispatchTouchEvent",
+                {
+                    "type": "touchMove",
+                    "touchPoints": [
+                        {"id": 1, "x": cx - spread, "y": cy, "radiusX": 1, "radiusY": 1},
+                        {"id": 2, "x": cx + spread, "y": cy, "radiusX": 1, "radiusY": 1},
+                    ],
+                },
+            )
+            time.sleep(0.03)
+        cdp.call("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
+    finally:
+        cdp.call(
+            "Emulation.setTouchEmulationEnabled",
+            {"enabled": False, "maxTouchPoints": 1},
+        )
+
+    time.sleep(0.15)
+    after = capture_browser_png(cdp, "pinch-after.png")
+    after_hash = hashlib.sha256(after).hexdigest()
+    checks.append(
+        check(
+            "touch: two-pointer pinch changes rendered presentation",
+            before_hash != after_hash,
+            {
+                "beforeSha256": before_hash,
+                "afterSha256": after_hash,
+                "beforeArtifact": str(ARTIFACT_DIR / "pinch-before.png"),
+                "afterArtifact": str(ARTIFACT_DIR / "pinch-after.png"),
+            },
+        )
+    )
+    return checks
+
+
+def renderer_frame_samples(cdp: CDP) -> list[float] | None:
     samples = cdp.eval(
         """new Promise(resolve => {
+          const host = document.querySelector(
+            '.dish-renderer-canvas[data-render-status="ready"] [role="region"]'
+          );
+          if (!host) {
+            resolve(null);
+            return;
+          }
+          const r = host.getBoundingClientRect();
           const values = [];
           let last = performance.now();
           function step(now) {
-            values.push(now-last);
+            values.push(now - last);
             last = now;
+            host.dispatchEvent(new WheelEvent('wheel', {
+              bubbles: true,
+              cancelable: true,
+              clientX: r.x + r.width / 2,
+              clientY: r.y + r.height / 2,
+              deltaY: 0
+            }));
             if (values.length >= 180) resolve(values.slice(5));
             else requestAnimationFrame(step);
           }
@@ -486,15 +669,108 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
         })""",
         await_promise=True,
     )
+    if not isinstance(samples, list):
+        return None
+    return [float(value) for value in samples]
+
+
+def frame_metrics(samples: list[float] | None, view: str) -> dict[str, Any]:
+    if not samples:
+        return {
+            "view": view,
+            "sampleCount": 0,
+            "averageFrameMs": None,
+            "p95FrameMs": None,
+            "framesOver33ms": None,
+        }
     ordered = sorted(samples)
     avg = sum(samples) / len(samples)
     p95 = ordered[min(len(ordered) - 1, int(len(ordered) * 0.95))]
     over_33 = sum(value > 33.4 for value in samples)
-    metrics = {"sampleCount": len(samples), "averageFrameMs": round(avg, 3), "p95FrameMs": round(p95, 3), "framesOver33ms": over_33}
-    return [
-        check("frame timing: 175+ samples captured", len(samples) >= 175, metrics),
-        check("frame timing: p95 under 33.4ms", p95 < 33.4, metrics),
-    ]
+    return {
+        "view": view,
+        "sampleCount": len(samples),
+        "averageFrameMs": round(avg, 3),
+        "p95FrameMs": round(p95, 3),
+        "framesOver33ms": over_33,
+    }
+
+
+def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    cdp.call(
+        "Emulation.setDeviceMetricsOverride",
+        {"width": 1440, "height": 900, "deviceScaleFactor": 1, "mobile": False},
+    )
+    set_motion_setting(cdp, "off")
+    time.sleep(0.1)
+    render = wait_renderer_settled(cdp)
+    ready = (
+        render.get("status") == "ready"
+        and render.get("canvas") is True
+        and render.get("fallback") is False
+    )
+    checks.append(check("performance: renderer ready", ready, render))
+    if not ready:
+        return checks
+
+    reset_ok = click_overview_reset(cdp)
+    time.sleep(0.1)
+    whole_png = capture_browser_png(cdp, "performance-whole-dish.png")
+    whole_samples = renderer_frame_samples(cdp)
+    whole = frame_metrics(whole_samples, "whole-dish")
+
+    zoom_ok = dispatch_renderer_wheel(cdp, -650)
+    time.sleep(0.1)
+    zoom_png = capture_browser_png(cdp, "performance-colony-zoom.png")
+    zoom_samples = renderer_frame_samples(cdp)
+    zoomed = frame_metrics(zoom_samples, "colony-camera-zoom")
+
+    whole_p95 = whole.get("p95FrameMs")
+    zoom_p95 = zoomed.get("p95FrameMs")
+    checks.extend(
+        [
+            check(
+                "performance whole-dish: representative redraw samples captured",
+                reset_ok and whole["sampleCount"] >= 175,
+                {
+                    **whole,
+                    "fixtureSource": render.get("source"),
+                    "artifact": str(ARTIFACT_DIR / "performance-whole-dish.png"),
+                },
+            ),
+            check(
+                "performance whole-dish: p95 under 33.4ms",
+                isinstance(whole_p95, (int, float)) and whole_p95 < 33.4,
+                whole,
+            ),
+            check(
+                "performance colony zoom: presentation zoom applied",
+                zoom_ok and hashlib.sha256(whole_png).hexdigest() != hashlib.sha256(zoom_png).hexdigest(),
+                {
+                    "wheelDeltaY": -650,
+                    "wholeSha256": hashlib.sha256(whole_png).hexdigest(),
+                    "zoomedSha256": hashlib.sha256(zoom_png).hexdigest(),
+                    "artifact": str(ARTIFACT_DIR / "performance-colony-zoom.png"),
+                },
+            ),
+            check(
+                "performance colony zoom: representative redraw samples captured",
+                zoom_ok and zoomed["sampleCount"] >= 175,
+                {
+                    **zoomed,
+                    "fixtureSource": render.get("source"),
+                    "artifact": str(ARTIFACT_DIR / "performance-colony-zoom.png"),
+                },
+            ),
+            check(
+                "performance colony zoom: p95 under 33.4ms",
+                isinstance(zoom_p95, (int, float)) and zoom_p95 < 33.4,
+                zoomed,
+            ),
+        ]
+    )
+    return checks
 
 
 def main() -> int:
@@ -555,7 +831,7 @@ def main() -> int:
         checks += performance_pass(cdp)
 
         checks.append(check("causal cues preserve camera ownership", False, "Requires an authoritative event trigger fixture.", "blocked"))
-        checks.append(check("colony semantic-zoom visual capture", False, "Requires exposed semantic-zoom control/fixture.", "blocked"))
+        # Whole-dish and zoomed presentation captures are produced by performance_pass.
         checks.append(check("critical lineage identity has non-color cue", False, "Requires authoritative lineage render fixture.", "blocked"))
 
     except Exception as exc:

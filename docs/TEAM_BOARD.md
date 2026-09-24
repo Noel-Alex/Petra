@@ -32,8 +32,8 @@ This list is intentionally selective. Use the live issue search for the complete
 
 - **Authoritative runtime + UX integration:** #37 composed authoritative snapshots → #42 React/runtime bridge; #158 intervention palette, #159 local-region inspector, #156 live analysis, and #58 provenance consume those authority seams.
 - **Browser/expo acceptance:** #59 owns local browser visual, motion, accessibility, touch, and frame-time evidence. Source-only work must not claim that evidence.
-- **Renderer/input correctness + polish:** #142 DPR reconciliation; #164 overlay transfer functions/legends; #165 atomic snapshot+overlay application; #166 cross-lineage density truth; #171 shared grid-cell coordinates; #173 dish clipping; #175 camera-interruption continuity; #187 wheel-delta normalization.
-- **Motion/accessibility/product shell:** #39 persisted motion/onboarding shell; #160 shared onboarding ambient-loop timing; #168 minimum expo text legibility.
+- **Renderer/input correctness + polish:** #164 overlay transfer functions/legends; #165 atomic snapshot+overlay application; #166 cross-lineage density truth; #171 shared grid-cell coordinates; #173 dish clipping; #175 camera-interruption continuity; #187 wheel-delta normalization.
+- **Motion/accessibility/product shell:** #39 owns remaining persisted-motion/onboarding shell integration; coordinate other polish through the #10 umbrella and fresh focused issues rather than reviving closed slices.
 - **Counterfactual truth:** #167 binds compare surfaces to the synchronized biological time they claim to show.
 - **Science focused gates:** #139 defines the authoritative phage adsorption concentration bridge.
 - **ML safety/validation:** #172 binds model cards to scenario + normalization contracts; #174 makes promotion metrics trajectory/group/horizon aware.

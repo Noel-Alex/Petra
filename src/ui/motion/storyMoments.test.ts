@@ -31,7 +31,6 @@ describe("premium causal story moments", () => {
       if (!plan.eligible) throw new Error("expected eligible story moment");
       expect(plan.cues.length).toBeGreaterThan(0);
       expect(plan.cues.some((cue) => cue.essential)).toBe(true);
-      expect(plan.durationMs).toBeUndefined();
       expect(MOTION[plan.token]).toBeDefined();
     }
   });

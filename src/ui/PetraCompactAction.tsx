@@ -37,6 +37,7 @@ export function PetraCompactAction({
   onPointerCancel,
   onFocus,
   onBlur,
+  children,
   ...buttonProps
 }: PetraCompactActionProps): ReactElement {
   const [interaction, setInteraction] = useState(createActionInteractionState);
@@ -117,6 +118,8 @@ export function PetraCompactAction({
         );
         onBlur?.(event);
       }}
-    />
+    >
+      {children}
+    </button>
   );
 }

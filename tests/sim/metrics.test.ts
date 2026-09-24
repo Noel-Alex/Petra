@@ -7,9 +7,8 @@ import {
 import { ComposedSimulationEngine } from '../../src/sim/composedEngine'
 import type { ComposedSimulationConfig } from '../../src/sim/authoritative'
 import type { CuratedMutationGraph } from '../../src/sim/evolution/graph'
-import { createFixtureParameterSetBinding } from '../../src/sim/parameterSetBinding'
+import { createFixtureComposedParameterSetBinding } from '../../src/sim/parameterSetBinding'
 import { createRunIdentity } from '../../src/sim/protocol'
-import { composedConfigurationFingerprint } from '../../src/sim/authoritative'
 
 const graph: CuratedMutationGraph = {
   scenarioId: 'metric-fixture',
@@ -43,11 +42,11 @@ const config: ComposedSimulationConfig = {
   hoursPerTick: 0.1,
 }
 
-const binding = createFixtureParameterSetBinding({
-  parameterSetId: 'metric-fixture',
-  parameterSetVersion: '1',
-  configurationFingerprint: composedConfigurationFingerprint(config),
-})
+const binding = createFixtureComposedParameterSetBinding(
+  'fixture:metric-fixture',
+  '1',
+  config,
+)
 
 const identity = createRunIdentity({
   scenarioId: 'metric-fixture',

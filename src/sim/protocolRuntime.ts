@@ -67,6 +67,16 @@ export function parseWorkerRequest(
       return requestFailure(`initialize.identity ${identity.error}`, null)
     }
 
+    if (
+      record.composedConfig === undefined &&
+      identity.value.parameterSetBinding !== undefined
+    ) {
+      return requestFailure(
+        'initialize.identity.parameterSetBinding requires composedConfig',
+        null,
+      )
+    }
+
     if (record.composedConfig !== undefined) {
       const config = asRecord(record.composedConfig)
       if (config === null) {
@@ -325,6 +335,11 @@ function parseCheckpoint(
 
   if (record.authority !== undefined && record.authority !== 'synthetic') {
     return failure('.authority must be "composed", "synthetic", or omitted')
+  }
+  if (identity.value.parameterSetBinding !== undefined) {
+    return failure(
+      '.identity.parameterSetBinding is not allowed for synthetic authority',
+    )
   }
   if (
     record.simulationTimeHours !==

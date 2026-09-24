@@ -1,0 +1,95 @@
+.analysis-surface {
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  background: rgba(9, 21, 39, 0.72);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.16);
+}
+
+.analysis-surface--unavailable {
+  min-height: 4.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+}
+
+.analysis-surface--unavailable h2,
+.analysis-surface--unavailable p {
+  margin: 0;
+}
+
+.analysis-surface--unavailable h2 {
+  font-size: 1rem;
+}
+
+.analysis-surface--unavailable > p {
+  max-width: 38rem;
+  color: #93a0b4;
+  font-size: var(--petra-type-caption);
+  line-height: 1.5;
+  text-align: right;
+}
+
+.analysis-surface--available > summary {
+  min-height: 4.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: inherit;
+  cursor: pointer;
+  list-style-position: inside;
+}
+
+.analysis-surface--available > summary:hover {
+  background: rgba(143, 220, 255, 0.035);
+}
+
+.analysis-surface--available > summary:focus-visible {
+  outline: 3px solid var(--petra-focus-ring);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 1px var(--petra-focus-edge);
+}
+
+.analysis-surface--available > summary > span:first-child {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.analysis-surface__identity {
+  color: #91a0b5;
+  font-size: var(--petra-type-caption);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.analysis-surface--available[open] > summary {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.analysis-surface--available .analysis-panel {
+  border: 0;
+  border-radius: 0 0 20px 20px;
+  box-shadow: none;
+}
+
+@media (max-width: 720px) {
+  .analysis-surface--unavailable,
+  .analysis-surface--available > summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .analysis-surface--unavailable > p {
+    text-align: left;
+  }
+
+  .analysis-surface__identity {
+    white-space: normal;
+  }
+}

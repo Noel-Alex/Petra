@@ -137,10 +137,8 @@ function validateCheckpoint(checkpoint: LineageRegistryCheckpoint): void {
 
   const records = new Map<string, LineageRecord>()
 
-  checkpoint.records.forEach((record, index) => {
-    if (!isRecord(record)) {
-      throw new Error(`lineage checkpoint record ${index} must be an object`)
-    }
+  checkpoint.records.forEach((rawRecord, index) => {
+    const record = decodeCheckpointRecord(rawRecord, index)
 
     const expectedId = `L${index + 1}`
     if (record.lineageId !== expectedId) {
@@ -189,13 +187,8 @@ function validateCheckpoint(checkpoint: LineageRegistryCheckpoint): void {
   const created = new Set<string>()
   const extinct = new Set<string>()
 
-  checkpoint.events.forEach((event, index) => {
-    if (!isRecord(event)) {
-      throw new Error(`lineage checkpoint event ${index} must be an object`)
-    }
-    if (event.kind !== 'lineage-created' && event.kind !== 'lineage-extinct') {
-      throw new Error(`lineage checkpoint event ${index} has an invalid kind`)
-    }
+  checkpoint.events.forEach((rawEvent, index) => {
+    const event = decodeCheckpointEvent(rawEvent, index)
 
     const record = records.get(event.lineageId)
     if (!record) {
@@ -271,6 +264,91 @@ function validateCheckpoint(checkpoint: LineageRegistryCheckpoint): void {
       )
     }
   }
+}
+
+function decodeCheckpointRecord(value: unknown, index: number): LineageRecord {
+  if (!isRecord(value)) {
+    throw new Error(`lineage checkpoint record ${index} must be an object`)
+  }
+
+  if (typeof value.lineageId !== 'string' || value.lineageId.length === 0) {
+    throw new Error(`lineage checkpoint record ${index} requires a lineageId`)
+  }
+  if (
+    value.parentLineageId !== null &&
+    typeof value.parentLineageId !== 'string'
+  ) {
+    throw new Error(
+      `lineage checkpoint record ${index} has invalid parentLineageId`,
+    )
+  }
+  if (typeof value.genotypeId !== 'string') {
+    throw new Error(`lineage checkpoint record ${index} has invalid genotypeId`)
+  }
+  if (typeof value.createdAtHours !== 'number') {
+    throw new Error(
+      `lineage checkpoint record ${index} has invalid createdAtHours`,
+    )
+  }
+  if (
+    value.originCellIndex !== null &&
+    typeof value.originCellIndex !== 'number'
+  ) {
+    throw new Error(
+      `lineage checkpoint record ${index} has invalid originCellIndex`,
+    )
+  }
+  if (
+    value.mutationClass !== null &&
+    typeof value.mutationClass !== 'string'
+  ) {
+    throw new Error(
+      `lineage checkpoint record ${index} has invalid mutationClass`,
+    )
+  }
+  if (
+    value.extinctAtHours !== null &&
+    typeof value.extinctAtHours !== 'number'
+  ) {
+    throw new Error(
+      `lineage checkpoint record ${index} has invalid extinctAtHours`,
+    )
+  }
+
+  return value as unknown as LineageRecord
+}
+
+function decodeCheckpointEvent(value: unknown, index: number): LineageEvent {
+  if (!isRecord(value)) {
+    throw new Error(`lineage checkpoint event ${index} must be an object`)
+  }
+  if (value.kind !== 'lineage-created' && value.kind !== 'lineage-extinct') {
+    throw new Error(`lineage checkpoint event ${index} has an invalid kind`)
+  }
+  if (typeof value.lineageId !== 'string' || value.lineageId.length === 0) {
+    throw new Error(`lineage checkpoint event ${index} requires a lineageId`)
+  }
+  if (typeof value.timeHours !== 'number') {
+    throw new Error(`lineage checkpoint event ${index} has invalid time`)
+  }
+  if (
+    value.parentLineageId !== undefined &&
+    typeof value.parentLineageId !== 'string'
+  ) {
+    throw new Error(
+      `lineage checkpoint event ${index} has invalid parentLineageId`,
+    )
+  }
+  if (
+    value.genotypeId !== undefined &&
+    typeof value.genotypeId !== 'string'
+  ) {
+    throw new Error(
+      `lineage checkpoint event ${index} has invalid genotypeId`,
+    )
+  }
+
+  return value as unknown as LineageEvent
 }
 
 function cloneRecord(record: LineageRecord): LineageRecord {

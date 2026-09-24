@@ -77,6 +77,27 @@ export function buildFlagshipProvenanceView(
       `${scenario.composedParameterSet.id} v${scenario.composedParameterSet.version}`,
   });
 
+  const resourceContext = resolveScenarioProvenance({
+    id: `resource-context:${scenario.environment.resourceContext.version}`,
+    label: "Limiting-resource context",
+    record: scenario.environment.resourceContext as ProvenanceRecord,
+    scenario: context,
+    valueText:
+      `${scenario.environment.resourceContext.version} · ${scenario.environment.resourceContext.representation}`,
+    units: scenario.environment.resourceContext.concentrationUnit,
+  });
+
+  const referencePharmacodynamics = resolveScenarioProvenance({
+    id: "drug-reference-pd:regoes-cab1-ciprofloxacin",
+    label: `Reference ciprofloxacin response · ${scenario.drug.referencePharmacodynamics.sourceOrganism}, ${scenario.drug.referencePharmacodynamics.sourceCondition}`,
+    record: scenario.drug.referencePharmacodynamics as ProvenanceRecord,
+    scenario: context,
+    valueText:
+      `ψmax ${scenario.drug.referencePharmacodynamics.psiMax_log10DensitySlope_per_h}/h · ψmin ${scenario.drug.referencePharmacodynamics.psiMin_log10DensitySlope_per_h}/h · κ ${scenario.drug.referencePharmacodynamics.kappa} · zMIC ${scenario.drug.referencePharmacodynamics.zMIC_mg_L} mg/L · conventional MIC ${scenario.drug.referencePharmacodynamics.conventionalMIC_mg_L} mg/L`,
+    units:
+      "ψ rates: log10-density slope per hour; κ: dimensionless; concentrations: mg/L",
+  });
+
   const mutationRecords = scenario.mutationTransitions.map((transition) =>
     resolveScenarioProvenance({
       id: `mutation:${transition.from}->${transition.to}`,
@@ -94,7 +115,15 @@ export function buildFlagshipProvenanceView(
       version: scenario.version,
       title: scenario.title,
     },
-    records: [composedParameterSet, executionProfile, composition, ...genotypeRecords, ...mutationRecords],
+    records: [
+      composedParameterSet,
+      executionProfile,
+      resourceContext,
+      referencePharmacodynamics,
+      composition,
+      ...genotypeRecords,
+      ...mutationRecords,
+    ],
     assumptions: resolveScenarioTransferAssumptions(context),
   };
 }

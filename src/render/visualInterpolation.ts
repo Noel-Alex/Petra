@@ -22,7 +22,12 @@ export interface DishVisualState {
 export interface DishPresentationFrame extends DishVisualState {
   readonly frameKind: "interpolated-presentation";
   readonly targetSnapshotId: string;
-  /** Linear wall-clock presentation progress in [0, 1]. */
+  /**
+   * Normalized presentation progress in [0, 1].
+   * Live continuity derives it from wall time; replay/scrub presentation may
+   * evaluate it directly from an authoritative timeline position. It is never
+   * itself biological authority.
+   */
   readonly progress: number;
   /** Eased presentation progress in [0, 1]. */
   readonly easedProgress: number;
@@ -245,11 +250,36 @@ export function advanceDishVisualTransition(
   }
 
   const durationMs = transition.motion.durationMs;
-  if (durationMs === 0 || elapsedMs >= durationMs) {
+  if (durationMs === 0) {
     return { complete: true, state: transition.to };
   }
 
-  const progress = elapsedMs / durationMs;
+  return evaluateDishVisualTransitionAtProgress(
+    transition,
+    Math.min(1, elapsedMs / durationMs),
+  );
+}
+
+/**
+ * Evaluate a prepared visual transition at explicit normalized presentation
+ * progress. This is the replay/scrub seam: callers can deterministically
+ * revisit the same visual position without depending on frame cadence or wall
+ * time. Intermediate values remain presentation-only.
+ */
+export function evaluateDishVisualTransitionAtProgress(
+  transition: DishVisualTransition,
+  progress: number,
+): DishVisualTransitionStep {
+  if (!Number.isFinite(progress) || progress < 0 || progress > 1) {
+    throw new RangeError(
+      "dish visual transition progress must be finite and within [0, 1]",
+    );
+  }
+
+  if (progress === 1) {
+    return { complete: true, state: transition.to };
+  }
+
   const easedProgress = cubicBezierProgress(
     progress,
     transition.motion.easing,

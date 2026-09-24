@@ -133,7 +133,7 @@ function validateIdentity(identity: AuthoritativeAnalysisIdentity): void {
 function resolveLineageInputs(
   records: AuthoritativeAnalysisRecords,
 ): readonly LineageAncestryInput[] {
-  if ("lineageAnalysis" in records) {
+  if (records.lineageAnalysis !== undefined) {
     const analysis = records.lineageAnalysis;
     if (analysis.schemaVersion !== 1) {
       throw new RangeError("unsupported authoritative lineage analysis schema");

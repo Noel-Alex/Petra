@@ -1,7 +1,13 @@
 import { SimulationEngine } from './engine'
-import type { SimulationCheckpoint, SimulationCommand, SimulationSnapshot } from './protocol'
+import type {
+  SimulationCheckpoint,
+  SimulationCommand,
+  SimulationEvent,
+  SimulationSnapshot,
+} from './protocol'
+import { assertSimulationSnapshotTrace } from './snapshotTrace'
 
-export const COUNTERFACTUAL_FORK_SCHEMA_VERSION = 1 as const
+export const COUNTERFACTUAL_FORK_SCHEMA_VERSION = 2 as const
 
 const INTERNAL_RESTORE_COMMAND_ID = '__petra_counterfactual_fork_restore__'
 
@@ -17,6 +23,7 @@ export interface CounterfactualForkOrigin {
   readonly sourceRunId: string
   readonly checkpointTraceHash: string
   readonly checkpoint: SimulationCheckpoint
+  readonly events: readonly SimulationEvent[]
 }
 
 export interface CounterfactualReplayBranch {
@@ -67,6 +74,7 @@ export class CounterfactualForkController {
   }) {
     assertNonEmpty(args.sourceRunId, 'sourceRunId')
     assertNonEmpty(args.parentSnapshot.traceHash, 'parent checkpoint trace hash')
+    validateParentSnapshotTrace(args.parentSnapshot)
     assertBranchDescriptor(args.left)
     assertBranchDescriptor(args.right)
     if (args.left.branchId === args.right.branchId) {
@@ -74,12 +82,14 @@ export class CounterfactualForkController {
     }
 
     const checkpoint = structuredClone(args.parentSnapshot.checkpoint)
+    const events = structuredClone(args.parentSnapshot.events)
     validateCheckpointForFork(checkpoint)
 
     this.origin = {
       sourceRunId: args.sourceRunId,
       checkpointTraceHash: args.parentSnapshot.traceHash,
       checkpoint,
+      events,
     }
     this.branches = {
       left: createBranchRuntime(args.left, checkpoint),
@@ -134,7 +144,7 @@ export function replayCounterfactualFork(
 
   const parentSnapshot: SimulationSnapshot = {
     checkpoint: structuredClone(bundle.origin.checkpoint),
-    events: [],
+    events: structuredClone(bundle.origin.events),
     traceHash: bundle.origin.checkpointTraceHash,
   }
   const controller = new CounterfactualForkController({
@@ -172,6 +182,11 @@ export function validateCounterfactualForkReplayBundle(
 
   assertNonEmpty(bundle.origin.sourceRunId, 'sourceRunId')
   assertNonEmpty(bundle.origin.checkpointTraceHash, 'parent checkpoint trace hash')
+  validateParentSnapshotTrace({
+    checkpoint: bundle.origin.checkpoint,
+    events: bundle.origin.events,
+    traceHash: bundle.origin.checkpointTraceHash,
+  })
   validateCheckpointForFork(bundle.origin.checkpoint)
   validateReplayBranch(bundle.branches.left, 'left')
   validateReplayBranch(bundle.branches.right, 'right')
@@ -229,6 +244,17 @@ function validateBranchCommand(command: CounterfactualBranchCommand): void {
     return
   }
   throw new Error('counterfactual branch commands cannot restore or snapshot')
+}
+
+function validateParentSnapshotTrace(snapshot: SimulationSnapshot): void {
+  if (!Array.isArray(snapshot.events)) {
+    throw new Error('counterfactual parent snapshot events must be an array')
+  }
+  try {
+    assertSimulationSnapshotTrace(snapshot)
+  } catch {
+    throw new Error('counterfactual parent snapshot trace provenance mismatch')
+  }
 }
 
 function validateCheckpointForFork(checkpoint: SimulationCheckpoint): void {
@@ -293,6 +319,7 @@ function cloneOrigin(origin: CounterfactualForkOrigin): CounterfactualForkOrigin
     sourceRunId: origin.sourceRunId,
     checkpointTraceHash: origin.checkpointTraceHash,
     checkpoint: structuredClone(origin.checkpoint),
+    events: structuredClone(origin.events),
   }
 }
 

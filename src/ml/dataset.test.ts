@@ -81,6 +81,9 @@ describe("mechanistic ML dataset contract", () => {
       }),
     ).toThrow(/simulation seed/);
 
+    expect(() =>
+      trajectoryKey(trajectory("01" as unknown as number)),
+    ).toThrow(/simulation seed/);
     expect(() => trajectoryKey(trajectory(0))).not.toThrow();
     expect(() => trajectoryKey(trajectory(0xffff_ffff))).not.toThrow();
   });

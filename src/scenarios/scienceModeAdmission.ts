@@ -480,10 +480,13 @@ function scenarioIdentity(root: UnknownRecord | null): Pick<
   ScenarioScienceAdmission,
   "scenarioId" | "scenarioVersion" | "title"
 > {
+  const id = root?.id;
+  const version = root?.version;
+  const title = root?.title;
   return {
-    scenarioId: nonEmptyString(root?.id) ? root.id : null,
-    scenarioVersion: nonEmptyString(root?.version) ? root.version : null,
-    title: nonEmptyString(root?.title) ? root.title : null,
+    scenarioId: nonEmptyString(id) ? id : null,
+    scenarioVersion: nonEmptyString(version) ? version : null,
+    title: nonEmptyString(title) ? title : null,
   };
 }
 

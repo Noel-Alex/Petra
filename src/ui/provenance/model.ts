@@ -1,3 +1,9 @@
+import {
+  resolveSourceUncertaintyPresentation,
+  type SourceUncertaintyInput,
+  type SourceUncertaintyPresentation,
+} from "./uncertainty";
+
 export type EvidenceClass =
   | "measured"
   | "derived"
@@ -59,7 +65,12 @@ export interface ProvenancePresentationInput {
   readonly context?: string;
   readonly sources?: readonly ProvenanceSource[];
   readonly transformation?: string;
+  /**
+   * Legacy source-provided text. New structured callers should use
+   * sourceUncertainty so statistical meaning and scope stay explicit.
+   */
   readonly uncertainty?: string;
+  readonly sourceUncertainty?: readonly SourceUncertaintyInput[];
   readonly transferNote?: string;
   readonly calibrationNote?: string;
   readonly limitation?: string;
@@ -97,7 +108,8 @@ export function buildProvenancePresentation(
   assertNonEmpty("label", input.label);
 
   const badges = badgesForClass(input.evidenceClass);
-  const details = buildDetails(input);
+  const uncertaintyPresentations = resolveUncertaintyPresentations(input);
+  const details = buildDetails(input, uncertaintyPresentations);
   const disclosures = buildDisclosures(input);
   const missing = missingRequirements(input);
 
@@ -109,7 +121,7 @@ export function buildProvenancePresentation(
     details,
     disclosures: [...disclosures, ...missing],
     status: missing.length === 0 ? "complete" : "needs-provenance",
-    ariaLabel: `${input.label}. Evidence: ${badges.map((badge) => badge.label).join(", ")}.`,
+    ariaLabel: buildAriaLabel(input, badges, uncertaintyPresentations),
   };
 }
 
@@ -225,6 +237,7 @@ function badgesForClass(evidenceClass: EvidenceClass): readonly EvidenceBadge[] 
 
 function buildDetails(
   input: ProvenancePresentationInput,
+  uncertaintyPresentations: readonly SourceUncertaintyPresentation[],
 ): readonly ProvenanceDetailRow[] {
   const details: ProvenanceDetailRow[] = [];
 
@@ -236,6 +249,9 @@ function buildDetails(
   }
   if (input.uncertainty !== undefined) {
     details.push({ label: "Uncertainty", value: input.uncertainty });
+  }
+  for (const uncertainty of uncertaintyPresentations) {
+    details.push({ label: uncertainty.label, value: uncertainty.value });
   }
   if (input.sources !== undefined) {
     for (const source of input.sources) {
@@ -253,6 +269,55 @@ function buildDetails(
   }
 
   return details;
+}
+
+function resolveUncertaintyPresentations(
+  input: ProvenancePresentationInput,
+): readonly SourceUncertaintyPresentation[] {
+  if (input.uncertainty !== undefined && input.sourceUncertainty !== undefined) {
+    throw new TypeError(
+      "provenance uncertainty must use either legacy text or structured sourceUncertainty, not both",
+    );
+  }
+
+  if (input.uncertainty !== undefined) {
+    assertNonEmpty("uncertainty", input.uncertainty);
+    return [];
+  }
+
+  if (input.sourceUncertainty === undefined) {
+    return [];
+  }
+  if (input.sourceUncertainty.length === 0) {
+    throw new TypeError(
+      "structured sourceUncertainty must contain at least one explicit uncertainty state",
+    );
+  }
+
+  return input.sourceUncertainty.map(resolveSourceUncertaintyPresentation);
+}
+
+function buildAriaLabel(
+  input: ProvenancePresentationInput,
+  badges: readonly EvidenceBadge[],
+  uncertaintyPresentations: readonly SourceUncertaintyPresentation[],
+): string {
+  const evidence =
+    input.label +
+    ". Evidence: " +
+    badges.map((badge) => badge.label).join(", ") +
+    ".";
+  if (input.uncertainty !== undefined) {
+    return evidence + " Uncertainty: " + input.uncertainty + ".";
+  }
+  if (uncertaintyPresentations.length === 0) {
+    return evidence;
+  }
+  return (
+    evidence +
+    " " +
+    uncertaintyPresentations.map((item) => item.ariaText + ".").join(" ")
+  );
 }
 
 function buildDisclosures(

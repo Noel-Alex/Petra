@@ -10,8 +10,8 @@ import {
   createRunIdentity,
   type SimulationSnapshot,
   type WorkerRequest,
-  type WorkerResponse,
 } from "../../src/sim/protocol";
+import type { InstrumentedWorkerResponse } from "../../src/worker/performanceInstrumentation";
 
 const identity = createRunIdentity({
   scenarioId: "worker-session-fixture",
@@ -56,7 +56,7 @@ class FakePort implements WorkerPort {
     this.disposed = true;
   }
 
-  emit(response: WorkerResponse): void {
+  emit(response: InstrumentedWorkerResponse): void {
     this.handlers?.message(response);
   }
 
@@ -121,6 +121,13 @@ describe("worker session", () => {
 
     expect(port.posted).toHaveLength(1);
     expect(port.posted[0]).toMatchObject({ type: "initialize" });
+    expect(
+      (
+        port.posted[0] as WorkerRequest & {
+          performanceDiagnostics?: boolean;
+        }
+      ).performanceDiagnostics,
+    ).toBeUndefined();
     expect(session.state).toMatchObject({
       phase: "initializing",
       pendingCommandId: null,
@@ -328,6 +335,172 @@ describe("worker session", () => {
 
     port.dispose();
     expect(worker.terminated).toBe(true);
+  });
+
+  it("records opt-in worker timing, payload, queue, and event metrics", () => {
+    const port = new FakePort();
+    const samples: import("../../src/app/workerSession").WorkerSessionPerformanceSample[] = [];
+    let now = 100;
+    const session = new WorkerSession(port, {
+      observe: (sample) => samples.push(sample),
+      now: () => now,
+    });
+
+    session.enqueue([
+      { protocolVersion: PROTOCOL_VERSION, type: "initialize", identity },
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: { id: "advance-profiled", type: "advance", ticks: 4 },
+      },
+    ]);
+
+    expect(
+      (
+        port.posted[0] as WorkerRequest & {
+          performanceDiagnostics?: boolean;
+        }
+      ).performanceDiagnostics,
+    ).toBe(true);
+
+    now = 106;
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: snapshot(0),
+      performanceDiagnostics: {
+        version: 1,
+        executionDurationMs: 2,
+      },
+    });
+
+    now = 110;
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      commandId: "advance-profiled",
+      snapshot: {
+        ...snapshot(4, 1),
+        events: [
+          {
+            sequence: 0,
+            tick: 0,
+            simulationTimeHours: 0,
+            type: "initialized",
+          },
+          {
+            sequence: 1,
+            tick: 4,
+            simulationTimeHours: 4 / 60,
+            type: "advanced",
+            commandId: "advance-profiled",
+            value: 4,
+          },
+        ],
+      },
+      performanceDiagnostics: {
+        version: 1,
+        executionDurationMs: 3,
+      },
+    });
+
+    expect(samples).toHaveLength(2);
+    expect(samples[0]).toMatchObject({
+      requestType: "initialize",
+      queuedRequestsBehindAtDispatch: 1,
+      roundTripMs: 6,
+      workerExecutionMs: 2,
+      nonWorkerRoundTripMs: 4,
+      authoritativeEventArrayLength: 0,
+      outcome: "success",
+    });
+    expect(samples[1]).toMatchObject({
+      requestType: "command",
+      commandType: "advance",
+      commandId: "advance-profiled",
+      requestedAdvanceTicks: 4,
+      queuedRequestsBehindAtDispatch: 0,
+      roundTripMs: 4,
+      workerExecutionMs: 3,
+      workerExecutionMsPerTick: 0.75,
+      nonWorkerRoundTripMs: 1,
+      authoritativeEventArrayLength: 2,
+      outcome: "success",
+    });
+    expect(samples[0]?.requestPayloadBytes).toBeGreaterThan(0);
+    expect(samples[1]?.responsePayloadBytes).toBeGreaterThan(0);
+    expect(session.state.phase).toBe("ready");
+  });
+
+  it("records profiled protocol failures before failing closed", () => {
+    const port = new FakePort();
+    const samples: import("../../src/app/workerSession").WorkerSessionPerformanceSample[] = [];
+    let now = 20;
+    const session = new WorkerSession(port, {
+      observe: (sample) => samples.push(sample),
+      now: () => now,
+    });
+
+    session.enqueue([
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: { id: "expected-profiled", type: "snapshot" },
+      },
+    ]);
+
+    now = 24;
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      commandId: "stale-profiled",
+      snapshot: snapshot(0),
+      performanceDiagnostics: {
+        version: 1,
+        executionDurationMs: 1,
+      },
+    });
+
+    expect(samples).toHaveLength(1);
+    expect(samples[0]).toMatchObject({
+      commandId: "expected-profiled",
+      roundTripMs: 4,
+      workerExecutionMs: 1,
+      nonWorkerRoundTripMs: 3,
+      outcome: "protocol-error",
+    });
+    expect(session.state.phase).toBe("error");
+    expect(session.state.error).toContain(
+      "expected expected-profiled, received stale-profiled",
+    );
+  });
+
+  it("keeps profiling observer failures observational", () => {
+    const port = new FakePort();
+    let now = 0;
+    const session = new WorkerSession(port, {
+      observe: () => {
+        throw new Error("profiling sink failed");
+      },
+      now: () => now,
+    });
+
+    session.enqueue([
+      { protocolVersion: PROTOCOL_VERSION, type: "initialize", identity },
+    ]);
+    now = 1;
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: snapshot(0),
+      performanceDiagnostics: {
+        version: 1,
+        executionDurationMs: 0.25,
+      },
+    });
+
+    expect(session.state.phase).toBe("ready");
+    expect(session.state.error).toBeNull();
   });
 
   it("notifies subscribers and disposes the worker safely", () => {

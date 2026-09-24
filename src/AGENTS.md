@@ -18,6 +18,7 @@ Implementation of Petra's simulation, workers, rendering, UI, analysis, and appl
 - Use exact/rare-event sampling where discreteness matters and accelerated aggregate methods where counts are high.
 - Add deterministic tests whenever an algorithmic approximation changes.
 - UI should remain responsive while simulation runs; heavy simulation belongs off the main thread.
+- Performance diagnostics are observational only: they may measure worker execution, payload, queue, renderer, or memory behavior, but must never enter biological state, replay/checkpoint identity, RNG order, or scientific trace hashing. Instrumentation should be opt-in/disableable where its own overhead is non-trivial, and exact-vs-estimated measurements must be labelled honestly.
 - ML output is advisory/accelerative unless a separately validated contract explicitly gives it authority.
 
 ## Work guidance

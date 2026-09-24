@@ -14,6 +14,7 @@ import datetime as dt
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -27,6 +28,8 @@ RESULTS_ROOT = ROOT / "experiments" / "results"
 LOCAL_ROOT = ROOT / ".petra_local"
 DEFAULT_LOG_TAIL_BYTES = 64 * 1024
 DEFAULT_MAX_GIT_FILE_BYTES = 2 * 1024 * 1024
+
+VALID_EXPERIMENT_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 CI_ENV_KEYS = (
     "CI",
@@ -65,13 +68,23 @@ def load_manifest() -> dict[str, Any]:
             raise ValueError("every experiment registration must be an object")
         exp_id = item.get("id")
         command = item.get("command")
-        if not isinstance(exp_id, str) or not exp_id.strip():
-            raise ValueError("every experiment requires a non-empty string id")
+        if not isinstance(exp_id, str) or not VALID_EXPERIMENT_ID.fullmatch(exp_id):
+            raise ValueError(
+                "every experiment id must match [A-Za-z0-9][A-Za-z0-9._-]*"
+            )
         if exp_id in ids:
             raise ValueError(f"duplicate experiment id: {exp_id}")
         ids.add(exp_id)
         if not isinstance(command, list) or not command or not all(isinstance(x, str) for x in command):
             raise ValueError(f"{exp_id}: command must be a non-empty string array")
+        env = item.get("env", {})
+        if not isinstance(env, dict) or not all(
+            isinstance(key, str) and isinstance(value, str) for key, value in env.items()
+        ):
+            raise ValueError(f"{exp_id}: env must map strings to strings")
+        timeout_seconds = item.get("timeout_seconds", 3600)
+        if not isinstance(timeout_seconds, int) or isinstance(timeout_seconds, bool) or timeout_seconds <= 0:
+            raise ValueError(f"{exp_id}: timeout_seconds must be a positive integer")
     return data
 
 
@@ -308,7 +321,11 @@ def main() -> int:
             raise SystemExit("Unknown experiment id(s): " + ", ".join(unknown))
         experiments = [item for item in experiments if item["id"] in requested]
 
-    run_id = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    if not experiments:
+        print("No local experiments are currently registered.")
+        return 0
+
+    run_id = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     run_dir = RESULTS_ROOT / run_id
     run_dir.mkdir(parents=True, exist_ok=False)
 

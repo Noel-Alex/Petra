@@ -114,6 +114,9 @@
       "items": {
         "type": "string"
       }
+    },
+    "executionProfile": {
+      "$ref": "#/$defs/ecologyExecutionProfile"
     }
   },
   "additionalProperties": true,
@@ -281,6 +284,150 @@
           }
         }
       ]
+    },
+    "ecologyExecutionProfile": {
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "id",
+        "version",
+        "scenarioId",
+        "scenarioVersion",
+        "resourceContextVersion",
+        "classification",
+        "units",
+        "hoursPerTick",
+        "growth",
+        "behaviorTargets",
+        "provenance"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scenarioId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scenarioVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resourceContextVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "classification": {
+          "const": "engineering"
+        },
+        "units": {
+          "type": "object",
+          "required": [
+            "time",
+            "resource",
+            "biomass"
+          ],
+          "properties": {
+            "time": {
+              "const": "hour"
+            },
+            "resource": {
+              "const": "model-resource"
+            },
+            "biomass": {
+              "const": "model-biomass"
+            }
+          },
+          "additionalProperties": false
+        },
+        "hoursPerTick": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "growth": {
+          "type": "object",
+          "required": [
+            "maxDivisionRate",
+            "halfSaturation",
+            "biomassYield",
+            "localCapacity",
+            "spreadRate"
+          ],
+          "properties": {
+            "maxDivisionRate": {
+              "type": "number",
+              "minimum": 0
+            },
+            "halfSaturation": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "biomassYield": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "localCapacity": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "spreadRate": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "behaviorTargets": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "positive-early-growth",
+              "resource-depletion",
+              "zero-resource-no-growth",
+              "capacity-bound",
+              "conservative-neighbour-spread"
+            ]
+          }
+        },
+        "provenance": {
+          "type": "object",
+          "required": [
+            "classification",
+            "context",
+            "calibrationNote",
+            "limitation"
+          ],
+          "properties": {
+            "classification": {
+              "const": "engineering"
+            },
+            "context": {
+              "type": "string",
+              "minLength": 1
+            },
+            "calibrationNote": {
+              "type": "string",
+              "minLength": 1
+            },
+            "limitation": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   }
 }

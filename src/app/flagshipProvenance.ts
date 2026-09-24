@@ -58,6 +58,16 @@ export function buildFlagshipProvenanceView(
     valueText: scenario.drug.resourceDrugCompositionPolicy.id,
   });
 
+  const executionProfile = resolveScenarioProvenance({
+    id: `execution-profile:${scenario.executionProfile.id}@${scenario.executionProfile.version}`,
+    label: "Research-stage ecology execution profile",
+    record: scenario.executionProfile as ProvenanceRecord,
+    scenario: context,
+    valueText:
+      `${scenario.executionProfile.id} v${scenario.executionProfile.version}`,
+    units: "time: hour; resource: model-resource; biomass: model-biomass",
+  });
+
   const mutationRecords = scenario.mutationTransitions.map((transition) =>
     resolveScenarioProvenance({
       id: `mutation:${transition.from}->${transition.to}`,
@@ -75,7 +85,7 @@ export function buildFlagshipProvenanceView(
       version: scenario.version,
       title: scenario.title,
     },
-    records: [composition, ...genotypeRecords, ...mutationRecords],
+    records: [executionProfile, composition, ...genotypeRecords, ...mutationRecords],
     assumptions: resolveScenarioTransferAssumptions(context),
   };
 }

@@ -71,3 +71,14 @@ Contributor: Noel-Alex
 - Scientific Apply remains fail-closed until #37/#158 supplies authoritative intervention command schema plus parameter labels/units/bounds. Do not translate these previews into `synthetic-pulse`.
 - Placement survives transient pending requests, cancels on Escape/explicit Cancel, and is cleared when runtime authority is unavailable/starting/failed.
 - The implementation was rebased onto the shared calm visual-token foundation and consumes those tokens without taking ownership of the central theme.
+
+
+## 2026-09-24 — composed provenance binding + research-stage ecology execution
+
+- #564 / PR #588 moved composed worker identity to protocol v4: a product-facing parameter-set ID/version must be bound to the exact deterministic composed-configuration fingerprint rather than acting as an unverified friendly label. Ad-hoc test configs use an explicit `fixture:` namespace.
+- #227 remains intentionally open for a future source-compatible physical limiting-resource/Monod binding. Do not close it by mixing incompatible literature values or renaming model-resource as glucose.
+- #494 introduces a separate research-stage engineering execution profile so the flagship ecology loop can run now without weakening #227. Scenario `ecoli-ciprofloxacin-spatial@1.3.0-research` selects `ecoli-ciprofloxacin-ecology-engineering@1.0.0`.
+- The profile uses only `hour`, `model-resource`, and `model-biomass` units and is classified `engineering`. Its normalized values are judged against explicit kernel behavior targets (positive early growth, resource depletion, zero-resource no-growth, capacity bound, conservative neighbour spread), not against a claim of measured MG1655 glucose/CFU calibration.
+- Runtime/data consumers must preserve the execution-profile identity and limitation text. A later physical/calibrated profile is a new scenario/profile identity and must satisfy the #227 evidence compatibility gate.
+
+Contributor: Noel-Alex

@@ -1,10 +1,10 @@
 {
   "schemaVersion": "1.0.0",
   "id": "ecoli-ciprofloxacin-spatial",
-  "version": "1.2.0-research",
+  "version": "1.3.0-research",
   "title": "E. coli / ciprofloxacin spatial evolution",
   "status": "research",
-  "warning": "Educational mechanistic scenario, not clinical guidance and not a quantitative prediction of an arbitrary laboratory culture.",
+  "warning": "Educational mechanistic research scenario, not clinical guidance or a quantitative prediction of an arbitrary laboratory culture. The selected ecology execution profile uses engineering model-unit values, not a measured MG1655 physical Monod parameter pack.",
   "seedPolicy": "user",
   "organism": {
     "name": "Escherichia coli",
@@ -391,7 +391,8 @@
     "Genotype curves are shifted primarily using relative MIC until genotype-specific time-kill curves are curated.",
     "Spatial transport and mechanical spread coefficients require scenario calibration before physical quantitative claims.",
     "Resource-by-ciprofloxacin interaction under starvation is a model composition policy, not a complete stationary-phase killing model.",
-    "The current limiting-resource field is explicitly dimensionless/model-scale; physical substrate identity, concentration units, and model-biomass mapping remain unbound pending a compatible calibration."
+    "The current limiting-resource field is explicitly dimensionless/model-scale; physical substrate identity, concentration units, and model-biomass mapping remain unbound pending a compatible calibration.",
+    "The research-stage ecology execution profile uses explicit engineering model-unit values only to make the mechanistic loop executable; it is not a measured MG1655 Monod parameter pack."
   ],
   "citations": {
     "regoes_2004": {
@@ -413,6 +414,41 @@
     "baym_2016": {
       "doi": "10.1126/science.aag0822",
       "title": "Spatiotemporal microbial evolution on antibiotic landscapes"
+    }
+  },
+  "executionProfile": {
+    "schemaVersion": 1,
+    "id": "ecoli-ciprofloxacin-ecology-engineering",
+    "version": "1.0.0",
+    "scenarioId": "ecoli-ciprofloxacin-spatial",
+    "scenarioVersion": "1.3.0-research",
+    "resourceContextVersion": "unbound-model-resource-v1",
+    "classification": "engineering",
+    "units": {
+      "time": "hour",
+      "resource": "model-resource",
+      "biomass": "model-biomass"
+    },
+    "hoursPerTick": 0.02,
+    "growth": {
+      "maxDivisionRate": 0.8,
+      "halfSaturation": 1,
+      "biomassYield": 1,
+      "localCapacity": 32,
+      "spreadRate": 0.05
+    },
+    "behaviorTargets": [
+      "positive-early-growth",
+      "resource-depletion",
+      "zero-resource-no-growth",
+      "capacity-bound",
+      "conservative-neighbour-spread"
+    ],
+    "provenance": {
+      "classification": "engineering",
+      "context": "Research-stage flagship execution in dimensionless model-resource/model-biomass units under unbound-model-resource-v1.",
+      "calibrationNote": "Engineering-normalized values are chosen to keep explicit ecology stepping stable and to exercise growth, depletion, capacity, and spread invariants; they are not fitted to a source culture.",
+      "limitation": "No physical substrate, concentration, CFU, dry-weight, colony-speed, or measured MG1655 Monod claim is attached. Science-Mode physical growth parameters remain UNBOUND."
     }
   }
 }

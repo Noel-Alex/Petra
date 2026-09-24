@@ -27,3 +27,15 @@ Panel/overlay reveal/hide uses `MOTION.panel` only in full motion. Reduced/off m
 ## Verification
 
 Deterministic unit tests should cover full/reduced/off behavior, focus preservation, illustrative labeling, and surface-exit lifecycle. Browser smoothness, clipping, screenshots, touch behavior, and frame-time/FPS require the local browser acceptance workflow (#59) and must not be inferred from source tests.
+
+
+## Accessible causal announcements
+
+`announcements.ts` bounds spoken presentation of already-authoritative event batches.
+
+- Announcement order comes only from authoritative event sequence, never animation wall time or scheduler stagger.
+- A single new event retains its specific explanation; a multi-event batch becomes one concise count summary in first-kind-occurrence order.
+- Summarizing speech never deletes, merges, or rewrites the underlying scientific timeline/history.
+- Sequence + event identity cursoring prevents duplicate re-announcements on render/reconciliation. Cursor state belongs to the presentation adapter and resets only with explicit run identity change.
+- Full/reduced/off motion modes have identical spoken scientific meaning.
+- Live regions use polite + atomic semantics unless a future, separately justified urgent state is introduced.

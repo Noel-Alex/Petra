@@ -43,17 +43,24 @@ describe("app shell keyboard focus styling", () => {
 
 
 describe("app shell resolved motion attribute", () => {
-  it("keeps reduced decoration behind data-motion instead of raw OS media queries", () => {
-    expect(appCss).toContain(
-      '.petra-app[data-motion="reduced"] .dish-stage__halo',
+  it("animates dish ambience only when the motion adapter admits a loop", () => {
+    const animated = ruleBody(
+      '.dish-stage__halo[data-ambient-motion="animate"]',
     );
-    expect(appCss).not.toContain("@media (prefers-reduced-motion: reduce)");
+
+    expect(animated).toContain("animation: petra-dish-halo-breathe");
+    expect(animated).toContain("var(--dish-ambient-ms)");
+    expect(animated).toContain("var(--dish-ambient-easing)");
+    expect(appCss).toContain("@keyframes petra-dish-halo-breathe");
+    expect(appCss).toContain("@keyframes petra-dish-halo-drift");
   });
 
-  it("does not let CSS override an explicit full motion setting", () => {
+  it("keeps reduced/off ambience static without deleting dish hero depth", () => {
     expect(appCss).not.toContain(
-      '.petra-app[data-motion="full"] .dish-stage__halo',
+      '.petra-app[data-motion="reduced"] .dish-stage__halo',
     );
     expect(appCss).toContain('.petra-app[data-motion="off"] *');
+    expect(appCss).toContain("animation: none !important");
+    expect(appCss).not.toContain("@media (prefers-reduced-motion: reduce)");
   });
 });

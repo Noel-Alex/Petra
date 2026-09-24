@@ -8,6 +8,7 @@ import {
   saveMotionSetting,
   type MotionSetting,
 } from "../ui/motion/preference";
+import { resolveDishAmbient } from "../ui/motion/dishAmbient";
 import { planSurfaceTransition } from "../ui/motion/semanticTransitions";
 import { ProvenancePanel } from "../ui/provenance/ProvenancePanel";
 import { DishViewport } from "./DishViewport";
@@ -88,6 +89,11 @@ export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
     setting: motionSetting,
     prefersReducedMotion: systemReduced,
   });
+
+  const dishAmbient = useMemo(
+    () => resolveDishAmbient(motionPreference),
+    [motionPreference],
+  );
 
   const showSourcesPlan = useMemo(
     () =>
@@ -267,7 +273,20 @@ export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
         />
 
         <section className="dish-stage" aria-label="Petri dish viewport">
-          <div className="dish-stage__halo" aria-hidden="true" />
+          <div
+            className="dish-stage__halo"
+            aria-hidden="true"
+            data-ambient-motion={
+              dishAmbient.motion.treatment === "animate" &&
+              dishAmbient.motion.loops
+                ? "animate"
+                : "static"
+            }
+            style={{
+              "--dish-ambient-ms": `${dishAmbient.motion.durationMs}ms`,
+              "--dish-ambient-easing": `cubic-bezier(${dishAmbient.easing.join(", ")})`,
+            } as CSSProperties}
+          />
           <DishViewport motion={motionPreference} />
         </section>
 

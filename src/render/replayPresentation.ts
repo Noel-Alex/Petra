@@ -6,6 +6,8 @@ import {
   evaluateDishVisualTransitionAtProgress,
   planDishVisualTransition,
   type DishDrawableState,
+  type DishVisualTransition,
+  type DishVisualTransitionRefusalReason,
 } from "./visualInterpolation";
 
 export type DishReplayMotion = "interpolate" | "snap-to-authority";
@@ -25,7 +27,21 @@ export interface DishReplayPresentation {
   readonly upperSimulationTimeHours: number;
   readonly progress: number;
   readonly stateAuthority: "authoritative" | "presentation-only";
-  readonly interpolationRefusalReason?: string;
+  readonly interpolationRefusalReason?: DishVisualTransitionRefusalReason;
+}
+
+export interface DishReplayPresenter {
+  /**
+   * Evaluate one requested simulation-time position.
+   *
+   * Intermediate presentation frames are reusable scratch state owned by this
+   * presenter. Callers that need to retain an old visual frame must copy it;
+   * scientific history must always retain the authoritative snapshots instead.
+   */
+  evaluate(
+    requestedSimulationTimeHours: number,
+    motion?: DishReplayMotion,
+  ): DishReplayPresentation | null;
 }
 
 /**
@@ -40,86 +56,121 @@ const REPLAY_SCRUB_MOTION = Object.freeze({
 });
 
 /**
- * Resolve a deterministic dish presentation for an authoritative snapshot
- * history and requested simulation-time position.
+ * Create a replay presenter for one immutable authoritative snapshot history.
  *
- * Intermediate values are explicitly presentation-only. Exact scientific
- * readouts must continue to come from authoritative keyframes/events, never
- * from the returned interpolated frame.
+ * History validation happens once. The active adjacent-keyframe transition is
+ * cached so repeated pointer/scrub updates within the same interval reuse the
+ * preallocated Float32 presentation buffers from visualInterpolation.ts.
+ */
+export function createDishReplayPresenter(
+  snapshots: readonly DishRenderSnapshot[],
+): DishReplayPresenter {
+  validateReplayHistory(snapshots);
+
+  let cachedLowerIndex = -1;
+  let cachedTransition: DishVisualTransition | null = null;
+  let cachedRefusal: DishVisualTransitionRefusalReason | null = null;
+
+  const evaluate = (
+    requestedSimulationTimeHours: number,
+    motion: DishReplayMotion = "interpolate",
+  ): DishReplayPresentation | null => {
+    const requested = requestedSimulationTimeHours;
+    if (!Number.isFinite(requested) || requested < 0) {
+      throw new RangeError(
+        "requested replay simulation time must be finite and non-negative",
+      );
+    }
+
+    if (snapshots.length === 0) return null;
+
+    const first = snapshots[0]!;
+    const last = snapshots[snapshots.length - 1]!;
+
+    if (requested <= first.simulationTimeHours) {
+      return authoritativeKeyframe(first, requested);
+    }
+    if (requested >= last.simulationTimeHours) {
+      return authoritativeKeyframe(last, requested);
+    }
+
+    const upperIndex = findUpperSnapshotIndex(snapshots, requested);
+    const lowerIndex = upperIndex - 1;
+    const lower = snapshots[lowerIndex]!;
+    const upper = snapshots[upperIndex]!;
+
+    if (requested === upper.simulationTimeHours) {
+      return authoritativeKeyframe(upper, requested);
+    }
+
+    const progress =
+      (requested - lower.simulationTimeHours) /
+      (upper.simulationTimeHours - lower.simulationTimeHours);
+
+    if (motion === "snap-to-authority") {
+      return previousAuthoritySnap(lower, upper, requested, progress);
+    }
+
+    if (cachedLowerIndex !== lowerIndex) {
+      const plan = planDishVisualTransition(
+        lower,
+        upper,
+        REPLAY_SCRUB_MOTION,
+      );
+      cachedLowerIndex = lowerIndex;
+      cachedTransition =
+        plan.kind === "interpolate" ? plan.transition : null;
+      cachedRefusal = plan.kind === "snap" ? plan.reason : null;
+    }
+
+    if (cachedTransition === null) {
+      return {
+        ...previousAuthoritySnap(lower, upper, requested, progress),
+        ...(cachedRefusal === null
+          ? {}
+          : { interpolationRefusalReason: cachedRefusal }),
+      };
+    }
+
+    const evaluated = evaluateDishVisualTransitionAtProgress(
+      cachedTransition,
+      progress,
+    );
+
+    return {
+      mode:
+        evaluated.state === upper
+          ? "authoritative-keyframe"
+          : "interpolated-presentation",
+      state: evaluated.state,
+      requestedSimulationTimeHours: requested,
+      lowerSnapshotId: lower.snapshotId,
+      upperSnapshotId: upper.snapshotId,
+      lowerSimulationTimeHours: lower.simulationTimeHours,
+      upperSimulationTimeHours: upper.simulationTimeHours,
+      progress,
+      stateAuthority:
+        evaluated.state === upper ? "authoritative" : "presentation-only",
+    };
+  };
+
+  return Object.freeze({ evaluate });
+}
+
+/**
+ * One-shot convenience wrapper. Interactive scrub adapters should create one
+ * DishReplayPresenter and reuse it for the lifetime of a snapshot history.
  */
 export function resolveDishReplayPresentation(args: {
   readonly snapshots: readonly DishRenderSnapshot[];
   readonly requestedSimulationTimeHours: number;
   readonly motion?: DishReplayMotion;
 }): DishReplayPresentation | null {
-  const requested = args.requestedSimulationTimeHours;
-  if (!Number.isFinite(requested) || requested < 0) {
-    throw new RangeError(
-      "requested replay simulation time must be finite and non-negative",
-    );
-  }
-
-  if (args.snapshots.length === 0) return null;
-  validateReplayHistory(args.snapshots);
-
-  const first = args.snapshots[0]!;
-  const last = args.snapshots[args.snapshots.length - 1]!;
-
-  if (requested <= first.simulationTimeHours) {
-    return authoritativeKeyframe(first, requested);
-  }
-  if (requested >= last.simulationTimeHours) {
-    return authoritativeKeyframe(last, requested);
-  }
-
-  const upperIndex = findUpperSnapshotIndex(args.snapshots, requested);
-  const lower = args.snapshots[upperIndex - 1]!;
-  const upper = args.snapshots[upperIndex]!;
-
-  if (requested === upper.simulationTimeHours) {
-    return authoritativeKeyframe(upper, requested);
-  }
-
-  const progress =
-    (requested - lower.simulationTimeHours) /
-    (upper.simulationTimeHours - lower.simulationTimeHours);
-
-  if ((args.motion ?? "interpolate") === "snap-to-authority") {
-    return previousAuthoritySnap(lower, upper, requested, progress);
-  }
-
-  const transition = planDishVisualTransition(
-    lower,
-    upper,
-    REPLAY_SCRUB_MOTION,
+  const presenter = createDishReplayPresenter(args.snapshots);
+  return presenter.evaluate(
+    args.requestedSimulationTimeHours,
+    args.motion ?? "interpolate",
   );
-  if (transition.kind === "snap") {
-    return {
-      ...previousAuthoritySnap(lower, upper, requested, progress),
-      interpolationRefusalReason: transition.reason,
-    };
-  }
-
-  const evaluated = evaluateDishVisualTransitionAtProgress(
-    transition.transition,
-    progress,
-  );
-
-  return {
-    mode:
-      evaluated.state === upper
-        ? "authoritative-keyframe"
-        : "interpolated-presentation",
-    state: evaluated.state,
-    requestedSimulationTimeHours: requested,
-    lowerSnapshotId: lower.snapshotId,
-    upperSnapshotId: upper.snapshotId,
-    lowerSimulationTimeHours: lower.simulationTimeHours,
-    upperSimulationTimeHours: upper.simulationTimeHours,
-    progress,
-    stateAuthority:
-      evaluated.state === upper ? "authoritative" : "presentation-only",
-  };
 }
 
 function validateReplayHistory(

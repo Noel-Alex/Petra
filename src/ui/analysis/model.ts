@@ -4,6 +4,7 @@ import {
   type LineageContrastMode,
   type LineagePatternToken,
 } from "../../design/lineageIdentity";
+import type { PetraVisualColorToken } from "../../design/visualTokens";
 import {
   resolveMotion,
   type MotionPreference,
@@ -69,6 +70,7 @@ export interface LineageTreeNode extends LineageAncestryInput {
   readonly y: number;
   readonly status: "extant" | "extinct";
   readonly appearanceToken: LineageAppearanceToken;
+  readonly colorToken: PetraVisualColorToken;
   readonly patternToken: LineagePatternToken;
   readonly contrastMode: LineageContrastMode;
   readonly strokeWidthScale: number;
@@ -350,6 +352,7 @@ export function buildLineageTree(
     y: ordered.length === 1 ? 0.5 : index / (ordered.length - 1),
     status: lineage.extinctAtHours === null ? "extant" : "extinct",
     appearanceToken: visualIdentity.appearanceToken,
+    colorToken: visualIdentity.colorToken,
     patternToken: visualIdentity.patternToken,
     contrastMode: visualIdentity.contrastMode,
     strokeWidthScale: visualIdentity.strokeWidthScale,

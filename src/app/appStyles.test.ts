@@ -183,3 +183,61 @@ describe("Analysis shell shared visual theme", () => {
     expect(analysisSurfaceCss).not.toContain("animation:");
   });
 });
+
+
+describe("App shell shared visual-theme ownership", () => {
+  const cssWithoutComments = appCss.replace(/\/\*[\s\S]*?\*\//g, "");
+
+  it("keeps stable App and dish DOM chrome on Petra shared visual variables", () => {
+    for (const token of [
+      "--petra-color-ink-deep",
+      "--petra-color-ink-soft",
+      "--petra-color-cream",
+      "--petra-color-cream-muted",
+      "--petra-color-teal",
+      "--petra-color-mint",
+      "--petra-color-amber",
+      "--petra-color-coral",
+    ]) {
+      expect(cssWithoutComments).toContain(token);
+    }
+
+    expect(cssWithoutComments).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+    expect(cssWithoutComments).not.toMatch(/\brgba?\(\s*\d/i);
+    expect(cssWithoutComments).not.toMatch(/backdrop-filter\s*:\s*blur/i);
+  });
+
+  it("preserves renderer-owned overlay variables and non-color pattern redundancy", () => {
+    expect(appCss).toContain(
+      "var(--overlay-positive, var(--petra-color-ink-soft))",
+    );
+    expect(appCss).toContain("var(--overlay-negative)");
+    expect(appCss).toContain("var(--overlay-neutral)");
+    for (const pattern of [
+      "dot-grid",
+      "diagonal-forward",
+      "diagonal-back",
+      "signed-diagonal",
+      "crosshatch",
+      "diamond-grid",
+      "neutral-grid",
+      "ring-grid",
+      "horizontal-bars",
+      "speckle",
+    ]) {
+      expect(appCss).toContain(`data-overlay-pattern="${pattern}"`);
+    }
+  });
+
+  it("keeps runtime status reinforcement on shared mint, amber and coral families", () => {
+    expect(appCss).toMatch(
+      /data-runtime-status="ready"[\s\S]*?--petra-(?:rgb|color)-mint/,
+    );
+    expect(appCss).toMatch(
+      /data-runtime-status="pending"[\s\S]*?--petra-(?:rgb|color)-amber/,
+    );
+    expect(appCss).toMatch(
+      /data-runtime-status="error"[\s\S]*?--petra-(?:rgb|color)-coral/,
+    );
+  });
+});

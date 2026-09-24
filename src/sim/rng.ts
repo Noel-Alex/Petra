@@ -1,3 +1,5 @@
+import { assertSimulationSeed } from './seed'
+
 export type RngState = readonly [number, number, number, number]
 
 const UINT32_SCALE = 1 / 0x1_0000_0000
@@ -7,7 +9,7 @@ function rotl(value: number, shift: number): number {
 }
 
 function splitmix32(seed: number): () => number {
-  let state = seed >>> 0
+  let state = assertSimulationSeed(seed)
   return () => {
     state = (state + 0x9e3779b9) >>> 0
     let z = state

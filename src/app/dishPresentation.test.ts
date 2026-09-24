@@ -2,12 +2,17 @@ import { describe, expect, it } from "vitest";
 import { createRendererDemoSnapshot } from "../render/pixi/demoSnapshot";
 import {
   AUTOMATIC_DISH_OVERLAY,
+  AUTOMATIC_DISH_OVERLAY_CONTROL_VALUE,
   NO_DISH_OVERLAY,
+  NO_DISH_OVERLAY_CONTROL_VALUE,
   defaultDishOverlayId,
+  dishOverlayControlValue,
   dishOverlayFieldSelection,
+  dishOverlaySelectionFromControlValue,
   reconcileDishOverlaySelection,
   resolveDishOverlay,
   resolveDishOverlaySelection,
+  sameDishOverlaySelection,
 } from "./dishPresentation";
 
 describe("dish presentation overlay selection", () => {
@@ -24,11 +29,63 @@ describe("dish presentation overlay selection", () => {
     expect(field?.unit).toBe("demo normalized");
   });
 
-  it("keeps the legacy null helper fallback stable until adapter migration", () => {
+  it("keeps the legacy null helper fallback stable for compatibility", () => {
     const snapshot = createRendererDemoSnapshot(24);
     expect(resolveDishOverlay(snapshot, "missing-layer")?.id).toBe(
       "demo-antibiotic",
     );
+  });
+
+  it("round-trips automatic, none, and field identities through control values", () => {
+    expect(dishOverlayControlValue(AUTOMATIC_DISH_OVERLAY)).toBe(
+      AUTOMATIC_DISH_OVERLAY_CONTROL_VALUE,
+    );
+    expect(dishOverlaySelectionFromControlValue("automatic")).toBe(
+      AUTOMATIC_DISH_OVERLAY,
+    );
+
+    expect(dishOverlayControlValue(NO_DISH_OVERLAY)).toBe(
+      NO_DISH_OVERLAY_CONTROL_VALUE,
+    );
+    expect(dishOverlaySelectionFromControlValue("none")).toBe(
+      NO_DISH_OVERLAY,
+    );
+
+    const field = dishOverlayFieldSelection("demo-nutrient");
+    expect(dishOverlayControlValue(field)).toBe("field:demo-nutrient");
+    expect(dishOverlaySelectionFromControlValue("field:demo-nutrient")).toEqual(
+      field,
+    );
+  });
+
+  it("rejects ambiguous or malformed overlay control values", () => {
+    expect(() => dishOverlaySelectionFromControlValue("")).toThrow(
+      /unknown dish overlay control value/,
+    );
+    expect(() => dishOverlaySelectionFromControlValue("demo-nutrient")).toThrow(
+      /unknown dish overlay control value/,
+    );
+    expect(() => dishOverlaySelectionFromControlValue("field:")).toThrow(
+      /non-empty/,
+    );
+  });
+
+  it("compares semantic selection identity without relying on object identity", () => {
+    expect(
+      sameDishOverlaySelection(
+        dishOverlayFieldSelection("demo-nutrient"),
+        dishOverlayFieldSelection("demo-nutrient"),
+      ),
+    ).toBe(true);
+    expect(
+      sameDishOverlaySelection(
+        dishOverlayFieldSelection("demo-nutrient"),
+        dishOverlayFieldSelection("demo-antibiotic"),
+      ),
+    ).toBe(false);
+    expect(
+      sameDishOverlaySelection(AUTOMATIC_DISH_OVERLAY, NO_DISH_OVERLAY),
+    ).toBe(false);
   });
 
   it("keeps automatic selection distinct from an explicit no-overlay choice", () => {

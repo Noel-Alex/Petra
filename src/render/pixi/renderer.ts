@@ -44,7 +44,7 @@ const LINEAGE_COLORS = [0x55d7ef, 0xf079b7, 0xf2ca68, 0x75e3ae, 0xb39af5] as con
 
 export async function createPixiDishRenderer(
   host: HTMLElement,
-  options: PixiDishOptions = {},
+  options: PixiDishOptions,
 ): Promise<PixiDishRenderer> {
   const app = new Application();
   await app.init({

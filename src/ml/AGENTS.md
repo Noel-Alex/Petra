@@ -32,10 +32,13 @@ Own Petra's optional learned-surrogate infrastructure without granting ML author
 A surrogate is not product-eligible until it has a versioned dataset, leakage-safe held-out evaluation, a simple baseline comparison, declared domain envelope, visible error metrics, and a mechanistic spot-check path.
 
 - Held-out regression evidence uses complete rows and declared targets; missing/extra targets, non-finite values, row-count mismatch, or metric overflow are invalid evidence.
-- Benchmark evidence binds model id/version, dataset version, engine version, split-assignment policy version, split-coverage policy version, held-out split, baseline id, and per-target MAE/RMSE/count.
+- Benchmark evidence binds model id/version, dataset version, engine version, split-assignment policy version, split-coverage policy version, **evaluation-weighting policy version**, held-out split, baseline id, declared held-out group keys, requested forecast horizons, coverage counts, and per-target MAE/RMSE/count.
+- Promotion evaluation uses paired authoritative rows: candidate and baseline predictions share the same group/trajectory/horizon target record. Do not compare independently sampled candidate/baseline populations.
+- The default v3 evaluation contract permits exactly one evaluation record per trajectory × declared horizon, equal-weights requested horizons inside each held-out group, and equal-weights held-out groups overall. Snapshot cadence or trajectory length must not silently add promotion weight.
+- Evidence must retain overall, per-group, per-horizon, and group×horizon metrics plus group/trajectory/row coverage. Missing required strata fail closed.
 - A `validated` model card must carry its promotion evidence and requirements. Emulated admission re-checks that evidence rather than trusting the status label alone.
-- Candidate and baseline must cover exactly the declared targets and use equal evaluation counts for each target.
-- The current default promotion rule requires strict improvement in both MAE and RMSE on every declared target. Petra does not invent a percentage margin; any future margin must be separately versioned and justified.
+- Candidate and baseline must cover exactly the declared targets and use equal paired evaluation counts for each target and required stratum.
+- The current default promotion rule requires strict improvement in both MAE and RMSE on every declared target at overall, per-group, per-horizon, and group×horizon levels. Petra does not invent a percentage margin; any future aggregation/threshold change must be separately versioned and justified.
 - Stale/mismatched benchmark evidence routes to mechanistic mode with an explicit `promotion-evidence-invalid` reason.
 
 ## Verification
@@ -51,4 +54,4 @@ Pure dataset/split/OOD/mode-gate/benchmark helpers require deterministic unit te
 - Sweep definitions require an explicit `maxTrajectories` budget. Refuse oversized Cartesian products before execution rather than silently launching an unbounded local/cloud workload.
 - The default held-out coverage gate requires at least one group in train, validation, and test. A failed gate must report observed per-split group/trajectory counts and instruct the caller to enlarge/change the declared sweep or adopt a separately versioned policy; it must never rebalance individual replicas.
 - Dataset-generation manifest v2 records plan/dataset/engine/scenario identity, split-assignment policy, split-coverage policy, per-split group/trajectory counts, and stable trajectory keys. These are execution provenance, not evidence that trajectories were actually simulated.
-- Surrogate benchmark evidence v2 and promotion requirements carry the same split-coverage-policy version so evidence produced under an older coverage contract cannot be silently reinterpreted.
+- Surrogate benchmark evidence v3 and promotion requirements carry the same split-coverage-policy and evaluation-policy versions so evidence produced under older coverage/weighting contracts cannot be silently reinterpreted.

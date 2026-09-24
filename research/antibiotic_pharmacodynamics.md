@@ -45,6 +45,23 @@ Minimal spatial equation:
 
 For an MVP, decay may be zero unless a calibrated scenario requires it.
 
+### Current composed-runtime authority boundary
+
+Protocol-v4 composed runs may carry a **static** full-grid ciprofloxacin
+concentration landscape in `mg/L` as replay-critical run configuration. The
+landscape is validated as finite/non-negative, exactly zero outside the dish
+mask, and may be non-zero only when the run also binds the supported
+source-backed PD/MIC authority. Composed stepping reuses the reviewed spatial
+loss composition to derive one genotype-specific loss-hazard field from that
+authoritative concentration array.
+
+This is an implementation of the existing Regoes + Marcusson transfer policy,
+not new biological evidence and not a claim that the concentration field itself
+has calibrated transport dynamics. The bundled flagship baseline keeps the
+landscape exactly zero. Mutable pulse/paint/gradient intervention state still
+requires a versioned checkpoint/protocol command path; presentation previews
+must not be treated as having changed biology until that path exists.
+
 ## Resistance
 
 Resistance modifies drug-response parameters (especially effective MIC / response position). It does **not** make cells generally immortal.

@@ -61,6 +61,7 @@ const composedConfig: ComposedSimulationConfig = {
   height: 1,
   mask: [1, 1],
   initialResource: [8, 8],
+  ciprofloxacinConcentrationMgPerL: [0, 0],
   initialLineageBiomass: [[1, 0], [2, 0]],
   growth: {
     maxDivisionRate: 0.8,
@@ -78,6 +79,7 @@ const composedConfig: ComposedSimulationConfig = {
     scenarioId: 'protocol-runtime-composed',
     scenarioVersion: '1',
   },
+  ciprofloxacin: null,
   samplingExecutionPolicy: null,
   hoursPerTick: 0.01,
 }

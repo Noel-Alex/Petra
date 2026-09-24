@@ -70,12 +70,22 @@ these model-unit semantics.
 
 
 The same scenario also selects
-`ecoli-ciprofloxacin-baseline-composed@1.0.0` as its baseline composed
+`ecoli-ciprofloxacin-baseline-composed@1.1.0` as its baseline composed
 parameter set. That record owns engineering mechanism identity: circular
 model-grid geometry, the `founder-wt` → `WT` lineage/genotype channel, the
-active resource×drug loss-policy identity, and an exact zero *incremental
-ciprofloxacin-loss* hazard before any drug intervention is active. Zero here is
-not a measured MG1655 background-death rate.
+active resource×drug loss-policy identity, and the scenario-owned Regoes
+reference curve + Marcusson genotype MIC table used by that policy. The bundled
+baseline config also carries an explicit all-zero `mg/L` ciprofloxacin
+landscape, so its incremental ciprofloxacin loss is exactly zero before any
+drug exposure is configured. Zero here is not a measured MG1655
+background-death rate.
+
+Under protocol v4 this concentration landscape is immutable run configuration
+and participates in the exact composed configuration fingerprint. That is a
+bounded authority bridge for static configured landscapes, not a substitute for
+typed mutable intervention state. Dose/paint commands require a separately
+versioned checkpoint/protocol path before the UI may claim that applying a tool
+changed authoritative drug state.
 
 Initial model-resource level, founder placement, founder biomass, and random seed
 remain explicit run-state inputs. They are intentionally not silently promoted

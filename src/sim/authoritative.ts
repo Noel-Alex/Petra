@@ -14,6 +14,14 @@ import {
   samplingExecutionPolicyIdentity,
   type SamplingExecutionPolicy,
 } from './samplingPolicy'
+import {
+  CIPROFLOXACIN_RESOURCE_COMPOSITION_POLICY,
+  composeSpatialCiprofloxacinLoss,
+} from './pharmacodynamics/composition'
+import {
+  validateRegoesParameters,
+  type RegoesPharmacodynamics,
+} from './pharmacodynamics/ciprofloxacin'
 
 /** Versioned serializable composition boundary. Biological values are caller supplied. */
 export const COMPOSED_STATE_VERSION = 2 as const
@@ -24,16 +32,36 @@ export interface ComposedLineageConfig {
   readonly deathHazardPerHour: number
 }
 
+export interface ComposedGenotypeCiprofloxacinMic {
+  readonly genotypeId: string
+  readonly micMgPerL: number
+}
+
+export interface ComposedCiprofloxacinConfig {
+  readonly policyId: typeof CIPROFLOXACIN_RESOURCE_COMPOSITION_POLICY.id
+  readonly concentrationUnit: 'mg/L'
+  readonly referencePharmacodynamics: Readonly<RegoesPharmacodynamics>
+  readonly referenceMicMgPerL: number
+  readonly genotypeMicMgPerL: readonly ComposedGenotypeCiprofloxacinMic[]
+}
+
 export interface ComposedSimulationConfig {
   readonly width: number
   readonly height: number
   readonly mask: readonly number[]
   readonly initialResource: readonly number[]
+  /**
+   * Replay-critical static ciprofloxacin landscape for this run, in mg/L.
+   * Mutable intervention state requires a separately versioned protocol/state change.
+   */
+  readonly ciprofloxacinConcentrationMgPerL: readonly number[]
   readonly initialLineageBiomass: readonly (readonly number[])[]
   readonly growth: Readonly<GrowthParameters>
   readonly lineages: readonly ComposedLineageConfig[]
   readonly evolutionGraph: CuratedMutationGraph
   readonly evolutionScenario: EvolutionScenarioIdentity
+  /** Explicit null means this run has no ciprofloxacin PD authority. */
+  readonly ciprofloxacin: ComposedCiprofloxacinConfig | null
   readonly samplingExecutionPolicy: SamplingExecutionPolicy | null
   readonly hoursPerTick: number
 }
@@ -175,6 +203,77 @@ function composedSamplingPolicyIdentity(
   return policy === null ? null : samplingExecutionPolicyIdentity(policy)
 }
 
+function composedCiprofloxacinIdentity(
+  authority: ComposedCiprofloxacinConfig | null | undefined,
+): ComposedCiprofloxacinConfig | null {
+  if (authority === undefined) {
+    throw new Error(
+      'ciprofloxacin authority must be explicit null or a valid authority',
+    )
+  }
+  if (authority === null) return null
+  if (
+    authority.policyId !== CIPROFLOXACIN_RESOURCE_COMPOSITION_POLICY.id
+  ) {
+    throw new Error('unsupported composed ciprofloxacin composition policy')
+  }
+  if (authority.concentrationUnit !== 'mg/L') {
+    throw new Error('composed ciprofloxacin concentration unit must be mg/L')
+  }
+
+  validateRegoesParameters(authority.referencePharmacodynamics)
+  positiveFinite(
+    'ciprofloxacin.referenceMicMgPerL',
+    authority.referenceMicMgPerL,
+  )
+  if (
+    !Array.isArray(authority.genotypeMicMgPerL) ||
+    authority.genotypeMicMgPerL.length === 0
+  ) {
+    throw new Error('ciprofloxacin genotype MIC table must be a non-empty array')
+  }
+
+  const genotypeIds = new Set<string>()
+  const genotypeMicMgPerL = authority.genotypeMicMgPerL.map((entry, index) => {
+    if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
+      throw new Error(
+        'ciprofloxacin genotype MIC entry at index ' + index + ' must be an object',
+      )
+    }
+    canonicalIdentity(
+      'ciprofloxacin genotype id at index ' + index,
+      entry.genotypeId,
+    )
+    if (genotypeIds.has(entry.genotypeId)) {
+      throw new Error('ciprofloxacin genotype MIC ids must be unique')
+    }
+    genotypeIds.add(entry.genotypeId)
+    positiveFinite(
+      'ciprofloxacin MIC for ' + entry.genotypeId,
+      entry.micMgPerL,
+    )
+    return {
+      genotypeId: entry.genotypeId,
+      micMgPerL: entry.micMgPerL,
+    }
+  })
+
+  return {
+    policyId: authority.policyId,
+    concentrationUnit: 'mg/L',
+    referencePharmacodynamics: {
+      psiMaxLog10PerHour:
+        authority.referencePharmacodynamics.psiMaxLog10PerHour,
+      psiMinLog10PerHour:
+        authority.referencePharmacodynamics.psiMinLog10PerHour,
+      zMic: authority.referencePharmacodynamics.zMic,
+      kappa: authority.referencePharmacodynamics.kappa,
+    },
+    referenceMicMgPerL: authority.referenceMicMgPerL,
+    genotypeMicMgPerL,
+  }
+}
+
 function validateConfig(config: ComposedSimulationConfig): void {
   if (
     !Number.isSafeInteger(config.width) ||
@@ -191,7 +290,8 @@ function validateConfig(config: ComposedSimulationConfig): void {
   }
   if (
     config.mask.length !== cellCount ||
-    config.initialResource.length !== cellCount
+    config.initialResource.length !== cellCount ||
+    config.ciprofloxacinConcentrationMgPerL.length !== cellCount
   ) {
     throw new Error('composed field arrays must match grid dimensions')
   }
@@ -227,7 +327,36 @@ function validateConfig(config: ComposedSimulationConfig): void {
   // Strict scenario/genotype validation boundary. Relative fitness is owned by
   // the curated evolution graph and cannot be re-entered by composition callers.
   lineageFitness(config)
+  const ciprofloxacin = composedCiprofloxacinIdentity(config.ciprofloxacin)
   composedSamplingPolicyIdentity(config.samplingExecutionPolicy)
+
+  const knownGenotypes = new Set(
+    config.evolutionGraph.genotypes.map((genotype) => genotype.id),
+  )
+  if (ciprofloxacin !== null) {
+    const micByGenotype = new Map(
+      ciprofloxacin.genotypeMicMgPerL.map((entry) => [
+        entry.genotypeId,
+        entry.micMgPerL,
+      ] as const),
+    )
+    for (const entry of ciprofloxacin.genotypeMicMgPerL) {
+      if (!knownGenotypes.has(entry.genotypeId)) {
+        throw new Error(
+          'ciprofloxacin MIC table references unknown genotype ' +
+            entry.genotypeId,
+        )
+      }
+    }
+    for (const lineage of config.lineages) {
+      if (!micByGenotype.has(lineage.genotypeId)) {
+        throw new Error(
+          'ciprofloxacin MIC table is missing active genotype ' +
+            lineage.genotypeId,
+        )
+      }
+    }
+  }
 
   positiveFinite('hoursPerTick', config.hoursPerTick)
   finiteNonNegative('maxDivisionRate', config.growth.maxDivisionRate)
@@ -247,6 +376,20 @@ function validateConfig(config: ComposedSimulationConfig): void {
   config.initialResource.forEach((value) =>
     finiteNonNegative('initialResource', value),
   )
+  config.ciprofloxacinConcentrationMgPerL.forEach((value, index) => {
+    finiteNonNegative('ciprofloxacinConcentrationMgPerL', value)
+    if (config.mask[index] === 0 && value !== 0) {
+      throw new Error(
+        'ciprofloxacin concentration must be zero outside composed mask at cell ' +
+          index,
+      )
+    }
+    if (ciprofloxacin === null && value !== 0) {
+      throw new Error(
+        'non-zero ciprofloxacin concentration requires explicit PD authority',
+      )
+    }
+  })
   config.initialLineageBiomass.forEach((channel) =>
     channel.forEach((value) =>
       finiteNonNegative('initialLineageBiomass', value),
@@ -281,8 +424,9 @@ function validateConfig(config: ComposedSimulationConfig): void {
 
 /**
  * Canonical, non-cryptographic identity for configuration that must not drift
- * while continuing one composed state. Initial fields are state, not mechanism
- * configuration, so they are deliberately excluded.
+ * while continuing one composed state. Mutable initial resource/biomass fields
+ * are state and remain excluded. The protocol-v4 static ciprofloxacin landscape
+ * is included because it is not checkpoint state and must not change silently.
  */
 export function composedConfigurationFingerprint(
   config: ComposedSimulationConfig,
@@ -293,6 +437,10 @@ export function composedConfigurationFingerprint(
     width: config.width,
     height: config.height,
     mask: Array.from(config.mask),
+    ciprofloxacinConcentrationMgPerL: Array.from(
+      config.ciprofloxacinConcentrationMgPerL,
+    ),
+    ciprofloxacin: composedCiprofloxacinIdentity(config.ciprofloxacin),
     growth: {
       maxDivisionRate: config.growth.maxDivisionRate,
       halfSaturation: config.growth.halfSaturation,
@@ -429,6 +577,97 @@ function asEcologyState(state: ComposedSimulationState): EcologyState {
   }
 }
 
+interface PreparedComposedLineageParameters {
+  readonly configurationFingerprint: string
+  readonly lineageParameters: readonly LineageEcologyParameters[]
+}
+
+const preparedLineageParameterCache =
+  new WeakMap<ComposedSimulationConfig, PreparedComposedLineageParameters>()
+
+function preparedLineageParameters(
+  config: ComposedSimulationConfig,
+  configurationFingerprint: string,
+): readonly LineageEcologyParameters[] {
+  const cached = preparedLineageParameterCache.get(config)
+  if (cached?.configurationFingerprint === configurationFingerprint) {
+    return cached.lineageParameters
+  }
+
+  const fitness = lineageFitness(config)
+  const ciprofloxacin = composedCiprofloxacinIdentity(config.ciprofloxacin)
+  const hasDrugExposure =
+    ciprofloxacin !== null &&
+    config.ciprofloxacinConcentrationMgPerL.some((value) => value !== 0)
+
+  let drugHazardByGenotype: ReadonlyMap<string, Float64Array> | null = null
+  if (ciprofloxacin !== null && hasDrugExposure) {
+    const micByGenotype = new Map(
+      ciprofloxacin.genotypeMicMgPerL.map((entry) => [
+        entry.genotypeId,
+        entry.micMgPerL,
+      ] as const),
+    )
+    const activeGenotypes = [...new Set(
+      config.lineages.map((lineage) => lineage.genotypeId),
+    )].map((genotypeId) => ({
+      genotypeId,
+      genotypeMic: micByGenotype.get(genotypeId)!,
+    }))
+    const composed = composeSpatialCiprofloxacinLoss(
+      Float32Array.from(config.ciprofloxacinConcentrationMgPerL),
+      Uint8Array.from(config.mask),
+      ciprofloxacin.referencePharmacodynamics,
+      ciprofloxacin.referenceMicMgPerL,
+      activeGenotypes,
+    )
+    drugHazardByGenotype = new Map(
+      composed.fields.map((field) => [
+        field.genotypeId,
+        field.deathHazardPerHour,
+      ] as const),
+    )
+  }
+
+  const lineageParameters: LineageEcologyParameters[] = config.lineages.map(
+    (lineage, index) => {
+      if (drugHazardByGenotype === null) {
+        return {
+          relativeFitness: fitness[index]!.relativeFitness,
+          deathHazardPerTime: lineage.deathHazardPerHour,
+        }
+      }
+
+      const drugHazard = drugHazardByGenotype.get(lineage.genotypeId)
+      if (drugHazard === undefined) {
+        throw new Error(
+          'missing composed ciprofloxacin hazard for genotype ' +
+            lineage.genotypeId,
+        )
+      }
+      const combinedHazard = new Float64Array(drugHazard.length)
+      for (let cell = 0; cell < drugHazard.length; cell += 1) {
+        if (config.mask[cell] !== 1) continue
+        const value = lineage.deathHazardPerHour + drugHazard[cell]!
+        if (!Number.isFinite(value) || value < 0) {
+          throw new Error('composed lineage death hazard became invalid')
+        }
+        combinedHazard[cell] = value
+      }
+      return {
+        relativeFitness: fitness[index]!.relativeFitness,
+        deathHazardPerTime: combinedHazard,
+      }
+    },
+  )
+
+  preparedLineageParameterCache.set(config, {
+    configurationFingerprint,
+    lineageParameters,
+  })
+  return lineageParameters
+}
+
 export function stepComposedState(
   state: ComposedSimulationState,
   config: ComposedSimulationConfig,
@@ -436,12 +675,9 @@ export function stepComposedState(
   validateComposedStateAgainstConfig(state, config)
 
   const ecology = asEcologyState(state)
-  const fitness = lineageFitness(config)
-  const lineageParameters: LineageEcologyParameters[] = config.lineages.map(
-    (lineage, index) => ({
-      relativeFitness: fitness[index]!.relativeFitness,
-      deathHazardPerTime: lineage.deathHazardPerHour,
-    }),
+  const lineageParameters = preparedLineageParameters(
+    config,
+    state.configurationFingerprint,
   )
   const result = stepEcology(
     ecology,

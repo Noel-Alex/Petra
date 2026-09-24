@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { DishRenderSnapshot } from "../model";
 import type { CameraMotionSpec } from "./cameraMotion";
 import { createRendererDemoSnapshot } from "./demoSnapshot";
@@ -7,6 +7,7 @@ import {
   type PixiDishRenderer,
   type RendererMotionMode,
 } from "./renderer";
+import { beginRendererInitialization } from "./rendererLifecycle";
 
 export interface PixiDishProps {
   readonly snapshot?: DishRenderSnapshot | null;
@@ -19,6 +20,18 @@ export interface PixiDishProps {
   /** Explicit opt-in for the deterministic presentation-only fixture. */
   readonly demoMode?: boolean;
 }
+
+type RendererStartupStatus = "idle" | "initializing" | "ready" | "failed";
+
+interface RendererStartupState {
+  readonly status: RendererStartupStatus;
+  readonly errorMessage: string | null;
+}
+
+const IDLE_STARTUP: RendererStartupState = {
+  status: "idle",
+  errorMessage: null,
+};
 
 export function PixiDish({
   snapshot,
@@ -35,6 +48,8 @@ export function PixiDish({
   const motionRef = useRef(motion);
   const overlayRef = useRef(overlayId);
   const demoSnapshotRef = useRef<DishRenderSnapshot | null>(null);
+  const [startup, setStartup] = useState<RendererStartupState>(IDLE_STARTUP);
+  const [retryAttempt, setRetryAttempt] = useState(0);
 
   const usingAuthoritative = snapshot !== null && snapshot !== undefined;
   const usingDemo = !usingAuthoritative && demoMode;
@@ -55,32 +70,43 @@ export function PixiDish({
   snapshotRef.current = renderSnapshot;
 
   useEffect(() => {
-    if (!renderEnabled) return;
+    if (!renderEnabled) {
+      rendererRef.current = null;
+      setStartup(IDLE_STARTUP);
+      return;
+    }
+
     const host = hostRef.current;
     if (host === null) return;
 
-    let disposed = false;
-    let instance: PixiDishRenderer | null = null;
+    rendererRef.current = null;
+    host.replaceChildren();
+    setStartup({ status: "initializing", errorMessage: null });
 
-    void createPixiDishRenderer(host, { motion, cameraMotion, overlayId }).then((renderer) => {
-      if (disposed) {
-        renderer.destroy();
-        return;
-      }
-      instance = renderer;
-      rendererRef.current = renderer;
-      renderer.setMotionMode(motionRef.current);
-      const currentSnapshot = snapshotRef.current;
-      if (currentSnapshot !== null) renderer.update(currentSnapshot);
-      renderer.setOverlay(overlayRef.current);
-    });
+    const lifecycle = beginRendererInitialization(
+      () => createPixiDishRenderer(host, { motion, cameraMotion, overlayId }),
+      {
+        onReady(renderer) {
+          rendererRef.current = renderer;
+          renderer.setMotionMode(motionRef.current);
+          const currentSnapshot = snapshotRef.current;
+          if (currentSnapshot !== null) renderer.update(currentSnapshot);
+          renderer.setOverlay(overlayRef.current);
+          setStartup({ status: "ready", errorMessage: null });
+        },
+        onError(error) {
+          rendererRef.current = null;
+          host.replaceChildren();
+          setStartup({ status: "failed", errorMessage: error.message });
+        },
+      },
+    );
 
     return () => {
-      disposed = true;
       rendererRef.current = null;
-      instance?.destroy();
+      lifecycle.dispose();
     };
-  }, [renderEnabled]);
+  }, [renderEnabled, retryAttempt]);
 
   useEffect(() => {
     rendererRef.current?.setMotionMode(motion);
@@ -102,17 +128,22 @@ export function PixiDish({
       : "awaiting-authoritative-snapshot";
 
   const resolvedAriaLabel =
-    ariaLabel ??
-    (usingAuthoritative
-      ? "Interactive Petra dish renderer"
-      : usingDemo
-        ? "Interactive Petra dish renderer using visual demonstration data, not simulation data"
-        : "Petra dish waiting for authoritative simulation data");
+    startup.status === "failed"
+      ? "Petra dish renderer unavailable"
+      : ariaLabel ??
+        (usingAuthoritative
+          ? "Interactive Petra dish renderer"
+          : usingDemo
+            ? "Interactive Petra dish renderer using visual demonstration data, not simulation data"
+            : "Petra dish waiting for authoritative simulation data");
+
+  const rendererInteractive = renderEnabled && startup.status === "ready";
 
   return (
     <div
       className={className}
       data-render-source={source}
+      data-render-status={startup.status}
       style={{
         width: "100%",
         height: "100%",
@@ -125,16 +156,17 @@ export function PixiDish({
       <div
         ref={hostRef}
         role="region"
-        tabIndex={renderEnabled ? 0 : -1}
+        tabIndex={rendererInteractive ? 0 : -1}
         aria-roledescription="interactive Petri dish"
         aria-describedby={ariaDescribedBy}
         aria-label={resolvedAriaLabel}
+        aria-busy={renderEnabled && startup.status === "initializing"}
         style={{
           position: "absolute",
           inset: 0,
           display: "grid",
           placeItems: "center",
-          touchAction: renderEnabled ? "none" : "auto",
+          touchAction: rendererInteractive ? "none" : "auto",
         }}
       >
         {!renderEnabled ? (
@@ -152,6 +184,76 @@ export function PixiDish({
           </span>
         ) : null}
       </div>
+
+      {renderEnabled && startup.status === "failed" ? (
+        <div
+          data-render-fallback="true"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          title={startup.errorMessage ?? undefined}
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 3,
+            display: "grid",
+            placeItems: "center",
+            padding: "1.2rem",
+            background:
+              "radial-gradient(circle at center, rgba(32, 54, 78, 0.56), rgba(5, 13, 25, 0.94))",
+          }}
+        >
+          <div
+            style={{
+              width: "min(24rem, 100%)",
+              padding: "1rem 1.05rem",
+              border: "1px solid rgba(143, 220, 255, 0.2)",
+              borderRadius: "18px",
+              background: "rgba(8, 20, 37, 0.9)",
+              boxShadow: "0 22px 70px rgba(0, 0, 0, 0.28)",
+              textAlign: "center",
+            }}
+          >
+            <strong
+              style={{
+                display: "block",
+                marginBottom: "0.45rem",
+                color: "#eef7ff",
+                fontSize: "0.95rem",
+              }}
+            >
+              Interactive dish unavailable
+            </strong>
+            <span
+              style={{
+                display: "block",
+                marginBottom: "0.8rem",
+                color: "rgba(226, 235, 246, 0.72)",
+                fontSize: "0.78rem",
+                lineHeight: 1.5,
+              }}
+            >
+              The WebGL renderer could not start. Petra has not substituted
+              demonstration biology or changed the simulation state.
+            </span>
+            <button
+              type="button"
+              onClick={() => setRetryAttempt((attempt) => attempt + 1)}
+              style={{
+                border: "1px solid rgba(143, 220, 255, 0.42)",
+                borderRadius: "12px",
+                background: "rgba(143, 220, 255, 0.1)",
+                color: "#eef7ff",
+                padding: "0.58rem 0.82rem",
+                cursor: "pointer",
+              }}
+            >
+              Retry renderer
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {usingDemo ? (
         <div
           data-render-demo-disclosure="true"
@@ -160,7 +262,7 @@ export function PixiDish({
             position: "absolute",
             left: "50%",
             bottom: "0.8rem",
-            zIndex: 2,
+            zIndex: 4,
             transform: "translateX(-50%)",
             maxWidth: "calc(100% - 1.6rem)",
             padding: "0.42rem 0.68rem",

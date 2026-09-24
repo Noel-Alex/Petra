@@ -116,3 +116,73 @@ describe('capacity-conservative colony spread', () => {
     expect(total(state)).toBeCloseTo(before - 50, 5)
   })
 })
+
+
+describe('pre-existing local capacity invariant', () => {
+  it('rejects materially over-capacity biomass before mutating any earlier cell', () => {
+    const state: EcologyState = {
+      width: 2,
+      height: 1,
+      mask: new Uint8Array([1, 1]),
+      resource: new Float32Array([10, 0]),
+      lineages: [
+        new Float32Array([1, 60]),
+        new Float32Array([0, 40.01]),
+      ],
+    }
+    const beforeResource = state.resource.slice()
+    const beforeLineages = state.lineages.map((lineage) => lineage.slice())
+
+    expect(() =>
+      stepEcology(
+        state,
+        { ...p, maxDivisionRate: 1, spreadRate: 0 },
+        neutral(2),
+        1,
+      ),
+    ).toThrow(/cell 1 total biomass exceeds localCapacity/)
+
+    expect(state.resource).toEqual(beforeResource)
+    expect(state.lineages[0]).toEqual(beforeLineages[0])
+    expect(state.lineages[1]).toEqual(beforeLineages[1])
+  })
+
+  it('accepts only the tiny overage explainable by Float32 channel storage', () => {
+    const state = make([[0.001], [99.999]])
+    const storedTotal = localTotal(state, 0)
+
+    expect(storedTotal).toBeGreaterThan(p.localCapacity)
+    expect(() =>
+      stepEcology(state, { ...p, spreadRate: 0 }, neutral(2), 1),
+    ).not.toThrow()
+  })
+
+  it('accepts a capacity-filling Petra step again after Float32 write-back', () => {
+    const state: EcologyState = {
+      width: 1,
+      height: 1,
+      mask: new Uint8Array([1]),
+      resource: new Float32Array([100]),
+      lineages: [
+        new Float32Array([0.001]),
+        new Float32Array([99]),
+      ],
+    }
+    const fillToCapacity: GrowthParameters = {
+      ...p,
+      maxDivisionRate: 100,
+      biomassYield: 1_000_000,
+      spreadRate: 0,
+    }
+
+    stepEcology(state, fillToCapacity, neutral(2), 1)
+
+    // The mathematical allocation fills exactly to 100. Binary32 write-back
+    // rounds the two channels independently, so their stored sum is slightly
+    // above 100. That representation-only overage must remain admissible.
+    expect(localTotal(state, 0)).toBeGreaterThan(fillToCapacity.localCapacity)
+    expect(() =>
+      stepEcology(state, fillToCapacity, neutral(2), 1),
+    ).not.toThrow()
+  })
+})

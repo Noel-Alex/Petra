@@ -6,7 +6,10 @@ import {
   recordAcceptedCommand,
   schedulerAdvanceTicks,
 } from '../../src/ui/experimentControls'
-import { actionForShortcut } from '../../src/ui/keyboard'
+import {
+  actionForShortcut,
+  playbackSpeedShortcut,
+} from '../../src/ui/keyboard'
 
 const identity = createRunIdentity({
   scenarioId: 'ui-fixture',
@@ -82,6 +85,12 @@ describe('experiment control planning', () => {
 })
 
 describe('keyboard shortcuts', () => {
+  it('keeps speed shortcut discoverability aligned with the action mapping', () => {
+    expect(playbackSpeedShortcut(1)).toBe('1')
+    expect(playbackSpeedShortcut(4)).toBe('2')
+    expect(playbackSpeedShortcut(16)).toBe('3')
+  })
+
   it('maps accessible playback shortcuts', () => {
     expect(actionForShortcut(' ', { editableTarget: false })).toEqual({ type: 'toggle-play' })
     expect(actionForShortcut('.', { editableTarget: false })).toEqual({ type: 'step', ticks: 1 })

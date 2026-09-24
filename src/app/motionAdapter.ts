@@ -1,5 +1,4 @@
 import type { MotionTreatment } from "../ui/motion/policy";
-import type { SurfaceTransitionPlan } from "../ui/motion/semanticTransitions";
 
 export interface SurfaceMotionCss {
   readonly duration: string;
@@ -7,7 +6,13 @@ export interface SurfaceMotionCss {
   readonly treatment: MotionTreatment;
 }
 
-export function surfaceMotionCss(plan: SurfaceTransitionPlan): SurfaceMotionCss {
+export interface MotionCssPlan {
+  readonly durationMs: number;
+  readonly easing: readonly [number, number, number, number];
+  readonly treatment: MotionTreatment;
+}
+
+export function surfaceMotionCss(plan: MotionCssPlan): SurfaceMotionCss {
   return {
     duration: `${plan.durationMs}ms`,
     easing: cubicBezier(plan.easing),

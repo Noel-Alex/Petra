@@ -1,8 +1,8 @@
 import { SimulationEngine } from './engine'
 import type {
   SimulationCommand,
-  SyntheticSyntheticSimulationCheckpoint,
-  SyntheticSyntheticSimulationSnapshot,
+  SyntheticSimulationCheckpoint,
+  SyntheticSimulationSnapshot,
 } from './protocol'
 
 export const COUNTERFACTUAL_FORK_SCHEMA_VERSION = 1 as const

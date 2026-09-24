@@ -96,7 +96,7 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 
 ## Micro-interaction surfaces
 - Reusable DOM action controls should consume `src/ui/motion/microInteractions.ts` rather than inventing hover/press/focus transform timings.
-- `PetraAction.tsx` is a presentation-only adapter: it may render labels, Petra-owned icon geometry, focus, selection, hover and press feedback, but it cannot issue or imply scientific commands by itself.
+- `PetraAction.tsx` is a presentation-only adapter: it may render labels, Petra-owned icon geometry, focus, selection, hover and press feedback, but it cannot issue or imply scientific commands by itself. Preserve unrelated native button ARIA/style props; explicit Petra semantic props and shared motion CSS variables remain the adapter authority.
 - `PetraCompactAction.tsx` is the compact native-button adapter for topbar/dish/timeline actions; it consumes the same interaction state + motion policy rather than defining local hover/press timing.
 - Full motion may use small decorative lift/compression. Reduced and off modes remove spatial movement while retaining focus/selection through border/background/static emphasis.
 - Touch devices must not depend on hover state. Keyboard focus must remain visibly distinct, and disabled state must be static.

@@ -86,6 +86,13 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Narration stores the planner's returned sequence + event-id cursor per active stream identity. React rerenders may clear the live-region text but must not replay already accepted events.
 - #37/#42 should eventually supply this stream from the composed authoritative runtime. Until that capability exists, the default product remains correctly silent rather than adapting timeline labels, Pixi state, animation cues, or wall-clock timing.
 
+## Authoritative region-inspector query coordination
+- `regionInspectorRuntime.ts` owns app-layer request identity for asynchronous authoritative region queries. Selection identity alone is insufficient because the same region may be re-queried against newer authoritative state; every request therefore gets a monotonic request id and only the currently active request may resolve/fail the presentation state.
+- The coordinator is transport-agnostic. Worker/runtime adapters emit the returned `RegionInspectionQuery` and feed results/errors back; React, Pixi, and pointer code must not bypass the coordinator or manufacture scientific readouts.
+- Clearing/changing a selection invalidates the active request. Late/superseded results and errors are ignored, including late results for the same selection id from an older request generation.
+- A matching request id is still not enough: the returned authoritative readout must carry the exact active selection id. Mismatched transport payloads fail closed rather than being relabelled.
+- Request ids are orchestration identity only, not biological identity or time. Exact run/tick/simulation-time identity remains a future #37/#42 authority input and must not be inferred from request order.
+
 
 ## Dish render-source transaction
 - `DishViewport.tsx` owns one `DishRenderSourceState` per mounted dish surface and resolves authoritative / visual-demo / awaiting presentation through `dishRenderSource.ts`.

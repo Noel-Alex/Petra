@@ -1,3 +1,4 @@
+import type { AuthoritativeLineageAnalysis } from "../sim/evolution/analysis";
 import type { LineageContrastMode } from "../design/lineageIdentity";
 import {
   buildLineageTree,
@@ -22,7 +23,10 @@ export interface AuthoritativeAnalysisIdentity {
 export interface AuthoritativeAnalysisRecords {
   readonly identity: AuthoritativeAnalysisIdentity;
   readonly series: readonly ScientificSeriesInput[];
-  readonly lineages: readonly LineageAncestryInput[];
+  /** Generic ancestry-only records for callers without the #665 projection. */
+  readonly lineages?: readonly LineageAncestryInput[];
+  /** Full authoritative #665 lineage analysis; mutually exclusive with lineages. */
+  readonly lineageAnalysis?: AuthoritativeLineageAnalysis;
 }
 
 export type AnalysisSurfaceView =
@@ -66,13 +70,14 @@ export function projectAuthoritativeAnalysis(
     };
   }
 
-  assertRecordsDoNotExceedStateTime(records);
+  const lineages = resolveLineageInputs(records);
+  assertRecordsDoNotExceedStateTime(records.identity, records.series, lineages);
 
   return {
     status: "available",
     identity: records.identity,
     charts: buildScientificChartsByUnit(records.series),
-    lineageTree: buildLineageTree(records.lineages, {
+    lineageTree: buildLineageTree(lineages, {
       contrastMode: options.contrastMode ?? "standard",
     }),
   };
@@ -117,22 +122,78 @@ function validateIdentity(identity: AuthoritativeAnalysisIdentity): void {
   }
 }
 
-function assertRecordsDoNotExceedStateTime(
+function resolveLineageInputs(
   records: AuthoritativeAnalysisRecords,
-): void {
-  const stateTime = records.identity.simulationTimeHours;
+): readonly LineageAncestryInput[] {
+  const hasLineages = records.lineages !== undefined;
+  const hasLineageAnalysis = records.lineageAnalysis !== undefined;
+  if (hasLineages === hasLineageAnalysis) {
+    throw new Error(
+      "analysis records require exactly one lineage source: lineages or lineageAnalysis",
+    );
+  }
 
-  for (const series of records.series) {
-    for (const point of series.points) {
+  if (records.lineageAnalysis !== undefined) {
+    const analysis = records.lineageAnalysis;
+    if (analysis.schemaVersion !== 1) {
+      throw new RangeError("unsupported authoritative lineage analysis schema");
+    }
+    if (analysis.simulationTimeHours !== records.identity.simulationTimeHours) {
+      throw new Error(
+        "authoritative lineage analysis time does not match its bound analysis state",
+      );
+    }
+
+    return analysis.records.map((record) => {
+      const expectedStatus =
+        record.extinctAtHours === null ? "extant" : "extinct";
+      if (record.status !== expectedStatus) {
+        throw new Error(
+          "authoritative lineage lifecycle status disagrees with extinction time for " +
+            record.lineageId,
+        );
+      }
+
+      return {
+        lineageId: record.lineageId,
+        parentLineageId: record.parentLineageId,
+        genotypeId: record.genotypeId,
+        createdAtHours: record.createdAtHours,
+        extinctAtHours: record.extinctAtHours,
+        scientificDetail: {
+          genotypeLabel: record.genotypeLabel,
+          originCellIndex: record.originCellIndex,
+          mutationClass: record.mutationClass,
+          abundanceModelBiomass: record.abundanceModelBiomass,
+          relativeFitness: record.relativeFitness,
+          sourceKeys: [...record.sourceKeys],
+          assumptionKeys: [...record.assumptionKeys],
+        },
+      };
+    });
+  }
+
+  return records.lineages!;
+}
+
+function assertRecordsDoNotExceedStateTime(
+  identity: AuthoritativeAnalysisIdentity,
+  series: readonly ScientificSeriesInput[],
+  lineages: readonly LineageAncestryInput[],
+): void {
+  const stateTime = identity.simulationTimeHours;
+
+  for (const seriesItem of series) {
+    for (const point of seriesItem.points) {
       if (point.timeHours > stateTime) {
         throw new RangeError(
-          `analysis series ${series.id} contains a sample after its authoritative state time`,
+          `analysis series ${seriesItem.id} contains a sample after its authoritative state time`,
         );
       }
     }
   }
 
-  for (const lineage of records.lineages) {
+  for (const lineage of lineages) {
     if (lineage.createdAtHours > stateTime) {
       throw new RangeError(
         `analysis lineage ${lineage.lineageId} was created after its authoritative state time`,

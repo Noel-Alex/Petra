@@ -310,8 +310,10 @@ function assertBranchDescriptor(branch: {
   assertNonEmpty(branch.label, 'branch label')
 }
 
-function assertNonEmpty(value: string, label: string): void {
-  if (value.trim().length === 0) throw new RangeError(`${label} must be non-empty`)
+function assertNonEmpty(value: unknown, label: string): asserts value is string {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new RangeError(`${label} must be a non-empty string`)
+  }
 }
 
 function cloneOrigin(origin: CounterfactualForkOrigin): CounterfactualForkOrigin {

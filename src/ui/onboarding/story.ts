@@ -4,6 +4,10 @@ import {
   type MotionPreference,
   type ResolvedMotion,
 } from "../motion/policy";
+import {
+  resolveDecorativeLoop,
+  type ResolvedDecorativeLoop,
+} from "../motion/decorativeLoops";
 import { MOTION, type MotionTokenName } from "../motion/tokens";
 
 export type OnboardingStageId =
@@ -173,10 +177,17 @@ export function reduceOnboarding(
   return { ...state, index: state.index + 1 };
 }
 
+export interface OnboardingAmbientPresentation {
+  readonly primaryDrift: ResolvedDecorativeLoop;
+  readonly secondaryDrift: ResolvedDecorativeLoop;
+  readonly focusOrbit: ResolvedDecorativeLoop;
+}
+
 export interface OnboardingPresentation {
   readonly stage: OnboardingStage;
   readonly motion: ResolvedMotion;
   readonly easing: readonly [number, number, number, number];
+  readonly ambient: OnboardingAmbientPresentation;
   readonly announceText: string;
 }
 
@@ -199,6 +210,20 @@ export function resolveOnboardingPresentation(
     stage,
     motion,
     easing: token.easing,
+    ambient: {
+      primaryDrift: resolveDecorativeLoop(
+        "onboardingAmbientPrimary",
+        preference,
+      ),
+      secondaryDrift: resolveDecorativeLoop(
+        "onboardingAmbientSecondary",
+        preference,
+      ),
+      focusOrbit: resolveDecorativeLoop(
+        "onboardingFocusOrbit",
+        preference,
+      ),
+    },
     announceText: `${stage.eyebrow}. ${stage.title} ${stage.explanation}`,
   };
 }

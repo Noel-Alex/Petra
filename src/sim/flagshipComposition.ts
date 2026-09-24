@@ -395,10 +395,10 @@ function applyInocula(args: {
     }
 
     const current = channels[channelIndex]![cell]!
-    const next = current + amount
-    if (!Number.isFinite(next)) {
-      throw new Error(`inocula[${index}] accumulated biomass became invalid`)
-    }
+    const next = requireFiniteNonNegativeFloat32(
+      `inocula[${index}] accumulated biomass`,
+      current + amount,
+    )
     channels[channelIndex]![cell] = next
   }
 
@@ -416,6 +416,17 @@ function applyInocula(args: {
 export function buildFlagshipComposedRunPlan(
   initialization: FlagshipRunInitialization,
 ): FlagshipComposedRunPlan {
+  if (
+    initialization === null ||
+    typeof initialization !== 'object' ||
+    Array.isArray(initialization)
+  ) {
+    throw new Error('flagship run initialization must be an object')
+  }
+  if (!Array.isArray(initialization.inocula)) {
+    throw new Error('flagship run initialization inocula must be an array')
+  }
+
   const scenario: unknown = flagshipScenario
   const scenarioRecord = requireRecord('flagship scenario', scenario)
   const environment = requireRecord(

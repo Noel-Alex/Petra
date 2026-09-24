@@ -235,10 +235,13 @@ describe("spatial phage infection and lysis commit seam", () => {
       population,
       cfg,
       plan,
-      [
-        createPhageLifeHistoryIdentity(history),
-        createPhageLifeHistoryIdentity(history),
-      ],
+      {
+        infectedAtMinutes: 0,
+        lifeHistoryIdentities: [
+          createPhageLifeHistoryIdentity(history),
+          createPhageLifeHistoryIdentity(history),
+        ],
+      },
     );
 
     const result = commitSpatialPhageLysis(
@@ -334,10 +337,67 @@ describe("spatial phage infection and lysis commit seam", () => {
         advancedRevision,
         cfg,
         plan,
-        [createPhageLifeHistoryIdentity(history)],
+        {
+          infectedAtMinutes: 0,
+          lifeHistoryIdentities: [createPhageLifeHistoryIdentity(history)],
+        },
       ),
     ).toThrow(/population revision is stale/);
 
+    expect(spatial.infectedHostCounts).toEqual([
+      [0, 0],
+      [0, 0],
+    ]);
+    expect(lysis.latentQueue.cohorts).toEqual([]);
+  });
+
+
+  it("revalidates infection-policy counts instead of trusting a typed plan", () => {
+    const cfg = config();
+    const population = createDiscretePopulationAuthorityState(cfg, [
+      [6, 0],
+      [0, 0],
+    ]);
+    const spatial = createPhageSpatialInfectionState(cfg);
+    const lysis = createPhageLysisTransactionState(
+      DETERMINISTIC_RESIDUAL_BURST_POLICY,
+    );
+    const history = lifeHistory();
+    const valid = planPopulationBackedProductiveInfections(population, cfg, [
+      {
+        lineageId: "WT",
+        cellIndex: 0,
+        adsorbedPfu: 1,
+        alreadyInfectedHosts: 0,
+      },
+    ]);
+    const tampered = {
+      ...valid,
+      targets: [
+        {
+          ...valid.targets[0]!,
+          productiveInfections: 0,
+          nonProductiveAdsorptions: 1,
+          infectedHostsAfter: 0,
+        },
+      ],
+      totalProductiveInfections: 0,
+      totalNonProductiveAdsorptions: 1,
+    };
+
+    expect(() =>
+      commitPopulationBackedInfections(
+        spatial,
+        lysis,
+        population,
+        cfg,
+        tampered,
+        {
+          infectedAtMinutes: 0,
+          lifeHistoryIdentities: [createPhageLifeHistoryIdentity(history)],
+        },
+      ),
+    ).toThrow(/productive-infection resolution mismatch/);
     expect(spatial.infectedHostCounts).toEqual([
       [0, 0],
       [0, 0],
@@ -408,7 +468,10 @@ describe("spatial phage infection and lysis commit seam", () => {
       population,
       cfg,
       plan,
-      [createPhageLifeHistoryIdentity(history)],
+      {
+        infectedAtMinutes: 0,
+        lifeHistoryIdentities: [createPhageLifeHistoryIdentity(history)],
+      },
     );
     const beforeSpatial = JSON.parse(JSON.stringify(committed.state));
     const beforeLysis = JSON.parse(

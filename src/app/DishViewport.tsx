@@ -43,6 +43,7 @@ export function DishViewport({
       <div className="dish-renderer-frame">
         <PixiDish
           snapshot={snapshot}
+          demoMode={usingDemo}
           motion={motion}
           cameraMotion={{
             durationMs: cameraTreatment.durationMs,

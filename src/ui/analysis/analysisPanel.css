@@ -110,7 +110,7 @@
 .analysis-chart__axes text,
 .analysis-lineage__time-axis text {
   fill: var(--analysis-muted);
-  font-size: 10px;
+  font-size: var(--petra-type-caption);
 }
 
 .analysis-series {
@@ -146,7 +146,7 @@
 
 .analysis-series__endpoint text {
   fill: currentColor;
-  font-size: 9px;
+  font-size: var(--petra-type-caption);
   font-weight: 800;
   text-anchor: middle;
   dominant-baseline: middle;
@@ -234,13 +234,13 @@
 
 .analysis-lineage__node-id {
   fill: rgba(248, 252, 255, 0.96);
-  font-size: 10px;
+  font-size: var(--petra-type-caption);
   font-weight: 800;
 }
 
 .analysis-lineage__node-genotype {
   fill: var(--analysis-muted);
-  font-size: 9px;
+  font-size: var(--petra-type-caption);
 }
 
 .analysis-lineage__legend {

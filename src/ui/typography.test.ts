@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 const UI_ROOT = dirname(fileURLToPath(import.meta.url));
 const SRC_ROOT = join(UI_ROOT, "..");
 const MIN_ESSENTIAL_REM = 0.75;
+const MIN_ESSENTIAL_PX = 12;
 
 function sourceFiles(root: string): string[] {
   const files: string[] = [];
@@ -29,19 +30,33 @@ describe("Petra typography contract", () => {
     expect(Number(token?.[1])).toBeGreaterThanOrEqual(MIN_ESSENTIAL_REM);
   });
 
-  it("does not reintroduce raw sub-floor rem font sizes in shipped UI source", () => {
+  it("does not reintroduce raw sub-floor font sizes in shipped UI source", () => {
     const violations: string[] = [];
 
     for (const path of sourceFiles(SRC_ROOT)) {
       const source = readFileSync(path, "utf8");
       const patterns = [
-        /font-size:\s*([0-9.]+)rem/g,
-        /fontSize:\s*["']([0-9.]+)rem["']/g,
+        {
+          floor: MIN_ESSENTIAL_REM,
+          regex: /font-size:\s*([0-9.]+)rem/g,
+        },
+        {
+          floor: MIN_ESSENTIAL_PX,
+          regex: /font-size:\s*([0-9.]+)px/g,
+        },
+        {
+          floor: MIN_ESSENTIAL_REM,
+          regex: /fontSize:\s*["']([0-9.]+)rem["']/g,
+        },
+        {
+          floor: MIN_ESSENTIAL_PX,
+          regex: /fontSize:\s*["']([0-9.]+)px["']/g,
+        },
       ];
 
-      for (const pattern of patterns) {
-        for (const match of source.matchAll(pattern)) {
-          if (Number(match[1]) < MIN_ESSENTIAL_REM) {
+      for (const { floor, regex } of patterns) {
+        for (const match of source.matchAll(regex)) {
+          if (Number(match[1]) < floor) {
             violations.push(
               `${path.slice(SRC_ROOT.length + 1)}: ${match[0]}`,
             );

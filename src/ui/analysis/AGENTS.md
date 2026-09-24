@@ -19,6 +19,7 @@
 - SVG surfaces carry accessible summary labels; point titles are progressive enhancement only. Complete authoritative chart samples and lineage ancestry must also remain inspectable through a user-controlled semantic table/list outside image-like SVG geometry.
 - Visual decimation may reduce SVG source markers only. The projection must preserve a separate non-lossy source-sample channel for semantic/accessibility detail; presentation budgets must never discard or reconstruct authoritative records.
 - Dense semantic data may live in a bounded scroll region opened by the user. It is not a live region and must not create an announcement storm.
+- Visible chart axes, units, biological-time labels, lineage IDs/genotypes, and numbered non-color series identifiers are essential scientific presentation and must meet the shared Petra caption floor. SVG `role=img` summaries are accessibility redundancy, not permission to make visible scientific labels illegible. Browser/expo-distance collision and readability acceptance remains #59.
 
 ## Motion
 - Analysis motion resolves through shared Petra motion policy/tokens only.

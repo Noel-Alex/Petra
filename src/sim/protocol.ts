@@ -4,7 +4,10 @@ import type {
   ComposedSimulationState,
 } from './authoritative'
 import type { RngState } from './rng'
-import type { ComposedParameterSetBinding } from './parameterSetBinding'
+import {
+  assertComposedParameterSetBindingIdentity,
+  type ComposedParameterSetBinding,
+} from './parameterSetBinding'
 import { assertSimulationSeed } from './seed'
 
 export { assertSimulationSeed, MAX_SIMULATION_SEED } from './seed'
@@ -127,6 +130,9 @@ export function createRunIdentity(
   input: Omit<RunIdentity, 'engineVersion' | 'protocolVersion'>,
 ): RunIdentity {
   assertSimulationSeed(input.seed)
+  if (input.parameterSetBinding !== undefined) {
+    assertComposedParameterSetBindingIdentity(input)
+  }
   return {
     engineVersion: ENGINE_VERSION,
     protocolVersion: PROTOCOL_VERSION,

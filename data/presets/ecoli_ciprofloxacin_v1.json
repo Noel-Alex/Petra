@@ -41,38 +41,327 @@
       "equation": "h_drug = ln(10) * (psi_max - psi_g(a))",
       "zeroDrugIncrementalLoss": 0,
       "stationaryPhaseCalibration": "not_source_matched",
-      "note": "This policy maps the transferred PD decrement to the ecology loss channel; it does not identify Petra's independent Monod mu_max with Regoes psi_max."
+      "note": "This policy maps the transferred PD decrement to the ecology loss channel; it does not identify Petra's independent Monod mu_max with Regoes psi_max.",
+      "provenance": {
+        "classification": "transferred_mechanistic_approximation",
+        "citations": [
+          "regoes_2004",
+          "marcusson_2009"
+        ],
+        "context": "Regoes E. coli CAB1/LB pharmacodynamic shape composed with the MG1655 genotype MIC/fitness table.",
+        "transformation": "h_drug = ln(10) * (psi_max - psi_g(a))",
+        "transferNote": "Regoes pharmacodynamic shape is measured in E. coli CAB1/LB and transferred to the MG1655 genotype table.",
+        "limitation": "Resource-by-ciprofloxacin interaction under starvation is a model composition policy, not a complete stationary-phase killing model."
+      }
     },
     "classification": "transferred_mechanistic_approximation"
   },
   "genotypes": [
-    {"id":"WT","label":"Wild type","mutations":[],"mic_mg_L":0.016,"relativeFitness":1.00,"citation":"marcusson_2009"},
-    {"id":"A","label":"gyrA S83L","mutations":["gyrA:S83L"],"mic_mg_L":0.38,"relativeFitness":1.01,"citation":"marcusson_2009"},
-    {"id":"B","label":"gyrA D87N","mutations":["gyrA:D87N"],"mic_mg_L":0.25,"relativeFitness":0.99,"citation":"marcusson_2009"},
-    {"id":"C","label":"parC S80I","mutations":["parC:S80I"],"mic_mg_L":0.016,"relativeFitness":0.99,"citation":"marcusson_2009"},
-    {"id":"D","label":"ΔmarR","mutations":["marR:loss"],"mic_mg_L":0.032,"relativeFitness":0.83,"citation":"marcusson_2009"},
-    {"id":"E","label":"ΔacrR","mutations":["acrR:loss"],"mic_mg_L":0.047,"relativeFitness":0.91,"citation":"marcusson_2009"},
-    {"id":"AB","label":"gyrA S83L + D87N","mutations":["gyrA:S83L","gyrA:D87N"],"mic_mg_L":0.38,"relativeFitness":0.97,"citation":"marcusson_2009"},
-    {"id":"AC","label":"gyrA S83L + parC S80I","mutations":["gyrA:S83L","parC:S80I"],"mic_mg_L":1.0,"relativeFitness":0.98,"citation":"marcusson_2009"},
-    {"id":"AD","label":"gyrA S83L + ΔmarR","mutations":["gyrA:S83L","marR:loss"],"mic_mg_L":1.0,"relativeFitness":0.86,"citation":"marcusson_2009"},
-    {"id":"AE","label":"gyrA S83L + ΔacrR","mutations":["gyrA:S83L","acrR:loss"],"mic_mg_L":0.5,"relativeFitness":0.95,"citation":"marcusson_2009"},
-    {"id":"BC","label":"gyrA D87N + parC S80I","mutations":["gyrA:D87N","parC:S80I"],"mic_mg_L":0.38,"relativeFitness":1.02,"citation":"marcusson_2009"},
-    {"id":"BD","label":"gyrA D87N + ΔmarR","mutations":["gyrA:D87N","marR:loss"],"mic_mg_L":1.0,"relativeFitness":0.83,"citation":"marcusson_2009"},
-    {"id":"ACB","label":"gyrA S83L + parC S80I + gyrA D87N","mutations":["gyrA:S83L","parC:S80I","gyrA:D87N"],"mic_mg_L":32.0,"relativeFitness":1.01,"citation":"marcusson_2009"}
+    {
+      "id": "WT",
+      "label": "Wild type",
+      "mutations": [],
+      "mic_mg_L": 0.016,
+      "relativeFitness": 1,
+      "citation": "marcusson_2009",
+      "provenance": {
+        "classification": "measured",
+        "citation": "marcusson_2009",
+        "context": "E. coli K-12 MG1655; ciprofloxacin MIC and relative fitness measurements curated from Marcusson et al. 2009."
+      }
+    },
+    {
+      "id": "A",
+      "label": "gyrA S83L",
+      "mutations": [
+        "gyrA:S83L"
+      ],
+      "mic_mg_L": 0.38,
+      "relativeFitness": 1.01,
+      "citation": "marcusson_2009",
+      "provenance": {
+        "classification": "measured",
+        "citation": "marcusson_2009",
+        "context": "E. coli K-12 MG1655; ciprofloxacin MIC and relative fitness measurements curated from Marcusson et al. 2009."
+      }
+    },
+    {
+      "id": "B",
+      "label": "gyrA D87N",
+      "mutations": [
+        "gyrA:D87N"
+      ],
+      "mic_mg_L": 0.25,
+      "relativeFitness": 0.99,
+      "citation": "marcusson_2009",
+      "provenance": {
+        "classification": "measured",
+        "citation": "marcusson_2009",
+        "context": "E. coli K-12 MG1655; ciprofloxacin MIC and relative fitness measurements curated from Marcusson et al. 2009."
+      }
+    },
+    {
+      "id": "C",
+      "label": "parC S80I",
+      "mutations": [
+        "parC:S80I"
+      ],
+      "mic_mg_L": 0.016,
+      "relativeFitness": 0.99,
+      "citation": "marcusson_2009",
+      "provenance": {
+        "classification": "measured",
+        "citation": "marcusson_2009",
+        "context": "E. coli K-12 MG1655; ciprofloxacin MIC and relative fitness measurements curated from Marcusson et al. 2009."
+      }
+    },
+    {
+      "id": "D",
+      "label": "ΔmarR",
+      "mutations": [
+        "marR:loss"
+      ],
+      "mic_mg_L": 0.032,
+      "relativeFitness": 0.83,
+      "citation": "marcusson_2009",
+      "provenance": {
+        "classification": "measured",
+        "citation": "marcusson_2009",
+        "context": "E. coli K-12 MG1655; ciprofloxacin MIC and relative fitness measurements curated from Marcusson et al. 2009."
+      }
+    },
+    {
+      "id": "E",
+      "label": "ΔacrR",
+      "mutations": [
+        "acrR:loss"
+      ],
+      "mic_mg_L": 0.047,
+      "relativeFitness": 0.91,
+      "citation": "marcusson_2009",
+      "provenance": {
+        "classification": "measured",
+        "citation": "marcusson_2009",
+        "context": "E. coli K-12 MG1655; ciprofloxacin MIC and relative fitness measurements curated from Marcusson et al. 2009."
+      }
+    },
+    {
+      "id": "AB",
+      "label": "gyrA S83L + D87N",
+      "mutations": [
+        "gyrA:S83L",
+        "gyrA:D87N"
+      ],
+      "mic_mg_L": 0.38,
+      "relativeFitness": 0.97,
+      "citation": "marcusson_2009",
+      "provenance": {
+        "classification": "measured",
+        "citation": "marcusson_2009",
+        "context": "E. coli K-12 MG1655; ciprofloxacin MIC and relative fitness measurements curated from Marcusson et al. 2009."
+      }
+    },
+    {
+      "id": "AC",
+      "label": "gyrA S83L + parC S80I",
+      "mutations": [
+        "gyrA:S83L",
+        "parC:S80I"
+      ],
+      "mic_mg_L": 1,
+      "relativeFitness": 0.98,
+      "citation": "marcusson_2009",
+      "provenance": {
+        "classification": "measured",
+        "citation": "marcusson_2009",
+        "context": "E. coli K-12 MG1655; ciprofloxacin MIC and relative fitness measurements curated from Marcusson et al. 2009."
+      }
+    },
+    {
+      "id": "AD",
+      "label": "gyrA S83L + ΔmarR",
+      "mutations": [
+        "gyrA:S83L",
+        "marR:loss"
+      ],
+      "mic_mg_L": 1,
+      "relativeFitness": 0.86,
+      "citation": "marcusson_2009",
+      "provenance": {
+        "classification": "measured",
+        "citation": "marcusson_2009",
+        "context": "E. coli K-12 MG1655; ciprofloxacin MIC and relative fitness measurements curated from Marcusson et al. 2009."
+      }
+    },
+    {
+      "id": "AE",
+      "label": "gyrA S83L + ΔacrR",
+      "mutations": [
+        "gyrA:S83L",
+        "acrR:loss"
+      ],
+      "mic_mg_L": 0.5,
+      "relativeFitness": 0.95,
+      "citation": "marcusson_2009",
+      "provenance": {
+        "classification": "measured",
+        "citation": "marcusson_2009",
+        "context": "E. coli K-12 MG1655; ciprofloxacin MIC and relative fitness measurements curated from Marcusson et al. 2009."
+      }
+    },
+    {
+      "id": "BC",
+      "label": "gyrA D87N + parC S80I",
+      "mutations": [
+        "gyrA:D87N",
+        "parC:S80I"
+      ],
+      "mic_mg_L": 0.38,
+      "relativeFitness": 1.02,
+      "citation": "marcusson_2009",
+      "provenance": {
+        "classification": "measured",
+        "citation": "marcusson_2009",
+        "context": "E. coli K-12 MG1655; ciprofloxacin MIC and relative fitness measurements curated from Marcusson et al. 2009."
+      }
+    },
+    {
+      "id": "BD",
+      "label": "gyrA D87N + ΔmarR",
+      "mutations": [
+        "gyrA:D87N",
+        "marR:loss"
+      ],
+      "mic_mg_L": 1,
+      "relativeFitness": 0.83,
+      "citation": "marcusson_2009",
+      "provenance": {
+        "classification": "measured",
+        "citation": "marcusson_2009",
+        "context": "E. coli K-12 MG1655; ciprofloxacin MIC and relative fitness measurements curated from Marcusson et al. 2009."
+      }
+    },
+    {
+      "id": "ACB",
+      "label": "gyrA S83L + parC S80I + gyrA D87N",
+      "mutations": [
+        "gyrA:S83L",
+        "parC:S80I",
+        "gyrA:D87N"
+      ],
+      "mic_mg_L": 32,
+      "relativeFitness": 1.01,
+      "citation": "marcusson_2009",
+      "provenance": {
+        "classification": "measured",
+        "citation": "marcusson_2009",
+        "context": "E. coli K-12 MG1655; ciprofloxacin MIC and relative fitness measurements curated from Marcusson et al. 2009."
+      }
+    }
   ],
   "mutationTransitions": [
-    {"from":"WT","to":"A","probabilityPerDivision":1e-10,"classification":"model_target_probability","citation":"huseby_2017","note":"Point-mutation order used for a specific curated edge; separate from the 3.6e-9 aggregate selected phenotype rate."},
-    {"from":"A","to":"AC","probabilityPerDivision":1e-10,"classification":"model_target_probability","citation":"huseby_2017"},
-    {"from":"A","to":"AB","probabilityPerDivision":1e-10,"classification":"model_target_probability","citation":"huseby_2017"},
-    {"from":"A","to":"AD","probabilityPerDivision":1e-7,"classification":"model_target_class_probability","citation":"huseby_2017","note":"Regulator-disruption class order of magnitude; not a measured probability of this exact deletion."},
-    {"from":"A","to":"AE","probabilityPerDivision":1e-7,"classification":"model_target_class_probability","citation":"huseby_2017"},
-    {"from":"AC","to":"ACB","probabilityPerDivision":1e-10,"classification":"model_target_probability","citation":"huseby_2017"}
+    {
+      "from": "WT",
+      "to": "A",
+      "probabilityPerDivision": 1e-10,
+      "classification": "model_target_probability",
+      "citation": "huseby_2017",
+      "note": "Point-mutation order used for a specific curated edge; separate from the 3.6e-9 aggregate selected phenotype rate.",
+      "provenance": {
+        "classification": "mechanistic_approximation",
+        "citation": "huseby_2017",
+        "context": "Huseby et al. 2017 mutation-supply and population-model target scales applied to Petra's curated transition graph.",
+        "limitation": "This is a curated point-mutation target order of magnitude, not a measured probability of this exact Petra transition."
+      }
+    },
+    {
+      "from": "A",
+      "to": "AC",
+      "probabilityPerDivision": 1e-10,
+      "classification": "model_target_probability",
+      "citation": "huseby_2017",
+      "provenance": {
+        "classification": "mechanistic_approximation",
+        "citation": "huseby_2017",
+        "context": "Huseby et al. 2017 mutation-supply and population-model target scales applied to Petra's curated transition graph.",
+        "limitation": "This is a curated point-mutation target order of magnitude, not a measured probability of this exact Petra transition."
+      }
+    },
+    {
+      "from": "A",
+      "to": "AB",
+      "probabilityPerDivision": 1e-10,
+      "classification": "model_target_probability",
+      "citation": "huseby_2017",
+      "provenance": {
+        "classification": "mechanistic_approximation",
+        "citation": "huseby_2017",
+        "context": "Huseby et al. 2017 mutation-supply and population-model target scales applied to Petra's curated transition graph.",
+        "limitation": "This is a curated point-mutation target order of magnitude, not a measured probability of this exact Petra transition."
+      }
+    },
+    {
+      "from": "A",
+      "to": "AD",
+      "probabilityPerDivision": 1e-7,
+      "classification": "model_target_class_probability",
+      "citation": "huseby_2017",
+      "note": "Regulator-disruption class order of magnitude; not a measured probability of this exact deletion.",
+      "provenance": {
+        "classification": "mechanistic_approximation",
+        "citation": "huseby_2017",
+        "context": "Huseby et al. 2017 mutation-supply and population-model target scales applied to Petra's curated transition graph.",
+        "limitation": "This is a regulator-disruption target-class order of magnitude, not a measured probability of this exact Petra transition."
+      }
+    },
+    {
+      "from": "A",
+      "to": "AE",
+      "probabilityPerDivision": 1e-7,
+      "classification": "model_target_class_probability",
+      "citation": "huseby_2017",
+      "provenance": {
+        "classification": "mechanistic_approximation",
+        "citation": "huseby_2017",
+        "context": "Huseby et al. 2017 mutation-supply and population-model target scales applied to Petra's curated transition graph.",
+        "limitation": "This is a regulator-disruption target-class order of magnitude, not a measured probability of this exact Petra transition."
+      }
+    },
+    {
+      "from": "AC",
+      "to": "ACB",
+      "probabilityPerDivision": 1e-10,
+      "classification": "model_target_probability",
+      "citation": "huseby_2017",
+      "provenance": {
+        "classification": "mechanistic_approximation",
+        "citation": "huseby_2017",
+        "context": "Huseby et al. 2017 mutation-supply and population-model target scales applied to Petra's curated transition graph.",
+        "limitation": "This is a curated point-mutation target order of magnitude, not a measured probability of this exact Petra transition."
+      }
+    }
   ],
   "validationTargets": {
     "selectedAppearanceRates_per_cell_generation": [
-      {"background":"WT","selection":"4x MIC","rate":3.6e-9,"citation":"huseby_2017"},
-      {"background":"gyrA S83L","selection":"4x MIC","rate":3.8e-6,"citation":"huseby_2017","note":"Aggregate large target, not one edge."},
-      {"background":"gyrA S83L + parC S80I","selection":"4x MIC","rate":1.2e-9,"citation":"huseby_2017"}
+      {
+        "background": "WT",
+        "selection": "4x MIC",
+        "rate": 3.6e-9,
+        "citation": "huseby_2017"
+      },
+      {
+        "background": "gyrA S83L",
+        "selection": "4x MIC",
+        "rate": 0.0000038,
+        "citation": "huseby_2017",
+        "note": "Aggregate large target, not one edge."
+      },
+      {
+        "background": "gyrA S83L + parC S80I",
+        "selection": "4x MIC",
+        "rate": 1.2e-9,
+        "citation": "huseby_2017"
+      }
     ],
     "qualitative": [
       "nutrient diffusion limitation can produce sub-exponential colony growth",
@@ -87,10 +376,25 @@
     "Resource-by-ciprofloxacin interaction under starvation is a model composition policy, not a complete stationary-phase killing model."
   ],
   "citations": {
-    "regoes_2004":{"doi":"10.1128/AAC.48.10.3670-3676.2004","title":"Pharmacodynamic Functions: a Multiparameter Approach to the Design of Antibiotic Treatment Regimens"},
-    "marcusson_2009":{"doi":"10.1371/journal.ppat.1000541","title":"Interplay in the Selection of Fluoroquinolone Resistance and Bacterial Fitness"},
-    "huseby_2017":{"doi":"10.1093/molbev/msx052","title":"Mutation Supply and Relative Fitness Shape the Genotypes of Ciprofloxacin-Resistant Escherichia coli"},
-    "shao_2017":{"doi":"10.1371/journal.pcbi.1005679","title":"Growth of bacteria in 3-d colonies"},
-    "baym_2016":{"doi":"10.1126/science.aag0822","title":"Spatiotemporal microbial evolution on antibiotic landscapes"}
+    "regoes_2004": {
+      "doi": "10.1128/AAC.48.10.3670-3676.2004",
+      "title": "Pharmacodynamic Functions: a Multiparameter Approach to the Design of Antibiotic Treatment Regimens"
+    },
+    "marcusson_2009": {
+      "doi": "10.1371/journal.ppat.1000541",
+      "title": "Interplay in the Selection of Fluoroquinolone Resistance and Bacterial Fitness"
+    },
+    "huseby_2017": {
+      "doi": "10.1093/molbev/msx052",
+      "title": "Mutation Supply and Relative Fitness Shape the Genotypes of Ciprofloxacin-Resistant Escherichia coli"
+    },
+    "shao_2017": {
+      "doi": "10.1371/journal.pcbi.1005679",
+      "title": "Growth of bacteria in 3-d colonies"
+    },
+    "baym_2016": {
+      "doi": "10.1126/science.aag0822",
+      "title": "Spatiotemporal microbial evolution on antibiotic landscapes"
+    }
   }
 }

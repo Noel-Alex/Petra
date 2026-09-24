@@ -10,6 +10,8 @@ Own framework-neutral presentation of authoritative scientific/source provenance
 - Scenario-wide transfer assumptions remain scenario-wide disclosures unless the data layer explicitly links one to a particular parameter/mechanism. UI adapters must not silently turn a general assumption into a field-specific transfer note.
 - Unknown domain classifications (for example a mutation-target provenance vocabulary not represented by `EvidenceClass`) remain `needs-provenance` until the science/data layer defines the mapping.
 - React components consume resolved presentations/resolutions; they do not implement parallel classification logic.
+- Normalized science/data records may carry nested `provenance`; when present it is the sole presentation-provenance authority. Top-level domain classifications (for example mutation target classes) remain scientific metadata and must not be reinterpreted as UI evidence classes.
+- Malformed nested provenance must fail visibly; adapters must not fall back to a convenient top-level classification or source guess.
 - `ProvenancePanel.tsx` may display authoritative declared sources even when classification is incomplete, but it must not convert those sources into an evidence badge.
 - Shared icon geometry comes from `src/ui/icons/spec.ts` via the thin `PetraIcon.tsx` adapter; provenance components must not invent a second icon vocabulary.
 

@@ -1,4 +1,12 @@
 import type { SimulationRng } from "../rng";
+import {
+  BOUNDED_HYBRID_BINOMIAL_V1,
+  SamplingPolicyRefusal,
+  planSamplingExecution,
+  requireExactSampling,
+  sampleBoundedHybridBinomialV1,
+  type SamplingExecutionPolicy,
+} from "../samplingPolicy";
 
 export const PHAGE_SPATIAL_UNIT_BRIDGE_SCHEMA_VERSION = 1 as const;
 
@@ -178,25 +186,92 @@ export function resolvePhageAdsorptionExposure(args: {
   };
 }
 
+export interface PhageAdsorptionSamplingResult {
+  readonly adsorbedPfu: number;
+  readonly execution: "exact" | "accelerated";
+  readonly algorithm:
+    | "trial-bernoulli-reference-v1"
+    | typeof BOUNDED_HYBRID_BINOMIAL_V1;
+  readonly policyIdentity: string;
+}
+
+/**
+ * Exact Bernoulli reference sampler for free-PFU adsorption.
+ *
+ * The caller must provide the versioned numerical execution policy. Counts
+ * above its exact Bernoulli budget fail closed before entering the O(free PFU)
+ * loop; this keeps the exact path available for deterministic reference work
+ * without making safe-integer input synonymous with executable work.
+ */
 export function sampleExactAdsorbedPfu(
   freePhagePfu: number,
   adsorptionProbability: number,
   rng: SimulationRng,
+  policy: SamplingExecutionPolicy,
 ): number {
   nonNegativeSafeInteger("freePhagePfu", freePhagePfu);
-  if (
-    !Number.isFinite(adsorptionProbability) ||
-    adsorptionProbability < 0 ||
-    adsorptionProbability > 1
-  ) {
-    throw new RangeError("adsorptionProbability must be finite in [0, 1]");
-  }
+  validateAdsorptionProbability(adsorptionProbability);
+  requireExactSampling(freePhagePfu, "bernoulli", policy);
 
   let adsorbed = 0;
   for (let phage = 0; phage < freePhagePfu; phage += 1) {
     if (rng.nextFloat() < adsorptionProbability) adsorbed += 1;
   }
   return adsorbed;
+}
+
+/**
+ * Policy-aware adsorption count sampler.
+ *
+ * Acceleration changes RNG consumption relative to the trial-by-trial
+ * reference path, so the policy identity is returned with every result and
+ * must participate in any authoritative configuration/checkpoint that enables
+ * this sampler.
+ */
+export function sampleAdsorbedPfuWithPolicy(
+  freePhagePfu: number,
+  adsorptionProbability: number,
+  rng: SimulationRng,
+  policy: SamplingExecutionPolicy,
+): PhageAdsorptionSamplingResult {
+  nonNegativeSafeInteger("freePhagePfu", freePhagePfu);
+  validateAdsorptionProbability(adsorptionProbability);
+
+  const plan = planSamplingExecution(freePhagePfu, "bernoulli", policy);
+  if (plan.status === "refused") {
+    throw new SamplingPolicyRefusal({
+      workload: plan.workload,
+      trialCount: plan.trialCount,
+      exactTrialBudget: plan.exactTrialBudget,
+      reason: plan.reason,
+      policyIdentity: plan.policyIdentity,
+    });
+  }
+
+  if (plan.status === "exact") {
+    return {
+      adsorbedPfu: sampleExactAdsorbedPfu(
+        freePhagePfu,
+        adsorptionProbability,
+        rng,
+        policy,
+      ),
+      execution: "exact",
+      algorithm: "trial-bernoulli-reference-v1",
+      policyIdentity: plan.policyIdentity,
+    };
+  }
+
+  return {
+    adsorbedPfu: sampleBoundedHybridBinomialV1(
+      freePhagePfu,
+      adsorptionProbability,
+      rng,
+    ),
+    execution: "accelerated",
+    algorithm: plan.algorithm,
+    policyIdentity: plan.policyIdentity,
+  };
 }
 
 export function diffusionCoefficientGridCellsSquaredPerMinute(
@@ -260,6 +335,18 @@ function validatePhysicalParameter(
     throw new Error(
       `${name} requires source keys for non-engineering evidence`,
     );
+  }
+}
+
+function validateAdsorptionProbability(
+  adsorptionProbability: number,
+): void {
+  if (
+    !Number.isFinite(adsorptionProbability) ||
+    adsorptionProbability < 0 ||
+    adsorptionProbability > 1
+  ) {
+    throw new RangeError("adsorptionProbability must be finite in [0, 1]");
   }
 }
 

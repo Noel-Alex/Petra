@@ -12,7 +12,7 @@ This directory turns resource availability into deterministic **continuous bioma
 - local-capacity limiting;
 - explicit per-lineage/per-cell division-biomass and death-biomass ledgers;
 - bounded first-order death hazards, uniform or spatial;
-- conservative four-neighbour effective colony spread;
+- conservative capacity-aware four-neighbour effective colony spread;
 - aggregate flux/resource/biomass metrics.
 
 All numeric parameters are passed by the scenario/composition layer. This module intentionally contains **no E. coli constant** and no ciprofloxacin-specific value.
@@ -24,6 +24,13 @@ All numeric parameters are passed by the scenario/composition layer. This module
 `deathHazardPerTime` is an input contract, not a hidden stress model. The caller must identify the mechanism and provenance that produced it. For the ciprofloxacin flagship, Issue #4 owns the resource×drug composition that will derive spatial loss pressure from the documented Regoes/MIC policy.
 
 Division demand and death are computed from the same pre-step biomass. Death uses the exact constant-hazard survival fraction `1 - exp(-h * dt)`, which prevents a finite non-negative first-order hazard from deleting more than the available pre-step biomass. Same-step death does not create extra growth capacity until the next step; that operator-order policy is deterministic and should be versioned if changed.
+
+
+### Capacity-aware spread policy
+
+Spread is evaluated from a pre-spread snapshot. Each in-mask destination exposes only its pre-spread free `localCapacity`. If proposed incoming biomass from multiple neighbouring cells/lineages exceeds that budget, Petra accepts the same proportional fraction of every proposed flow; rejected flux remains at its source. This makes the operator conservative and lineage-order independent without post-hoc clipping or hidden biomass deletion. A destination that is already full accepts no incoming biomass during that spread step, even if it simultaneously sends biomass outward.
+
+The capacity comparison uses a small floating-point tolerance only as an invariant check around Float32 storage; it does not create extra modeled capacity or alter accepted flux.
 
 ## Mutation boundary
 
@@ -37,4 +44,4 @@ The kernel now separates division and death fluxes and accepts relative fitness.
 
 ## Verification
 
-`growth.test.ts` covers the Monod half-saturation identity, zero-resource behavior, yield/capacity limiting, lineage-order independence, high-resource early exponential behavior, nutrient-depletion slowdown, relative-fitness scaling, bounded death bookkeeping, spatial death fields, and spread mass conservation. Run the repository-level `python tools/verify.py premerge` gate for executable evidence.
+`growth.test.ts` covers the Monod half-saturation identity, zero-resource behavior, yield/capacity limiting, lineage-order independence, high-resource early exponential behavior, nutrient-depletion slowdown, relative-fitness scaling, bounded death bookkeeping, spatial death fields, spread mass conservation, capacity-limited proportional acceptance, lineage-order invariance, and post-spread local-capacity bounds. Run the repository-level `python tools/verify.py premerge` gate for executable evidence.

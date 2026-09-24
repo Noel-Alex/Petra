@@ -2,6 +2,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { App } from "./App";
 
+// Vite resolves raw modules in Vitest; this project intentionally omits vite/client globals.
+// @ts-expect-error Vite raw source import is runtime-supported but not declared in tsconfig types.
+import appSource from "./App.tsx?raw";
+
 describe("App authoritative runtime boundary", () => {
   it("does not invent or auto-connect simulation authority by default", () => {
     const html = renderToStaticMarkup(<App />);
@@ -26,4 +30,14 @@ describe("App authoritative runtime boundary", () => {
     expect(html).toContain('aria-keyshortcuts="2"');
     expect(html).toContain('aria-keyshortcuts="3"');
   });
+
+  it("checks runtime availability before dispatching global shortcuts", () => {
+    const gateIndex = appSource.indexOf("canDispatchAppShortcut(plan.action");
+    const dispatchIndex = appSource.indexOf("experiment.dispatch(plan.action)");
+
+    expect(gateIndex).toBeGreaterThan(-1);
+    expect(dispatchIndex).toBeGreaterThan(gateIndex);
+    expect(appSource).toContain('canStep: experiment.view.status === "ready"');
+  });
+
 });

@@ -54,7 +54,7 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 
 ## Child DOX index
 - [`onboarding/AGENTS.md`](onboarding/AGENTS.md) — canonical science-gated onboarding/story semantics and presentation metadata.
-- [`compare/AGENTS.md`](compare/AGENTS.md) — accessible counterfactual side-by-side/swipe presentation over authoritative branch state.
+- [`compare/AGENTS.md`](compare/AGENTS.md) — accessible counterfactual side-by-side/swipe presentation over authoritative branch state.\n- [`provenance/AGENTS.md`](provenance/AGENTS.md) — judge-facing Sources/Assumptions presentation and explicit authority-adapter boundary.
 
 
 ## Provenance presentation

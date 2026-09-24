@@ -1,12 +1,41 @@
 import { describe, expect, it } from "vitest";
 import {
   beginPointerGesture,
+  beginPointerGestureInDishAperture,
   createPointerGestureState,
   endPointerGesture,
   movePointerGesture,
 } from "./pointerGesture";
 
 describe("pointer gesture planner", () => {
+  it("admits starts inside the dish, continues outside, and refuses an outside second pointer", () => {
+    const viewport = { width: 800, height: 600 };
+    const first = beginPointerGestureInDishAperture(
+      createPointerGestureState(),
+      1,
+      { x: 400, y: 300 },
+      viewport,
+    );
+    const movedOutside = movePointerGesture(first.state, 1, { x: 20, y: 20 });
+    const rejectedSecond = beginPointerGestureInDishAperture(
+      movedOutside.state,
+      2,
+      { x: 0, y: 0 },
+      viewport,
+    );
+
+    expect(first.accepted).toBe(true);
+    expect(movedOutside.accepted).toBe(true);
+    expect(movedOutside.intent).toEqual({
+      kind: "pan",
+      deltaScreen: { x: -380, y: -280 },
+    });
+    expect(rejectedSecond.accepted).toBe(false);
+    expect(rejectedSecond.state.active).toEqual([
+      { id: 1, point: { x: 20, y: 20 } },
+    ]);
+  });
+
   it("emits one-pointer pan deltas", () => {
     const started = beginPointerGesture(
       createPointerGestureState(),

@@ -16,6 +16,12 @@ import {
   type ScreenPoint,
 } from "./camera";
 import { applyKeyboardCameraKey } from "./keyboardCamera";
+import {
+  beginPointerGesture,
+  createPointerGestureState,
+  endPointerGesture,
+  movePointerGesture,
+} from "./pointerGesture";
 import { createResizeRedrawScheduler } from "./resizeScheduler";
 import {
   cameraTransitionComplete,
@@ -78,8 +84,7 @@ export async function createPixiDishRenderer(
   let targetCamera = camera;
   let cameraElapsedMs = options.cameraMotion.durationMs;
   let destroyed = false;
-  let dragging = false;
-  let lastPointer: ScreenPoint | null = null;
+  let gestureState = createPointerGestureState();
 
   const maxRepresentativeGlyphs = options.maxRepresentativeGlyphs ?? 180;
 
@@ -122,6 +127,13 @@ export async function createPixiDishRenderer(
     cameraElapsedMs = 0;
   };
 
+  const applyDirectCamera = (nextTarget: CameraView) => {
+    targetCamera = clampCamera(nextTarget);
+    camera = targetCamera;
+    transitionStartCamera = targetCamera;
+    cameraElapsedMs = options.cameraMotion.durationMs;
+  };
+
   const ticker = () => {
     if (destroyed || motion !== "full") return;
     if (
@@ -153,29 +165,56 @@ export async function createPixiDishRenderer(
   };
 
   const onPointerDown = (event: PointerEvent) => {
-    if (event.button !== 0) return;
-    dragging = true;
-    lastPointer = localPointer(event);
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    const started = beginPointerGesture(
+      gestureState,
+      event.pointerId,
+      localPointer(event),
+    );
+    gestureState = started.state;
+    if (!started.accepted) return;
     app.canvas.setPointerCapture(event.pointerId);
   };
 
   const onPointerMove = (event: PointerEvent) => {
-    if (!dragging || lastPointer === null || targetCamera.zoom <= 1) return;
-    const next = localPointer(event);
-    beginCameraTransition(
-      panCamera(
-        targetCamera,
-        { x: next.x - lastPointer.x, y: next.y - lastPointer.y },
-        { width: app.screen.width, height: app.screen.height },
-      ),
+    const moved = movePointerGesture(
+      gestureState,
+      event.pointerId,
+      localPointer(event),
     );
-    lastPointer = next;
+    gestureState = moved.state;
+    if (!moved.accepted || moved.intent.kind === "none") return;
+
+    event.preventDefault();
+    const viewport = { width: app.screen.width, height: app.screen.height };
+
+    if (moved.intent.kind === "pan") {
+      if (targetCamera.zoom <= 1) return;
+      applyDirectCamera(
+        panCamera(targetCamera, moved.intent.deltaScreen, viewport),
+      );
+      render();
+      return;
+    }
+
+    const anchor = screenToDish(
+      moved.intent.anchorScreen,
+      viewport,
+      targetCamera,
+    );
+    const zoomed = zoomAroundDishPoint(
+      targetCamera,
+      anchor,
+      moved.intent.zoomFactor,
+    );
+    applyDirectCamera(
+      panCamera(zoomed, moved.intent.centroidDelta, viewport),
+    );
     render();
   };
 
   const finishPointer = (event: PointerEvent) => {
-    dragging = false;
-    lastPointer = null;
+    gestureState = endPointerGesture(gestureState, event.pointerId);
     if (app.canvas.hasPointerCapture(event.pointerId)) {
       app.canvas.releasePointerCapture(event.pointerId);
     }

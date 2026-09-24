@@ -20,7 +20,10 @@ import {
   SEMANTIC_ZOOM_GUIDE,
   surfaceMotionCss,
 } from "./motionAdapter";
-import { dishEscapeAction } from "./dishKeyboard";
+import {
+  dishEscapeAction,
+  dishEscapeAllowsFirstRefusal,
+} from "./dishKeyboard";
 import { resolveDishCameraMotion } from "./dishCameraMotion";
 
 export interface DishViewportProps {
@@ -95,13 +98,27 @@ export function DishViewport({
   };
 
   const handleDishKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "Escape" || event.defaultPrevented) return;
+    const editableTarget = isEditableTarget(event.target);
 
-    const higherPriorityConsumed = onEscapeBeforeOverview?.() ?? false;
+    if (
+      !dishEscapeAllowsFirstRefusal(event.key, {
+        defaultPrevented: event.defaultPrevented,
+        editableTarget,
+      })
+    ) {
+      return;
+    }
+
+    if (onEscapeBeforeOverview?.() === true) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
     const action = dishEscapeAction(event.key, {
       defaultPrevented: event.defaultPrevented,
-      editableTarget: isEditableTarget(event.target),
-      higherPriorityConsumed,
+      editableTarget,
+      higherPriorityConsumed: false,
       renderEnabled,
     });
     if (action !== "reset-overview") return;

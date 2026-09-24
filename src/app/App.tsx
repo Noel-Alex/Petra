@@ -303,7 +303,7 @@ export function App({
                 experiment.restart();
               }}
             >
-              Retry authoritative simulation
+              Restart same run identity
             </PetraCompactAction>
           ) : (
             <p className="panel-note">
@@ -311,6 +311,14 @@ export function App({
               before starting another authoritative run.
             </p>
           )}
+          {runtimeFactory !== undefined &&
+          experiment.view.failure?.recoverable !== false ? (
+            <p className="panel-note">
+              Restart uses the same scenario, parameters, and seed. It starts a
+              fresh authoritative runtime; it does not pretend to resume the
+              failed checkpoint.
+            </p>
+          ) : null}
         </section>
       ) : null}
 

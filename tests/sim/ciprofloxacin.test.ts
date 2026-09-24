@@ -1,3 +1,12 @@
+/**
+ * Scientific fixture provenance:
+ * - Regoes et al. 2004, DOI 10.1128/AAC.48.10.3670-3676.2004: E. coli CAB1,
+ *   LB, 37 C reference ciprofloxacin PD fit and conventional MIC used below.
+ * - Marcusson et al. 2009, DOI 10.1371/journal.ppat.1000541: MG1655 genotype
+ *   MIC values used by the horizontal-shift examples (0.016, 1.0, 32 mg/L).
+ * Their composition is a documented transferred/mechanistic approximation, not
+ * a claim that one experiment measured the combined genotype-specific curves.
+ */
 import { describe, expect, it } from "vitest";
 import {
   log10RateToNaturalPerHour,

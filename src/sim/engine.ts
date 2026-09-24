@@ -30,6 +30,27 @@ function traceHash(value: unknown): string {
   return hash.toString(16).padStart(8, '0')
 }
 
+function assertCheckpointScalarInvariants(checkpoint: SimulationCheckpoint): void {
+  if (!Number.isSafeInteger(checkpoint.tick) || checkpoint.tick < 0) {
+    throw new Error('checkpoint.tick must be a non-negative safe integer')
+  }
+  if (
+    !Number.isFinite(checkpoint.simulationTimeHours) ||
+    checkpoint.simulationTimeHours < 0 ||
+    checkpoint.simulationTimeHours !== checkpoint.tick * HOURS_PER_TICK
+  ) {
+    throw new Error(
+      'checkpoint.simulationTimeHours must be finite, non-negative, and exactly match checkpoint.tick',
+    )
+  }
+  if (!Number.isFinite(checkpoint.syntheticPopulation) || checkpoint.syntheticPopulation < 0) {
+    throw new Error('checkpoint.syntheticPopulation must be finite and non-negative')
+  }
+  if (!Number.isSafeInteger(checkpoint.commandCount) || checkpoint.commandCount < 0) {
+    throw new Error('checkpoint.commandCount must be a non-negative safe integer')
+  }
+}
+
 export class SimulationEngine {
   private readonly identity: RunIdentity
   private rng: SimulationRng
@@ -114,10 +135,14 @@ export class SimulationEngine {
     if (stableStringify(checkpoint.identity) !== stableStringify(this.identity)) {
       throw new Error('Cannot restore a checkpoint from a different run identity')
     }
+
+    assertCheckpointScalarInvariants(checkpoint)
+    const restoredRng = new SimulationRng(checkpoint.rngState)
+
     this.tick = checkpoint.tick
     this.syntheticPopulation = checkpoint.syntheticPopulation
     this.commandCount = checkpoint.commandCount
-    this.rng = new SimulationRng(checkpoint.rngState)
+    this.rng = restoredRng
     this.events.length = 0
   }
 }

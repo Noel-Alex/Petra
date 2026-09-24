@@ -6,7 +6,7 @@ Own Petra's **manual, laptop-only** experiment/benchmark queue and compact evide
 ## Hard rule: no CI
 - Petra currently uses **no hosted CI at all**. Never invoke this subsystem from GitHub Actions, another CI service, scheduled hosted automation, or a required check.
 - `run_local_experiments.py` must refuse common CI environments.
-- Only Noel-Alex (or another human explicitly choosing to do so) runs the local experiment entrypoint after pulling the repository.
+- Only a human operator explicitly choosing to do so runs the local experiment entrypoint after pulling the repository.
 
 ## Single human entrypoint
 The one user-facing command is:
@@ -20,7 +20,17 @@ Useful options:
 - `--only ID` limits a run to one or more registrations.
 - `--push` explicitly commits and pushes **only** the newly generated compact evidence directory.
 
-Agents must not hand Noel-Alex a collection of unrelated experiment scripts to invoke manually. They may add implementation-specific helper scripts, but every requested laptop run must be registered in `experiments/local_manifest.json` and reachable from the single root entrypoint.
+Agents must not hand the human operator a collection of unrelated experiment scripts to invoke manually. They may add implementation-specific helper scripts, but every requested laptop run must be registered in `experiments/local_manifest.json` and reachable from the single root entrypoint.
+
+## Long-lead scheduling
+
+Experiment readiness is project work, not an end-of-project cleanup step.
+
+- Register known long-lead experiments and implement their helpers/output contracts as early as possible, even when execution is blocked on an explicit upstream Issue.
+- A blocked registration must name the dependency that makes execution invalid today; everything independent of that dependency should already be runnable/testable.
+- Prioritize work that lets the human operator start expensive laptop time immediately after pulling a prerequisite commit.
+- Dataset generation, statistical replicates, calibration, model training/benchmarking, profiling, soak runs, browser acceptance, offline rehearsal, and release performance runs all belong in this queue when they require local capability.
+- Do not discover a known expensive experiment for the first time during final release hours.
 
 ## Registration contract
 Each manifest experiment must include:

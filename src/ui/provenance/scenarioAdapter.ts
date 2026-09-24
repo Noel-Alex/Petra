@@ -17,10 +17,26 @@ export interface ScenarioProvenanceContext {
   readonly transferAssumptions?: readonly unknown[];
 }
 
-export interface ExplicitProvenanceRecord {
+export interface ExplicitPresentationProvenanceRecord {
   readonly classification?: unknown;
   readonly citation?: unknown;
   readonly citations?: unknown;
+  readonly context?: unknown;
+  readonly transformation?: unknown;
+  readonly uncertainty?: unknown;
+  readonly transferNote?: unknown;
+  readonly calibrationNote?: unknown;
+  readonly limitation?: unknown;
+}
+
+export interface ExplicitProvenanceRecord
+  extends ExplicitPresentationProvenanceRecord {
+  /**
+   * Preferred normalized data shape. When present, this nested record is the
+   * sole presentation-provenance authority; domain-specific top-level
+   * classifications remain untouched.
+   */
+  readonly provenance?: unknown;
 }
 
 export interface ResolveScenarioProvenanceArgs {
@@ -58,16 +74,21 @@ export interface ScenarioAssumptionsResolution {
  * Resolves only evidence classes and source keys explicitly supplied by the
  * authoritative record. Citation presence, DOI presence, paper count, field
  * names, or evidence tier never imply an evidence class.
+ *
+ * A normalized nested `record.provenance` takes precedence over legacy
+ * top-level presentation fields so a domain-specific `classification` can
+ * coexist without being reinterpreted by the UI.
  */
 export function resolveScenarioProvenance(
   args: ResolveScenarioProvenanceArgs,
 ): ScenarioProvenanceResolution {
   const problems: string[] = [];
-  const sourceKeys = citationKeys(args.record, problems);
+  const record = presentationRecord(args.record, problems);
+  const sourceKeys = citationKeys(record, problems);
   const sources = resolveSources(sourceKeys, args.scenario.citations, problems);
   const rawClassification =
-    typeof args.record.classification === "string"
-      ? args.record.classification.trim()
+    typeof record.classification === "string"
+      ? record.classification.trim()
       : null;
 
   if (rawClassification === null || rawClassification.length === 0) {
@@ -104,25 +125,51 @@ export function resolveScenarioProvenance(
     };
   }
 
+  const context = metadataText("context", record.context, args.context, problems);
+  const transformation = metadataText(
+    "transformation",
+    record.transformation,
+    args.transformation,
+    problems,
+  );
+  const uncertainty = metadataText(
+    "uncertainty",
+    record.uncertainty,
+    args.uncertainty,
+    problems,
+  );
+  const transferNote = metadataText(
+    "transferNote",
+    record.transferNote,
+    args.transferNote,
+    problems,
+  );
+  const calibrationNote = metadataText(
+    "calibrationNote",
+    record.calibrationNote,
+    args.calibrationNote,
+    problems,
+  );
+  const limitation = metadataText(
+    "limitation",
+    record.limitation,
+    args.limitation,
+    problems,
+  );
+
   const input: ProvenancePresentationInput = {
     id: args.id,
     label: args.label,
     evidenceClass,
     ...(args.valueText === undefined ? {} : { valueText: args.valueText }),
     ...(args.units === undefined ? {} : { units: args.units }),
-    ...(args.context === undefined ? {} : { context: args.context }),
+    ...(context === undefined ? {} : { context }),
     ...(sources.length === 0 ? {} : { sources }),
-    ...(args.transformation === undefined
-      ? {}
-      : { transformation: args.transformation }),
-    ...(args.uncertainty === undefined ? {} : { uncertainty: args.uncertainty }),
-    ...(args.transferNote === undefined
-      ? {}
-      : { transferNote: args.transferNote }),
-    ...(args.calibrationNote === undefined
-      ? {}
-      : { calibrationNote: args.calibrationNote }),
-    ...(args.limitation === undefined ? {} : { limitation: args.limitation }),
+    ...(transformation === undefined ? {} : { transformation }),
+    ...(uncertainty === undefined ? {} : { uncertainty }),
+    ...(transferNote === undefined ? {} : { transferNote }),
+    ...(calibrationNote === undefined ? {} : { calibrationNote }),
+    ...(limitation === undefined ? {} : { limitation }),
   };
 
   const presentation = buildProvenancePresentation(input);
@@ -171,14 +218,64 @@ export function resolveScenarioTransferAssumptions(
   return { assumptions, problems };
 }
 
-function citationKeys(
+function presentationRecord(
   record: ExplicitProvenanceRecord,
+  problems: string[],
+): ExplicitPresentationProvenanceRecord {
+  if (record.provenance === undefined) {
+    return record;
+  }
+
+  if (!isRecord(record.provenance)) {
+    problems.push("Provenance record must be an object.");
+    return {};
+  }
+
+  return record.provenance;
+}
+
+function metadataText(
+  field: keyof Pick<
+    ExplicitPresentationProvenanceRecord,
+    | "context"
+    | "transformation"
+    | "uncertainty"
+    | "transferNote"
+    | "calibrationNote"
+    | "limitation"
+  >,
+  authoritativeValue: unknown,
+  legacyFallback: string | undefined,
+  problems: string[],
+): string | undefined {
+  if (authoritativeValue === undefined) {
+    return legacyFallback;
+  }
+
+  if (
+    typeof authoritativeValue !== "string" ||
+    authoritativeValue.trim().length === 0
+  ) {
+    problems.push(
+      `Provenance ${field} must be a non-empty string when supplied.`,
+    );
+    return undefined;
+  }
+
+  return authoritativeValue.trim();
+}
+
+function citationKeys(
+  record: ExplicitPresentationProvenanceRecord,
   problems: string[],
 ): readonly string[] {
   const keys: string[] = [];
 
   if (record.citation !== undefined) {
-    if (typeof record.citation !== "string" || record.citation.trim().length === 0) {
+    if (
+      typeof record.citation !== "string" ||
+      record.citation.trim().length === 0
+    ) {
       problems.push("Provenance citation must be a non-empty citation key.");
     } else {
       keys.push(record.citation.trim());
@@ -220,7 +317,10 @@ function resolveSources(
       continue;
     }
 
-    if (typeof citation.title !== "string" || citation.title.trim().length === 0) {
+    if (
+      typeof citation.title !== "string" ||
+      citation.title.trim().length === 0
+    ) {
       problems.push(
         `Provenance incomplete: citation "${key}" requires a non-empty title.`,
       );
@@ -244,7 +344,10 @@ function citationLocator(
   problems: string[],
 ): string | null {
   if (citation.doi !== undefined) {
-    if (typeof citation.doi !== "string" || citation.doi.trim().length === 0) {
+    if (
+      typeof citation.doi !== "string" ||
+      citation.doi.trim().length === 0
+    ) {
       problems.push(
         `Provenance incomplete: citation "${key}" has an invalid DOI locator.`,
       );
@@ -254,7 +357,10 @@ function citationLocator(
   }
 
   if (citation.url !== undefined) {
-    if (typeof citation.url !== "string" || citation.url.trim().length === 0) {
+    if (
+      typeof citation.url !== "string" ||
+      citation.url.trim().length === 0
+    ) {
       problems.push(
         `Provenance incomplete: citation "${key}" has an invalid URL locator.`,
       );
@@ -264,4 +370,8 @@ function citationLocator(
   }
 
   return null;
+}
+
+function isRecord(value: unknown): value is ExplicitPresentationProvenanceRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

@@ -61,8 +61,11 @@ export function AnalysisPanel({
   const motionPlan = resolveAnalysisMotion(motion);
   const style = {
     "--analysis-panel-ms": `${motionPlan.panel.durationMs}ms`,
+    "--analysis-panel-ease": motionPlan.panelEasing.join(", "),
     "--analysis-chart-ms": `${motionPlan.chart.durationMs}ms`,
-    "--analysis-ease": motionPlan.chartEasing.join(", "),
+    "--analysis-chart-ease": motionPlan.chartEasing.join(", "),
+    "--analysis-branch-ms": `${motionPlan.lineageBranch.durationMs}ms`,
+    "--analysis-branch-ease": motionPlan.lineageBranch.easing.join(", "),
   } as CSSProperties;
 
   return (
@@ -72,6 +75,7 @@ export function AnalysisPanel({
       data-motion={motion}
       data-panel-treatment={motionPlan.panel.treatment}
       data-chart-treatment={motionPlan.chart.treatment}
+      data-lineage-treatment={motionPlan.lineageBranch.treatment}
       style={style}
     >
       <header className="analysis-panel__header">

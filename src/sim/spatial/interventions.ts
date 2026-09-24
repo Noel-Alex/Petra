@@ -133,6 +133,8 @@ export function applyBand(
   if (!Number.isFinite(halfWidth) || halfWidth < 0) {
     throw new Error('halfWidth must be finite and non-negative')
   }
+  validateFiniteCoordinate('band normalX', normalX)
+  validateFiniteCoordinate('band normalY', normalY)
   const norm = Math.hypot(normalX, normalY)
   if (!Number.isFinite(norm) || norm === 0) {
     throw new Error('band normal must be finite and non-zero')

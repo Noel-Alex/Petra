@@ -18,7 +18,11 @@ Deterministic local verification and developer/research tooling.
 Prefer lightweight Python tools with no unnecessary dependencies for repository contract checks.
 
 ## Verification
-Run `python tools/verify.py quick` for local contract validation. Use `premerge` for the broader deterministic suite once implementation tests exist.
+Run `python tools/verify.py quick` for local contract validation.
+
+Run `python tools/verify.py premerge` for the broader deterministic suite. Once the TypeScript implementation substrate is present, the premerge registry owns strict typechecking + Vitest through the `typescript-deterministic-suite` check. GitHub Actions is an execution environment for these same source checks; a green run is not browser, GPU, device, performance, or experimental validation.
+
+When a branch has `package.json` but not yet a committed lockfile, CI may use `npm install` to make the verification gate executable. Treat a committed lockfile as follow-up reproducibility hardening rather than silently claiming dependency resolution is fully pinned.
 
 ## Child DOX index
 No child contracts yet.

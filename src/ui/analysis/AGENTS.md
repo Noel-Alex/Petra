@@ -8,6 +8,7 @@
 - App-shell consumers receive authoritative analysis records through the explicit `src/app/analysisView.ts` boundary. Missing authority is an unavailable state; current synthetic worker fields, Pixi snapshots, and visual demo fixtures are not valid substitutes.
 - Decimation may **select existing source points only**. Do not interpolate, smooth, average into new displayed measurements, or silently resample values.
 - Chart domains are computed from the full source dataset, not only retained display points.
+- Biological-time axes are constrained by the authoritative non-negative time contract. Degenerate single-time domains expand deterministically without crossing below 0 h; ordinary non-degenerate source time bounds remain exact. Value axes use their own domain policy and may legitimately be signed.
 - Under analysis schema v1, source sample time is strict per-series identity: timestamps must increase monotonically with no duplicates inside one series. Equal timestamps across different series remain valid. If a future authoritative source requires pre/post-event or replicate samples at one clock time, extend the versioned schema with explicit phase/sequence/replicate identity rather than relying on array order.
 - Presentation must never merge, jitter, average, reorder, or silently drop duplicate-time source records merely to make them drawable.
 - Series with different units require separate charts. Never normalize unlike scientific units onto one unlabeled axis.

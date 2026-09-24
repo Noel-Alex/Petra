@@ -137,7 +137,7 @@ export function buildScientificChart(
     vMax = Math.max(0, vMax);
   }
 
-  const timeDomain = expandDegenerateDomain(tMin, tMax);
+  const timeDomain = expandDegenerateTimeDomain(tMin, tMax);
   const valueDomain = expandDegenerateDomain(vMin, vMax);
 
   return {
@@ -326,7 +326,7 @@ export function buildLineageTree(
   }
 
   const times = inputs.map((lineage) => lineage.createdAtHours);
-  const domain = expandDegenerateDomain(Math.min(...times), Math.max(...times));
+  const domain = expandDegenerateTimeDomain(Math.min(...times), Math.max(...times));
   const nodes = ordered.map((lineage, index): LineageTreeNode => ({
     ...lineage,
     depth: depthMemo.get(lineage.lineageId)!,
@@ -450,6 +450,27 @@ function compareLineages(
 ): number {
   return left.createdAtHours - right.createdAtHours ||
     left.lineageId.localeCompare(right.lineageId);
+}
+
+function expandDegenerateTimeDomain(
+  minimum: number,
+  maximum: number,
+): { readonly minimum: number; readonly maximum: number } {
+  if (
+    !Number.isFinite(minimum) ||
+    !Number.isFinite(maximum) ||
+    minimum < 0 ||
+    maximum < 0
+  ) {
+    throw new RangeError("biological time domain must be finite and non-negative");
+  }
+  if (maximum !== minimum) return { minimum, maximum };
+
+  const delta = Math.max(1, minimum * 0.05);
+  if (minimum < delta) {
+    return { minimum: 0, maximum: minimum + delta };
+  }
+  return { minimum: minimum - delta, maximum: maximum + delta };
 }
 
 function expandDegenerateDomain(

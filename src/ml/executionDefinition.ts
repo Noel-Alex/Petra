@@ -43,6 +43,7 @@ export function mechanisticParameterSetHash(
 ): string {
   assertComposedParameterSetBindingRecord(binding);
   return encodeIdentity(MECHANISTIC_PARAMETER_IDENTITY_SCHEMA_VERSION, [
+    String(binding.schemaVersion),
     binding.authority,
     binding.parameterSetId,
     binding.parameterSetVersion,
@@ -107,6 +108,11 @@ export function createMechanisticExecutionDefinition(args: {
   readonly intervention: NoInterventionExecutionDefinition;
 }): MechanisticExecutionDefinition {
   assertComposedParameterSetBindingRecord(args.parameterSetBinding);
+  if (args.parameterSetBinding.authority !== "provenance") {
+    throw new TypeError(
+      "authoritative mechanistic execution definitions require provenance parameter-set authority",
+    );
+  }
   validateNoInterventionExecutionDefinition(args.intervention);
   return Object.freeze({
     schemaVersion: MECHANISTIC_EXECUTION_DEFINITION_SCHEMA_VERSION,
@@ -134,6 +140,12 @@ export function assertTaskMatchesMechanisticExecutionDefinition(
     definition.schemaVersion !== MECHANISTIC_EXECUTION_DEFINITION_SCHEMA_VERSION
   ) {
     throw new TypeError("unsupported mechanistic execution definition");
+  }
+
+  if (definition.parameterSetBinding.authority !== "provenance") {
+    throw new TypeError(
+      "authoritative mechanistic execution definitions require provenance parameter-set authority",
+    );
   }
 
   assertComposedParameterSetBinding(

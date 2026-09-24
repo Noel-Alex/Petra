@@ -20,22 +20,14 @@ export interface AuthoritativeAnalysisIdentity {
   readonly simulationTimeHours: number;
 }
 
-interface AuthoritativeAnalysisRecordsBase {
+export interface AuthoritativeAnalysisRecords {
   readonly identity: AuthoritativeAnalysisIdentity;
   readonly series: readonly ScientificSeriesInput[];
+  /** Generic ancestry-only records for callers without the #665 projection. */
+  readonly lineages?: readonly LineageAncestryInput[];
+  /** Full authoritative #665 lineage analysis; mutually exclusive with lineages. */
+  readonly lineageAnalysis?: AuthoritativeLineageAnalysis;
 }
-
-export type AuthoritativeAnalysisRecords = AuthoritativeAnalysisRecordsBase &
-  (
-    | {
-        readonly lineages: readonly LineageAncestryInput[];
-        readonly lineageAnalysis?: never;
-      }
-    | {
-        readonly lineageAnalysis: AuthoritativeLineageAnalysis;
-        readonly lineages?: never;
-      }
-  );
 
 export type AnalysisSurfaceView =
   | {
@@ -133,6 +125,14 @@ function validateIdentity(identity: AuthoritativeAnalysisIdentity): void {
 function resolveLineageInputs(
   records: AuthoritativeAnalysisRecords,
 ): readonly LineageAncestryInput[] {
+  const hasLineages = records.lineages !== undefined;
+  const hasLineageAnalysis = records.lineageAnalysis !== undefined;
+  if (hasLineages === hasLineageAnalysis) {
+    throw new Error(
+      "analysis records require exactly one lineage source: lineages or lineageAnalysis",
+    );
+  }
+
   if (records.lineageAnalysis !== undefined) {
     const analysis = records.lineageAnalysis;
     if (analysis.schemaVersion !== 1) {
@@ -173,7 +173,7 @@ function resolveLineageInputs(
     });
   }
 
-  return records.lineages;
+  return records.lineages!;
 }
 
 function assertRecordsDoNotExceedStateTime(

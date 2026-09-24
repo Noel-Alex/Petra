@@ -8,6 +8,10 @@ import {
 } from "../lineageDensityPresentation";
 import { resolveLineagePattern, type LineagePatternToken } from "../lineagePatterns";
 import {
+  overlayPatternAlpha,
+  projectOverlayValue,
+} from "../overlayPresentation";
+import {
   semanticZoomLevel,
   type CameraView,
   type DishRenderSnapshot,
@@ -601,14 +605,17 @@ function drawField(
 ): void {
   const cellWidth = dishSize * camera.zoom / snapshot.gridWidth;
   const cellHeight = dishSize * camera.zoom / snapshot.gridHeight;
-  const range = Math.max(1e-9, field.maximum - field.minimum);
-  const color = field.kind === "nutrient" ? 0xf0bd4e : 0x8b6cf6;
 
   for (let index = 0; index < field.values.length; index += 1) {
     if (snapshot.dishMask[index] !== 1) continue;
     const value = field.values[index] ?? field.minimum;
-    const normalized = Math.max(0, Math.min(1, (value - field.minimum) / range));
-    if (normalized < 0.025) continue;
+    const presentation = projectOverlayValue(
+      field.kind,
+      value,
+      field.minimum,
+      field.maximum,
+    );
+    if (!presentation.visible) continue;
 
     const center = gridCellCenter(
       index,
@@ -625,6 +632,11 @@ function drawField(
     );
 
     if (!insideViewport(point, centerX, centerY, dishSize)) continue;
+    const textureAlpha = overlayPatternAlpha(
+      presentation.pattern,
+      center.column,
+      center.row,
+    );
     graphics
       .rect(
         point.x - cellWidth / 2,
@@ -632,7 +644,10 @@ function drawField(
         cellWidth + 0.5,
         cellHeight + 0.5,
       )
-      .fill({ color, alpha: normalized * 0.18 });
+      .fill({
+        color: presentation.color,
+        alpha: presentation.alpha * textureAlpha,
+      });
   }
 }
 

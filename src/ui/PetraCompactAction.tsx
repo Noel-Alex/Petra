@@ -6,6 +6,7 @@ import {
 } from "react";
 
 import {
+  beginActionPointerPress,
   createActionInteractionState,
   resolveActionMicroInteractionState,
   updateActionInteractionState,
@@ -84,9 +85,8 @@ export function PetraCompactAction({
       }}
       onPointerDown={(event) => {
         if (!disabled) {
-          setInteraction((current) =>
-            updateActionInteractionState(current, "pointer-down"),
-          );
+          const button = event.button;
+          setInteraction((current) => beginActionPointerPress(current, button));
         }
         onPointerDown?.(event);
       }}

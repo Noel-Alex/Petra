@@ -142,3 +142,9 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Runtime recovery is explicit. A failed live runtime may be restarted only through a fresh factory result with the exact same run identity/seed; a changed identity is rejected. The current restart path is a fresh authoritative runtime, not an implied checkpoint resume, and the UI must say so.
 - Last-valid snapshot/timeline evidence may remain visible while a runtime is failed, because it is explicitly historical. Starting recovery clears that stale runtime binding before new authority arrives; never relabel prior evidence as current.
 - `AppErrorBoundary.tsx` is presentation containment only. It must not manufacture simulator state, swallow typed worker/runtime failures that already have a recovery path, or expose raw stacks/payloads. Its reload action is explicit and warns that unsaved run state may be lost.
+
+
+## Timeline History visual-theme ownership
+- `timelineHistory.css` owns disclosure/history layout but consumes Petra's shared `--petra-color-*` / `--petra-rgb-*` variables for stable chrome. Do not restore a timeline-local numeric cyan/white/blue-grey palette.
+- Theme changes must preserve native `details/summary` behavior, the 2.75rem summary touch floor, focus visibility, bounded history scrolling, responsive stacking, authoritative event order/content, and supplied simulation timestamps.
+- Hover/background color is non-essential presentation reinforcement only. Timeline meaning, chronology, and playback authority must remain understandable without it, and this stylesheet must not introduce independent motion timing.

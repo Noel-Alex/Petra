@@ -10,11 +10,29 @@ import type { ExperimentRuntimeState } from "./experimentRuntime";
 
 export type OnboardingUserAction = Extract<
   OnboardingEvent,
-  { readonly type: "continue" | "back" | "skip" }
+  { readonly type: "continue" | "back" | "skip" | "reset" }
 >;
+
+export interface AuthoritativeOnboardingGateStream {
+  /** Exact active simulation identity that owns these cumulative gate facts. */
+  readonly runIdentity: RunIdentity;
+  /**
+   * Stable run/branch generation identity. A reset/reinitialize must change
+   * this even when the underlying RunIdentity fields are reused.
+   */
+  readonly runBranchIdentity: string;
+  /**
+   * Cumulative scientific facts already established by authoritative runtime
+   * state/events. Presentation code may consume these gates but never create
+   * them from timers, animation callbacks, pixels, or generic "advanced"
+   * protocol activity.
+   */
+  readonly gates: readonly ScientificGate[];
+}
 
 export interface OnboardingRuntimeProjection {
   readonly runIdentityKey: string | null;
+  readonly gateStreamIdentity: string | null;
   readonly hasAuthoritativeSnapshot: boolean;
   readonly gates: readonly ScientificGate[];
   readonly revisionKey: string;
@@ -22,6 +40,7 @@ export interface OnboardingRuntimeProjection {
 
 export interface OnboardingRuntimeSession {
   readonly runIdentityKey: string | null;
+  readonly gateStreamIdentity: string | null;
   readonly hasSeenAuthoritativeSnapshot: boolean;
   readonly state: OnboardingState;
 }
@@ -43,6 +62,7 @@ const ONBOARDING_GATE_BY_EVENT_TYPE = {
 
 export function projectOnboardingRuntime(
   runtime: ExperimentRuntimeState | null,
+  authoritativeGateStream?: AuthoritativeOnboardingGateStream | null,
 ): OnboardingRuntimeProjection {
   const runIdentityKey =
     runtime === null ? null : serializeRunIdentity(runtime.controls.identity);
@@ -56,13 +76,40 @@ export function projectOnboardingRuntime(
     }
   }
 
+  let authoritativeBranchIdentity: string | null = null;
+  if (
+    runtime !== null &&
+    authoritativeGateStream !== null &&
+    authoritativeGateStream !== undefined
+  ) {
+    assertRunBranchIdentity(authoritativeGateStream.runBranchIdentity);
+    if (
+      serializeRunIdentity(authoritativeGateStream.runIdentity) ===
+      serializeRunIdentity(runtime.controls.identity)
+    ) {
+      authoritativeBranchIdentity =
+        authoritativeGateStream.runBranchIdentity.trim();
+      for (const gate of authoritativeGateStream.gates) {
+        assertScientificGate(gate);
+        if (!gates.includes(gate)) gates.push(gate);
+      }
+    }
+  }
+
+  const gateStreamIdentity =
+    authoritativeBranchIdentity === null || runIdentityKey === null
+      ? null
+      : runIdentityKey + "::" + authoritativeBranchIdentity;
+
   return {
     runIdentityKey,
+    gateStreamIdentity,
     hasAuthoritativeSnapshot,
     gates,
     revisionKey: JSON.stringify([
       runIdentityKey,
       hasAuthoritativeSnapshot,
+      authoritativeBranchIdentity,
       gates,
     ]),
   };
@@ -73,6 +120,7 @@ export function createOnboardingRuntimeSession(
 ): OnboardingRuntimeSession {
   return {
     runIdentityKey: projection.runIdentityKey,
+    gateStreamIdentity: projection.gateStreamIdentity,
     hasSeenAuthoritativeSnapshot: projection.hasAuthoritativeSnapshot,
     state: initialOnboardingState(),
   };
@@ -91,26 +139,44 @@ export function reconcileOnboardingRuntimeSession(
   projection: OnboardingRuntimeProjection,
 ): OnboardingRuntimeSession {
   let state = session.state;
+  let gateStreamIdentity = session.gateStreamIdentity;
   let hasSeenAuthoritativeSnapshot = session.hasSeenAuthoritativeSnapshot;
   let changed = false;
 
-  if (session.runIdentityKey !== projection.runIdentityKey) {
+  const runChanged = session.runIdentityKey !== projection.runIdentityKey;
+  const authoritativeBranchChanged =
+    projection.gateStreamIdentity !== null &&
+    session.gateStreamIdentity !== null &&
+    projection.gateStreamIdentity !== session.gateStreamIdentity;
+
+  if (runChanged || authoritativeBranchChanged) {
     state = initialOnboardingState();
+    gateStreamIdentity = projection.gateStreamIdentity;
     hasSeenAuthoritativeSnapshot = projection.hasAuthoritativeSnapshot;
     changed = true;
-  } else if (
-    session.hasSeenAuthoritativeSnapshot &&
-    !projection.hasAuthoritativeSnapshot
-  ) {
-    state = initialOnboardingState();
-    hasSeenAuthoritativeSnapshot = false;
-    changed = true;
-  } else if (
-    !session.hasSeenAuthoritativeSnapshot &&
-    projection.hasAuthoritativeSnapshot
-  ) {
-    hasSeenAuthoritativeSnapshot = true;
-    changed = true;
+  } else {
+    if (
+      gateStreamIdentity === null &&
+      projection.gateStreamIdentity !== null
+    ) {
+      gateStreamIdentity = projection.gateStreamIdentity;
+      changed = true;
+    }
+
+    if (
+      session.hasSeenAuthoritativeSnapshot &&
+      !projection.hasAuthoritativeSnapshot
+    ) {
+      state = initialOnboardingState();
+      hasSeenAuthoritativeSnapshot = false;
+      changed = true;
+    } else if (
+      !session.hasSeenAuthoritativeSnapshot &&
+      projection.hasAuthoritativeSnapshot
+    ) {
+      hasSeenAuthoritativeSnapshot = true;
+      changed = true;
+    }
   }
 
   for (const gate of projection.gates) {
@@ -123,6 +189,7 @@ export function reconcileOnboardingRuntimeSession(
 
   return {
     runIdentityKey: projection.runIdentityKey,
+    gateStreamIdentity,
     hasSeenAuthoritativeSnapshot,
     state,
   };
@@ -140,6 +207,27 @@ export function applyOnboardingUserAction(
   };
 }
 
+const SCIENTIFIC_GATES: ReadonlySet<string> = new Set([
+  "inoculation-recorded",
+  "population-growth-observed",
+  "antibiotic-command-recorded",
+  "resistant-lineage-frequency-increased",
+]);
+
+function assertScientificGate(value: unknown): asserts value is ScientificGate {
+  if (typeof value !== "string" || !SCIENTIFIC_GATES.has(value)) {
+    throw new TypeError("unsupported authoritative onboarding scientific gate");
+  }
+}
+
+function assertRunBranchIdentity(value: string): void {
+  if (value.trim().length === 0) {
+    throw new TypeError(
+      "authoritative onboarding runBranchIdentity must be non-empty",
+    );
+  }
+}
+
 function serializeRunIdentity(identity: RunIdentity): string {
   return JSON.stringify([
     identity.engineVersion,
@@ -148,6 +236,7 @@ function serializeRunIdentity(identity: RunIdentity): string {
     identity.scenarioVersion,
     identity.parameterSetId,
     identity.parameterSetVersion,
+    identity.parameterSetBinding ?? null,
     identity.seed,
   ]);
 }

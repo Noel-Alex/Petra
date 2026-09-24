@@ -127,6 +127,101 @@ describe("onboarding runtime bridge", () => {
     expect(session.hasSeenAuthoritativeSnapshot).toBe(false);
   });
 
+  it("accepts explicit science gates only from the matching authoritative run", () => {
+    const runtime = runtimeState(7);
+    const matching = projectOnboardingRuntime(runtime, {
+      runIdentity: runtime.controls.identity,
+      runBranchIdentity: "run-7/main",
+      gates: [
+        "inoculation-recorded",
+        "population-growth-observed",
+        "antibiotic-command-recorded",
+      ],
+    });
+
+    expect(matching.gates).toEqual([
+      "inoculation-recorded",
+      "population-growth-observed",
+      "antibiotic-command-recorded",
+    ]);
+
+    const otherRuntime = runtimeState(8);
+    const mismatched = projectOnboardingRuntime(runtime, {
+      runIdentity: otherRuntime.controls.identity,
+      runBranchIdentity: "run-8/main",
+      gates: ["resistant-lineage-frequency-increased"],
+    });
+    expect(mismatched.gates).toEqual([]);
+  });
+
+  it("resets scientific gates when the authoritative run branch changes", () => {
+    const runtime = runtimeState(7);
+    const firstProjection = projectOnboardingRuntime(runtime, {
+      runIdentity: runtime.controls.identity,
+      runBranchIdentity: "run-7/a",
+      gates: [
+        "inoculation-recorded",
+        "population-growth-observed",
+      ],
+    });
+    let session = createOnboardingRuntimeSession(firstProjection);
+    session = reconcileOnboardingRuntimeSession(session, firstProjection);
+    expect(session.state.satisfiedGates).toEqual(
+      new Set([
+        "inoculation-recorded",
+        "population-growth-observed",
+      ]),
+    );
+
+    const forkProjection = projectOnboardingRuntime(runtime, {
+      runIdentity: runtime.controls.identity,
+      runBranchIdentity: "run-7/b",
+      gates: [],
+    });
+    session = reconcileOnboardingRuntimeSession(session, forkProjection);
+
+    expect(currentStage(session.state).id).toBe("ecosystem");
+    expect(session.state.satisfiedGates.size).toBe(0);
+    expect(session.gateStreamIdentity).toContain("run-7/b");
+  });
+
+  it("replays the guide without mutating simulation authority", () => {
+    const projection: OnboardingRuntimeProjection = {
+      ...projectOnboardingRuntime(runtimeState(7)),
+      gates: [
+        "inoculation-recorded",
+        "population-growth-observed",
+        "antibiotic-command-recorded",
+        "resistant-lineage-frequency-increased",
+      ],
+      revisionKey: "all-gates",
+    };
+    let session = createOnboardingRuntimeSession(projection);
+    session = reconcileOnboardingRuntimeSession(session, projection);
+
+    while (!session.state.completed) {
+      session = applyOnboardingUserAction(session, projection, {
+        type: "continue",
+      });
+    }
+    expect(session.state.completed).toBe(true);
+
+    const replayed = applyOnboardingUserAction(session, projection, {
+      type: "reset",
+    });
+    expect(currentStage(replayed.state).id).toBe("ecosystem");
+    expect(replayed.state.completed).toBe(false);
+    expect(replayed.state.skipped).toBe(false);
+
+    const synchronized = reconcileOnboardingRuntimeSession(
+      replayed,
+      projection,
+    );
+    expect(synchronized.state.satisfiedGates).toEqual(
+      new Set(projection.gates),
+    );
+  });
+
   it("accepts only explicitly projected scientific gates", () => {
     const projection = projectOnboardingRuntime(runtimeState(7));
     let session = createOnboardingRuntimeSession(projection);

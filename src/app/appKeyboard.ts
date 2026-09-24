@@ -17,6 +17,36 @@ export type AppKeyboardPlan =
       readonly action: ExperimentControlAction;
     };
 
+export interface AppShortcutAvailability {
+  readonly playing: boolean;
+  readonly canTogglePlayback: boolean;
+  readonly canChangeSpeed: boolean;
+  readonly canStep: boolean;
+}
+
+/**
+ * Keep global keyboard shortcuts inside the same runtime-availability envelope
+ * as the visible controls. In particular, a shortcut must not arm playback or
+ * change speed while the corresponding button is disabled.
+ */
+export function canDispatchAppShortcut(
+  action: ExperimentControlAction,
+  availability: AppShortcutAvailability,
+): boolean {
+  switch (action.type) {
+    case "toggle-play":
+      return availability.canTogglePlayback;
+    case "pause":
+      return availability.playing;
+    case "set-speed":
+      return availability.canChangeSpeed;
+    case "step":
+      return availability.canStep;
+    default:
+      return false;
+  }
+}
+
 const BLOCKED_ROLES = new Set([
   "button",
   "checkbox",

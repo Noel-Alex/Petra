@@ -16,6 +16,7 @@
 - Protocol/state changes require deterministic tests and coordination because they are high-conflict integration surfaces.
 - Timeline-worthy protocol events carry exact authoritative `simulationTimeHours` at emission. That timestamp is replay/wire identity and must not be reconstructed later from a newer checkpoint.
 - Required worker wire-shape changes bump `PROTOCOL_VERSION`; do not silently extend an existing protocol version with new required fields.
+- `counterfactual.ts` owns deterministic fork authority over the current engine contract: one exact checkpoint is deep-cloned into both branches, branch metadata stays outside biology/RNG state, and replay bundles contain the exact fork checkpoint plus ordered post-fork command payloads. Restore/snapshot commands are not legal branch-history mutations. See `COUNTERFACTUAL.md`.
 - `authoritative.ts` is a bounded composition scaffold over merged mechanism kernels. It accepts only caller-supplied configuration/state, carries a canonical configuration fingerprint so lineage ordering/mechanism configuration cannot drift silently between steps, and is not itself the browser worker protocol or a substitute for versioned run identity/provenance.
 - Every composed lineage channel has replay-critical `{lineageId, genotypeId}` identity. Relative fitness is resolved through the curated evolution graph/fitness adapter rather than re-entered by composition callers; genotype reassignment changes configuration identity even when two genotypes share the same numerical fitness. The serialized state carries ordered genotype IDs so downstream read-only projections can consume genotype identity without inferring it from presentation state.
 - The composed-state dish mask is an authoritative domain boundary: resource and lineage biomass must be exactly zero where `mask === 0` in both initial configuration and any restored/mutated state. Validation fails closed rather than clamping caller-supplied science, and aggregate resource/lineage metrics sum only in-mask cells.
@@ -27,6 +28,7 @@
 At minimum, test identical-seed/command replay, RNG state round-trip, checkpoint continuation, invalid cross-run restore, and validation of command bounds. Scientific mechanisms add their own invariants/fixtures.
 
 ## Child DOX index
+- `COUNTERFACTUAL.md` — deterministic fork ancestry, replay-payload, and branch-authority contract.
 - `ecology/AGENTS.md` — resource-limited biomass flux, loss-hazard, and event-boundary contract.
 - `evolution/AGENTS.md` — discrete mutation-opportunity, lineage identity, RNG/replay, and evolution-authority contract.
 - `pharmacodynamics/AGENTS.md` — source-response, MIC-transfer, and resource×drug composition contract.

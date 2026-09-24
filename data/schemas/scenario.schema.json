@@ -88,6 +88,9 @@
         "properties": {
           "provenance": {
             "$ref": "#/$defs/provenance"
+          },
+          "measurementUncertainty": {
+            "$ref": "#/$defs/genotypeMeasurementUncertainty"
           }
         },
         "additionalProperties": true
@@ -555,6 +558,63 @@
         },
         "provenance": {
           "$ref": "#/$defs/provenance"
+        }
+      },
+      "additionalProperties": false
+    },
+    "genotypeMeasurementUncertainty": {
+      "type": "object",
+      "required": [
+        "mic",
+        "relativeFitness"
+      ],
+      "properties": {
+        "mic": {
+          "type": "object",
+          "required": [
+            "classification",
+            "kind",
+            "plusMinusSteps"
+          ],
+          "properties": {
+            "classification": {
+              "const": "measured"
+            },
+            "kind": {
+              "const": "half_doubling_step_margin"
+            },
+            "plusMinusSteps": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "relativeFitness": {
+          "type": "object",
+          "required": [
+            "classification",
+            "kind",
+            "standardDeviation",
+            "independentCompetitionExperiments"
+          ],
+          "properties": {
+            "classification": {
+              "const": "measured"
+            },
+            "kind": {
+              "const": "standard_deviation"
+            },
+            "standardDeviation": {
+              "type": "number",
+              "minimum": 0
+            },
+            "independentCompetitionExperiments": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false

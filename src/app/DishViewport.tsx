@@ -20,6 +20,7 @@ import {
   surfaceMotionCss,
 } from "./motionAdapter";
 import { dishEscapeAction } from "./dishKeyboard";
+import { resolveDishOverlayLegend } from "./overlayLegend";
 import { resolveDishCameraMotion } from "./dishCameraMotion";
 
 export interface DishViewportProps {
@@ -73,6 +74,8 @@ export function DishViewport({
       ? null
       : resolveDishOverlay(activeSnapshot, requestedOverlayId);
   const resolvedOverlayId = activeOverlay?.id ?? null;
+  const overlayLegend =
+    activeOverlay === null ? null : resolveDishOverlayLegend(activeOverlay);
   const renderEnabled = activeSnapshot !== null;
   const cameraPlan = resolveDishCameraMotion(motion);
   const overlayMotion = useMemo(
@@ -188,20 +191,29 @@ export function DishViewport({
           key={resolvedOverlayId ?? "none"}
           className="dish-overlay-legend"
           data-overlay-kind={activeOverlay?.kind ?? "none"}
+          data-overlay-transfer={overlayLegend?.transfer ?? "none"}
+          data-overlay-pattern={overlayLegend?.pattern ?? "none"}
           data-transition-treatment={overlayMotion.treatment}
           aria-live="polite"
           style={{
             "--overlay-motion-ms": overlayMotion.duration,
             "--overlay-motion-easing": overlayMotion.easing,
+            "--overlay-swatch-background":
+              overlayLegend?.swatchBackground ?? "#7d8999",
           } as CSSProperties}
         >
           <span className="dish-overlay-swatch" aria-hidden="true" />
-          <span>
-            {activeSnapshot === null
-              ? "No authoritative field overlay"
-              : activeOverlay === null
-                ? "No field overlay"
-                : `${activeOverlay.label} · ${activeOverlay.unit}`}
+          <span className="dish-overlay-legend-copy">
+            <strong>
+              {activeSnapshot === null
+                ? "No authoritative field overlay"
+                : activeOverlay === null
+                  ? "No field overlay"
+                  : `${activeOverlay.label} · ${activeOverlay.unit}`}
+            </strong>
+            {overlayLegend === null ? null : (
+              <small>{overlayLegend.scaleLabel}</small>
+            )}
           </span>
         </div>
       </div>

@@ -6,15 +6,31 @@ const UINT32_SCALE = 1 / 0x1_0000_0000
 const UINT32_MAX = 0xffff_ffff
 
 function assertRngState(state: RngState): [number, number, number, number] {
-  if (
-    state.length !== 4 ||
-    state.some((value) => !Number.isInteger(value) || value < 0 || value > UINT32_MAX) ||
-    state.every((value) => value === 0)
-  ) {
+  if (!Array.isArray(state) || state.length !== 4) {
     throw new Error('RNG state must contain four uint32 values and cannot be all zero')
   }
 
-  return [...state] as [number, number, number, number]
+  const values = state as readonly unknown[]
+  const copy: number[] = []
+
+  for (let index = 0; index < 4; index += 1) {
+    const value = values[index]
+    if (
+      typeof value !== 'number' ||
+      !Number.isInteger(value) ||
+      value < 0 ||
+      value > UINT32_MAX
+    ) {
+      throw new Error('RNG state must contain four uint32 values and cannot be all zero')
+    }
+    copy.push(value)
+  }
+
+  if (copy.every((value) => value === 0)) {
+    throw new Error('RNG state must contain four uint32 values and cannot be all zero')
+  }
+
+  return copy as [number, number, number, number]
 }
 
 function rotl(value: number, shift: number): number {

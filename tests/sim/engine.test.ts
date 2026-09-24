@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { SimulationEngine } from '../../src/sim/engine'
 import { createRunIdentity } from '../../src/sim/protocol'
-import { SimulationRng } from '../../src/sim/rng'
+import { SimulationRng, type RngState } from '../../src/sim/rng'
 
 const identity = createRunIdentity({
   scenarioId: 'synthetic-core-fixture',
@@ -35,6 +35,26 @@ describe('SimulationRng', () => {
     }
 
     expect(() => new SimulationRng([0, 0, 0, 0])).toThrow(/cannot be all zero/)
+  })
+
+  it('rejects sparse and non-array checkpoint containers without mutating restore state', () => {
+    const sparse = [1, 2, 3, 4] as unknown[]
+    delete sparse[2]
+    const malformedStates = [
+      sparse,
+      { 0: 1, 1: 2, 2: 3, 3: 4, length: 4 },
+      null,
+    ]
+
+    for (const malformedState of malformedStates) {
+      const state = malformedState as unknown as RngState
+      expect(() => new SimulationRng(state)).toThrow(/four uint32 values/)
+
+      const rng = new SimulationRng(42)
+      const before = rng.snapshot()
+      expect(() => rng.restore(state)).toThrow(/four uint32 values/)
+      expect(rng.snapshot()).toEqual(before)
+    }
   })
 
   it('replays exactly from serialized state', () => {

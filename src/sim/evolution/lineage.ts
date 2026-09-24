@@ -48,6 +48,14 @@ export class LineageRegistry {
       if (origin.createdAtHours < parent.createdAtHours) {
         throw new Error('child lineage cannot be created before its parent')
       }
+      // Equal timestamps remain valid. Deterministic event insertion order is
+      // authoritative when creation and parent extinction share a timestamp.
+      if (
+        parent.extinctAtHours !== null &&
+        origin.createdAtHours > parent.extinctAtHours
+      ) {
+        throw new Error('child lineage cannot be created after its parent extinction')
+      }
     }
 
     const lineageId = `L${this.nextId}`
@@ -71,6 +79,18 @@ export class LineageRegistry {
       throw new Error('extinction time must be finite and no earlier than lineage creation')
     }
     if (record.extinctAtHours !== null) return
+
+    // Keep the ancestry lifetime invariant explicit even though a retroactive
+    // extinction would often also violate the global event chronology.
+    for (const child of this.records.values()) {
+      if (
+        child.parentLineageId === lineageId &&
+        child.createdAtHours > timeHours
+      ) {
+        throw new Error('parent extinction cannot precede an existing child creation')
+      }
+    }
+
     this.assertEventTimeOrder(timeHours)
     record.extinctAtHours = timeHours
     this.events.push({ kind: 'lineage-extinct', lineageId, timeHours })
@@ -177,6 +197,14 @@ function validateCheckpoint(checkpoint: LineageRegistryCheckpoint): void {
       }
       if (record.createdAtHours < parent.createdAtHours) {
         throw new Error('checkpoint child lineage cannot be created before its parent')
+      }
+      if (
+        parent.extinctAtHours !== null &&
+        record.createdAtHours > parent.extinctAtHours
+      ) {
+        throw new Error(
+          'checkpoint child lineage cannot be created after its parent extinction',
+        )
       }
     }
 

@@ -11,6 +11,7 @@ Deterministic local verification and developer/research tooling.
 ## Local contracts
 - A checker must verify a meaningful invariant; do not generate checker churn for its own sake.
 - Passing source checks are not browser, device, performance, or scientific experimental evidence.
+- Browser acceptance must fail visibly when a render-enabled Pixi surface lacks a ready canvas or shows renderer fallback. Frame-time evidence must drive representative renderer redraw work; idle `requestAnimationFrame` cadence alone is not renderer performance evidence. Touch acceptance must exercise the implemented gesture (including two-pointer pinch where claimed) and observe a presentation-visible effect rather than merely dispatching an event.
 - Tools must fail clearly and avoid mutating source during verification.
 - Verification output must identify what ran and what remains outside the current evidence boundary.
 - The scenario contract check enforces normalized flagship record-level provenance for exposed genotype, resource×drug composition, and mutation-transition records, including class-specific source/context/transfer/limitation requirements.

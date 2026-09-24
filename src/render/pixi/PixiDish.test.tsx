@@ -19,16 +19,27 @@ describe("PixiDish render-source boundary", () => {
     expect(html).not.toContain("Visual demo");
   });
 
-  it("requires explicit demoMode for presentation-only biology", () => {
-    const html = renderToStaticMarkup(<PixiDish snapshot={null} cameraMotion={CAMERA_MOTION} demoMode />);
+  it("renders presentation-only biology only when the owner supplies demo source identity", () => {
+    const demoSnapshot = createRendererDemoSnapshot(12);
+    const html = renderToStaticMarkup(
+      <PixiDish
+        snapshot={demoSnapshot}
+        sourceKind="visual-demo"
+        cameraMotion={CAMERA_MOTION}
+      />,
+    );
     expect(html).toContain('data-render-source="visual-demo"');
     expect(html).toContain('data-render-demo-disclosure="true"');
     expect(html).toContain("Visual demo — not simulation data");
   });
 
-  it("authoritative snapshots take precedence over demo mode", () => {
+  it("renders explicit authoritative source identity without demo disclosure", () => {
     const html = renderToStaticMarkup(
-      <PixiDish snapshot={createRendererDemoSnapshot(12)} cameraMotion={CAMERA_MOTION} demoMode />,
+      <PixiDish
+        snapshot={createRendererDemoSnapshot(12)}
+        sourceKind="authoritative-snapshot"
+        cameraMotion={CAMERA_MOTION}
+      />,
     );
     expect(html).toContain('data-render-source="authoritative-snapshot"');
     expect(html).not.toContain('data-render-demo-disclosure="true"');

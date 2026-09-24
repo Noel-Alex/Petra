@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { filterProvenanceRecords } from "./filter";
+import {
+  filterProvenanceRecords,
+  parseProvenanceEvidenceFilter,
+} from "./filter";
 import { resolveScenarioProvenance } from "./scenarioAdapter";
 
 const scenario = {
@@ -37,6 +40,13 @@ const incomplete = resolveScenarioProvenance({
 });
 
 describe("provenance record discovery", () => {
+  it("parses only declared evidence filters", () => {
+    expect(parseProvenanceEvidenceFilter("measured")).toBe("measured");
+    expect(() => parseProvenanceEvidenceFilter("validated")).toThrow(
+      /unknown provenance evidence filter/,
+    );
+  });
+
   it("searches labels, details and source metadata case-insensitively", () => {
     expect(
       filterProvenanceRecords([measured, transferred], {

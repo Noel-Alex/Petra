@@ -1,4 +1,7 @@
-import type { ComposedSimulationConfig } from "../sim/authoritative";
+import {
+  composedConfigurationFingerprint,
+  type ComposedSimulationConfig,
+} from "../sim/authoritative";
 import {
   assertComposedParameterSetBinding,
   assertComposedParameterSetBindingRecord,
@@ -13,7 +16,9 @@ import type {
 export const MECHANISTIC_EXECUTION_DEFINITION_SCHEMA_VERSION =
   "petra-ml-execution-definition-v1" as const;
 export const MECHANISTIC_PARAMETER_IDENTITY_SCHEMA_VERSION =
-  "petra-ml-parameter-execution-v1" as const;
+  "petra-ml-parameter-execution-v2" as const;
+export const MECHANISTIC_INITIAL_STATE_IDENTITY_SCHEMA_VERSION =
+  "petra-ml-initial-state-v1" as const;
 export const MECHANISTIC_INTERVENTION_SCHEDULE_SCHEMA_VERSION =
   "petra-ml-intervention-schedule-v1" as const;
 export const NO_INTERVENTION_SCHEDULE_VERSION =
@@ -33,21 +38,54 @@ export interface MechanisticExecutionDefinition {
 }
 
 /**
- * Exact, inspectable identity for the composed parameter authority behind an
- * ML sweep point. The legacy field is named parameterSetHash, but this value is
- * intentionally collision-free length-prefixed identity rather than a lossy
- * display id or non-cryptographic digest.
+ * Exact initial run-state identity for an ML execution point.
+ *
+ * Composed mechanism fingerprints deliberately exclude initial fields because
+ * resource/inoculum are run state, not mechanism configuration. Dataset task
+ * identity still has to bind them exactly so one task+seed cannot resolve to a
+ * different starting state.
+ */
+export function mechanisticInitialStateFingerprint(
+  config: ComposedSimulationConfig,
+): string {
+  // Reuse composed validation before serializing initial state. The returned
+  // mechanism fingerprint is intentionally ignored here.
+  composedConfigurationFingerprint(config);
+  return encodeIdentity(MECHANISTIC_INITIAL_STATE_IDENTITY_SCHEMA_VERSION, [
+    JSON.stringify(Array.from(config.initialResource)),
+    JSON.stringify(
+      config.initialLineageBiomass.map((channel) => Array.from(channel)),
+    ),
+  ]);
+}
+
+/**
+ * Exact, inspectable identity for one composed ML execution point.
+ *
+ * The legacy field is named parameterSetHash. V2 binds both the provenance
+ * mechanism configuration and exact initial run state. The value remains a
+ * collision-free length-prefixed identity rather than a lossy digest.
  */
 export function mechanisticParameterSetHash(
   binding: ComposedParameterSetBinding,
+  config: ComposedSimulationConfig,
 ): string {
   assertComposedParameterSetBindingRecord(binding);
+  assertComposedParameterSetBinding(
+    {
+      parameterSetId: binding.parameterSetId,
+      parameterSetVersion: binding.parameterSetVersion,
+      parameterSetBinding: binding,
+    },
+    config,
+  );
   return encodeIdentity(MECHANISTIC_PARAMETER_IDENTITY_SCHEMA_VERSION, [
     String(binding.schemaVersion),
     binding.authority,
     binding.parameterSetId,
     binding.parameterSetVersion,
     binding.configurationFingerprint,
+    mechanisticInitialStateFingerprint(config),
   ]);
 }
 
@@ -85,11 +123,12 @@ export function mechanisticInterventionFingerprint(
 export function createSweepParameterPointForBinding(
   id: string,
   binding: ComposedParameterSetBinding,
+  config: ComposedSimulationConfig,
 ): SweepParameterPoint {
   requireCanonicalText("parameter point id", id);
   return Object.freeze({
     id,
-    parameterSetHash: mechanisticParameterSetHash(binding),
+    parameterSetHash: mechanisticParameterSetHash(binding, config),
   });
 }
 
@@ -160,10 +199,11 @@ export function assertTaskMatchesMechanisticExecutionDefinition(
 
   const expectedParameterSetHash = mechanisticParameterSetHash(
     definition.parameterSetBinding,
+    config,
   );
   if (task.trajectory.group.parameterSetHash !== expectedParameterSetHash) {
     throw new TypeError(
-      `task ${task.taskId} parameterSetHash does not match resolved composed parameter authority`,
+      `task ${task.taskId} parameterSetHash does not match resolved composed parameter + initial-state authority`,
     );
   }
 

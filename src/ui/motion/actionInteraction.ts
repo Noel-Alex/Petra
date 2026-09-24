@@ -20,6 +20,19 @@ export function createActionInteractionState(): ActionInteractionState {
   return { focused: false, pointer: "idle" };
 }
 
+/**
+ * Starts native-style pointer press feedback only for the primary activation
+ * button. Returning the original state for secondary/auxiliary buttons keeps
+ * right-click/context-menu input outside Petra's decorative press authority.
+ */
+export function beginActionPointerPress(
+  state: ActionInteractionState,
+  button: number,
+): ActionInteractionState {
+  if (button !== 0) return state;
+  return updateActionInteractionState(state, "pointer-down");
+}
+
 export function updateActionInteractionState(
   state: ActionInteractionState,
   event: ActionInteractionEvent,

@@ -1,7 +1,7 @@
 import { resolveMotion, type MotionPreference, type MotionTreatment } from './motion/policy'
 import { MOTION } from './motion/tokens'
 
-export type InterventionTool = 'inoculate' | 'antibiotic' | 'nutrient'
+export type InterventionTool = 'inoculate' | 'fungus' | 'antibiotic' | 'nutrient'
 
 export interface NormalizedDishPoint {
   readonly x: number
@@ -353,6 +353,7 @@ function issue(
 
 const TOOL_LABELS: Readonly<Record<InterventionTool, string>> = {
   inoculate: 'Inoculation',
+  fungus: 'Fungi',
   antibiotic: 'Antibiotic',
   nutrient: 'Nutrient',
 }

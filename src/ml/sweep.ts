@@ -1,10 +1,13 @@
 import {
   DEFAULT_SPLIT_POLICY,
   assignDatasetSplit,
+  mechanisticDatasetSchemaKey,
   splitGroupKey,
   trajectoryKey,
+  validateMechanisticDatasetSchemaIdentity,
   validateSplitPolicy,
   type DatasetGroupIdentity,
+  type MechanisticDatasetSchemaIdentity,
   type DatasetSplit,
   type SplitPolicy,
   type TrajectoryIdentity,
@@ -77,6 +80,7 @@ export interface MechanisticSweepDefinition {
   readonly scenarioId: string;
   readonly scenarioVersion: string;
   readonly normalizationProfileId: string;
+  readonly datasetSchema: MechanisticDatasetSchemaIdentity;
   readonly parameterPoints: readonly SweepParameterPoint[];
   readonly interventionFamilies: readonly SweepInterventionFamily[];
   readonly seeds: readonly number[];
@@ -89,6 +93,7 @@ export interface MechanisticSweepTask {
   readonly taskId: string;
   readonly datasetVersion: string;
   readonly normalizationProfileId: string;
+  readonly datasetSchema: MechanisticDatasetSchemaIdentity;
   readonly parameterPointId: string;
   readonly interventionFamilyId: string;
   readonly split: DatasetSplit;
@@ -104,6 +109,7 @@ export interface MechanisticSweepPlan {
   readonly scenarioId: string;
   readonly scenarioVersion: string;
   readonly normalizationProfileId: string;
+  readonly datasetSchema: MechanisticDatasetSchemaIdentity;
   readonly splitPolicy: SplitPolicy;
   readonly splitCoveragePolicy: SplitCoveragePolicy;
   readonly groupCount: number;
@@ -124,13 +130,14 @@ export interface SweepManifestTrajectory {
 }
 
 export interface MechanisticSweepManifest {
-  readonly schemaVersion: "petra-ml-sweep-manifest-v3";
+  readonly schemaVersion: "petra-ml-sweep-manifest-v4";
   readonly planVersion: string;
   readonly datasetVersion: string;
   readonly engineVersion: string;
   readonly scenarioId: string;
   readonly scenarioVersion: string;
   readonly normalizationProfileId: string;
+  readonly datasetSchema: MechanisticDatasetSchemaIdentity;
   readonly splitPolicyVersion: string;
   readonly splitCoveragePolicyVersion: string;
   readonly groupCount: number;
@@ -157,6 +164,8 @@ export function planMechanisticSweep(
     definition.splitCoveragePolicy ?? DEFAULT_SPLIT_COVERAGE_POLICY;
   validateSplitPolicy(splitPolicy);
   validateSplitCoveragePolicy(splitCoveragePolicy);
+  const datasetSchema = Object.freeze({ ...definition.datasetSchema });
+  const datasetSchemaIdentityKey = mechanisticDatasetSchemaKey(datasetSchema);
 
   const groupCount =
     definition.parameterPoints.length * definition.interventionFamilies.length;
@@ -225,9 +234,14 @@ export function planMechanisticSweep(
       const key = trajectoryKey(trajectory);
 
       tasks.push({
-        taskId: stableTaskId(definition.planVersion, key),
+        taskId: stableTaskId(
+          definition.planVersion,
+          datasetSchemaIdentityKey,
+          key,
+        ),
         datasetVersion: definition.datasetVersion,
         normalizationProfileId: definition.normalizationProfileId,
+        datasetSchema,
         parameterPointId: parameterPoint.id,
         interventionFamilyId: interventionFamily.id,
         split,
@@ -245,6 +259,7 @@ export function planMechanisticSweep(
     scenarioId: definition.scenarioId,
     scenarioVersion: definition.scenarioVersion,
     normalizationProfileId: definition.normalizationProfileId,
+    datasetSchema,
     splitPolicy,
     splitCoveragePolicy,
     groupCount,
@@ -261,13 +276,14 @@ export function buildMechanisticSweepManifest(
   const splitCounts = { ...plan.splitTrajectoryCounts };
 
   return {
-    schemaVersion: "petra-ml-sweep-manifest-v3",
+    schemaVersion: "petra-ml-sweep-manifest-v4",
     planVersion: plan.planVersion,
     datasetVersion: plan.datasetVersion,
     engineVersion: plan.engineVersion,
     scenarioId: plan.scenarioId,
     scenarioVersion: plan.scenarioVersion,
     normalizationProfileId: plan.normalizationProfileId,
+    datasetSchema: { ...plan.datasetSchema },
     splitPolicyVersion: plan.splitPolicy.version,
     splitCoveragePolicyVersion: plan.splitCoveragePolicy.version,
     groupCount: plan.groupCount,
@@ -357,6 +373,7 @@ function validateSweepDefinition(definition: MechanisticSweepDefinition): void {
   requireNonEmpty("scenarioId", definition.scenarioId);
   requireNonEmpty("scenarioVersion", definition.scenarioVersion);
   requireNonEmpty("normalizationProfileId", definition.normalizationProfileId);
+  validateMechanisticDatasetSchemaIdentity(definition.datasetSchema);
 
   if (!Number.isSafeInteger(definition.maxTrajectories) || definition.maxTrajectories < 1) {
     throw new RangeError("maxTrajectories must be a positive safe integer");
@@ -430,8 +447,12 @@ function interventionGroupId(fingerprint: string): string {
   return `intervention:${fingerprint.length}:${fingerprint}`;
 }
 
-function stableTaskId(planVersion: string, key: string): string {
-  return `sweep:${encodePart(planVersion)}:${encodePart(key)}`;
+function stableTaskId(
+  planVersion: string,
+  datasetSchemaKey: string,
+  key: string,
+): string {
+  return `sweep:${encodePart(planVersion)}:${encodePart(datasetSchemaKey)}:${encodePart(key)}`;
 }
 
 function encodePart(value: string): string {

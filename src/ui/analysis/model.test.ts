@@ -56,6 +56,36 @@ describe("scientific analysis projection", () => {
     expect(chart.series[0]!.points).toHaveLength(3);
   });
 
+
+  it("preserves every source sample independently of the visual decimation budget", () => {
+    const source: ScientificSeriesPoint[] = Array.from(
+      { length: 100 },
+      (_, index) => ({
+        timeHours: index * 0.1,
+        value: index * index,
+      }),
+    );
+
+    const chart = buildScientificChart(
+      [{
+        id: "complete-source",
+        label: "Complete source",
+        unit: "model-biomass",
+        appearanceToken: "lineage-cyan",
+        patternToken: "solid",
+        points: source,
+      }],
+      { maxPointsPerSeries: 12 },
+    );
+
+    const series = chart.series[0]!;
+    expect(series.points).toHaveLength(12);
+    expect(series.sourcePointCount).toBe(100);
+    expect(series.sourcePoints).toHaveLength(100);
+    expect(series.sourcePoints).toEqual(source);
+    expect(series.sourcePoints).not.toBe(source);
+  });
+
   it("refuses to overlay unlike units", () => {
     expect(() =>
       buildScientificChart(

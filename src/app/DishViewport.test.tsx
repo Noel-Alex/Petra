@@ -85,6 +85,18 @@ describe("DishViewport render-source truth boundary", () => {
     );
   });
 
+  it("projects fungal path-length motion outside Pixi through the shared semantic vocabulary", () => {
+    expect(dishViewportSource).toContain(
+      'import { resolveDishHyphalMotion } from "./dishHyphalMotion";',
+    );
+    expect(dishViewportSource).toContain(
+      "const hyphalPlan = useMemo(",
+    );
+    expect(dishViewportSource).toContain(
+      "hyphalMotion={hyphalPlan.motion}",
+    );
+  });
+
   it("renders explicit Automatic and None overlay identities from one selection authority", () => {
     const authoritative = {
       ...createRendererDemoSnapshot(12),

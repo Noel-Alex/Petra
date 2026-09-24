@@ -90,7 +90,7 @@ describe('flagship engineering ecology execution profile', () => {
     )
     const changed = parseEcologyExecutionProfile({
       ...flagshipScenario.executionProfile,
-      version: '1.0.1',
+      version: '1.1.1',
       growth: {
         ...flagshipScenario.executionProfile.growth,
         localCapacity:

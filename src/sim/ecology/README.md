@@ -25,6 +25,8 @@ All numeric parameters are passed by the scenario/composition layer. This module
 
 Division demand and death are computed from the same pre-step biomass. Death uses the exact constant-hazard survival fraction `1 - exp(-h * dt)`, which prevents a finite non-negative first-order hazard from deleting more than the available pre-step biomass. Same-step death does not create extra growth capacity until the next step; that operator-order policy is deterministic and should be versioned if changed.
 
+`localCapacity` is also a scientific state-domain invariant, not only a growth/spread limiter. `capacity.ts` owns the single numerical allowance for binary32 storage: one Float32 relative spacing at the configured capacity (with the minimum-subnormal envelope near zero). The raw ecology preflight, composed initial/continued-state validation, and composed checkpoint restore all consume that same helper. Materially over-capacity state is rejected before mutation; Petra never clips or silently renormalizes biomass to make it fit. This tolerance is engineering representation policy, **not biological headroom**.
+
 ## Mutation boundary
 
 The division ledger is **continuous biomass production**, not an integer count of cell-division events. It must not be passed directly to `sampleDivisionMutations`, whose input is an integer event count.
@@ -37,4 +39,4 @@ The kernel now separates division and death fluxes and accepts relative fitness.
 
 ## Verification
 
-`growth.test.ts` covers the Monod half-saturation identity, zero-resource behavior, yield/capacity limiting, lineage-order independence, high-resource early exponential behavior, nutrient-depletion slowdown, relative-fitness scaling, bounded death bookkeeping, spatial death fields, and spread mass conservation. Run the repository-level `python tools/verify.py premerge` gate for executable evidence.
+`growth.test.ts`, capacity-focused ecology tests, and composed-state/engine tests cover the Monod half-saturation identity, zero-resource behavior, yield/capacity limiting, materially over-capacity refusal, Float32 boundary round-trips, atomic composed checkpoint rejection, lineage-order independence, high-resource early exponential behavior, nutrient-depletion slowdown, relative-fitness scaling, bounded death bookkeeping, spatial death fields, and spread mass conservation. Run the repository-level `python tools/verify.py premerge` gate for executable evidence.

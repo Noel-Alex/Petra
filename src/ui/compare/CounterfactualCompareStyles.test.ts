@@ -27,4 +27,11 @@ describe("CounterfactualCompare resolved motion CSS", () => {
     );
     expect(compareCss).toContain("transform var(--compare-motion-ms) var(--compare-easing)");
   });
+  it("keeps the swipe reveal range on Petra's expo touch-target contract", () => {
+    expect(compareCss).toContain(
+      ".petra-compare__reveal input {\n  width: 100%;\n  min-height: 2.75rem;",
+    );
+    expect(compareCss).not.toContain("min-width: 2.75rem");
+  });
+
 });

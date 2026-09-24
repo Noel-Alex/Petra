@@ -167,6 +167,7 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - One series bundle must contain one exact run identity and one exact metric sampling policy with strictly increasing authoritative ticks/times. Mixed runs/cadences fail closed rather than being plotted together.
 - Biomass/resource/fraction/diversity display units and visual identity tokens are caller/scenario owned. Genotype display labels/tokens must be supplied explicitly for every genotype observed; never derive scientific identity from renderer colors.
 - A genotype absent from an authoritative sample is plotted as exact zero fraction for that sample, not interpolated between neighboring samples. Presentation decimation remains downstream in the analysis chart model and may select source points only.
+- Treat metric history as untrusted scientific input at the chart bridge: aggregate biomass/resource/resistance/diversity values must be finite and non-negative where applicable, occupied-cell counts must be safe integers, lineage/genotype rows must be dense with canonical unique identities, and lineage/genotype biomass/fractions must remain coherent with aggregate totals before any values are plotted. Corrupted or cross-channel-inconsistent samples fail closed rather than becoming scientific presentation.
 
 
 ## Base App-shell visual-theme ownership

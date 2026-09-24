@@ -40,3 +40,10 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Representative-cell semantic zoom must remain visibly labelled illustrative/explanatory and never be described as literal microscopy or a finer simulation scale.
 - Semantic zoom guidance may explain renderer meaning, but it must not infer current scientific state from camera position unless the renderer explicitly reports a presentation-only semantic level.
 
+
+## Timeline history presentation
+- The compact footer may emphasize recent authoritative events, but every event exposed by `ExperimentRuntime` must remain inspectable in original order.
+- `TimelineHistory.tsx` is presentation-only: it may reveal/hide history but must not reorder, summarize away, synthesize, pause, or mutate runtime events.
+- Complete-history rows preserve sequence, tick, simulation time, and command identity supplied by `TimelineEntry`; opening history never creates scientific state.
+- New events must not auto-open history, steal focus, or force-scroll a user away from an older record they are inspecting.
+- Native details/scroll behavior deliberately keeps Full/Reduced/Off information-equivalent without introducing a second motion authority.

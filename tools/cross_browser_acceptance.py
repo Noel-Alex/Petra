@@ -660,6 +660,9 @@ def run_deep_chromium() -> dict[str, Any]:
     env = os.environ.copy()
     env["PETRA_LOCAL_ARTIFACT_DIR"] = str(child_artifacts)
     env["PETRA_LOCAL_RESULT_JSON"] = str(result_path)
+    configured_chrome = chromium_path()
+    if configured_chrome is not None:
+        env["PETRA_BROWSER"] = configured_chrome
     code: int | None = None
     error: str | None = None
     try:

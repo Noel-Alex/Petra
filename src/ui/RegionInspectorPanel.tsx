@@ -19,8 +19,9 @@ export interface RegionInspectorPanelProps {
  * Static scientific inspector over an already-authoritative region readout.
  *
  * This component never samples renderer state and never invents biological
- * time or physical units. Pending/stale/error ownership is supplied by the
- * framework-neutral region-inspector state machine.
+ * time or physical units. Biological time is displayed only when supplied by
+ * the authoritative checkpoint-bound readout. Pending/stale/error ownership is
+ * supplied by the framework-neutral region-inspector state machine.
  */
 export function RegionInspectorPanel({
   state,
@@ -75,9 +76,9 @@ export function RegionInspectorPanel({
       <p className="region-inspector-panel__truth-note">
         Any displayed scientific values come from authoritative simulation grid
         state. Model units are not relabelled as physical cell counts,
-        concentration, mass, or area
-        density, and no biological timestamp is shown until runtime authority
-        supplies one.
+        concentration, mass, or area density. Biological time, tick, and command
+        position are the exact checkpoint values supplied by simulation
+        authority, never inferred from animation or renderer state.
       </p>
     </aside>
   );
@@ -123,6 +124,7 @@ function RegionReadout({
             label="Grid coverage"
             value="No authoritative grid cells"
           />
+          <AuthorityIdentity readout={readout} />
           <Metric
             label="Composed state schema version"
             value={String(readout.stateVersion)}
@@ -171,6 +173,7 @@ function RegionReadout({
           label="Total resource"
           value={`${formatNumber(readout.totalResource)} ${readout.resourceUnit}`}
         />
+        <AuthorityIdentity readout={readout} />
         <Metric
           label="Composed state schema version"
           value={String(readout.stateVersion)}
@@ -231,6 +234,40 @@ function RegionReadout({
         )}
       </div>
     </section>
+  );
+}
+
+function AuthorityIdentity({
+  readout,
+}: {
+  readonly readout: AuthoritativeRegionInspection;
+}): ReactElement {
+  const identity = readout.runIdentity;
+  return (
+    <>
+      <Metric
+        label="Simulation time"
+        value={`${formatNumber(readout.simulationTimeHours)} h`}
+      />
+      <Metric label="Authoritative tick" value={String(readout.tick)} />
+      <Metric
+        label="Accepted command position"
+        value={String(readout.commandCount)}
+      />
+      <Metric
+        label="Scenario"
+        value={`${identity.scenarioId}@${identity.scenarioVersion}`}
+      />
+      <Metric
+        label="Parameter set"
+        value={`${identity.parameterSetId}@${identity.parameterSetVersion}`}
+      />
+      <Metric label="Run seed" value={String(identity.seed)} />
+      <Metric
+        label="Engine / protocol"
+        value={`${identity.engineVersion} / protocol ${identity.protocolVersion}`}
+      />
+    </>
   );
 }
 

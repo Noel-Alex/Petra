@@ -927,3 +927,67 @@ button:hover {
     text-align: left;
   }
 }
+
+/*
+ * Dish-first focus mode is presentation-only. It follows stable playback intent
+ * rather than worker request churn, so ready/pending cadence never pumps layout.
+ * Panels remain mounted and keyboard/accessibility reachable; focus mode changes
+ * visual hierarchy instead of hiding controls.
+ */
+.petra-workspace {
+  transition:
+    grid-template-columns var(--panel-motion-ms) var(--panel-motion-easing),
+    gap var(--panel-motion-ms) var(--panel-motion-easing);
+}
+
+.petra-app[data-dish-focus="focused"] .petra-workspace {
+  grid-template-columns: minmax(8.5rem, 10rem) minmax(30rem, 1fr) minmax(8.5rem, 10rem);
+  gap: 0.65rem;
+}
+
+.petra-app[data-dish-focus="focused"] .petra-panel--tools,
+.petra-app[data-dish-focus="focused"] .petra-panel--inspector {
+  padding-inline: 0.72rem;
+  opacity: 0.68;
+  transform: scale(0.985);
+}
+
+.petra-app[data-dish-focus="focused"] .dish-stage {
+  min-height: min(76vh, 52rem);
+}
+
+.petra-app[data-dish-focus="focused"] .dish-renderer-shell {
+  width: min(78vh, 50rem);
+  max-width: 96%;
+}
+
+.petra-app[data-dish-focus="focused"] .timeline-shell {
+  padding-block: 0.65rem;
+}
+
+@media (max-width: 980px) {
+  .petra-app[data-dish-focus="focused"] .petra-workspace {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .petra-app[data-dish-focus="focused"] .petra-panel--tools,
+  .petra-app[data-dish-focus="focused"] .petra-panel--inspector {
+    opacity: 0.82;
+    transform: none;
+  }
+
+  .petra-app[data-dish-focus="focused"] .dish-stage {
+    min-height: min(70vh, 44rem);
+  }
+}
+
+@media (max-width: 640px) {
+  .petra-app[data-dish-focus="focused"] .dish-stage {
+    min-height: min(64vh, 36rem);
+  }
+
+  .petra-app[data-dish-focus="focused"] .dish-renderer-shell {
+    max-width: 100%;
+  }
+}

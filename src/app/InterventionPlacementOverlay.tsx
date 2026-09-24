@@ -1,6 +1,7 @@
 import type { PointerEvent as ReactPointerEvent } from "react";
 
 import {
+  DISH_VIEWPORT_DIAMETER_FRACTION,
   isScreenPointInsideDishAperture,
   resolveDishViewportGeometry,
 } from "../render/pixi/camera";
@@ -98,9 +99,11 @@ export function InterventionPlacementOverlay({
     }
   };
 
-  const cx = 50 + (point.x - 0.5) * 93;
-  const cy = 50 + (point.y - 0.5) * 93;
-  const targetRadius = INTERVENTION_TARGET_RING_RADIUS_FRACTION * 93;
+  const aperturePercent = DISH_VIEWPORT_DIAMETER_FRACTION * 100;
+  const cx = 50 + (point.x - 0.5) * aperturePercent;
+  const cy = 50 + (point.y - 0.5) * aperturePercent;
+  const targetRadius =
+    INTERVENTION_TARGET_RING_RADIUS_FRACTION * aperturePercent;
 
   return (
     <svg

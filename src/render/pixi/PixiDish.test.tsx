@@ -30,10 +30,7 @@ describe("PixiDish committed renderer inputs", () => {
       "semanticZoomCallbackRef.current = onSemanticZoomLevelChange;",
       "snapshotRef.current = renderSnapshot;",
     ]) {
-      expect(pixiDishSource.match(new RegExp(
-        assignment.replace(/[.*+?^$\\{\\}()|[\\]\\\\]/g, "\\describe("PixiDish render-source boundary", () => {"),
-        "g",
-      ))).toHaveLength(1);
+      expect(pixiDishSource.split(assignment).length - 1).toBe(1);
       const index = pixiDishSource.indexOf(assignment);
       expect(index).toBeGreaterThan(syncStart);
       expect(index).toBeLessThan(rendererLifecycleStart);

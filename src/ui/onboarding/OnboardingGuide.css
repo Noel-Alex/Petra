@@ -183,12 +183,11 @@
 }
 
 .petra-onboarding__rail::after {
-  right: auto;
-  width: calc((100% - 16.666% - 1rem) * var(--onboarding-progress));
+  transform: scaleX(var(--onboarding-progress));
   transform-origin: left center;
   background: linear-gradient(90deg, #6bcde8, var(--onboarding-accent));
   box-shadow: 0 0 16px color-mix(in srgb, var(--onboarding-accent) 28%, transparent);
-  transition: width var(--onboarding-motion-ms) var(--onboarding-easing);
+  transition: transform var(--onboarding-motion-ms) var(--onboarding-easing);
 }
 
 .petra-onboarding__rail li {

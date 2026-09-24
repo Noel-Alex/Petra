@@ -173,3 +173,12 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Stable shell/source-badge chrome must not reintroduce blur-heavy `backdrop-filter` glass. Dish ambient `filter: blur(...)` is a separate decorative halo treatment governed by motion policy and is not this glass-material ban.
 - Runtime status color is reinforcement only: ready uses shared mint, pending/starting amber, error coral, while visible status text remains authoritative.
 - Theme cleanup must not change focus geometry, touch targets, dish-first focus-mode layout, intervention-placement semantics, semantic zoom, timeline ordering/content, or renderer scientific mapping.
+
+## Sandbox scenario-selection authority
+- `sandboxScenarios.ts` is the framework-neutral product seam for Sandbox discovery/selection. Bundled display and science identity comes directly from the versioned scenario preset; the app-owned runtime adapter ID only names the reviewed composition path.
+- A scenario card/preset never becomes executable merely because data exists. Only entries with an explicit reviewed runtime binding are selectable; unsupported entries stay visibly unavailable rather than implying unimplemented biology.
+- Physical resource calibration status is distinct from product runtime availability. The current flagship can honestly expose an `unbound` `model-resource` context while still having a runnable authoritative composed binding.
+- Every accepted scenario selection plan is a `fresh-run` request. Scenario switching must construct new authority through runtime policy and must never mutate the current run in place.
+- Active Sandbox identity display comes from the returned `RunIdentity` and provenance-owned parameter-set binding: engine/protocol, scenario ID/version, parameter-set ID/version, configuration fingerprint, and seed. Do not reconstruct active identity from card metadata or renderer state.
+- Broader multi-content-pack discovery/card composition belongs to #600; keep this #598 seam bounded until there are multiple real registry consumers.
+

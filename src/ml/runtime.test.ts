@@ -13,18 +13,20 @@ import {
 
 const promotionRequirements: SurrogatePromotionRequirements = {
   splitPolicyVersion: "trajectory-group-v1",
+  splitCoveragePolicyVersion: "held-out-group-coverage-v1",
   heldOutSplit: "test",
   targetIds: ["population"],
 };
 
 const promotionEvidence: SurrogateBenchmarkEvidence = {
-  schemaVersion: "surrogate-benchmark-evidence-v1",
+  schemaVersion: "surrogate-benchmark-evidence-v2",
   modelId: "aggregate-baseline",
   modelVersion: "1",
   baselineId: "mean-by-scenario-v1",
   datasetVersion: "mechanistic-v1",
   engineVersion: "engine-a",
   splitPolicyVersion: "trajectory-group-v1",
+  splitCoveragePolicyVersion: "held-out-group-coverage-v1",
   heldOutSplit: "test",
   candidate: {
     population: { mae: 1, rmse: 1.2, count: 20 },

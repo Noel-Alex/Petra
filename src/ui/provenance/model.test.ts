@@ -27,6 +27,28 @@ describe("provenance presentation", () => {
     expect(presentation.ariaLabel).toContain("Transferred, Model approximation");
   });
 
+  it("preserves an explicitly resolved actionable source href in detail rows", () => {
+    const presentation = buildProvenancePresentation({
+      id: "source-link",
+      label: "Source link",
+      evidenceClass: "measured",
+      sources: [
+        {
+          id: "paper",
+          label: "Paper",
+          locator: "DOI: 10.1000/example",
+          href: "https://doi.org/10.1000/example",
+        },
+      ],
+    });
+
+    expect(presentation.details).toContainEqual({
+      label: "Source",
+      value: "Paper · DOI: 10.1000/example",
+      href: "https://doi.org/10.1000/example",
+    });
+  });
+
   it("flags missing measured sources rather than inferring provenance from confidence", () => {
     const presentation = buildProvenancePresentation({
       id: "mic",

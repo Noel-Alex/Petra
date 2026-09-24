@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import type {
+  SurrogateBenchmarkEvidence,
+  SurrogatePromotionRequirements,
+} from "./benchmark";
 import {
   checkSurrogateDomain,
   resolveExecutionMode,
@@ -7,12 +11,37 @@ import {
   type SurrogateModelCard,
 } from "./runtime";
 
+const promotionRequirements: SurrogatePromotionRequirements = {
+  splitPolicyVersion: "trajectory-group-v1",
+  heldOutSplit: "test",
+  targetIds: ["population"],
+};
+
+const promotionEvidence: SurrogateBenchmarkEvidence = {
+  schemaVersion: "surrogate-benchmark-evidence-v1",
+  modelId: "aggregate-baseline",
+  modelVersion: "1",
+  baselineId: "mean-by-scenario-v1",
+  datasetVersion: "mechanistic-v1",
+  engineVersion: "engine-a",
+  splitPolicyVersion: "trajectory-group-v1",
+  heldOutSplit: "test",
+  candidate: {
+    population: { mae: 1, rmse: 1.2, count: 20 },
+  },
+  baseline: {
+    population: { mae: 2, rmse: 2.4, count: 20 },
+  },
+};
+
 const model: SurrogateModelCard = {
   modelId: "aggregate-baseline",
   modelVersion: "1",
   datasetVersion: "mechanistic-v1",
   engineVersion: "engine-a",
   promotionStatus: "validated",
+  promotionEvidence,
+  promotionRequirements,
   domain: {
     numeric: {
       initialPopulation: { minimum: 10, maximum: 1_000_000 },
@@ -41,7 +70,14 @@ describe("surrogate runtime safety gates", () => {
         requested: "mechanistic",
         activeEngineVersion: "engine-a",
         emulatedFeatureEnabled: false,
-        model: { ...model, promotionStatus: "experimental" },
+        model: {
+          modelId: model.modelId,
+          modelVersion: model.modelVersion,
+          datasetVersion: model.datasetVersion,
+          engineVersion: model.engineVersion,
+          promotionStatus: "experimental",
+          domain: model.domain,
+        },
         input: {
           numeric: { initialPopulation: Number.NaN },
           categorical: { scenarioId: "unknown" },
@@ -76,7 +112,14 @@ describe("surrogate runtime safety gates", () => {
         requested: "emulated",
         activeEngineVersion: "engine-a",
         emulatedFeatureEnabled: true,
-        model: { ...model, promotionStatus: "experimental" },
+        model: {
+          modelId: model.modelId,
+          modelVersion: model.modelVersion,
+          datasetVersion: model.datasetVersion,
+          engineVersion: model.engineVersion,
+          promotionStatus: "experimental",
+          domain: model.domain,
+        },
         input: inDomain,
       }),
     ).toMatchObject({
@@ -100,6 +143,39 @@ describe("surrogate runtime safety gates", () => {
       requested: "emulated",
       refusalReason: "engine-version-mismatch",
     });
+  });
+
+  it("refuses stale or non-promotable benchmark evidence", () => {
+    const decision = resolveExecutionMode({
+      requested: "emulated",
+      activeEngineVersion: "engine-a",
+      emulatedFeatureEnabled: true,
+      model: {
+        ...model,
+        promotionEvidence: {
+          ...promotionEvidence,
+          candidate: {
+            population: { mae: 2, rmse: 2.4, count: 20 },
+          },
+        },
+      },
+      input: inDomain,
+    });
+
+    expect(decision).toMatchObject({
+      mode: "mechanistic",
+      requested: "emulated",
+      refusalReason: "promotion-evidence-invalid",
+    });
+    if (
+      decision.mode === "mechanistic" &&
+      decision.requested === "emulated" &&
+      decision.refusalReason === "promotion-evidence-invalid"
+    ) {
+      expect(decision.promotionIssues?.map((issue) => issue.kind)).toContain(
+        "baseline-not-beaten",
+      );
+    }
   });
 
   it("refuses out-of-domain inputs instead of silently extrapolating", () => {

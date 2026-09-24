@@ -16,6 +16,8 @@ import {
   INTERVENTION_TARGET_RING_RADIUS_FRACTION,
   constrainPointToCircularDish,
 } from "../ui/interventionPlacement";
+import { PetraIconGeometry } from "../ui/icons/PetraIcon";
+import type { PetraIconName } from "../ui/icons/spec";
 import { planDishMotionPhase } from "../ui/motion/dishVocabulary";
 import type { MotionPreference } from "../ui/motion/policy";
 
@@ -167,38 +169,27 @@ export function InterventionPlacementOverlay({
   );
 }
 
+const TOOL_ICON_NAME: Readonly<Record<InterventionTool, PetraIconName>> = Object.freeze({
+  inoculate: "inoculate",
+  fungus: "fungus",
+  antibiotic: "antibiotic",
+  nutrient: "nutrient",
+});
+
 function ToolGlyph({ tool }: { readonly tool: InterventionTool }) {
-  if (tool === "inoculate") {
-    return (
-      <g className="dish-placement-target__glyph">
-        <circle cx="-1.8" cy="0.4" r="1.4" />
-        <circle cx="1.3" cy="-1.1" r="1.15" />
-        <circle cx="1.8" cy="1.7" r="0.9" />
-      </g>
-    );
-  }
-
-  if (tool === "fungus") {
-    return (
-      <g className="dish-placement-target__glyph dish-placement-target__glyph--fungus">
-        <path d="M -3 2 C -1 1 -1 -1 0 -3 M 0 -1 C 2 -1 2 -2 3 -3 M -1 0 C 1 1 1 2 3 3" />
-      </g>
-    );
-  }
-
-  if (tool === "antibiotic") {
-    return (
-      <g className="dish-placement-target__glyph">
-        <circle cx="0" cy="0" r="2.25" />
-        <path d="M -1.15 0 H 1.15 M 0 -1.15 V 1.15" />
-      </g>
-    );
-  }
-
+  const iconName = TOOL_ICON_NAME[tool];
   return (
-    <g className="dish-placement-target__glyph">
-      <path d="M 0 -3 C 2.3 -0.5 2.6 1 0 3 C -2.6 1 -2.3 -0.5 0 -3 Z" />
-      <path d="M 0 -1.7 V 1.8" />
+    <g
+      className="dish-placement-target__glyph"
+      data-petra-icon={iconName}
+      transform="translate(-3 -3) scale(0.25)"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <PetraIconGeometry name={iconName} />
     </g>
   );
 }

@@ -233,6 +233,33 @@ describe("dish visual continuity", () => {
     expect(Array.from(to.biomass)).toEqual(beforeTo);
   });
 
+  it("returns exact authority immediately for a zero-duration policy", () => {
+    const from = snapshot({
+      id: "a",
+      biomass: [0, 0],
+      field: [0, 0],
+      lineages: [lineage("ancestor", [0, 0])],
+    });
+    const to = snapshot({
+      id: "b",
+      biomass: [9, 7],
+      field: [5, 3],
+      lineages: [lineage("ancestor", [9, 7])],
+    });
+
+    const plan = planDishVisualTransition(from, to, {
+      durationMs: 0,
+      easing: [0.16, 1, 0.3, 1],
+    });
+    expect(plan.kind).toBe("interpolate");
+    if (plan.kind !== "interpolate") return;
+
+    expect(advanceDishVisualTransition(plan.transition, 0)).toEqual({
+      complete: true,
+      state: to,
+    });
+  });
+
   it("can rebase a new transition from the currently rendered presentation frame", () => {
     const first = snapshot({
       id: "a",

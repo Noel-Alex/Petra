@@ -43,6 +43,14 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Event cue timing is presentation wall time only. Never label a motion-token duration as mutation, selection, depletion, infection, or drug-response duration.
 
 
+## Event-burst choreography
+- When multiple authoritative causal events arrive together, adapters use `src/ui/motion/scheduler.ts` instead of independently launching every animation.
+- Input event order and sequence remain authoritative. The scheduler never sorts, merges, drops, delays, or synthesizes simulator events.
+- The first bounded set of events receives animated/crossfade treatment; overflow events immediately retain their essential static cue while decorative motion is suppressed. This keeps event storms legible without erasing scientific meaning.
+- Burst caps and stagger values are **visual engineering policy only**. They are not biological rates, mechanism durations, event probabilities, or simulator throttling.
+- Motion-off always presents every event immediately with static essential emphasis. Reduced motion uses the same bounded scheduler without spatial/decorative movement.
+- Camera ownership remains with the user. Event-storm handling must not trigger camera jumps or focus stealing.
+
 ## Counterfactual compare semantics
 - Compare/fork presentation consumes authoritative fork metadata and command streams; it never performs simulation mutation itself.
 - Two branches may be described as a causal counterfactual pair only when their exact fork origin matches (run identity/checkpoint fingerprint/tick/time/command count).

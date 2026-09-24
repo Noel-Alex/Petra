@@ -1,9 +1,15 @@
-import type { DatasetSplit } from "./dataset";
+import {
+  mechanisticDatasetSchemaKey,
+  type DatasetSplit,
+  type MechanisticDatasetSchemaIdentity,
+} from "./dataset";
+import type { MechanisticDatasetSummary } from "./generator";
 import {
   GROUP_HORIZON_BALANCED_EVALUATION_POLICY_VERSION,
   assessStratifiedRegressionEvidence,
   type BenchmarkEvaluationCoverage,
   type EvaluationHorizon,
+  type PairedStratifiedBenchmark,
   type StratifiedRegressionMetrics,
 } from "./evaluation";
 
@@ -40,12 +46,16 @@ export interface SurrogateCompatibilityIdentity {
 }
 
 export interface SurrogateBenchmarkEvidence {
-  readonly schemaVersion: "surrogate-benchmark-evidence-v4";
+  readonly schemaVersion: "surrogate-benchmark-evidence-v5";
   readonly modelId: string;
   readonly modelVersion: string;
   readonly baselineId: string;
   readonly datasetVersion: string;
   readonly engineVersion: string;
+  readonly datasetScenarioId: string;
+  readonly datasetScenarioVersion: string;
+  readonly datasetNormalizationProfileId: string;
+  readonly datasetSchema: MechanisticDatasetSchemaIdentity;
   readonly compatibility: SurrogateCompatibilityIdentity;
   readonly splitPolicyVersion: string;
   readonly splitCoveragePolicyVersion: string;
@@ -71,6 +81,7 @@ export type PromotionIssueKind =
   | "identity-mismatch"
   | "dataset-version-mismatch"
   | "engine-version-mismatch"
+  | "dataset-schema-mismatch"
   | "compatibility-mismatch"
   | "split-policy-mismatch"
   | "split-coverage-policy-mismatch"
@@ -93,6 +104,53 @@ export interface PromotionIssue {
 export interface SurrogatePromotionAssessment {
   readonly eligible: boolean;
   readonly issues: readonly PromotionIssue[];
+}
+
+export function buildSurrogateBenchmarkEvidence(args: {
+  readonly modelId: string;
+  readonly modelVersion: string;
+  readonly baselineId: string;
+  readonly dataset: MechanisticDatasetSummary;
+  readonly compatibility: SurrogateCompatibilityIdentity;
+  readonly evaluationPolicyVersion: string;
+  readonly heldOutSplit: Exclude<DatasetSplit, "train">;
+  readonly benchmark: PairedStratifiedBenchmark;
+}): SurrogateBenchmarkEvidence {
+  requireCompatibilityText("modelId", args.modelId);
+  requireCompatibilityText("modelVersion", args.modelVersion);
+  requireCompatibilityText("baselineId", args.baselineId);
+
+  if (args.dataset.schemaVersion !== "petra-ml-dataset-artifact-v3") {
+    throw new RangeError("unsupported mechanistic dataset artifact schema version");
+  }
+
+  assertDatasetCompatibility(args.dataset, args.compatibility);
+
+  return {
+    schemaVersion: "surrogate-benchmark-evidence-v5",
+    modelId: args.modelId,
+    modelVersion: args.modelVersion,
+    baselineId: args.baselineId,
+    datasetVersion: args.dataset.datasetVersion,
+    engineVersion: args.dataset.engineVersion,
+    datasetScenarioId: args.dataset.scenarioId,
+    datasetScenarioVersion: args.dataset.scenarioVersion,
+    datasetNormalizationProfileId: args.dataset.normalizationProfileId,
+    datasetSchema: { ...args.dataset.datasetSchema },
+    compatibility: {
+      ...args.compatibility,
+      supportedScenarios: args.compatibility.supportedScenarios.map((scenario) => ({
+        ...scenario,
+      })),
+    },
+    splitPolicyVersion: args.dataset.splitPolicyVersion,
+    splitCoveragePolicyVersion: args.dataset.splitCoveragePolicyVersion,
+    evaluationPolicyVersion: args.evaluationPolicyVersion,
+    heldOutSplit: args.heldOutSplit,
+    coverage: args.benchmark.coverage,
+    candidate: args.benchmark.candidate,
+    baseline: args.benchmark.baseline,
+  };
 }
 
 /**
@@ -185,7 +243,7 @@ export function assessSurrogatePromotion(args: {
   const { evidence, requirements } = args;
   const targetIds = validateTargetIds(requirements.targetIds);
 
-  if (evidence.schemaVersion !== "surrogate-benchmark-evidence-v4") {
+  if (evidence.schemaVersion !== "surrogate-benchmark-evidence-v5") {
     issues.push({
       kind: "evidence-schema-mismatch",
       message: "benchmark evidence schema version is not supported",
@@ -213,6 +271,41 @@ export function assessSurrogatePromotion(args: {
       message: "benchmark evidence engine version does not match the model card",
     });
   }
+  const evidenceDatasetSchemaKey = safeMechanisticDatasetSchemaKey(
+    evidence.datasetSchema,
+  );
+  if (
+    evidenceDatasetSchemaKey === null ||
+    evidence.datasetSchema.inputSchemaVersion !==
+      args.expectedCompatibility.inputSchemaVersion ||
+    evidence.datasetSchema.targetSchemaVersion !==
+      args.expectedCompatibility.targetSchemaVersion
+  ) {
+    issues.push({
+      kind: "dataset-schema-mismatch",
+      message:
+        "benchmark evidence dataset schema does not match the model compatibility contract",
+    });
+  }
+
+  const expectedDatasetScenarioSupported =
+    args.expectedCompatibility.supportedScenarios.some(
+      (scenario) =>
+        scenario.scenarioId === evidence.datasetScenarioId &&
+        scenario.scenarioVersion === evidence.datasetScenarioVersion,
+    );
+  if (
+    !expectedDatasetScenarioSupported ||
+    evidence.datasetNormalizationProfileId !==
+      args.expectedCompatibility.normalizationProfileId
+  ) {
+    issues.push({
+      kind: "compatibility-mismatch",
+      message:
+        "benchmark evidence dataset scenario/normalization provenance does not match the model compatibility contract",
+    });
+  }
+
   const evidenceCompatibilityKey = safeSurrogateCompatibilityKey(
     evidence.compatibility,
   );
@@ -355,6 +448,48 @@ export function surrogateCompatibilityKey(
     identity.inputSchemaVersion,
     identity.targetSchemaVersion,
   ]);
+}
+
+function assertDatasetCompatibility(
+  dataset: MechanisticDatasetSummary,
+  compatibility: SurrogateCompatibilityIdentity,
+): void {
+  mechanisticDatasetSchemaKey(dataset.datasetSchema);
+  surrogateCompatibilityKey(compatibility);
+
+  const scenarioSupported = compatibility.supportedScenarios.some(
+    (scenario) =>
+      scenario.scenarioId === dataset.scenarioId &&
+      scenario.scenarioVersion === dataset.scenarioVersion,
+  );
+  if (!scenarioSupported) {
+    throw new TypeError(
+      "dataset scenario/version is not declared by surrogate compatibility",
+    );
+  }
+  if (compatibility.normalizationProfileId !== dataset.normalizationProfileId) {
+    throw new TypeError(
+      "dataset normalization profile does not match surrogate compatibility",
+    );
+  }
+  if (
+    compatibility.inputSchemaVersion !== dataset.datasetSchema.inputSchemaVersion ||
+    compatibility.targetSchemaVersion !== dataset.datasetSchema.targetSchemaVersion
+  ) {
+    throw new TypeError(
+      "dataset input/target schema does not match surrogate compatibility",
+    );
+  }
+}
+
+function safeMechanisticDatasetSchemaKey(
+  identity: MechanisticDatasetSchemaIdentity,
+): string | null {
+  try {
+    return mechanisticDatasetSchemaKey(identity);
+  } catch {
+    return null;
+  }
 }
 
 function safeSurrogateCompatibilityKey(

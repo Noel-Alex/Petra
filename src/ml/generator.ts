@@ -1,9 +1,12 @@
 import {
   assignDatasetSplit,
+  mechanisticDatasetSchemaKey,
   splitGroupKey,
   trajectoryKey,
+  validateMechanisticDatasetSchemaIdentity,
   validateMechanisticSample,
   type DatasetSplit,
+  type MechanisticDatasetSchemaIdentity,
   type MechanisticSample,
 } from "./dataset";
 import {
@@ -13,9 +16,9 @@ import {
 } from "./sweep";
 
 export const MECHANISTIC_DATASET_ARTIFACT_SCHEMA_VERSION =
-  "petra-ml-dataset-artifact-v2" as const;
+  "petra-ml-dataset-artifact-v3" as const;
 export const MECHANISTIC_DATASET_ROW_SCHEMA_VERSION =
-  "petra-ml-dataset-row-v2" as const;
+  "petra-ml-dataset-row-v3" as const;
 
 export interface MechanisticTrajectoryResult<TInput, TTarget> {
   readonly taskId: string;
@@ -41,6 +44,7 @@ export interface MechanisticDatasetSummary {
   readonly scenarioId: string;
   readonly scenarioVersion: string;
   readonly normalizationProfileId: string;
+  readonly datasetSchema: MechanisticDatasetSchemaIdentity;
   readonly splitPolicyVersion: string;
   readonly splitCoveragePolicyVersion: string;
   readonly groupCount: number;
@@ -131,6 +135,7 @@ export function buildMechanisticDatasetArtifact<TInput, TTarget>(
     scenarioId: plan.scenarioId,
     scenarioVersion: plan.scenarioVersion,
     normalizationProfileId: plan.normalizationProfileId,
+    datasetSchema: Object.freeze({ ...plan.datasetSchema }),
     splitPolicyVersion: plan.splitPolicy.version,
     splitCoveragePolicyVersion: plan.splitCoveragePolicy.version,
     groupCount: plan.groupCount,
@@ -185,6 +190,8 @@ function validatePlanForCollection(
   requireNonEmpty("scenarioId", plan.scenarioId);
   requireNonEmpty("scenarioVersion", plan.scenarioVersion);
   requireNonEmpty("normalizationProfileId", plan.normalizationProfileId);
+  validateMechanisticDatasetSchemaIdentity(plan.datasetSchema);
+  const planDatasetSchemaKey = mechanisticDatasetSchemaKey(plan.datasetSchema);
   validateSplitCoveragePolicy(plan.splitCoveragePolicy);
 
   if (!Number.isSafeInteger(plan.groupCount) || plan.groupCount < 1) {
@@ -224,6 +231,11 @@ function validatePlanForCollection(
     if (task.normalizationProfileId !== plan.normalizationProfileId) {
       throw new TypeError(
         `task ${task.taskId} normalizationProfileId does not match its sweep plan`,
+      );
+    }
+    if (mechanisticDatasetSchemaKey(task.datasetSchema) !== planDatasetSchemaKey) {
+      throw new TypeError(
+        `task ${task.taskId} dataset schema does not match its sweep plan`,
       );
     }
 
@@ -339,6 +351,14 @@ function validateTrajectoryResult<TInput, TTarget>(
     if (sample.normalizationProfileId !== task.normalizationProfileId) {
       throw new TypeError(
         `sample ${index} for task ${task.taskId} has the wrong normalizationProfileId`,
+      );
+    }
+    if (
+      mechanisticDatasetSchemaKey(sample.datasetSchema) !==
+      mechanisticDatasetSchemaKey(task.datasetSchema)
+    ) {
+      throw new TypeError(
+        `sample ${index} for task ${task.taskId} has the wrong dataset schema`,
       );
     }
     if (trajectoryKey(sample.trajectory) !== task.trajectoryKey) {

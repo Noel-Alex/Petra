@@ -1,7 +1,7 @@
 import type { WorkerSessionPerformanceSample } from "./workerSession";
 
 export interface WorkerPerformanceSummary {
-  readonly version: 1;
+  readonly version: 2;
   readonly sampleCount: number;
   readonly successfulSampleCount: number;
   readonly advanceSampleCount: number;
@@ -9,6 +9,12 @@ export interface WorkerPerformanceSummary {
   readonly totalAdvanceTicks: number;
   readonly totalRequestPayloadBytes: number;
   readonly totalResponsePayloadBytes: number;
+  readonly measuredSenderPostMessageSampleCount: number;
+  readonly totalSenderPostMessageCallMs: number;
+  readonly maxSenderPostMessageCallMs: number;
+  readonly measuredMainThreadSnapshotCloneSampleCount: number;
+  readonly totalMainThreadSnapshotCloneMs: number;
+  readonly maxMainThreadSnapshotCloneMs: number;
   readonly totalRoundTripMs: number;
   readonly totalWorkerExecutionMs: number;
   readonly workerExecutionMsPerAdvanceTick: number | null;
@@ -33,6 +39,12 @@ export function summarizeWorkerPerformance(
   let totalAdvanceTicks = 0;
   let totalRequestPayloadBytes = 0;
   let totalResponsePayloadBytes = 0;
+  let measuredSenderPostMessageSampleCount = 0;
+  let totalSenderPostMessageCallMs = 0;
+  let maxSenderPostMessageCallMs = 0;
+  let measuredMainThreadSnapshotCloneSampleCount = 0;
+  let totalMainThreadSnapshotCloneMs = 0;
+  let maxMainThreadSnapshotCloneMs = 0;
   let totalRoundTripMs = 0;
   let totalWorkerExecutionMs = 0;
   let totalMeasuredAdvanceTicks = 0;
@@ -67,6 +79,22 @@ export function summarizeWorkerPerformance(
     }
     totalRequestPayloadBytes += sample.requestPayloadBytes;
     totalResponsePayloadBytes += sample.responsePayloadBytes ?? 0;
+    if (sample.senderPostMessageCallMs !== null) {
+      measuredSenderPostMessageSampleCount += 1;
+      totalSenderPostMessageCallMs += sample.senderPostMessageCallMs;
+      maxSenderPostMessageCallMs = Math.max(
+        maxSenderPostMessageCallMs,
+        sample.senderPostMessageCallMs,
+      );
+    }
+    if (sample.mainThreadSnapshotCloneMs !== null) {
+      measuredMainThreadSnapshotCloneSampleCount += 1;
+      totalMainThreadSnapshotCloneMs += sample.mainThreadSnapshotCloneMs;
+      maxMainThreadSnapshotCloneMs = Math.max(
+        maxMainThreadSnapshotCloneMs,
+        sample.mainThreadSnapshotCloneMs,
+      );
+    }
     totalRoundTripMs += sample.roundTripMs;
     maxQueuedRequestsBehindAtDispatch = Math.max(
       maxQueuedRequestsBehindAtDispatch,
@@ -91,7 +119,7 @@ export function summarizeWorkerPerformance(
     totalRequestPayloadBytes + totalResponsePayloadBytes;
 
   return {
-    version: 1,
+    version: 2,
     sampleCount: samples.length,
     successfulSampleCount,
     advanceSampleCount,
@@ -99,6 +127,12 @@ export function summarizeWorkerPerformance(
     totalAdvanceTicks,
     totalRequestPayloadBytes,
     totalResponsePayloadBytes,
+    measuredSenderPostMessageSampleCount,
+    totalSenderPostMessageCallMs,
+    maxSenderPostMessageCallMs,
+    measuredMainThreadSnapshotCloneSampleCount,
+    totalMainThreadSnapshotCloneMs,
+    maxMainThreadSnapshotCloneMs,
     totalRoundTripMs,
     totalWorkerExecutionMs,
     workerExecutionMsPerAdvanceTick:

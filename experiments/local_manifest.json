@@ -34,6 +34,21 @@
       "timeout_seconds": 900
     },
     {
+      "id": "worker-transport-profile",
+      "description": "Real composed browser Worker transport profile: payload-size breakdown, sender postMessage handoff, request-window/worker time, and accepted-snapshot clone cost.",
+      "command": [
+        "python",
+        "tools/worker_transport_profile.py"
+      ],
+      "issues": [
+        519,
+        577,
+        630,
+        642
+      ],
+      "timeout_seconds": 300
+    },
+    {
       "id": "flagship-runtime-smoke",
       "description": "BLOCKED on #37: composed scenario init/advance/intervention/checkpoint/restore/replay smoke.",
       "command": [

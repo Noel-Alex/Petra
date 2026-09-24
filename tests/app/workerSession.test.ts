@@ -448,8 +448,11 @@ describe("worker session", () => {
 
     expect(samples).toHaveLength(2);
     expect(samples[0]).toMatchObject({
+      version: 2,
       requestType: "initialize",
       queuedRequestsBehindAtDispatch: 1,
+      senderPostMessageCallMs: 0,
+      mainThreadSnapshotCloneMs: 0,
       roundTripMs: 6,
       workerExecutionMs: 2,
       nonWorkerRoundTripMs: 4,
@@ -457,11 +460,14 @@ describe("worker session", () => {
       outcome: "success",
     });
     expect(samples[1]).toMatchObject({
+      version: 2,
       requestType: "command",
       commandType: "advance",
       commandId: "advance-profiled",
       requestedAdvanceTicks: 4,
       queuedRequestsBehindAtDispatch: 0,
+      senderPostMessageCallMs: 0,
+      mainThreadSnapshotCloneMs: 0,
       roundTripMs: 4,
       workerExecutionMs: 3,
       workerExecutionMsPerTick: 0.75,
@@ -471,6 +477,47 @@ describe("worker session", () => {
     });
     expect(samples[0]?.requestPayloadBytes).toBeGreaterThan(0);
     expect(samples[1]?.responsePayloadBytes).toBeGreaterThan(0);
+    expect(session.state.phase).toBe("ready");
+  });
+
+  it("separates sender handoff and snapshot clone cost from request-window timing", () => {
+    const port = new FakePort();
+    const samples: import("../../src/app/workerSession").WorkerSessionPerformanceSample[] = [];
+    const times = [100, 101.25, 108, 108.5, 110];
+    const session = new WorkerSession(port, {
+      observe: (sample) => samples.push(sample),
+      now: () => {
+        const value = times.shift();
+        if (value === undefined) throw new Error("unexpected timing read");
+        return value;
+      },
+    });
+
+    session.enqueue([
+      { protocolVersion: PROTOCOL_VERSION, type: "initialize", identity },
+    ]);
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: snapshot(0),
+      performanceDiagnostics: {
+        version: 1,
+        executionDurationMs: 2,
+      },
+    });
+
+    expect(samples).toHaveLength(1);
+    expect(samples[0]).toMatchObject({
+      version: 2,
+      completedAtMs: 108,
+      senderPostMessageCallMs: 1.25,
+      mainThreadSnapshotCloneMs: 1.5,
+      roundTripMs: 8,
+      workerExecutionMs: 2,
+      nonWorkerRoundTripMs: 6,
+      outcome: "success",
+    });
+    expect(times).toEqual([]);
     expect(session.state.phase).toBe("ready");
   });
 

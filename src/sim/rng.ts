@@ -60,4 +60,14 @@ export class SimulationRng {
   snapshot(): RngState {
     return [...this.state] as RngState
   }
+
+  /**
+   * Replaces this stream with a previously serialized Petra RNG state.
+   * Used for atomic stochastic transactions: callers may sample on a clone and
+   * commit only after numerical policy accepts the complete operation.
+   */
+  restore(state: RngState): void {
+    const restored = new SimulationRng(state)
+    this.state = restored.snapshot() as [number, number, number, number]
+  }
 }

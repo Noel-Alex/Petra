@@ -45,7 +45,12 @@ function sample(args: {
     lineageShannonDiversity: args.diversity,
     resistantBiomass: args.biomass * args.resistantFraction,
     resistantFraction: args.resistantFraction,
-    lineages: [],
+    lineages: args.genotypes.map((genotype, index) => ({
+      lineageId: `fixture-lineage-${index}:${genotype.genotypeId}`,
+      genotypeId: genotype.genotypeId,
+      biomass: args.biomass * genotype.fraction,
+      fraction: genotype.fraction,
+    })),
     genotypes: args.genotypes.map((genotype) => ({
       genotypeId: genotype.genotypeId,
       biomass: args.biomass * genotype.fraction,
@@ -204,6 +209,98 @@ describe('authoritative analysis metric series', () => {
     expect(() =>
       buildAuthoritativeMetricSeries([first, mixedCadence], config),
     ).toThrow(/mixes sampling policies/)
+  })
+
+  it('fails closed on corrupted authoritative scalar and resistance values', () => {
+    const base = sample({
+      tick: 0,
+      time: 0,
+      biomass: 2,
+      resource: 10,
+      resistantFraction: 0.5,
+      diversity: 0.5,
+      genotypes: [
+        { genotypeId: 'WT', fraction: 0.5 },
+        { genotypeId: 'R', fraction: 0.5 },
+      ],
+    })
+
+    const invalidResource = structuredClone(base)
+    ;(invalidResource as { totalResource: number }).totalResource = Number.NaN
+    expect(() => buildAuthoritativeMetricSeries([invalidResource], config)).toThrow(
+      /totalResource must be finite and non-negative/,
+    )
+
+    const invalidOccupied = structuredClone(base)
+    ;(invalidOccupied as { occupiedCells: number }).occupiedCells = 1.5
+    expect(() => buildAuthoritativeMetricSeries([invalidOccupied], config)).toThrow(
+      /occupiedCells must be a non-negative safe integer/,
+    )
+
+    const inconsistentResistance = structuredClone(base)
+    ;(inconsistentResistance as { resistantBiomass: number }).resistantBiomass = 0.5
+    expect(() =>
+      buildAuthoritativeMetricSeries([inconsistentResistance], config),
+    ).toThrow(/resistant fraction is inconsistent with biomass/)
+  })
+
+  it('rejects duplicate or cross-channel-inconsistent genotype authority', () => {
+    const base = sample({
+      tick: 0,
+      time: 0,
+      biomass: 2,
+      resource: 10,
+      resistantFraction: 0,
+      diversity: 0.5,
+      genotypes: [
+        { genotypeId: 'WT', fraction: 0.5 },
+        { genotypeId: 'R', fraction: 0.5 },
+      ],
+    })
+
+    const duplicateGenotype = structuredClone(base)
+    ;(duplicateGenotype.genotypes as {
+      genotypeId: string
+      biomass: number
+      fraction: number
+    }[]).push({ ...duplicateGenotype.genotypes[0]! })
+    expect(() => buildAuthoritativeMetricSeries([duplicateGenotype], config)).toThrow(
+      /duplicate genotype id: WT/,
+    )
+
+    const foreignLineageIdentity = structuredClone(base)
+    ;(foreignLineageIdentity.lineages[0] as { genotypeId: string }).genotypeId = 'R'
+    expect(() =>
+      buildAuthoritativeMetricSeries([foreignLineageIdentity], config),
+    ).toThrow(/genotype biomass does not match lineage identity/)
+  })
+
+  it('rejects lineage fractions or totals that disagree with aggregate biomass', () => {
+    const base = sample({
+      tick: 0,
+      time: 0,
+      biomass: 2,
+      resource: 10,
+      resistantFraction: 0,
+      diversity: 0.5,
+      genotypes: [
+        { genotypeId: 'WT', fraction: 0.5 },
+        { genotypeId: 'R', fraction: 0.5 },
+      ],
+    })
+
+    const invalidFraction = structuredClone(base)
+    ;(invalidFraction.lineages[0] as { fraction: number }).fraction = 0.25
+    expect(() => buildAuthoritativeMetricSeries([invalidFraction], config)).toThrow(
+      /lineage .* fraction is inconsistent with biomass/,
+    )
+
+    const invalidTotal = structuredClone(base)
+    ;(invalidTotal.lineages[0] as { biomass: number; fraction: number }).biomass = 0.5
+    ;(invalidTotal.lineages[0] as { biomass: number; fraction: number }).fraction = 0.25
+    expect(() => buildAuthoritativeMetricSeries([invalidTotal], config)).toThrow(
+      /lineage biomass does not sum to totalBiomass/,
+    )
   })
 
   it('requires explicit display identity for every genotype observed', () => {

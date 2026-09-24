@@ -2,6 +2,7 @@ import { sameComposedParameterSetBinding } from '../sim/parameterSetBinding'
 import {
   AUTHORITATIVE_METRIC_SCHEMA_VERSION,
   METRIC_SAMPLING_POLICY_VERSION,
+  validateMetricSamplingPolicy,
   type AuthoritativeMetricSample,
 } from '../sim/metrics'
 import type { RunIdentity } from '../sim/protocol'
@@ -65,6 +66,155 @@ function sameRunIdentity(left: RunIdentity, right: RunIdentity): boolean {
     ) &&
     left.seed === right.seed
   )
+}
+
+function metricTolerance(...values: readonly number[]): number {
+  return 1e-12 * Math.max(1, ...values.map((value) => Math.abs(value)))
+}
+
+function approximatelyEqual(left: number, right: number): boolean {
+  return Math.abs(left - right) <= metricTolerance(left, right)
+}
+
+function finiteNonNegativeMetric(name: string, value: number): void {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(`${name} must be finite and non-negative`)
+  }
+}
+
+function metricFraction(name: string, value: number): void {
+  if (!Number.isFinite(value) || value < 0 || value > 1) {
+    throw new Error(`${name} must be finite and in [0, 1]`)
+  }
+}
+
+function validateMetricSampleContents(
+  sample: AuthoritativeMetricSample,
+  sampleIndex: number,
+): void {
+  const prefix = `metric sample ${sampleIndex}`
+  finiteNonNegativeMetric(`${prefix} totalBiomass`, sample.totalBiomass)
+  finiteNonNegativeMetric(`${prefix} totalResource`, sample.totalResource)
+  finiteNonNegativeMetric(
+    `${prefix} lineageShannonDiversity`,
+    sample.lineageShannonDiversity,
+  )
+  finiteNonNegativeMetric(
+    `${prefix} resistantBiomass`,
+    sample.resistantBiomass,
+  )
+  metricFraction(`${prefix} resistantFraction`, sample.resistantFraction)
+
+  if (!Number.isSafeInteger(sample.occupiedCells) || sample.occupiedCells < 0) {
+    throw new Error(`${prefix} occupiedCells must be a non-negative safe integer`)
+  }
+
+  if (
+    sample.resistantBiomass >
+    sample.totalBiomass + metricTolerance(sample.totalBiomass, sample.resistantBiomass)
+  ) {
+    throw new Error(`${prefix} resistantBiomass cannot exceed totalBiomass`)
+  }
+  const expectedResistantFraction =
+    sample.totalBiomass === 0
+      ? 0
+      : sample.resistantBiomass / sample.totalBiomass
+  if (!approximatelyEqual(sample.resistantFraction, expectedResistantFraction)) {
+    throw new Error(`${prefix} resistant fraction is inconsistent with biomass`)
+  }
+
+  if (!Array.isArray(sample.lineages)) {
+    throw new Error(`${prefix} lineages must be an array`)
+  }
+  const lineageIds = new Set<string>()
+  const lineageBiomassByGenotype = new Map<string, number>()
+  let lineageTotal = 0
+  for (let index = 0; index < sample.lineages.length; index += 1) {
+    if (!(index in sample.lineages)) {
+      throw new Error(`${prefix} lineage rows must be dense`)
+    }
+    const lineage = sample.lineages[index]!
+    canonicalText(`${prefix} lineage ${index} id`, lineage.lineageId)
+    canonicalText(
+      `${prefix} lineage ${lineage.lineageId} genotype id`,
+      lineage.genotypeId,
+    )
+    if (lineageIds.has(lineage.lineageId)) {
+      throw new Error(`${prefix} has duplicate lineage id: ${lineage.lineageId}`)
+    }
+    lineageIds.add(lineage.lineageId)
+    finiteNonNegativeMetric(
+      `${prefix} lineage ${lineage.lineageId} biomass`,
+      lineage.biomass,
+    )
+    metricFraction(
+      `${prefix} lineage ${lineage.lineageId} fraction`,
+      lineage.fraction,
+    )
+    const expectedFraction =
+      sample.totalBiomass === 0 ? 0 : lineage.biomass / sample.totalBiomass
+    if (!approximatelyEqual(lineage.fraction, expectedFraction)) {
+      throw new Error(
+        `${prefix} lineage ${lineage.lineageId} fraction is inconsistent with biomass`,
+      )
+    }
+    lineageTotal += lineage.biomass
+    lineageBiomassByGenotype.set(
+      lineage.genotypeId,
+      (lineageBiomassByGenotype.get(lineage.genotypeId) ?? 0) + lineage.biomass,
+    )
+  }
+  if (!approximatelyEqual(lineageTotal, sample.totalBiomass)) {
+    throw new Error(`${prefix} lineage biomass does not sum to totalBiomass`)
+  }
+
+  if (!Array.isArray(sample.genotypes)) {
+    throw new Error(`${prefix} genotypes must be an array`)
+  }
+  const genotypeIds = new Set<string>()
+  const genotypeBiomassById = new Map<string, number>()
+  let genotypeTotal = 0
+  for (let index = 0; index < sample.genotypes.length; index += 1) {
+    if (!(index in sample.genotypes)) {
+      throw new Error(`${prefix} genotype rows must be dense`)
+    }
+    const genotype = sample.genotypes[index]!
+    canonicalText(`${prefix} genotype ${index} id`, genotype.genotypeId)
+    if (genotypeIds.has(genotype.genotypeId)) {
+      throw new Error(`${prefix} has duplicate genotype id: ${genotype.genotypeId}`)
+    }
+    genotypeIds.add(genotype.genotypeId)
+    finiteNonNegativeMetric(
+      `${prefix} genotype ${genotype.genotypeId} biomass`,
+      genotype.biomass,
+    )
+    metricFraction(
+      `${prefix} genotype ${genotype.genotypeId} fraction`,
+      genotype.fraction,
+    )
+    const expectedFraction =
+      sample.totalBiomass === 0 ? 0 : genotype.biomass / sample.totalBiomass
+    if (!approximatelyEqual(genotype.fraction, expectedFraction)) {
+      throw new Error(
+        `${prefix} genotype ${genotype.genotypeId} fraction is inconsistent with biomass`,
+      )
+    }
+    genotypeTotal += genotype.biomass
+    genotypeBiomassById.set(genotype.genotypeId, genotype.biomass)
+  }
+  if (!approximatelyEqual(genotypeTotal, sample.totalBiomass)) {
+    throw new Error(`${prefix} genotype biomass does not sum to totalBiomass`)
+  }
+
+  if (
+    genotypeBiomassById.size !== lineageBiomassByGenotype.size ||
+    [...genotypeBiomassById.entries()].some(([genotypeId, biomass]) => {
+      const lineageBiomass = lineageBiomassByGenotype.get(genotypeId)
+      return lineageBiomass === undefined || !approximatelyEqual(biomass, lineageBiomass)
+    })
+  ) {
+    throw new Error(`${prefix} genotype biomass does not match lineage identity`)
+  }
 }
 
 function style(
@@ -143,6 +293,7 @@ export function buildAuthoritativeMetricSeries(
   if (first.samplingPolicy.version !== METRIC_SAMPLING_POLICY_VERSION) {
     throw new Error('unsupported authoritative metric sampling policy version')
   }
+  validateMetricSamplingPolicy(first.samplingPolicy)
 
   const identity = first.identity
   let previousTick = -1
@@ -182,6 +333,8 @@ export function buildAuthoritativeMetricSeries(
     }
     previousTick = sample.tick
     previousTime = sample.simulationTimeHours
+
+    validateMetricSampleContents(sample, sampleIndex)
 
     for (const genotype of sample.genotypes) {
       canonicalText('metric genotype id', genotype.genotypeId)

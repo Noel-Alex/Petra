@@ -77,23 +77,23 @@
     },
     {
       "id": "seed-replay-matrix",
-      "description": "BLOCKED on #37: fixed-seed command traces with checkpoint/event replay identity.",
+      "description": "Fixed-seed authoritative composed replay matrix covering genesis trace equality, checkpoint continuation, and cross-seed restore refusal.",
       "command": [
-        "python",
-        "experiments/blocked.py",
-        "--experiment-id",
-        "seed-replay-matrix",
-        "--blocked-on",
-        "37",
-        "--reason",
-        "Issue #37 must land authoritative composed checkpoint/restore/replay before the seed matrix can validate end-to-end identity."
+        "npm",
+        "exec",
+        "--offline",
+        "--",
+        "vitest",
+        "run",
+        "--config",
+        "experiments/vitest.seed_replay_matrix.config.ts"
       ],
       "issues": [
         5,
         37,
         542
       ],
-      "timeout_seconds": 30
+      "timeout_seconds": 1800
     },
     {
       "id": "ecology-calibration-sweep",

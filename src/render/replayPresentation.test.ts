@@ -6,6 +6,10 @@ import {
   createDishReplayPresenter,
   resolveDishReplayPresentation,
 } from "./replayPresentation";
+import {
+  DISH_REPLAY_ORDER_VERSION,
+  type AuthoritativeDishReplayKeyframe,
+} from "./replayIdentity";
 
 function snapshot(
   id: string,
@@ -47,31 +51,56 @@ function snapshot(
   };
 }
 
+function keyframe(
+  id: string,
+  simulationTimeHours: number,
+  acceptedCommandCount: number,
+  biomass: readonly number[],
+  samplingIdentity = "run-1",
+  runBranchIdentity = "branch-1",
+): AuthoritativeDishReplayKeyframe {
+  return {
+    order: {
+      version: DISH_REPLAY_ORDER_VERSION,
+      runBranchIdentity,
+      acceptedCommandCount,
+    },
+    snapshot: snapshot(
+      id,
+      simulationTimeHours,
+      biomass,
+      samplingIdentity,
+    ),
+  };
+}
+
 describe("dish replay presentation", () => {
-  it("evaluates intermediate scrub positions deterministically", () => {
-    const a = snapshot("a", 0, [0, 4]);
-    const b = snapshot("b", 2, [10, 8]);
+  it("evaluates intermediate replay-order positions deterministically", () => {
+    const a = keyframe("a", 0, 0, [0, 4]);
+    const b = keyframe("b", 2, 2, [10, 8]);
 
     const first = resolveDishReplayPresentation({
-      snapshots: [a, b],
-      requestedSimulationTimeHours: 1,
+      keyframes: [a, b],
+      requestedOrderPosition: 1,
     });
     const second = resolveDishReplayPresentation({
-      snapshots: [a, b],
-      requestedSimulationTimeHours: 1,
+      keyframes: [a, b],
+      requestedOrderPosition: 1,
     });
 
     expect(first?.mode).toBe("interpolated-presentation");
     expect(first?.stateAuthority).toBe("presentation-only");
     expect(first?.progress).toBe(0.5);
+    expect(first?.lowerSimulationTimeHours).toBe(0);
+    expect(first?.upperSimulationTimeHours).toBe(2);
     expect(Array.from(first!.state.biomass)).toEqual([5, 6]);
     expect(Array.from(second!.state.biomass)).toEqual([5, 6]);
   });
 
   it("reuses the active interval presentation buffers during interactive scrubbing", () => {
-    const a = snapshot("a", 0, [0, 0]);
-    const b = snapshot("b", 2, [10, 20]);
-    const c = snapshot("c", 4, [20, 40]);
+    const a = keyframe("a", 0, 0, [0, 0]);
+    const b = keyframe("b", 2, 2, [10, 20]);
+    const c = keyframe("c", 4, 4, [20, 40]);
     const presenter = createDishReplayPresenter([a, b, c]);
 
     const first = presenter.evaluate(0.5);
@@ -89,74 +118,129 @@ describe("dish replay presentation", () => {
   });
 
   it("returns exact authoritative endpoints outside the recorded range", () => {
-    const a = snapshot("a", 2, [2, 2]);
-    const b = snapshot("b", 4, [4, 4]);
+    const a = keyframe("a", 2, 4, [2, 2]);
+    const b = keyframe("b", 4, 5, [4, 4]);
 
     expect(
       resolveDishReplayPresentation({
-        snapshots: [a, b],
-        requestedSimulationTimeHours: 0,
+        keyframes: [a, b],
+        requestedOrderPosition: 0,
       })?.state,
-    ).toBe(a);
+    ).toBe(a.snapshot);
     expect(
       resolveDishReplayPresentation({
-        snapshots: [a, b],
-        requestedSimulationTimeHours: 8,
+        keyframes: [a, b],
+        requestedOrderPosition: 8,
       })?.state,
-    ).toBe(b);
+    ).toBe(b.snapshot);
   });
 
   it("snaps to previous authority when interpolation is disabled", () => {
-    const a = snapshot("a", 0, [0, 0]);
-    const b = snapshot("b", 1, [10, 10]);
+    const a = keyframe("a", 0, 0, [0, 0]);
+    const b = keyframe("b", 1, 1, [10, 10]);
 
     const result = resolveDishReplayPresentation({
-      snapshots: [a, b],
-      requestedSimulationTimeHours: 0.75,
+      keyframes: [a, b],
+      requestedOrderPosition: 0.75,
       motion: "snap-to-authority",
     });
 
     expect(result).toMatchObject({
       mode: "previous-authority-snap",
-      state: a,
+      state: a.snapshot,
       stateAuthority: "authoritative",
       progress: 0.75,
     });
   });
 
   it("fails closed to previous authority when keyframes cannot be morphed", () => {
-    const a = snapshot("a", 0, [0, 0], "run-a");
-    const b = snapshot("b", 1, [10, 10], "run-b");
+    const a = keyframe("a", 0, 0, [0, 0], "run-a");
+    const b = keyframe("b", 1, 1, [10, 10], "run-b");
 
     expect(
       resolveDishReplayPresentation({
-        snapshots: [a, b],
-        requestedSimulationTimeHours: 0.5,
+        keyframes: [a, b],
+        requestedOrderPosition: 0.5,
       }),
     ).toMatchObject({
       mode: "previous-authority-snap",
-      state: a,
+      state: a.snapshot,
       interpolationRefusalReason: "sampling-identity-mismatch",
     });
   });
 
-  it("rejects ambiguous duplicate simulation-time keyframes", () => {
+  it("replays distinct same-time keyframes in authoritative accepted-command order", () => {
+    const beforePulse = keyframe("before-pulse", 1, 7, [2, 2]);
+    const afterPulse = keyframe("after-pulse", 1, 8, [8, 4]);
+    const presenter = createDishReplayPresenter([
+      beforePulse,
+      afterPulse,
+    ]);
+
+    expect(presenter.evaluate(7)).toMatchObject({
+      mode: "authoritative-keyframe",
+      state: beforePulse.snapshot,
+      lowerSimulationTimeHours: 1,
+      upperSimulationTimeHours: 1,
+    });
+
+    expect(presenter.evaluate(7.5)).toMatchObject({
+      mode: "interpolated-presentation",
+      stateAuthority: "presentation-only",
+      progress: 0.5,
+      lowerAcceptedCommandCount: 7,
+      upperAcceptedCommandCount: 8,
+      lowerSimulationTimeHours: 1,
+      upperSimulationTimeHours: 1,
+    });
+
+    expect(presenter.evaluate(8)).toMatchObject({
+      mode: "authoritative-keyframe",
+      state: afterPulse.snapshot,
+      lowerSimulationTimeHours: 1,
+      upperSimulationTimeHours: 1,
+    });
+  });
+
+  it("rejects duplicate or regressing authoritative order identity", () => {
     expect(() =>
-      resolveDishReplayPresentation({
-        snapshots: [
-          snapshot("a", 1, [1, 1]),
-          snapshot("b", 1, [2, 2]),
-        ],
-        requestedSimulationTimeHours: 1,
-      }),
+      createDishReplayPresenter([
+        keyframe("a", 1, 7, [1, 1]),
+        keyframe("b", 1, 7, [2, 2]),
+      ]),
     ).toThrow(/strictly increasing/);
+
+    expect(() =>
+      createDishReplayPresenter([
+        keyframe("a", 1, 8, [1, 1]),
+        keyframe("b", 1, 7, [2, 2]),
+      ]),
+    ).toThrow(/strictly increasing/);
+  });
+
+  it("rejects mixed run-branch scopes instead of inferring ancestry", () => {
+    expect(() =>
+      createDishReplayPresenter([
+        keyframe("a", 1, 7, [1, 1], "run-1", "branch-a"),
+        keyframe("b", 1, 8, [2, 2], "run-1", "branch-b"),
+      ]),
+    ).toThrow(/one runBranchIdentity/);
+  });
+
+  it("rejects biological-time regression inside one run branch", () => {
+    expect(() =>
+      createDishReplayPresenter([
+        keyframe("a", 2, 7, [1, 1]),
+        keyframe("b", 1, 8, [2, 2]),
+      ]),
+    ).toThrow(/non-decreasing/);
   });
 
   it("returns null for an empty authoritative history", () => {
     expect(
       resolveDishReplayPresentation({
-        snapshots: [],
-        requestedSimulationTimeHours: 0,
+        keyframes: [],
+        requestedOrderPosition: 0,
       }),
     ).toBeNull();
   });

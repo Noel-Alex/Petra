@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
+  COUNTERFACTUAL_FORK_SCHEMA_VERSION,
   CounterfactualForkController,
   replayCounterfactualFork,
   validateCounterfactualForkReplayBundle,
 } from '../../src/sim/counterfactual'
 import { SimulationEngine } from '../../src/sim/engine'
 import { createRunIdentity } from '../../src/sim/protocol'
+import { simulationSnapshotTraceHash } from '../../src/sim/snapshotTrace'
 
 const identity = createRunIdentity({
   scenarioId: 'synthetic-counterfactual-fixture',
@@ -78,6 +80,8 @@ describe('counterfactual fork authority', () => {
     const bundle = fork.exportReplayBundle()
     validateCounterfactualForkReplayBundle(bundle)
 
+    expect(bundle.schemaVersion).toBe(COUNTERFACTUAL_FORK_SCHEMA_VERSION)
+    expect(bundle.origin.events.length).toBeGreaterThan(0)
     expect(replayCounterfactualFork(bundle)).toEqual(fork.snapshot())
     expect(replayCounterfactualFork(bundle)).toEqual(replayCounterfactualFork(bundle))
   })
@@ -95,14 +99,18 @@ describe('counterfactual fork authority', () => {
     parentSnapshot.checkpoint.syntheticPopulation = 999_999
     const bundle = fork.exportReplayBundle()
     bundle.origin.checkpoint.syntheticPopulation = 888_888
+    ;(bundle.origin.events[0] as { type: string }).type = 'mutated-event'
     ;(bundle.branches.left.commands[0] as { id: string }).id = 'mutated'
     const returned = fork.snapshot()
     returned.origin.checkpoint.syntheticPopulation = 777_777
+    ;(returned.origin.events[0] as { type: string }).type = 'returned-mutation'
 
     const fresh = fork.snapshot()
     expect(fresh.origin.checkpoint.syntheticPopulation).not.toBe(999_999)
     expect(fresh.origin.checkpoint.syntheticPopulation).not.toBe(888_888)
     expect(fresh.origin.checkpoint.syntheticPopulation).not.toBe(777_777)
+    expect(fresh.origin.events[0]?.type).not.toBe('mutated-event')
+    expect(fresh.origin.events[0]?.type).not.toBe('returned-mutation')
     expect(fresh.branches.left.commands[0]?.id).toBe('left-advance')
   })
 
@@ -139,9 +147,55 @@ describe('counterfactual fork authority', () => {
     ).toThrow(/cannot restore or snapshot/)
   })
 
-  it('refuses checkpoint payloads that cannot round-trip canonically through the engine', () => {
+  it('rejects a trace hash swapped from another otherwise valid parent snapshot', () => {
+    const first = createParentSnapshot()
+    const secondEngine = new SimulationEngine(identity)
+    secondEngine.execute({ id: 'other-warmup', type: 'advance', ticks: 46 })
+    const second = secondEngine.snapshot()
+
+    expect(first.traceHash).not.toBe(second.traceHash)
+
+    const forged = structuredClone(first)
+    forged.traceHash = second.traceHash
+
+    expect(
+      () =>
+        new CounterfactualForkController({
+          sourceRunId: 'run-parent-1',
+          parentSnapshot: forged,
+          left: { branchId: 'left', label: 'Left' },
+          right: { branchId: 'right', label: 'Right' },
+        }),
+    ).toThrow(/trace provenance mismatch/)
+  })
+
+  it('keeps replay-bundle ancestry independently verifiable from bundled parent evidence', () => {
+    const fork = createFork()
+    const bundle = fork.exportReplayBundle()
+    validateCounterfactualForkReplayBundle(bundle)
+
+    const tamperedEvents = structuredClone(bundle)
+    ;(tamperedEvents.origin.events as unknown[]).pop()
+    expect(() => validateCounterfactualForkReplayBundle(tamperedEvents)).toThrow(
+      /trace provenance mismatch/,
+    )
+    expect(() => replayCounterfactualFork(tamperedEvents)).toThrow(
+      /trace provenance mismatch/,
+    )
+
+    const otherEngine = new SimulationEngine(identity)
+    otherEngine.execute({ id: 'other-warmup', type: 'advance', ticks: 46 })
+    const swappedTrace = structuredClone(bundle)
+    swappedTrace.origin.checkpointTraceHash = otherEngine.snapshot().traceHash
+    expect(() => validateCounterfactualForkReplayBundle(swappedTrace)).toThrow(
+      /trace provenance mismatch/,
+    )
+  })
+
+  it('distinguishes valid-trace malformed checkpoints from provenance mismatch', () => {
     const parentSnapshot = createParentSnapshot()
     parentSnapshot.checkpoint.simulationTimeHours += 1
+    parentSnapshot.traceHash = simulationSnapshotTraceHash(parentSnapshot)
 
     expect(
       () =>
@@ -151,6 +205,6 @@ describe('counterfactual fork authority', () => {
           left: { branchId: 'left', label: 'Left' },
           right: { branchId: 'right', label: 'Right' },
         }),
-    ).toThrow(/not canonical/)
+    ).toThrow(/checkpoint\.simulationTimeHours/)
   })
 })

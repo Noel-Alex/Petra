@@ -385,6 +385,22 @@ describe('experiment export bundle', () => {
         code: 'evidence-invalid',
       }),
     )
+
+    const contradictoryMetric = structuredClone(bundle) as unknown as {
+      evidence: {
+        metrics: Array<{
+          lineages: Array<{ fraction: number }>
+        }>
+      }
+    }
+    contradictoryMetric.evidence.metrics[0]!.lineages[0]!.fraction = 0.999
+    expect(() =>
+      validateExperimentBundle(contradictoryMetric as never),
+    ).toThrowError(
+      expect.objectContaining({
+        code: 'evidence-invalid',
+      }),
+    )
   })
 
   it('returns explicit malformed-json errors on import', () => {

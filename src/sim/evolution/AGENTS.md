@@ -34,6 +34,8 @@
 ## Lineage authority
 - Lineage creation/extinction is simulation authority. React, Pixi, renderer samples, animation callbacks, story beats, and UI events may display authoritative lineage events but cannot create or delete biological lineages.
 - Parent lineage identity, genotype, origin time/location, mutation class, and extinction time are authoritative lineage metadata.
+- A child creation time must stay within its parent's authoritative lifetime: never before parent creation and never strictly after parent extinction. Equal timestamps remain valid and deterministic event insertion order is authoritative.
+- Retroactive parent extinction must not precede any already-recorded child creation; live mutation and checkpoint restore enforce the same lifetime bound.
 - Current lineage IDs are deterministic from creation order. Creation order therefore affects replay identity.
 - Authoritative lineage event sequence is chronological: `timeHours` must be non-decreasing in insertion/serialized order. Equal timestamps are valid and retain deterministic insertion order; live calls and restore both reject backdating.
 - `LineageRegistry.checkpoint()` / `LineageRegistry.restore()` own the versioned serializable ancestry/extinction/event + next-ID allocator boundary. Serialized `records` and `events` must be dense arrays with every index explicitly present; sparse holes are corrupt authority and must fail before restore. Restoring only visible records while resetting the allocator would corrupt future identity.
@@ -47,7 +49,7 @@
 - Selection changes frequencies among variants; it does not choose useful mutations.
 
 ## Verification
-Deterministic tests for this subtree should cover zero opportunities, probability bounds/exclusivity, mutant-count ≤ opportunities, identical-seed sequence replay, parent/lineage validation, extinction ordering, checkpoint isolation, allocator round-trip, corrupted-checkpoint rejection, and post-restore lineage/event continuation.
+Deterministic tests for this subtree should cover zero opportunities, probability bounds/exclusivity, mutant-count ≤ opportunities, identical-seed sequence replay, parent/lineage validation, extinction ordering and parent-lifetime chronology, checkpoint isolation, allocator round-trip, corrupted-checkpoint rejection, and post-restore lineage/event continuation.
 
 Any accelerated sampler additionally requires many-seed distribution comparison against the exact bounded reference path.
 

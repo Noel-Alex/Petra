@@ -50,6 +50,19 @@ describe("DishViewport render-source truth boundary", () => {
   });
 
 
+  it("keeps overlay status in one polite atomic live region", () => {
+    const html = renderToStaticMarkup(
+      <DishViewport motion="full" snapshot={null} />,
+    );
+
+    expect(html.match(/aria-live="polite"/g)).toHaveLength(1);
+    expect(html).toContain('aria-atomic="true"');
+    expect(html).toContain('class="dish-overlay-legend"');
+    expect(html).toContain('class="dish-overlay-legend__visual"');
+    expect(html).toContain('data-transition-treatment="animate"');
+    expect(html).toContain("No authoritative field overlay");
+  });
+
   it("renders signed net-growth legend semantics from the shared overlay registry", () => {
     const base = createRendererDemoSnapshot(12);
     const cells = base.gridWidth * base.gridHeight;

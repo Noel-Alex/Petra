@@ -188,16 +188,12 @@ export function DishViewport({
         </label>
 
         <div
-          key={resolvedOverlayId ?? "none"}
           className="dish-overlay-legend"
           data-overlay-kind={activeOverlay?.kind ?? "none"}
           data-overlay-transfer={overlayLegend?.transfer ?? "none"}
           data-overlay-pattern={overlayLegend?.patternToken ?? "none"}
-          data-transition-treatment={overlayMotion.treatment}
           aria-live="polite"
-          {...(overlayLegend === null
-            ? {}
-            : { "aria-label": overlayLegend.ariaLabel })}
+          aria-atomic="true"
           style={{
             "--overlay-motion-ms": overlayMotion.duration,
             "--overlay-motion-easing": overlayMotion.easing,
@@ -209,21 +205,27 @@ export function DishViewport({
               overlayLegend?.positiveCssColor ?? "#7d8999",
           } as CSSProperties}
         >
-          <span className="dish-overlay-swatch" aria-hidden="true" />
-          {activeSnapshot === null ? (
-            <span>No authoritative field overlay</span>
-          ) : overlayLegend === null ? (
-            <span>No field overlay</span>
-          ) : (
-            <span className="dish-overlay-copy">
-              <strong>
-                {overlayLegend.label} · {overlayLegend.unit}
-              </strong>
-              <small>
-                {overlayLegend.scaleText} · {overlayLegend.rangeText}
-              </small>
-            </span>
-          )}
+          <div
+            key={resolvedOverlayId ?? "none"}
+            className="dish-overlay-legend__visual"
+            data-transition-treatment={overlayMotion.treatment}
+          >
+            <span className="dish-overlay-swatch" aria-hidden="true" />
+            {activeSnapshot === null ? (
+              <span>No authoritative field overlay</span>
+            ) : overlayLegend === null ? (
+              <span>No field overlay</span>
+            ) : (
+              <span className="dish-overlay-copy">
+                <strong>
+                  {overlayLegend.label} · {overlayLegend.unit}
+                </strong>
+                <small>
+                  {overlayLegend.scaleText} · {overlayLegend.rangeText}
+                </small>
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

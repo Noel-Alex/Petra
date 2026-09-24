@@ -142,6 +142,21 @@ describe('worker protocol-v4 runtime validation', () => {
     expect(parsed.value.composedConfig).toBe(composedConfig)
   })
 
+  it('rejects a composed-bound identity when initialize omits composedConfig', () => {
+    const parsed = parseWorkerRequest({
+      protocolVersion: PROTOCOL_VERSION,
+      type: 'initialize',
+      identity: composedIdentity,
+    })
+
+    expect(parsed).toEqual({
+      ok: false,
+      error:
+        'Invalid worker request: initialize.identity.parameterSetBinding requires composedConfig',
+      commandId: null,
+    })
+  })
+
   it('accepts a valid composed authoritative snapshot', () => {
     const payload = {
       protocolVersion: PROTOCOL_VERSION,
@@ -339,6 +354,24 @@ describe('worker protocol-v4 runtime validation', () => {
     expect(parsed).toMatchObject({ ok: false, commandId: null })
     if (!parsed.ok) {
       expect(parsed.error).toContain('parameter-set binding')
+    }
+  })
+
+  it('rejects a synthetic checkpoint whose identity claims composed parameter authority', () => {
+    const corrupt = syntheticSnapshot()
+    corrupt.checkpoint.identity = composedIdentity
+
+    const parsed = parseWorkerResponse({
+      protocolVersion: PROTOCOL_VERSION,
+      type: 'ready',
+      snapshot: corrupt,
+    })
+
+    expect(parsed).toMatchObject({ ok: false, commandId: null })
+    if (!parsed.ok) {
+      expect(parsed.error).toContain(
+        'parameterSetBinding is not allowed for synthetic authority',
+      )
     }
   })
 

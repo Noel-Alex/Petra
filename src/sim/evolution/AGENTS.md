@@ -19,9 +19,12 @@
 - Per-source transition probability mass must remain ≤ 1. A missing outgoing edge set means no curated mutation target from that genotype; an unknown genotype lookup is an error rather than an empty fallback.
 
 ## Exact and accelerated sampling
-- The current per-division categorical path is the bounded reference sampler: each opportunity creates at most one mutually exclusive child class, so mutant births cannot exceed opportunities.
-- A future binomial/multinomial/Poisson/tau-leap acceleration must preserve target exclusivity/bounds and be validated statistically against the exact reference over representative small and rare-event cases.
-- Do not “fix” unsafe accelerated draws by clamping negative populations or excess mutant counts after the fact; use bounded sampling/step control.
+- `sampleDivisionMutations(...)` remains the trial-by-trial reference sampler: each opportunity creates at most one mutually exclusive child class, so mutant births cannot exceed opportunities. Runtime composition must not use this reference path for arbitrary large counts.
+- `sampleDivisionMutationsWithPolicy(...)` is the bounded runtime entrypoint. Counts at or below the caller-owned exact budget replay the reference sampler unchanged; larger eligible counts use `exact-sparse-binomial-v1` through sequential conditional binomials, which preserves the exact multinomial law and target order.
+- Sampling budgets and algorithm choice come only from the versioned `SamplingExecutionPolicy`; they are numerical/runtime policy, never biological thresholds or probability retuning.
+- Accelerated mutation sampling is transactional over Petra RNG state. Expected/hard draw-budget refusal is explicit `sampling-policy-refusal` and must leave the caller RNG unchanged.
+- The returned diagnostics include canonical sampling-policy identity, mode, and RNG-draw count. That policy identity is replay-critical and must join any authoritative configuration fingerprint before this sampler participates in checkpointed composition.
+- Do not “fix” unsafe accelerated draws by clamping negative populations or excess mutant counts after the fact; use bounded exact sampling or explicit refusal. See `../SAMPLING.md`.
 
 ## RNG and replay
 - All stochastic evolution consumes an explicit `SimulationRng`; never call `Math.random()`.

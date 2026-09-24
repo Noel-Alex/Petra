@@ -10,6 +10,7 @@ import {
 import { planSurfaceTransition } from "../ui/motion/semanticTransitions";
 import { surfaceMotionCss } from "./motionAdapter";
 import { DishViewport } from "./DishViewport";
+import { TimelineHistory } from "./TimelineHistory";
 import {
   useExperimentRuntime,
   type ExperimentRuntimeFactory,
@@ -171,18 +172,7 @@ export function App({ runtimeFactory }: AppProps) {
           </span>
         </div>
 
-        {experiment.view.timeline.length > 0 ? (
-          <ol className="timeline-events" aria-label="Authoritative simulation events">
-            {experiment.view.timeline.slice(-4).map((entry) => (
-              <li key={entry.id}>
-                <span>{entry.label}</span>
-                <time>{entry.simulationTimeHours.toFixed(2)} h</time>
-              </li>
-            ))}
-          </ol>
-        ) : (
-          <p className="timeline-empty">No authoritative events yet</p>
-        )}
+        <TimelineHistory entries={experiment.view.timeline} />
 
         <div className="timeline-controls">
           <button

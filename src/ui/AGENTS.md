@@ -63,3 +63,11 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Transferred + mechanistic composition remains visibly multi-part; do not collapse cross-study seams into a generic “validated” badge.
 - Missing required source, transfer, derivation, calibration, or limitation metadata is a visible `needs-provenance` state, not an excuse to invent a reassuring label.
 - Engineering and visual-only values must explicitly disclose that they are not measured biological constants / do not control simulation outcomes.
+
+
+## Semantic icon language
+- Shared scientific/product icons come from `src/ui/icons/spec.ts`; React/Pixi adapters render the same framework-neutral geometry rather than inventing incompatible icon sets.
+- Icon meaning is geometry + accessible label first. Color may reinforce meaning but may never be the only distinction.
+- Provenance icon tokens map through `PROVENANCE_ICON_MAP`; do not create a second evidence-icon vocabulary in components.
+- Icon geometry is visual-only and must never encode hidden simulator state, numeric magnitude, or biological confidence.
+- Keep Petra iconography original; do not trace or reproduce another studio's recognizable symbols or branded asset language.

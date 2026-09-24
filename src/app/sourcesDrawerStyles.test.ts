@@ -50,3 +50,17 @@ describe("Sources drawer motion lifecycle styles", () => {
     expect(sourcesCss).toContain("animation: none");
   });
 });
+
+
+describe("Sources drawer visual-theme contract", () => {
+  it("uses Petra shared visual variables and avoids legacy glass palette ownership", () => {
+    expect(sourcesCss).toContain("--petra-color-cream");
+    expect(sourcesCss).toContain("--petra-color-cream-muted");
+    expect(sourcesCss).toContain("--petra-color-teal");
+    expect(sourcesCss).toContain("--petra-rgb-ink-deep");
+
+    expect(sourcesCss).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+    expect(sourcesCss).not.toMatch(/\brgba?\(\s*\d/i);
+    expect(sourcesCss).not.toMatch(/backdrop-filter\s*:\s*blur/i);
+  });
+});

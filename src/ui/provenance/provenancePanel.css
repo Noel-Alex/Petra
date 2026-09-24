@@ -49,7 +49,7 @@
 .provenance-panel__filters input,
 .provenance-panel__filters select,
 .provenance-panel__filters button {
-  min-height: 2.55rem;
+  min-height: 2.75rem;
   padding: 0.55rem 0.7rem;
   border: 1px solid currentColor;
   border-radius: 0.7rem;

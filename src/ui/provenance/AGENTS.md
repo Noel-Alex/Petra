@@ -23,6 +23,7 @@ Own framework-neutral presentation of authoritative scientific/source provenance
 - `needs-provenance` must be visible in text and must not degrade into a reassuring neutral badge.
 - Sources/assumptions panels must remain keyboard/focus operable; motion is presentation-only.
 - Provenance action controls consume the already-resolved app `MotionPreference` through Petra shared action adapters. Filtering/reset remains presentation-only; provenance components must not query OS motion locally or invent interaction timing.
+- Judge-facing provenance search/select/action controls keep a minimum interactive block size of `2.75rem` (44px at Petra's default root size) without fixed widths that break the narrow Sources drawer. Native search/select semantics remain native.
 
 ## Discovery and filtering
 - Search/evidence filters are presentation-only discoverability aids; they must never rewrite evidence class, source metadata, or scientific status.

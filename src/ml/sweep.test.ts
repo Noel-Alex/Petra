@@ -15,6 +15,11 @@ function definition(): MechanisticSweepDefinition {
     scenarioId: "selection-not-mutation",
     scenarioVersion: "2",
     normalizationProfileId: "aggregate-v1",
+    datasetSchema: {
+      schemaVersion: "mechanistic-dataset-schema-v1",
+      inputSchemaVersion: "aggregate-input-v1",
+      targetSchemaVersion: "aggregate-target-v1",
+    },
     parameterPoints: [
       { id: "point-a", parameterSetHash: "params-a" },
       { id: "point-b", parameterSetHash: "params-b" },
@@ -111,8 +116,9 @@ describe("mechanistic ML sweep planner", () => {
       manifest.splitGroupCounts.validation +
       manifest.splitGroupCounts.test;
 
-    expect(manifest.schemaVersion).toBe("petra-ml-sweep-manifest-v3");
+    expect(manifest.schemaVersion).toBe("petra-ml-sweep-manifest-v4");
     expect(manifest.engineVersion).toBe("engine-v3");
+    expect(manifest.datasetSchema).toEqual(plan.datasetSchema);
     expect(manifest.splitPolicyVersion).toBe(plan.splitPolicy.version);
     expect(manifest.splitCoveragePolicyVersion).toBe(
       plan.splitCoveragePolicy.version,
@@ -120,6 +126,39 @@ describe("mechanistic ML sweep planner", () => {
     expect(manifest.trajectories).toHaveLength(plan.trajectoryCount);
     expect(countedTrajectories).toBe(plan.trajectoryCount);
     expect(countedGroups).toBe(plan.groupCount);
+  });
+
+  it("binds input/target schema to task identity without changing group split assignment", () => {
+    const first = planMechanisticSweep(definition());
+    const second = planMechanisticSweep({
+      ...definition(),
+      datasetSchema: {
+        ...definition().datasetSchema,
+        inputSchemaVersion: "aggregate-input-v2",
+      },
+    });
+
+    expect(second.splitGroupCounts).toEqual(first.splitGroupCounts);
+    expect(second.tasks.map((task) => task.split)).toEqual(
+      first.tasks.map((task) => task.split),
+    );
+    expect(second.tasks[0]!.trajectoryKey).toBe(first.tasks[0]!.trajectoryKey);
+    expect(second.tasks[0]!.taskId).not.toBe(first.tasks[0]!.taskId);
+    expect(second.tasks[0]!.datasetSchema.inputSchemaVersion).toBe(
+      "aggregate-input-v2",
+    );
+  });
+
+  it("rejects malformed dataset schema identity before planning trajectories", () => {
+    expect(() =>
+      planMechanisticSweep({
+        ...definition(),
+        datasetSchema: {
+          ...definition().datasetSchema,
+          targetSchemaVersion: "",
+        },
+      }),
+    ).toThrow(/targetSchemaVersion/);
   });
 
   it("records coverage-policy version changes as distinct manifest provenance", () => {

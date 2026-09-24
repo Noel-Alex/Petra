@@ -51,7 +51,14 @@
       "kappa": 1.1,
       "zMIC_mg_L": 0.017,
       "conventionalMIC_mg_L": 0.03,
-      "citation": "regoes_2004"
+      "citation": "regoes_2004",
+      "provenance": {
+        "classification": "derived",
+        "citation": "regoes_2004",
+        "context": "E. coli CAB1 (O18:K1:H7), LB, 37 C; published ciprofloxacin pharmacodynamic fit from Regoes et al. 2004.",
+        "transformation": "Net growth rates were estimated from first-60-minute log10 viable-density slopes, then the four-parameter pharmacodynamic function was fit by nonlinear least squares to obtain psi_max, psi_min, kappa, and zMIC.",
+        "limitation": "These are fitted source-context parameter estimates, not direct raw measurements and not an MG1655 or Petra resource-ecology calibration."
+      }
     },
     "genotypeCompositionPolicy": "mic_ratio_shift_reference_curve",
     "resourceDrugCompositionPolicy": {
@@ -69,7 +76,7 @@
         ],
         "context": "Regoes E. coli CAB1/LB pharmacodynamic shape composed with the MG1655 genotype MIC/fitness table.",
         "transformation": "h_drug = ln(10) * (psi_max - psi_g(a))",
-        "transferNote": "Regoes pharmacodynamic shape is measured in E. coli CAB1/LB and transferred to the MG1655 genotype table.",
+        "transferNote": "The published Regoes pharmacodynamic fit is derived from E. coli CAB1/LB time-kill data and transferred to the MG1655 genotype table.",
         "limitation": "Resource-by-ciprofloxacin interaction under starvation is a model composition policy, not a complete stationary-phase killing model."
       }
     },
@@ -389,7 +396,7 @@
     ]
   },
   "transferAssumptions": [
-    "Regoes pharmacodynamic shape is measured in E. coli CAB1/LB and transferred to an MG1655 genotype table.",
+    "The published Regoes pharmacodynamic fit is derived from E. coli CAB1/LB time-kill data and transferred to an MG1655 genotype table.",
     "Genotype curves are shifted primarily using relative MIC until genotype-specific time-kill curves are curated.",
     "Spatial transport and mechanical spread coefficients require scenario calibration before physical quantitative claims.",
     "Resource-by-ciprofloxacin interaction under starvation is a model composition policy, not a complete stationary-phase killing model.",

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This subtree owns pure phage evidence resolution, explicit spatial-unit/transport bridges, and a framework-neutral delayed latent-infection queue. Full infection/lysis composition remains gated on authoritative host-state integration and an explicitly justified burst-count contract.
+This subtree owns pure phage evidence resolution, explicit spatial-unit/transport bridges, a framework-neutral delayed latent-infection queue, and the versioned discrete burst-count policy. Full infection/lysis composition remains gated on authoritative host-state integration.
 
 ## Authority boundary
 
@@ -14,7 +14,9 @@ This subtree owns pure phage evidence resolution, explicit spatial-unit/transpor
 - A life-history lookup does not cause adsorption, infection, lysis, mutation, or any other biological state change.
 - `latentQueue.ts` schedules already-authoritative **integer infection cohorts** using a caller-supplied total latent period. It owns delayed maturity bookkeeping only: it does not infer that an adsorbed PFU successfully created an infected host, remove host biomass, or generate progeny PFU.
 - Cohort maturity time is derived from infection time + total latent period rather than stored redundantly. Queue order is deterministic by maturity time then stable sequence identity, and biological queue time may never move backward.
-- A matured cohort reports the number of infections whose total latent delay has elapsed. Treat that result as a mechanism handoff, not as a phage burst. Measured mean burst size must not be rounded/multiplied into discrete PFU without a separately declared stochastic/count policy.
+- A matured cohort reports the number of infections whose total latent delay has elapsed. `burstPolicy.ts` is the only reviewed bridge from that authoritative integer infection count plus a caller-supplied life-history mean to discrete progeny PFU. It uses versioned deterministic fractional-residual carry and deliberately assumes **no** individual-burst stochastic distribution. Source mean/SD evidence stays owned by `lifeHistory.ts`; the burst policy must never relabel a numerical discretization as measured biology.
+- Burst output keeps `lysedInfections` separate from `releasedPfu`. Composition must remove/transition infected host state exactly once per authoritative lysis event; this pure module does not mutate host biomass or latent cohorts itself.
+- Burst residual state is replay-critical numerical bookkeeping, must remain finite in `[0, 1)`, and must be checkpointed together with the exact burst-policy identity once integrated. Zero infections are a state-preserving no-op; zero mean burst is an explicit mechanism control that releases zero PFU.
 - `transport.ts` imports canonical Hu transport evidence and resolves only Petra's exact selected 0.5% host-free agarose context. The selected coefficient is **transferred** from a measured agarose-membrane experiment; all other materials, agarose concentrations, or embedded-host conditions return OOD rather than extrapolating.
 - The measured dead-K-12 agarose transport anchor is adsorption-confounded and must never be substituted for living-host diffusion. Free-phage loss remains unbound.
 
@@ -28,12 +30,12 @@ This subtree owns pure phage evidence resolution, explicit spatial-unit/transpor
 - The canonical phage spatial-unit bridge identity is replay-critical configuration and must join the authoritative scenario/configuration fingerprint before enabled phage dynamics can enter checkpoints.
 - #140 binds a narrow host-free 0.5% agarose extracellular transport baseline; live host-bearing transport and general free-phage loss remain outside that calibration.
 - Total latent period may drive a reviewed delayed-infection representation, but a separate eclipse/assembly split remains experimental unless separately sourced.
-- The delayed queue is now the reviewed total-latent-period representation. A future authoritative composition must still define adsorption-to-infected-host multiplicity/host bookkeeping and a burst PFU count law before lysis can change biological state.
+- The delayed queue is the reviewed total-latent-period representation and `burstPolicy.ts` supplies the reviewed discrete progeny-count law. A future authoritative composition must still define adsorption-to-infected-host multiplicity and atomic host/infected-state bookkeeping before lysis can change biological state.
 
 ## Replay and provenance
 
-Changing source rows, interpolation policy, measured domain, or units is a science/data version change and must be reflected in scenario/data provenance before it can alter authoritative trajectories. Latent-queue schema/state becomes checkpoint/replay-critical once integrated into the authoritative engine; restoring or reordering pending cohorts must reproduce the same maturation sequence.
+Changing source rows, interpolation policy, measured domain, or units is a science/data version change and must be reflected in scenario/data provenance before it can alter authoritative trajectories. Latent-queue schema/state becomes checkpoint/replay-critical once integrated into the authoritative engine; restoring or reordering pending cohorts must reproduce the same maturation sequence. Burst-policy identity plus `residualExpectedPfu` are likewise replay/checkpoint-critical: changing the discretization policy or restoring a mismatched/corrupt residual must fail rather than silently continue.
 
 ## Verification
 
-Deterministic tests cover all measured rows, source uncertainty round-trip, derived interpolation, OOD refusal, units, host/phage identity, and source context. No browser/render test can substitute for these evidence checks. Latent-queue tests additionally cover deterministic maturity order, exact delay boundaries, zero-delay controls, monotonic biological time, integer infection counts, and corrupt-state rejection.
+Deterministic tests cover all measured rows, source uncertainty round-trip, derived interpolation, OOD refusal, units, host/phage identity, and source context. No browser/render test can substitute for these evidence checks. Latent-queue tests additionally cover deterministic maturity order, exact delay boundaries, zero-delay controls, monotonic biological time, integer infection counts, and corrupt-state rejection. Burst-policy tests cover integer output, fractional residual carry across batches, exact zero-infection/zero-burst controls, stable replay identity, corrupt-state refusal, and safe-integer overflow refusal without inventing a stochastic burst distribution.

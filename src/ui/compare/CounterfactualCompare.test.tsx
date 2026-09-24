@@ -1,8 +1,11 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { ReactNode } from "react";
 
 import type { CounterfactualBranch } from "../counterfactual";
+import { MOTION } from "../motion/tokens";
 import { CounterfactualCompare } from "./CounterfactualCompare";
 import type { TimeBoundCompareSurface } from "./timeBoundSurface";
 
@@ -168,6 +171,36 @@ describe("CounterfactualCompare time-bound surfaces", () => {
     expect(html).toContain("left swipe");
     expect(html).not.toContain("WRONG RIGHT SWIPE");
     expect(html).toContain("Scientific surface withheld");
+  });
+
+  it("fails static without adapter motion variables while Full still projects Petra policy", () => {
+    const css = readFileSync(
+      fileURLToPath(new URL("./CounterfactualCompare.css", import.meta.url)),
+      "utf8",
+    );
+    const rootRule = css.match(/\.petra-compare\s*\{([\s\S]*?)\}/)?.[1] ?? "";
+
+    expect(rootRule).toContain("--compare-motion-ms: 0ms;");
+    expect(rootRule).toContain("--compare-easing: linear;");
+
+    const html = renderToStaticMarkup(
+      <CounterfactualCompare
+        left={left}
+        right={right}
+        leftSurface={surface("left", 4, "left exact")}
+        rightSurface={surface("right", 4, "right exact")}
+        requestedTimeHours={4}
+        leftAvailableThroughHours={8}
+        rightAvailableThroughHours={8}
+        motionPreference="full"
+      />,
+    );
+    const expectedEasing = `cubic-bezier(${MOTION.panel.easing.join(", ")})`;
+
+    expect(html).toContain(
+      `--compare-motion-ms:${MOTION.panel.durationMs}ms`,
+    );
+    expect(html).toContain(`--compare-easing:${expectedEasing}`);
   });
 
   it("routes layout toggles through shared Full-motion action semantics", () => {

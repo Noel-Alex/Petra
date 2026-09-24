@@ -8,6 +8,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from local_command import resolve_local_command
+
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / "tools" / "verification_registry.json"
 SCENARIO_SCHEMA = ROOT / "data" / "schemas" / "scenario.schema.json"
@@ -729,7 +731,12 @@ def orchestrate(mode: str, list_only: bool = False) -> int:
 
     result = 0
     for check in selected:
-        proc = subprocess.run(check["command"], cwd=ROOT, text=True, capture_output=True)
+        proc = subprocess.run(
+            resolve_local_command(check["command"]),
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+        )
         state = "PASS" if proc.returncode == 0 else "FAIL"
         print(f"[{state}] {check['id']}")
         output = (proc.stdout + proc.stderr).strip()

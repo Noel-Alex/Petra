@@ -18,5 +18,9 @@ describe("App authoritative runtime boundary", () => {
       "Authoritative simulation is not connected. Intervention tools remain unavailable.",
     );
     expect(html).not.toContain("Controls are shell-only in this checkpoint");
+    expect(html).toContain('aria-keyshortcuts="Space"');
+    expect(html).toContain('aria-keyshortcuts="1"');
+    expect(html).toContain('aria-keyshortcuts="2"');
+    expect(html).toContain('aria-keyshortcuts="3"');
   });
 });

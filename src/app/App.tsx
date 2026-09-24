@@ -24,7 +24,10 @@ import {
   projectOnboardingRuntime,
   reconcileOnboardingRuntimeSession,
 } from "./onboardingRuntime";
-import { shouldCloseSourcesOnEscape } from "./sourcesKeyboard";
+import {
+  canDispatchAppShortcut,
+  planAppKeyboardShortcut,
+} from "./appKeyboard";
 import {
   closeSourcesSurface,
   completeSourcesExit,
@@ -187,19 +190,38 @@ export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
       className="petra-app"
       data-motion={motionPreference}
       onKeyDown={(event) => {
+        const plan = planAppKeyboardShortcut({
+          sourcesOpen: sourcesLifecycle.requestedOpen,
+          key: event.key,
+          defaultPrevented: event.defaultPrevented,
+          target: event.target,
+        });
+
+        if (plan.type === "none") {
+          return;
+        }
+
+        if (plan.type === "close-sources") {
+          event.preventDefault();
+          closeSources();
+          return;
+        }
+
         if (
-          !shouldCloseSourcesOnEscape({
-            open: sourcesLifecycle.requestedOpen,
-            key: event.key,
-            defaultPrevented: event.defaultPrevented,
-            target: event.target,
+          !canDispatchAppShortcut(plan.action, {
+            playing: experiment.view.playing,
+            canTogglePlayback: experiment.view.canTogglePlayback,
+            canChangeSpeed: experiment.view.canChangeSpeed,
+            canStep: experiment.view.status === "ready",
           })
         ) {
           return;
         }
 
-        event.preventDefault();
-        closeSources();
+        const result = experiment.dispatch(plan.action);
+        if (result?.accepted === true) {
+          event.preventDefault();
+        }
       }}
       data-panel-transition={panelMotion.treatment}
       style={{
@@ -391,6 +413,7 @@ export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
         <div className="timeline-controls">
           <PetraCompactAction
             motionPreference={motionPreference}
+            aria-keyshortcuts="Space"
             disabled={!experiment.view.canTogglePlayback}
             onClick={() => {
               experiment.dispatch({
@@ -400,10 +423,11 @@ export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
           >
             {experiment.view.playing ? "Pause" : "Play"}
           </PetraCompactAction>
-          {PLAYBACK_SPEEDS.map((speed) => (
+          {PLAYBACK_SPEEDS.map((speed, shortcutIndex) => (
             <PetraCompactAction
               key={speed}
               motionPreference={motionPreference}
+              aria-keyshortcuts={String(shortcutIndex + 1)}
               selected={experiment.view.speed === speed}
               disabled={!experiment.view.canChangeSpeed}
               onClick={() => {

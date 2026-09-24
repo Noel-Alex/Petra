@@ -268,3 +268,63 @@ describe("CounterfactualCompare time-bound surfaces", () => {
     expect((html.match(/aria-pressed="false"/g) ?? []).length).toBe(1);
   });
 });
+
+
+describe("Counterfactual Compare shared visual theme", () => {
+  const css = readFileSync(
+    fileURLToPath(new URL("./CounterfactualCompare.css", import.meta.url)),
+    "utf8",
+  );
+
+  it("uses Petra shared visual variables without a local numeric palette or glass blur", () => {
+    for (const token of [
+      "--petra-color-cream",
+      "--petra-color-cream-muted",
+      "--petra-color-teal",
+      "--petra-color-coral",
+      "--petra-color-lavender",
+      "--petra-color-amber",
+      "--petra-color-mint",
+      "--petra-rgb-ink-deep",
+    ]) {
+      expect(css).toContain(token);
+    }
+
+    expect(css).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+    expect(css).not.toMatch(/\brgba?\(\s*\d/i);
+    expect(css).not.toMatch(/backdrop-filter\s*:\s*blur/i);
+  });
+
+  it("maps divergence categories to the approved shared reinforcement families", () => {
+    expect(css).toMatch(
+      /data-tone="intervention"[\s\S]*?--petra-color-coral/,
+    );
+    expect(css).toMatch(
+      /data-tone="stochastic"[\s\S]*?--petra-color-teal/,
+    );
+    expect(css).toMatch(
+      /data-tone="mixed"[\s\S]*?--petra-color-lavender/,
+    );
+    expect(css).toMatch(
+      /data-tone="warning"[\s\S]*?--petra-color-amber/,
+    );
+    expect(css).toMatch(
+      /data-tone="matched"[\s\S]*?--petra-color-mint/,
+    );
+  });
+
+  it("preserves the native swipe range touch floor and shared focus authority", () => {
+    const revealInput =
+      css.match(/\.petra-compare__reveal input\s*\{([\s\S]*?)\}/)?.[1] ??
+      "";
+    const focusRule =
+      css.match(
+        /\.petra-compare__mode-action:focus-visible,[\s\S]*?\{([\s\S]*?)\}/,
+      )?.[1] ?? "";
+
+    expect(revealInput).toContain("min-height: 2.75rem;");
+    expect(revealInput).toContain("width: 100%;");
+    expect(revealInput).toContain("var(--petra-color-teal)");
+    expect(focusRule).toContain("var(--petra-focus-ring)");
+  });
+});

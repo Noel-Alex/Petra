@@ -465,7 +465,9 @@ export function parseEcologyCalibrationObjective(
   if (fitTargetCount === 0) {
     throw new Error('calibration.targets must contain at least one fit target')
   }
-  targets.sort((left, right) => left.id.localeCompare(right.id))
+  targets.sort((left, right) =>
+    left.id < right.id ? -1 : left.id > right.id ? 1 : 0,
+  )
 
   return Object.freeze({
     schemaVersion: ECOLOGY_CALIBRATION_OBJECTIVE_SCHEMA_VERSION,
@@ -580,7 +582,12 @@ function computeRoleLoss(
     weightedSquaredError += target.weight * scaledResidual * scaledResidual
     totalWeight += target.weight
   }
-  return totalWeight === 0 ? null : weightedSquaredError / totalWeight
+  if (totalWeight === 0) return null
+  const loss = weightedSquaredError / totalWeight
+  if (!Number.isFinite(loss)) {
+    throw new Error(`calibration ${role} loss became non-finite`)
+  }
+  return loss
 }
 
 function sanitizeOutputs(

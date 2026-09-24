@@ -107,6 +107,38 @@ describe("dish render-source transaction", () => {
     expect(factory.calls()).toBe(1);
   });
 
+  it("does not let abandoned speculative candidates mutate committed cache state", () => {
+    const factory = countingFactory();
+    const committed = INITIAL_DISH_RENDER_SOURCE_STATE;
+
+    const abandoned = resolveDishRenderSource(
+      committed,
+      { authoritativeSnapshot: null, demoMode: true },
+      factory.create,
+    );
+    const accepted = resolveDishRenderSource(
+      committed,
+      { authoritativeSnapshot: null, demoMode: true },
+      factory.create,
+    );
+
+    expect(committed.demoSnapshot).toBeNull();
+    expect(abandoned.state).not.toBe(committed);
+    expect(accepted.state).not.toBe(committed);
+    expect(abandoned.source.snapshot).not.toBe(accepted.source.snapshot);
+    expect(factory.calls()).toBe(2);
+
+    const afterCommit = resolveDishRenderSource(
+      accepted.state,
+      { authoritativeSnapshot: null, demoMode: true },
+      factory.create,
+    );
+
+    expect(afterCommit.state).toBe(accepted.state);
+    expect(afterCommit.source.snapshot).toBe(accepted.source.snapshot);
+    expect(factory.calls()).toBe(2);
+  });
+
   it("keeps visual-demo source identity separate from snapshot presence", () => {
     const factory = countingFactory();
     const resolved = resolveDishRenderSource(

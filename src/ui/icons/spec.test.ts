@@ -62,6 +62,21 @@ describe("Petra semantic icons", () => {
     expect(iconSpec("measured").primitives).not.toEqual(
       iconSpec("visual").primitives,
     );
+    expect(iconSpec("inoculate").primitives).not.toEqual(
+      iconSpec("antibiotic").primitives,
+    );
+    expect(iconSpec("antibiotic").primitives).not.toEqual(
+      iconSpec("fungus").primitives,
+    );
+    expect(iconSpec("fungus").primitives).not.toEqual(
+      iconSpec("nutrient").primitives,
+    );
+  });
+
+  it("ships dedicated original geometry for every showcase placement tool", () => {
+    expect(["inoculate", "fungus", "antibiotic", "nutrient"].map((name) =>
+      iconSpec(name as "inoculate" | "fungus" | "antibiotic" | "nutrient").label,
+    )).toEqual(["Inoculate", "Fungal placement", "Antibiotic", "Nutrient field"]);
   });
 });
 

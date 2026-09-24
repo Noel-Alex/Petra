@@ -33,6 +33,19 @@ export function beginActionPointerPress(
   return updateActionInteractionState(state, "pointer-down");
 }
 
+/**
+ * Clears pointer-only interaction state without erasing persistent focus.
+ *
+ * Dynamic disable paths use this proactively because a native disabled control
+ * is not guaranteed to deliver the pointer-up that would otherwise finish a
+ * press sequence.
+ */
+export function clearActionPointerState(
+  state: ActionInteractionState,
+): ActionInteractionState {
+  return state.pointer === "idle" ? state : { ...state, pointer: "idle" };
+}
+
 export function updateActionInteractionState(
   state: ActionInteractionState,
   event: ActionInteractionEvent,
@@ -46,7 +59,7 @@ export function updateActionInteractionState(
       return { ...state, pointer: "hover" };
     case "pointer-leave":
     case "pointer-cancel":
-      return { ...state, pointer: "idle" };
+      return clearActionPointerState(state);
     case "pointer-down":
       return { ...state, pointer: "press" };
     case "pointer-up":

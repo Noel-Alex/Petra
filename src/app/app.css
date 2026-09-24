@@ -942,6 +942,14 @@ button:hover {
     var(--focus-motion-easing);
 }
 
+.petra-workspace > .petra-panel {
+  transition:
+    transform var(--focus-motion-ms) var(--focus-motion-easing),
+    opacity var(--focus-motion-ms) var(--focus-motion-easing),
+    padding-inline var(--focus-motion-ms) var(--focus-motion-easing),
+    border-inline-width var(--focus-motion-ms) var(--focus-motion-easing);
+}
+
 .dish-stage {
   transition: min-height var(--focus-motion-ms) var(--focus-motion-easing);
 }

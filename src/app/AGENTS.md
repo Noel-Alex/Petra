@@ -177,3 +177,10 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Theme cleanup must not change focus geometry, touch targets, dish-first focus-mode layout, intervention-placement semantics, semantic zoom, timeline ordering/content, or renderer scientific mapping.
 
 - `scenarioDiscovery.ts` must consume the shared `scienceModeAdmission.ts` result. Bundled/discoverable/runnable and grounded Science Mode are distinct product states; React/catalog code must not invent a second maturity label or promote an experimental scenario from display metadata.
+
+
+## Historical scrub control
+- `HistoricalScrubControl.tsx` is a presentation-only native range adapter over the exact `AuthoritativeHistoryIndex` contract. It requests an accepted-command cursor and never restores, rewinds, forks, or mutates the live runtime.
+- The visible slider advances in integer accepted-command positions. Positions with a recorded keyframe are labelled authoritative; gaps remain explicitly presentation-only and may disclose only their authoritative command/time bounds. Do not interpolate or infer a biological timestamp for a gap.
+- Range keyboard/touch behavior remains browser-native. Navigation keys stay local so App playback shortcuts cannot reinterpret a scrub gesture; the adapter must not call `preventDefault()` for native range navigation.
+- Historical scrub status is static inspection context, not an event-arrival live region. Final App wiring must resolve dish/charts/inspector/time from the same historical frame and preserve #625's no-hidden-rewind rule.

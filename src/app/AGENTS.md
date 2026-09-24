@@ -177,3 +177,5 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Theme cleanup must not change focus geometry, touch targets, dish-first focus-mode layout, intervention-placement semantics, semantic zoom, timeline ordering/content, or renderer scientific mapping.
 
 - `scenarioDiscovery.ts` must consume the shared `scienceModeAdmission.ts` result. Bundled/discoverable/runnable and grounded Science Mode are distinct product states; React/catalog code must not invent a second maturity label or promote an experimental scenario from display metadata.
+
+- `liveAnalysisHistory.ts` is the append-only bridge from accepted composed snapshots to authoritative metric history. It binds one exact structured run identity, rejects command-position rewind or same-position trace replacement, treats exact duplicate delivery as idempotent, and emits samples only at the declared metric sampling ticks. It never interpolates, smooths, or mutates biological state; explicit new-run/reset ownership stays outside the accumulator.

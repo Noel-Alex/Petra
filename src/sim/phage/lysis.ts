@@ -42,9 +42,9 @@ export interface MaturedPhageLysisResult {
  * fields. A later composition layer must commit those mutations atomically.
  *
  * The supplied life-history resolution must be in-domain and must match the
- * latent period carried by every matured cohort. This prevents one physiological
- * state from providing the maturity delay while another silently provides the
- * burst mean.
+ * full infection-time life-history identity carried by every matured cohort.
+ * Matching latent-period minutes alone is insufficient because distinct
+ * physiological states can share a delay while carrying different burst means.
  */
 export function applyMaturedPhageLysis(
   policy: PhageBurstPolicy,

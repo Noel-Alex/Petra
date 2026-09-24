@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  beginActionKeyboardPress,
   beginActionPointerPress,
+  clearActionKeyboardPress,
   clearActionPointerState,
+  clearActionTransientState,
   createActionInteractionState,
+  endActionKeyboardPress,
   resolveActionMicroInteractionState,
   updateActionInteractionState,
 } from "./actionInteraction";
@@ -13,7 +17,11 @@ describe("PetraAction interaction precedence", () => {
     const idle = createActionInteractionState();
     const primary = beginActionPointerPress(idle, 0);
 
-    expect(primary).toEqual({ focused: false, pointer: "press" });
+    expect(primary).toEqual({
+      focused: false,
+      pointer: "press",
+      keyboardPress: null,
+    });
     for (const button of [1, 2, 3, 4, -1]) {
       expect(beginActionPointerPress(idle, button)).toBe(idle);
     }
@@ -203,7 +211,11 @@ describe("PetraAction interaction precedence", () => {
 
     state = clearActionPointerState(state);
 
-    expect(state).toEqual({ focused: true, pointer: "idle" });
+    expect(state).toEqual({
+      focused: true,
+      pointer: "idle",
+      keyboardPress: null,
+    });
     expect(
       resolveActionMicroInteractionState({
         interaction: state,
@@ -240,4 +252,142 @@ describe("PetraAction interaction precedence", () => {
       }),
     ).toBe("disabled");
   });
+
+  it.each([
+    ["Enter", "enter"],
+    [" ", "space"],
+    ["Spacebar", "space"],
+  ] as const)(
+    "projects native %s activation through the shared press treatment",
+    (key, activation) => {
+      let state = updateActionInteractionState(
+        createActionInteractionState(),
+        "focus",
+      );
+      state = beginActionKeyboardPress(state, key, false);
+
+      expect(state.keyboardPress).toBe(activation);
+      expect(
+        resolveActionMicroInteractionState({
+          interaction: state,
+          disabled: false,
+          selected: true,
+        }),
+      ).toBe("press");
+
+      state = endActionKeyboardPress(state, key);
+      expect(state.keyboardPress).toBeNull();
+      expect(
+        resolveActionMicroInteractionState({
+          interaction: state,
+          disabled: false,
+          selected: true,
+        }),
+      ).toBe("focus");
+    },
+  );
+
+  it("ignores unrelated and already-prevented keydown for press feedback", () => {
+    const focused = updateActionInteractionState(
+      createActionInteractionState(),
+      "focus",
+    );
+
+    expect(beginActionKeyboardPress(focused, "Escape", false)).toBe(focused);
+    expect(beginActionKeyboardPress(focused, "Enter", true)).toBe(focused);
+    expect(beginActionKeyboardPress(focused, " ", true)).toBe(focused);
+  });
+
+  it("requires matching keyup to finish keyboard press feedback", () => {
+    let state = beginActionKeyboardPress(
+      createActionInteractionState(),
+      "Enter",
+      false,
+    );
+
+    const mismatched = endActionKeyboardPress(state, " ");
+    expect(mismatched).toBe(state);
+    expect(mismatched.keyboardPress).toBe("enter");
+
+    state = endActionKeyboardPress(state, "Enter");
+    expect(state.keyboardPress).toBeNull();
+  });
+
+  it("keeps pointer and keyboard press channels independent", () => {
+    let state = beginActionKeyboardPress(
+      createActionInteractionState(),
+      " ",
+      false,
+    );
+    state = beginActionPointerPress(state, 0);
+
+    const pointerCleared = clearActionPointerState(state);
+    expect(pointerCleared.pointer).toBe("idle");
+    expect(pointerCleared.keyboardPress).toBe("space");
+    expect(
+      resolveActionMicroInteractionState({
+        interaction: pointerCleared,
+        disabled: false,
+        selected: false,
+      }),
+    ).toBe("press");
+
+    const keyboardCleared = clearActionKeyboardPress(state);
+    expect(keyboardCleared.pointer).toBe("press");
+    expect(keyboardCleared.keyboardPress).toBeNull();
+    expect(
+      resolveActionMicroInteractionState({
+        interaction: keyboardCleared,
+        disabled: false,
+        selected: false,
+      }),
+    ).toBe("press");
+  });
+
+  it("clears held keyboard press on blur without inventing pointer state", () => {
+    let state = updateActionInteractionState(
+      createActionInteractionState(),
+      "pointer-enter",
+    );
+    state = updateActionInteractionState(state, "focus");
+    state = beginActionKeyboardPress(state, "Enter", false);
+    state = updateActionInteractionState(state, "blur");
+
+    expect(state).toEqual({
+      focused: false,
+      pointer: "hover",
+      keyboardPress: null,
+    });
+    expect(
+      resolveActionMicroInteractionState({
+        interaction: state,
+        disabled: false,
+        selected: false,
+      }),
+    ).toBe("hover");
+  });
+
+  it("clears both transient input channels across dynamic disable", () => {
+    let state = updateActionInteractionState(
+      createActionInteractionState(),
+      "focus",
+    );
+    state = beginActionPointerPress(state, 0);
+    state = beginActionKeyboardPress(state, "Enter", false);
+
+    const cleared = clearActionTransientState(state);
+    expect(cleared).toEqual({
+      focused: true,
+      pointer: "idle",
+      keyboardPress: null,
+    });
+    expect(
+      resolveActionMicroInteractionState({
+        interaction: cleared,
+        disabled: false,
+        selected: true,
+      }),
+    ).toBe("focus");
+  });
+
 });

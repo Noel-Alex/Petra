@@ -687,6 +687,8 @@ button:hover {
 }
 
 .dish-semantic-guide {
+  --semantic-guide-motion-ms: 0ms;
+  --semantic-guide-easing: linear;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.38rem;
@@ -699,12 +701,23 @@ button:hover {
 .dish-semantic-guide > span {
   min-width: 0;
   display: grid;
-  gap: 0.08rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.08rem 0.4rem;
   padding: 0.38rem 0.45rem;
+  border: 1px solid transparent;
   border-radius: 12px;
   color: #8e9bae;
   font-size: var(--petra-type-caption);
   line-height: 1.35;
+  transition:
+    transform var(--semantic-guide-motion-ms) var(--semantic-guide-easing),
+    border-color var(--semantic-guide-motion-ms) var(--semantic-guide-easing),
+    background-color var(--semantic-guide-motion-ms) var(--semantic-guide-easing),
+    color var(--semantic-guide-motion-ms) var(--semantic-guide-easing);
+}
+
+.dish-semantic-guide > span > span:not(.dish-semantic-guide__current) {
+  grid-column: 1 / -1;
 }
 
 .dish-semantic-guide strong {
@@ -713,12 +726,54 @@ button:hover {
   letter-spacing: 0.02em;
 }
 
-.dish-semantic-guide [data-semantic-view="representative-cell"] {
-  border: 1px solid rgba(242, 217, 142, 0.14);
-  background: rgba(242, 217, 142, 0.045);
+.dish-semantic-guide > span[data-active="true"] {
+  border-color: rgba(143, 220, 255, 0.28);
+  background: rgba(143, 220, 255, 0.07);
+  color: #b9c9dc;
 }
 
-.dish-semantic-guide [data-semantic-view="representative-cell"] strong {
+.dish-semantic-guide > span[data-active="true"] strong {
+  color: #8fdcff;
+}
+
+.dish-semantic-guide[data-transition-treatment="animate"]
+  > span[data-active="true"] {
+  transform: translateY(-0.08rem);
+}
+
+.dish-semantic-guide[data-transition-treatment="crossfade"] > span,
+.dish-semantic-guide[data-transition-treatment="instant"] > span,
+.dish-semantic-guide[data-transition-treatment="static-emphasis"] > span {
+  transform: none;
+}
+
+.dish-semantic-guide
+  > span[data-active="true"][data-semantic-view="representative-cell"] {
+  border-color: rgba(242, 217, 142, 0.28);
+  background: rgba(242, 217, 142, 0.055);
+}
+
+.dish-semantic-guide
+  > span[data-active="true"][data-semantic-view="representative-cell"]
+  strong {
+  color: #f2d98e;
+}
+
+.dish-semantic-guide__current {
+  align-self: start;
+  padding: 0.08rem 0.28rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  color: #8fdcff;
+  font-size: var(--petra-type-caption);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+[data-semantic-view="representative-cell"]
+  .dish-semantic-guide__current {
   color: #f2d98e;
 }
 

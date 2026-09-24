@@ -1,4 +1,7 @@
-import type {\n  CSSProperties,\n  PointerEvent as ReactPointerEvent,\n} from "react";
+import type {
+  CSSProperties,
+  PointerEvent as ReactPointerEvent,
+} from "react";
 
 import {
   DISH_VIEWPORT_DIAMETER_FRACTION,
@@ -13,7 +16,8 @@ import {
   INTERVENTION_TARGET_RING_RADIUS_FRACTION,
   constrainPointToCircularDish,
 } from "../ui/interventionPlacement";
-import { planDishMotionPhase } from "../ui/motion/dishVocabulary";\nimport type { MotionPreference } from "../ui/motion/policy";
+import { planDishMotionPhase } from "../ui/motion/dishVocabulary";
+import type { MotionPreference } from "../ui/motion/policy";
 
 export interface PlacementBounds {
   readonly left: number;
@@ -64,6 +68,12 @@ export function InterventionPlacementOverlay({
   motion,
   onPointChange,
 }: InterventionPlacementOverlayProps) {
+  const placementMotion = planDishMotionPhase({
+    phase: "intervention-placement",
+    preference: motion,
+    evidence: "presentation-intent",
+  });
+
   const updateFromPointer = (
     event: ReactPointerEvent<SVGSVGElement>,
   ): boolean => {
@@ -113,6 +123,18 @@ export function InterventionPlacementOverlay({
       aria-hidden="true"
       data-intervention-placement={tool}
       data-motion={motion}
+      data-transition-treatment={
+        placementMotion.eligible ? placementMotion.treatment : "instant"
+      }
+      data-motion-token={placementMotion.eligible ? placementMotion.token : "none"}
+      style={
+        placementMotion.eligible
+          ? ({
+              "--placement-motion-ms": `${placementMotion.durationMs}ms`,
+              "--placement-motion-easing": `cubic-bezier(${placementMotion.easing.join(", ")})`,
+            } as CSSProperties)
+          : undefined
+      }
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerEnd}

@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   ComposedSimulationEngine,
 } from '../../src/sim/composedEngine'
-import type { ComposedSimulationConfig } from '../../src/sim/authoritative'
+import {
+  validateComposedStateAgainstConfig,
+  type ComposedSimulationConfig,
+} from '../../src/sim/authoritative'
 import type { CuratedMutationGraph } from '../../src/sim/evolution/graph'
 import { createRunIdentity } from '../../src/sim/protocol'
 
@@ -156,6 +159,27 @@ describe('ComposedSimulationEngine', () => {
         checkpoint: metricCorrupt,
       }),
     ).toThrow(/metrics do not match/)
+  })
+
+  it('uses the same scientific-state validator for direct authority and restore', () => {
+    const source = new ComposedSimulationEngine(identity, config)
+    const checkpoint = source.snapshot().checkpoint
+    checkpoint.composedState.genotypeIds[0] = ' WT '
+
+    expect(() =>
+      validateComposedStateAgainstConfig(checkpoint.composedState, config),
+    ).toThrow(/genotype id.*canonical/)
+
+    const target = new ComposedSimulationEngine(identity, config)
+    const before = target.snapshot()
+    expect(() =>
+      target.execute({
+        id: 'restore-noncanonical-genotype',
+        type: 'restore',
+        checkpoint,
+      }),
+    ).toThrow(/genotype id.*canonical/)
+    expect(target.snapshot()).toEqual(before)
   })
 
   it('rejects an over-capacity composed checkpoint atomically at restore', () => {

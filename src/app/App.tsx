@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { resolveMotion } from "../ui/motion/policy";
 import {
-  resolveMotion,
-  resolveMotionPreference,
-  type MotionPreference,
-} from "../ui/motion/policy";
+  loadMotionSetting,
+  parseMotionSetting,
+  resolveMotionSetting,
+  saveMotionSetting,
+  type MotionSetting,
+} from "../ui/motion/preference";
 import { MOTION } from "../ui/motion/tokens";
 
 function useSystemReducedMotion(): boolean {
@@ -28,15 +31,18 @@ function useSystemReducedMotion(): boolean {
 
 export function App() {
   const systemReduced = useSystemReducedMotion();
-  const [motionOverride, setMotionOverride] = useState<
-    MotionPreference | undefined
-  >();
+  const [motionSetting, setMotionSetting] = useState<MotionSetting>(() => {
+    try {
+      return loadMotionSetting(globalThis.localStorage);
+    } catch {
+      return "system";
+    }
+  });
 
-  const motionPreference = resolveMotionPreference(
-    motionOverride === undefined
-      ? { prefersReducedMotion: systemReduced }
-      : { explicit: motionOverride, prefersReducedMotion: systemReduced },
-  );
+  const motionPreference = resolveMotionSetting({
+    setting: motionSetting,
+    prefersReducedMotion: systemReduced,
+  });
 
   const panelMotion = useMemo(
     () =>
@@ -64,12 +70,15 @@ export function App() {
             <span>Motion</span>
             <select
               aria-label="Motion preference"
-              value={motionOverride ?? "system"}
+              value={motionSetting}
               onChange={(event) => {
-                const value = event.target.value;
-                setMotionOverride(
-                  value === "system" ? undefined : (value as MotionPreference),
-                );
+                const setting = parseMotionSetting(event.target.value);
+                setMotionSetting(setting);
+                try {
+                  saveMotionSetting(globalThis.localStorage, setting);
+                } catch {
+                  // Keep the explicit in-memory preference when storage is unavailable.
+                }
               }}
             >
               <option value="system">System</option>

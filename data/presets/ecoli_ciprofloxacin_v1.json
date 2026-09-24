@@ -480,6 +480,7 @@
       "classification": "engineering",
       "context": "Versioned baseline composed mechanism identity for the research-stage flagship. Initial model-resource level and founder placement remain run-state inputs and are not parameter-set constants.",
       "limitation": "This baseline parameter set is not a physical culture calibration and does not make the continuous ecology channel a discrete-cell mutation authority."
-    }
+    },
+    "lossPolicyId": "reference_pd_decrement_as_first_order_loss_v1"
   }
 }

@@ -53,7 +53,7 @@ export interface WorkerSessionPerformanceSample {
   readonly workerExecutionMs: number | null;
   readonly workerExecutionMsPerTick: number | null;
   readonly nonWorkerRoundTripMs: number | null;
-  readonly authoritativeEventQueueLength: number | null;
+  readonly authoritativeEventArrayLength: number | null;
   readonly outcome: WorkerPerformanceOutcome;
 }
 
@@ -292,7 +292,7 @@ export class WorkerSession {
     const command = active.type === "command" ? active.command : null;
     const requestedAdvanceTicks =
       command?.type === "advance" ? command.ticks : null;
-    const authoritativeEventQueueLength =
+    const authoritativeEventArrayLength =
       response?.type === "ready" || response?.type === "snapshot"
         ? response.snapshot.events.length
         : null;
@@ -322,7 +322,7 @@ export class WorkerSession {
         workerExecutionMs === null
           ? null
           : Math.max(0, roundTripMs - workerExecutionMs),
-      authoritativeEventQueueLength,
+      authoritativeEventArrayLength,
       outcome,
     };
 

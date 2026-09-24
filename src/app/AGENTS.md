@@ -28,3 +28,10 @@ Own React/browser orchestration around Petra's authoritative worker and presenta
 
 ## Verification
 Framework-neutral worker-session behavior requires deterministic tests with a fake port. Real browser Worker startup/responsiveness is a separate manual/local evidence gate; Petra has no hosted CI by project policy.
+
+## Semantic motion adapters
+- React shell panels and dish overlay chrome consume `src/ui/motion/semanticTransitions.ts`; do not derive competing durations/easings directly in components.
+- `src/app/motionAdapter.ts` is the thin CSS projection layer for framework-neutral surface plans.
+- Representative-cell semantic zoom must remain visibly labelled illustrative/explanatory and never be described as literal microscopy or a finer simulation scale.
+- Semantic zoom guidance may explain renderer meaning, but it must not infer current scientific state from camera position unless the renderer explicitly reports a presentation-only semantic level.
+

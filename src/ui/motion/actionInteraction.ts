@@ -1,10 +1,12 @@
 import type { MicroInteractionState } from "./microInteractions";
 
 export type ActionPointerState = "idle" | "hover" | "press";
+export type ActionKeyboardPressState = "idle" | "enter" | "space";
 
 export interface ActionInteractionState {
   readonly focused: boolean;
   readonly pointer: ActionPointerState;
+  readonly keyboardPress: ActionKeyboardPressState;
 }
 
 export type ActionInteractionEvent =
@@ -17,7 +19,7 @@ export type ActionInteractionEvent =
   | "pointer-cancel";
 
 export function createActionInteractionState(): ActionInteractionState {
-  return { focused: false, pointer: "idle" };
+  return { focused: false, pointer: "idle", keyboardPress: "idle" };
 }
 
 /**
@@ -34,7 +36,49 @@ export function beginActionPointerPress(
 }
 
 /**
- * Clears pointer-only interaction state without erasing persistent focus.
+ * Starts keyboard press feedback for native button activation keys only.
+ *
+ * This helper is presentation-only: callers/native DOM activation remain
+ * authoritative. A default-prevented keydown never enters Petra press feedback,
+ * and an already-held activation key cannot be replaced by a second key.
+ */
+export function beginActionKeyboardPress(
+  state: ActionInteractionState,
+  key: string,
+  defaultPrevented: boolean,
+): ActionInteractionState {
+  if (defaultPrevented) return state;
+
+  const keyboardPress = keyboardPressForKey(key);
+  if (keyboardPress === null) return state;
+  if (state.keyboardPress !== "idle") return state;
+
+  return { ...state, keyboardPress };
+}
+
+/**
+ * Finishes only the keyboard press that owns the active presentation.
+ * Unrelated keyup events cannot cancel another held activation key.
+ */
+export function finishActionKeyboardPress(
+  state: ActionInteractionState,
+  key: string,
+): ActionInteractionState {
+  const keyboardPress = keyboardPressForKey(key);
+  if (
+    keyboardPress === null ||
+    state.keyboardPress === "idle" ||
+    state.keyboardPress !== keyboardPress
+  ) {
+    return state;
+  }
+
+  return { ...state, keyboardPress: "idle" };
+}
+
+/**
+ * Clears pointer-only interaction state without erasing persistent focus or
+ * keyboard press state.
  *
  * Dynamic disable paths use this proactively because a native disabled control
  * is not guaranteed to deliver the pointer-up that would otherwise finish a
@@ -46,6 +90,19 @@ export function clearActionPointerState(
   return state.pointer === "idle" ? state : { ...state, pointer: "idle" };
 }
 
+/**
+ * Clears keyboard-only press feedback without disturbing pointer/focus state.
+ * Blur and dynamic disable paths use this so a held key cannot leave a stale
+ * compression cue behind.
+ */
+export function clearActionKeyboardPress(
+  state: ActionInteractionState,
+): ActionInteractionState {
+  return state.keyboardPress === "idle"
+    ? state
+    : { ...state, keyboardPress: "idle" };
+}
+
 export function updateActionInteractionState(
   state: ActionInteractionState,
   event: ActionInteractionEvent,
@@ -54,7 +111,7 @@ export function updateActionInteractionState(
     case "focus":
       return { ...state, focused: true };
     case "blur":
-      return { ...state, focused: false };
+      return clearActionKeyboardPress({ ...state, focused: false });
     case "pointer-enter":
       return { ...state, pointer: "hover" };
     case "pointer-leave":
@@ -68,11 +125,12 @@ export function updateActionInteractionState(
 }
 
 /**
- * Resolves persistent focus independently from transient pointer feedback.
+ * Resolves persistent focus independently from transient pointer/keyboard
+ * feedback.
  *
- * Precedence is disabled > press > focus > hover > selected > idle. A press may
- * temporarily compress a focused control, but pointer movement cannot erase the
- * focused semantic state; focus resumes as soon as the press ends.
+ * Precedence is disabled > press > focus > hover > selected > idle. Pointer and
+ * keyboard presses share the same semantic presentation without sharing input
+ * ownership, so cancelling one channel cannot erase the other.
  */
 export function resolveActionMicroInteractionState(args: {
   readonly interaction: ActionInteractionState;
@@ -80,9 +138,22 @@ export function resolveActionMicroInteractionState(args: {
   readonly selected: boolean;
 }): MicroInteractionState {
   if (args.disabled) return "disabled";
-  if (args.interaction.pointer === "press") return "press";
+  if (
+    args.interaction.pointer === "press" ||
+    args.interaction.keyboardPress !== "idle"
+  ) {
+    return "press";
+  }
   if (args.interaction.focused) return "focus";
   if (args.interaction.pointer === "hover") return "hover";
   if (args.selected) return "selected";
   return "idle";
+}
+
+function keyboardPressForKey(
+  key: string,
+): Exclude<ActionKeyboardPressState, "idle"> | null {
+  if (key === "Enter") return "enter";
+  if (key === " " || key === "Spacebar") return "space";
+  return null;
 }

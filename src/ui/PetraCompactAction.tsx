@@ -7,8 +7,11 @@ import {
 } from "react";
 
 import {
+  beginActionKeyboardPress,
   beginActionPointerPress,
+  clearActionKeyboardPress,
   clearActionPointerState,
+  finishActionKeyboardPress,
   createActionInteractionState,
   resolveActionMicroInteractionState,
   updateActionInteractionState,
@@ -40,6 +43,8 @@ export function PetraCompactAction({
   onPointerCancel,
   onFocus,
   onBlur,
+  onKeyDown,
+  onKeyUp,
   children,
   ...buttonProps
 }: PetraCompactActionProps): ReactElement {
@@ -47,7 +52,9 @@ export function PetraCompactAction({
 
   useEffect(() => {
     if (!disabled) return;
-    setInteraction(clearActionPointerState);
+    setInteraction((current) =>
+      clearActionKeyboardPress(clearActionPointerState(current)),
+    );
   }, [disabled]);
 
   const isSelected = selected === true;
@@ -122,6 +129,20 @@ export function PetraCompactAction({
           updateActionInteractionState(current, "blur"),
         );
         onBlur?.(event);
+      }}
+      onKeyDown={(event) => {
+        onKeyDown?.(event);
+        if (!disabled && !event.defaultPrevented) {
+          const key = event.key;
+          setInteraction((current) =>
+            beginActionKeyboardPress(current, key, false),
+          );
+        }
+      }}
+      onKeyUp={(event) => {
+        const key = event.key;
+        setInteraction((current) => finishActionKeyboardPress(current, key));
+        onKeyUp?.(event);
       }}
     >
       {children}

@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  beginActionKeyboardPress,
   beginActionPointerPress,
+  clearActionKeyboardPress,
   clearActionPointerState,
+  finishActionKeyboardPress,
   createActionInteractionState,
   resolveActionMicroInteractionState,
   updateActionInteractionState,
@@ -13,7 +16,11 @@ describe("PetraAction interaction precedence", () => {
     const idle = createActionInteractionState();
     const primary = beginActionPointerPress(idle, 0);
 
-    expect(primary).toEqual({ focused: false, pointer: "press" });
+    expect(primary).toEqual({
+      focused: false,
+      pointer: "press",
+      keyboardPress: "idle",
+    });
     for (const button of [1, 2, 3, 4, -1]) {
       expect(beginActionPointerPress(idle, button)).toBe(idle);
     }
@@ -203,7 +210,11 @@ describe("PetraAction interaction precedence", () => {
 
     state = clearActionPointerState(state);
 
-    expect(state).toEqual({ focused: true, pointer: "idle" });
+    expect(state).toEqual({
+      focused: true,
+      pointer: "idle",
+      keyboardPress: "idle",
+    });
     expect(
       resolveActionMicroInteractionState({
         interaction: state,
@@ -225,6 +236,149 @@ describe("PetraAction interaction precedence", () => {
         selected: true,
       }),
     ).toBe("hover");
+  });
+
+  it("starts keyboard press feedback only for native activation keys", () => {
+    const focused = updateActionInteractionState(
+      createActionInteractionState(),
+      "focus",
+    );
+
+    for (const key of ["Enter", " ", "Spacebar"]) {
+      const pressed = beginActionKeyboardPress(focused, key, false);
+      expect(pressed.keyboardPress).not.toBe("idle");
+      expect(
+        resolveActionMicroInteractionState({
+          interaction: pressed,
+          disabled: false,
+          selected: true,
+        }),
+      ).toBe("press");
+    }
+
+    for (const key of ["Escape", "a", ".", "ArrowRight"]) {
+      expect(beginActionKeyboardPress(focused, key, false)).toBe(focused);
+    }
+  });
+
+  it("does not start keyboard feedback when activation was default-prevented", () => {
+    const focused = updateActionInteractionState(
+      createActionInteractionState(),
+      "focus",
+    );
+
+    expect(beginActionKeyboardPress(focused, "Enter", true)).toBe(focused);
+    expect(beginActionKeyboardPress(focused, " ", true)).toBe(focused);
+  });
+
+  it("finishes only the matching keyboard activation key", () => {
+    let state = updateActionInteractionState(
+      createActionInteractionState(),
+      "focus",
+    );
+    state = beginActionKeyboardPress(state, "Enter", false);
+
+    expect(finishActionKeyboardPress(state, " ")).toBe(state);
+
+    state = finishActionKeyboardPress(state, "Enter");
+    expect(state.keyboardPress).toBe("idle");
+    expect(
+      resolveActionMicroInteractionState({
+        interaction: state,
+        disabled: false,
+        selected: true,
+      }),
+    ).toBe("focus");
+  });
+
+  it("treats legacy Spacebar and modern Space as the same held key", () => {
+    let state = beginActionKeyboardPress(
+      createActionInteractionState(),
+      "Spacebar",
+      false,
+    );
+
+    expect(state.keyboardPress).toBe("space");
+    state = finishActionKeyboardPress(state, " ");
+    expect(state.keyboardPress).toBe("idle");
+  });
+
+  it("does not let a second activation key replace the held keyboard owner", () => {
+    const enter = beginActionKeyboardPress(
+      createActionInteractionState(),
+      "Enter",
+      false,
+    );
+
+    const second = beginActionKeyboardPress(enter, " ", false);
+    expect(second).toBe(enter);
+    expect(second.keyboardPress).toBe("enter");
+  });
+
+  it("clears keyboard press on blur while preserving pointer hover", () => {
+    let state = updateActionInteractionState(
+      createActionInteractionState(),
+      "pointer-enter",
+    );
+    state = updateActionInteractionState(state, "focus");
+    state = beginActionKeyboardPress(state, " ", false);
+    state = updateActionInteractionState(state, "blur");
+
+    expect(state).toEqual({
+      focused: false,
+      pointer: "hover",
+      keyboardPress: "idle",
+    });
+    expect(
+      resolveActionMicroInteractionState({
+        interaction: state,
+        disabled: false,
+        selected: false,
+      }),
+    ).toBe("hover");
+  });
+
+  it("keeps pointer and keyboard press channels independent", () => {
+    let state = beginActionPointerPress(createActionInteractionState(), 0);
+    state = beginActionKeyboardPress(state, "Enter", false);
+
+    state = updateActionInteractionState(state, "pointer-cancel");
+    expect(state.pointer).toBe("idle");
+    expect(state.keyboardPress).toBe("enter");
+    expect(
+      resolveActionMicroInteractionState({
+        interaction: state,
+        disabled: false,
+        selected: false,
+      }),
+    ).toBe("press");
+
+    state = finishActionKeyboardPress(state, "Enter");
+    expect(
+      resolveActionMicroInteractionState({
+        interaction: state,
+        disabled: false,
+        selected: false,
+      }),
+    ).toBe("idle");
+  });
+
+  it("clears keyboard feedback proactively across dynamic disable", () => {
+    let state = updateActionInteractionState(
+      createActionInteractionState(),
+      "focus",
+    );
+    state = beginActionKeyboardPress(state, "Enter", false);
+
+    state = clearActionKeyboardPress(state);
+    expect(state.keyboardPress).toBe("idle");
+    expect(
+      resolveActionMicroInteractionState({
+        interaction: state,
+        disabled: false,
+        selected: true,
+      }),
+    ).toBe("focus");
   });
 
   it("keeps disabled authoritative over all transient state", () => {

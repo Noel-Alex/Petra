@@ -175,6 +175,26 @@
       "timeout_seconds": 30
     },
     {
+      "id": "ml-node-authoritative-profile",
+      "description": "Authoritative composed Node worker_threads profile: direct parity, distinct-worker concurrency, durable resume/finalization, and CPU/RSS evidence; infrastructure-only and non-promotable.",
+      "command": [
+        "python",
+        "experiments/ml_node_authoritative_profile.py"
+      ],
+      "issues": [
+        13,
+        37,
+        531,
+        542,
+        543,
+        544,
+        594,
+        682,
+        685
+      ],
+      "timeout_seconds": 1800
+    },
+    {
       "id": "ml-mechanistic-dataset",
       "description": "BLOCKED on #682, #685, #544, and #594: authoritative group-split mechanistic dataset generation; bulky datasets remain local.",
       "command": [

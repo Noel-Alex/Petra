@@ -104,3 +104,4 @@ After meaningful changes, perform a DOX pass. Update the nearest owning `AGENTS.
 - [`data/AGENTS.md`](data/AGENTS.md) — schemas, parameter packs, and reproducible scenarios.
 - [`src/AGENTS.md`](src/AGENTS.md) — simulator/frontend implementation boundaries.
 - [`tools/AGENTS.md`](tools/AGENTS.md) — deterministic verification and repository tooling.
+- [`experiments/AGENTS.md`](experiments/AGENTS.md) — manual laptop-only experiment registrations, compact evidence, and bulky-artifact policy.

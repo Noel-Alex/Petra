@@ -1,5 +1,6 @@
 import { Application, Container, Graphics } from "pixi.js";
 import { sampleRepresentativeGlyphs } from "../lod";
+import { resolveLineagePattern, type LineagePatternToken } from "../lineagePatterns";
 import {
   semanticZoomLevel,
   validateRenderSnapshot,
@@ -49,6 +50,7 @@ export interface PixiDishRenderer {
 }
 
 const LINEAGE_COLORS = [0x55d7ef, 0xf079b7, 0xf2ca68, 0x75e3ae, 0xb39af5] as const;
+const LINEAGE_PATTERN_COLOR = 0xf4f7fb;
 
 export async function createPixiDishRenderer(
   host: HTMLElement,
@@ -432,11 +434,14 @@ function drawScene(args: {
         .fill({ color, alpha: 0.88 })
         .stroke({ color: 0x07111f, alpha: 0.75, width: 1.2 });
 
-      if (lineage.patternToken.includes("double")) {
-        glyphLayer
-          .circle(point.x, point.y, glyphRadius + 2.6)
-          .stroke({ color, alpha: 0.72, width: 1.1 });
-      }
+      drawLineagePatternRings(
+        glyphLayer,
+        point,
+        glyphRadius + 1.8,
+        lineage.patternToken,
+        0.72,
+        1.1,
+      );
     }
   }
 
@@ -525,9 +530,35 @@ function drawLineageDensity(
     if (!insideViewport(point, centerX, centerY, dishSize)) continue;
 
     const normalized = Math.sqrt(weight / maximum);
+    const markRadius = radius * (0.65 + normalized * 0.8);
     graphics
-      .circle(point.x, point.y, radius * (0.65 + normalized * 0.8))
+      .circle(point.x, point.y, markRadius)
       .fill({ color, alpha: 0.08 + normalized * 0.5 });
+
+    drawLineagePatternRings(
+      graphics,
+      point,
+      markRadius,
+      lineage.patternToken,
+      0.14 + normalized * 0.22,
+      Math.max(0.65, Math.min(1.15, markRadius * 0.14)),
+    );
+  }
+}
+
+function drawLineagePatternRings(
+  graphics: Graphics,
+  point: ScreenPoint,
+  radius: number,
+  patternToken: LineagePatternToken,
+  alpha: number,
+  width: number,
+): void {
+  const pattern = resolveLineagePattern(patternToken);
+  for (const scale of pattern.ringScales) {
+    graphics
+      .circle(point.x, point.y, Math.max(1, radius * scale))
+      .stroke({ color: LINEAGE_PATTERN_COLOR, alpha, width });
   }
 }
 

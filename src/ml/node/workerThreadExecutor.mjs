@@ -58,26 +58,25 @@ export class WorkerThreadMechanisticExecutor {
   }
 
   ensureCapacity() {
-    while (
-      !this.disposed &&
-      this.queue.length > this.readyIdleCount() &&
-      this.slots.size < this.maxWorkers
-    ) {
+    const desiredWorkers = Math.min(
+      this.maxWorkers,
+      this.queue.length + this.activeCount(),
+    );
+    while (!this.disposed && this.slots.size < desiredWorkers) {
       this.spawnWorker();
     }
   }
 
-  readyIdleCount() {
+  activeCount() {
     let count = 0;
     for (const slot of this.slots) {
-      if (slot.ready && slot.current === null && !slot.retiring) count += 1;
+      if (slot.current !== null && !slot.retiring) count += 1;
     }
     return count;
   }
 
   spawnWorker() {
     const worker = new Worker(this.workerModuleUrl, {
-      type: "module",
       workerData: {
         executorModuleUrl: this.executorModuleUrl,
         executorData: this.executorData,

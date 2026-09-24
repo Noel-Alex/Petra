@@ -43,6 +43,52 @@ describe('SimulationEngine replay substrate', () => {
     expect(first.snapshot().traceHash).toBe(second.snapshot().traceHash)
   })
 
+  it('stamps exact authoritative time on every emitted event, including restore', () => {
+    const engine = new SimulationEngine(identity)
+
+    expect(engine.snapshot().events).toEqual([
+      {
+        sequence: 0,
+        tick: 0,
+        simulationTimeHours: 0,
+        type: 'initialized',
+      },
+    ])
+
+    engine.execute({ id: 'advance-60', type: 'advance', ticks: 60 })
+    const checkpointAtOneHour = engine.snapshot().checkpoint
+    engine.execute({ id: 'pulse', type: 'synthetic-pulse', magnitude: 1 })
+    engine.execute({ id: 'advance-30', type: 'advance', ticks: 30 })
+
+    expect(engine.snapshot().events.map((event) => ({
+      type: event.type,
+      tick: event.tick,
+      simulationTimeHours: event.simulationTimeHours,
+    }))).toEqual([
+      { type: 'initialized', tick: 0, simulationTimeHours: 0 },
+      { type: 'advanced', tick: 60, simulationTimeHours: 1 },
+      { type: 'synthetic-pulse', tick: 60, simulationTimeHours: 1 },
+      { type: 'advanced', tick: 90, simulationTimeHours: 1.5 },
+    ])
+
+    const restored = engine.execute({
+      id: 'restore-1h',
+      type: 'restore',
+      checkpoint: checkpointAtOneHour,
+    })
+
+    expect(restored.events).toEqual([
+      {
+        sequence: 0,
+        tick: 60,
+        simulationTimeHours: 1,
+        type: 'restored',
+        commandId: 'restore-1h',
+      },
+    ])
+    expect(restored.checkpoint.simulationTimeHours).toBe(1)
+  })
+
   it('restores RNG and numeric state so future evolution matches the original branch', () => {
     const original = new SimulationEngine(identity)
     original.execute({ id: 'warmup', type: 'advance', ticks: 75 })

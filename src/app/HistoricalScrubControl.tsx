@@ -258,6 +258,13 @@ export function HistoricalScrubControl({
           step={1}
           value={plan.requestedCommandPosition}
           aria-label="Historical accepted-command position"
+          aria-valuetext={
+            plan.position.kind === "authoritative"
+              ? `Authoritative checkpoint, command ${plan.position.commandCount}, ${formatHours(
+                  plan.position.simulationTimeHours,
+                )}`
+              : `Presentation-only command ${plan.requestedCommandPosition}, between authoritative commands ${plan.position.lowerCommandCount} and ${plan.position.upperCommandCount}`
+          }
           aria-describedby={`${statusId} ${detailId}`}
           onChange={handleChange}
           onKeyDown={keepHistoricalScrubNavigationLocal}

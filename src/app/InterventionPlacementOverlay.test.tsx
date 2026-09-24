@@ -40,8 +40,26 @@ describe("InterventionPlacementOverlay", () => {
 
     expect(html).toContain('data-intervention-placement="fungus"');
     expect(html).toContain('data-motion="reduced"');
+    expect(html).toContain('data-transition-treatment="instant"');
+    expect(html).toContain('data-motion-token="toolPreview"');
+    expect(html).toContain("--placement-motion-ms:0ms");
     expect(html).toContain("<svg");
     expect(html).toContain("<path");
     expect(html).not.toMatch(/<img|background-image|url\(/i);
+  });
+
+  it("uses the shared semantic placement token for Full motion instead of a local loop", () => {
+    const html = renderToStaticMarkup(
+      <InterventionPlacementOverlay
+        tool="antibiotic"
+        point={{ x: 0.5, y: 0.5 }}
+        motion="full"
+      />,
+    );
+
+    expect(html).toContain('data-transition-treatment="animate"');
+    expect(html).toContain('data-motion-token="toolPreview"');
+    expect(html).toMatch(/--placement-motion-ms:\\d+ms/);
+    expect(html).toContain("--placement-motion-easing:cubic-bezier(");
   });
 });

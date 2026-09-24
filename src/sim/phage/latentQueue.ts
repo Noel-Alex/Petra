@@ -1,10 +1,15 @@
-export const PHAGE_LATENT_QUEUE_SCHEMA_VERSION = 1 as const;
+import {
+  validatePhageLifeHistoryIdentity,
+  type PhageLifeHistoryIdentity,
+} from "./lifeHistory";
+
+export const PHAGE_LATENT_QUEUE_SCHEMA_VERSION = 2 as const;
 
 export interface LatentInfectionCohort {
   readonly sequence: number;
   readonly infectionCount: number;
   readonly infectedAtMinutes: number;
-  readonly latentPeriodMinutes: number;
+  readonly lifeHistoryIdentity: PhageLifeHistoryIdentity;
 }
 
 export interface LatentInfectionQueueState {
@@ -44,13 +49,13 @@ export function scheduleLatentInfections(
   args: {
     readonly infectionCount: number;
     readonly infectedAtMinutes: number;
-    readonly latentPeriodMinutes: number;
+    readonly lifeHistoryIdentity: PhageLifeHistoryIdentity;
   },
 ): LatentInfectionQueueState {
   validateLatentInfectionQueue(state);
   nonNegativeSafeInteger("infectionCount", args.infectionCount);
   finiteNonNegative("infectedAtMinutes", args.infectedAtMinutes);
-  finiteNonNegative("latentPeriodMinutes", args.latentPeriodMinutes);
+  validatePhageLifeHistoryIdentity(args.lifeHistoryIdentity);
 
   if (args.infectedAtMinutes < state.currentTimeMinutes) {
     throw new RangeError(
@@ -70,7 +75,7 @@ export function scheduleLatentInfections(
     sequence: state.nextSequence,
     infectionCount: args.infectionCount,
     infectedAtMinutes: args.infectedAtMinutes,
-    latentPeriodMinutes: args.latentPeriodMinutes,
+    lifeHistoryIdentity: { ...args.lifeHistoryIdentity },
   };
 
   const cohorts = [...state.cohorts, cohort].sort(compareCohorts);
@@ -153,7 +158,7 @@ export function validateLatentInfectionQueue(
 
     positiveSafeInteger("cohort.infectionCount", cohort.infectionCount);
     finiteNonNegative("cohort.infectedAtMinutes", cohort.infectedAtMinutes);
-    finiteNonNegative("cohort.latentPeriodMinutes", cohort.latentPeriodMinutes);
+    validatePhageLifeHistoryIdentity(cohort.lifeHistoryIdentity);
     const lysisAtMinutes = cohortLysisAtMinutes(cohort);
     if (lysisAtMinutes < state.currentTimeMinutes) {
       throw new RangeError(
@@ -182,12 +187,13 @@ function compareCohorts(
 export function cohortLysisAtMinutes(
   cohort: Pick<
     LatentInfectionCohort,
-    "infectedAtMinutes" | "latentPeriodMinutes"
+    "infectedAtMinutes" | "lifeHistoryIdentity"
   >,
 ): number {
   finiteNonNegative("cohort.infectedAtMinutes", cohort.infectedAtMinutes);
-  finiteNonNegative("cohort.latentPeriodMinutes", cohort.latentPeriodMinutes);
-  const value = cohort.infectedAtMinutes + cohort.latentPeriodMinutes;
+  validatePhageLifeHistoryIdentity(cohort.lifeHistoryIdentity);
+  const value =
+    cohort.infectedAtMinutes + cohort.lifeHistoryIdentity.latentPeriodMinutes;
   finiteNonNegative("cohort lysis time", value);
   return value;
 }

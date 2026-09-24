@@ -9,7 +9,9 @@ import {
 } from "./burstPolicy";
 import {
   T4_MG1655_LIFE_HISTORY,
+  createPhageLifeHistoryIdentity,
   resolvePhageLifeHistory,
+  type PhageLifeHistoryIdentity,
   type PhageLifeHistoryResolution,
 } from "./lifeHistory";
 import {
@@ -35,6 +37,15 @@ function exactLifeHistory() {
   return resolved;
 }
 
+function testLifeHistoryIdentity(
+  latentPeriodMinutes: number,
+): PhageLifeHistoryIdentity {
+  return {
+    ...createPhageLifeHistoryIdentity(exactLifeHistory()),
+    latentPeriodMinutes,
+  };
+}
+
 function maturedBatch(
   lifeHistory: Exclude<
     PhageLifeHistoryResolution,
@@ -56,7 +67,7 @@ function maturedBatch(
               infectionCount,
               infectedAtMinutes:
                 throughMinutes - lifeHistory.values.latentPeriodMinutes,
-              latentPeriodMinutes: lifeHistory.values.latentPeriodMinutes,
+              lifeHistoryIdentity: createPhageLifeHistoryIdentity(lifeHistory),
             },
           ],
   };
@@ -70,7 +81,7 @@ describe("matured phage lysis authority", () => {
     queue = scheduleLatentInfections(queue, {
       infectionCount: 2,
       infectedAtMinutes: 0,
-      latentPeriodMinutes: lifeHistory.values.latentPeriodMinutes,
+      lifeHistoryIdentity: createPhageLifeHistoryIdentity(lifeHistory),
     });
 
     const before = advanceLatentInfectionQueue(
@@ -199,7 +210,7 @@ describe("matured phage lysis authority", () => {
             sequence: 0,
             infectionCount: 1,
             infectedAtMinutes: 0,
-            latentPeriodMinutes: 10,
+            lifeHistoryIdentity: testLifeHistoryIdentity(10),
           },
         ],
       }),
@@ -214,7 +225,7 @@ describe("matured phage lysis authority", () => {
             sequence: 0,
             infectionCount: 1,
             infectedAtMinutes: 0,
-            latentPeriodMinutes: 11,
+            lifeHistoryIdentity: testLifeHistoryIdentity(11),
           },
         ],
       }),
@@ -229,13 +240,13 @@ describe("matured phage lysis authority", () => {
             sequence: 0,
             infectionCount: 1,
             infectedAtMinutes: 0,
-            latentPeriodMinutes: 10,
+            lifeHistoryIdentity: testLifeHistoryIdentity(10),
           },
           {
             sequence: 0,
             infectionCount: 1,
             infectedAtMinutes: 0,
-            latentPeriodMinutes: 10,
+            lifeHistoryIdentity: testLifeHistoryIdentity(10),
           },
         ],
       }),
@@ -250,13 +261,13 @@ describe("matured phage lysis authority", () => {
             sequence: 1,
             infectionCount: 1,
             infectedAtMinutes: 0,
-            latentPeriodMinutes: 15,
+            lifeHistoryIdentity: testLifeHistoryIdentity(15),
           },
           {
             sequence: 0,
             infectionCount: 1,
             infectedAtMinutes: 0,
-            latentPeriodMinutes: 10,
+            lifeHistoryIdentity: testLifeHistoryIdentity(10),
           },
         ],
       }),
@@ -289,7 +300,37 @@ describe("matured phage lysis authority", () => {
         ),
         second,
       ),
-    ).toThrow(/latent period does not match/);
+    ).toThrow(/life-history identity does not match/);
+  });
+
+  it("rejects a different infection-time state even when latent periods are equal", () => {
+    const lowerRow = T4_MG1655_LIFE_HISTORY.rows[6]!;
+    const upperRow = T4_MG1655_LIFE_HISTORY.rows[7]!;
+    const lower = resolvePhageLifeHistory(
+      T4_MG1655_LIFE_HISTORY,
+      lowerRow.growthRatePerHour,
+    );
+    const upper = resolvePhageLifeHistory(
+      T4_MG1655_LIFE_HISTORY,
+      upperRow.growthRatePerHour,
+    );
+    if (lower.status !== "exact" || upper.status !== "exact") {
+      throw new Error("expected exact equal-latency T4/MG1655 rows");
+    }
+
+    expect(lower.values.latentPeriodMinutes).toBe(27);
+    expect(upper.values.latentPeriodMinutes).toBe(27);
+    expect(lower.values.burstSizePfuPerCell).toBe(75);
+    expect(upper.values.burstSizePfuPerCell).toBe(89);
+
+    expect(() =>
+      applyMaturedPhageLysis(
+        DETERMINISTIC_RESIDUAL_BURST_POLICY,
+        createPhageBurstPolicyState(DETERMINISTIC_RESIDUAL_BURST_POLICY),
+        maturedBatch(lower, 1, 27),
+        upper,
+      ),
+    ).toThrow(/life-history identity does not match/);
   });
 
   it("fails closed on malformed serialized handoffs instead of property-access errors", () => {

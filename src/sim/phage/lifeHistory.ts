@@ -104,6 +104,174 @@ export type PhageLifeHistoryResolution =
       readonly sourceRows: readonly [];
     });
 
+export const PHAGE_LIFE_HISTORY_IDENTITY_SCHEMA_VERSION = 1 as const;
+
+export type InDomainPhageLifeHistoryResolution = Exclude<
+  PhageLifeHistoryResolution,
+  { readonly status: "out-of-domain" }
+>;
+
+export interface PhageLifeHistoryIdentity {
+  readonly schemaVersion: typeof PHAGE_LIFE_HISTORY_IDENTITY_SCHEMA_VERSION;
+  readonly sourceKey: string;
+  readonly sourceDoi: string;
+  readonly requestedGrowthRatePerHour: number;
+  readonly status: "exact" | "interpolated";
+  readonly evidenceClass: "measured" | "derived";
+  readonly adsorptionConstantMlPerMin: number;
+  readonly latentPeriodMinutes: number;
+  readonly burstSizePfuPerCell: number;
+}
+
+/**
+ * Capture the exact in-domain life-history authority used at infection time.
+ *
+ * This identity is replay-critical. A delayed cohort must not later borrow a
+ * burst mean from a different physiological state merely because the two
+ * states happen to share the same latent period.
+ */
+export function createPhageLifeHistoryIdentity(
+  resolution: PhageLifeHistoryResolution,
+): PhageLifeHistoryIdentity {
+  if (!isRecord(resolution)) {
+    throw new TypeError("phage life-history resolution must be an object");
+  }
+  if (resolution.status === "out-of-domain") {
+    throw new RangeError(
+      "phage life-history identity requires an in-domain resolution",
+    );
+  }
+  if (resolution.status !== "exact" && resolution.status !== "interpolated") {
+    throw new TypeError("unsupported phage life-history resolution status");
+  }
+
+  const expectedEvidenceClass =
+    resolution.status === "exact" ? "measured" : "derived";
+  if (resolution.evidenceClass !== expectedEvidenceClass) {
+    throw new TypeError(
+      "phage life-history evidence class does not match its resolution status",
+    );
+  }
+
+  const source = requireRecord(resolution.source, "life-history source");
+  const values = requireRecord(resolution.values, "life-history values");
+  const identity: PhageLifeHistoryIdentity = {
+    schemaVersion: PHAGE_LIFE_HISTORY_IDENTITY_SCHEMA_VERSION,
+    sourceKey: requireCanonicalNonEmptyString(
+      source.key,
+      "life-history source.key",
+    ),
+    sourceDoi: requireCanonicalNonEmptyString(
+      source.doi,
+      "life-history source.doi",
+    ),
+    requestedGrowthRatePerHour: finiteNonNegative(
+      "life-history requestedGrowthRatePerHour",
+      resolution.requestedGrowthRatePerHour,
+    ),
+    status: resolution.status,
+    evidenceClass: resolution.evidenceClass,
+    adsorptionConstantMlPerMin: finiteNonNegative(
+      "life-history adsorptionConstantMlPerMin",
+      values.adsorptionConstantMlPerMin,
+    ),
+    latentPeriodMinutes: finiteNonNegative(
+      "life-history latentPeriodMinutes",
+      values.latentPeriodMinutes,
+    ),
+    burstSizePfuPerCell: finiteNonNegative(
+      "life-history burstSizePfuPerCell",
+      values.burstSizePfuPerCell,
+    ),
+  };
+  validatePhageLifeHistoryIdentity(identity);
+  return identity;
+}
+
+export function validatePhageLifeHistoryIdentity(
+  value: unknown,
+): asserts value is PhageLifeHistoryIdentity {
+  if (!isRecord(value)) {
+    throw new TypeError("phage life-history identity must be an object");
+  }
+
+  const expectedKeys = new Set([
+    "schemaVersion",
+    "sourceKey",
+    "sourceDoi",
+    "requestedGrowthRatePerHour",
+    "status",
+    "evidenceClass",
+    "adsorptionConstantMlPerMin",
+    "latentPeriodMinutes",
+    "burstSizePfuPerCell",
+  ]);
+  const keys = Object.keys(value);
+  if (
+    keys.length !== expectedKeys.size ||
+    keys.some((key) => !expectedKeys.has(key))
+  ) {
+    throw new TypeError("phage life-history identity has an unexpected shape");
+  }
+
+  if (value.schemaVersion !== PHAGE_LIFE_HISTORY_IDENTITY_SCHEMA_VERSION) {
+    throw new TypeError("unsupported phage life-history identity schema version");
+  }
+  requireCanonicalNonEmptyString(
+    value.sourceKey,
+    "phage life-history identity sourceKey",
+  );
+  requireCanonicalNonEmptyString(
+    value.sourceDoi,
+    "phage life-history identity sourceDoi",
+  );
+  finiteNonNegative(
+    "phage life-history identity requestedGrowthRatePerHour",
+    value.requestedGrowthRatePerHour,
+  );
+  if (value.status !== "exact" && value.status !== "interpolated") {
+    throw new TypeError("unsupported phage life-history identity status");
+  }
+  const expectedEvidenceClass =
+    value.status === "exact" ? "measured" : "derived";
+  if (value.evidenceClass !== expectedEvidenceClass) {
+    throw new TypeError(
+      "phage life-history identity evidence class does not match status",
+    );
+  }
+  finiteNonNegative(
+    "phage life-history identity adsorptionConstantMlPerMin",
+    value.adsorptionConstantMlPerMin,
+  );
+  finiteNonNegative(
+    "phage life-history identity latentPeriodMinutes",
+    value.latentPeriodMinutes,
+  );
+  finiteNonNegative(
+    "phage life-history identity burstSizePfuPerCell",
+    value.burstSizePfuPerCell,
+  );
+}
+
+export function phageLifeHistoryIdentitiesEqual(
+  left: PhageLifeHistoryIdentity,
+  right: PhageLifeHistoryIdentity,
+): boolean {
+  validatePhageLifeHistoryIdentity(left);
+  validatePhageLifeHistoryIdentity(right);
+  return (
+    left.schemaVersion === right.schemaVersion &&
+    left.sourceKey === right.sourceKey &&
+    left.sourceDoi === right.sourceDoi &&
+    left.requestedGrowthRatePerHour === right.requestedGrowthRatePerHour &&
+    left.status === right.status &&
+    left.evidenceClass === right.evidenceClass &&
+    left.adsorptionConstantMlPerMin === right.adsorptionConstantMlPerMin &&
+    left.latentPeriodMinutes === right.latentPeriodMinutes &&
+    left.burstSizePfuPerCell === right.burstSizePfuPerCell
+  );
+}
+
 export const T4_MG1655_LIFE_HISTORY = parseLifeHistoryEvidence(
   rawT4Mg1655Evidence as unknown,
 );
@@ -362,6 +530,17 @@ function requireNonEmptyString(value: unknown, name: string): string {
     throw new TypeError(`${name} must be a non-empty string`);
   }
   return value;
+}
+
+function requireCanonicalNonEmptyString(
+  value: unknown,
+  name: string,
+): string {
+  const result = requireNonEmptyString(value, name);
+  if (result.trim() !== result) {
+    throw new TypeError(`${name} must be a trimmed non-empty string`);
+  }
+  return result;
 }
 
 function finiteNonNegative(name: string, value: unknown): number {

@@ -9,12 +9,13 @@ import {
   type LatentInfectionCohort,
   type MaturedLatentInfections,
 } from "./latentQueue";
-import type { PhageLifeHistoryResolution } from "./lifeHistory";
-
-export type InDomainPhageLifeHistoryResolution = Exclude<
-  PhageLifeHistoryResolution,
-  { readonly status: "out-of-domain" }
->;
+import {
+  createPhageLifeHistoryIdentity,
+  phageLifeHistoryIdentitiesEqual,
+  validatePhageLifeHistoryIdentity,
+  type InDomainPhageLifeHistoryResolution,
+  type PhageLifeHistoryResolution,
+} from "./lifeHistory";
 
 export interface PhageLysisAuthorityProvenance {
   readonly requestedGrowthRatePerHour: number;
@@ -41,9 +42,9 @@ export interface MaturedPhageLysisResult {
  * fields. A later composition layer must commit those mutations atomically.
  *
  * The supplied life-history resolution must be in-domain and must match the
- * latent period carried by every matured cohort. This prevents one physiological
- * state from providing the maturity delay while another silently provides the
- * burst mean.
+ * full infection-time life-history identity carried by every matured cohort.
+ * Matching latent-period minutes alone is insufficient because distinct
+ * physiological states can share a delay while carrying different burst means.
  */
 export function applyMaturedPhageLysis(
   policy: PhageBurstPolicy,
@@ -157,10 +158,7 @@ function validateMaturedCohort(
     `matured cohort ${index} infectedAtMinutes`,
     cohort.infectedAtMinutes,
   );
-  finiteNonNegative(
-    `matured cohort ${index} latentPeriodMinutes`,
-    cohort.latentPeriodMinutes,
-  );
+  validatePhageLifeHistoryIdentity(cohort.lifeHistoryIdentity);
 }
 
 function requireInDomainLifeHistory(
@@ -217,10 +215,16 @@ function validateLifeHistoryBinding(
   cohorts: readonly LatentInfectionCohort[],
   lifeHistory: InDomainPhageLifeHistoryResolution,
 ): void {
+  const suppliedIdentity = createPhageLifeHistoryIdentity(lifeHistory);
   for (const cohort of cohorts) {
-    if (cohort.latentPeriodMinutes !== lifeHistory.values.latentPeriodMinutes) {
+    if (
+      !phageLifeHistoryIdentitiesEqual(
+        cohort.lifeHistoryIdentity,
+        suppliedIdentity,
+      )
+    ) {
       throw new Error(
-        "matured latent cohort latent period does not match the supplied life-history resolution",
+        "matured latent cohort life-history identity does not match the supplied life-history resolution",
       );
     }
   }

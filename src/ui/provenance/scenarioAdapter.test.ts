@@ -130,6 +130,24 @@ describe("scenario provenance adapter", () => {
     );
   });
 
+  it("flags malformed supplied citation locators rather than silently dropping them", () => {
+    const result = resolveScenarioProvenance({
+      id: "measured",
+      label: "Measured quantity",
+      record: { classification: "measured", citation: "broken" },
+      scenario: {
+        citations: {
+          broken: { title: "Broken citation", doi: 42 },
+        },
+      },
+    });
+
+    expect(result.status).toBe("needs-provenance");
+    expect(result.problems).toContain(
+      'Provenance incomplete: citation "broken" has an invalid DOI locator.',
+    );
+  });
+
   it("keeps scenario transfer assumptions separate from field-specific claims", () => {
     const result = resolveScenarioTransferAssumptions(scenario);
 

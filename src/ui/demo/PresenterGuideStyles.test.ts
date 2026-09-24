@@ -72,6 +72,42 @@ describe("PresenterGuide presentation contracts", () => {
     expect(announcementRule).toContain("clip: rect(0 0 0 0)");
   });
 
+  it("derives Presenter chrome from Petra's shared calm visual tokens", () => {
+    expect(presenterCss).toContain("var(--petra-color-cream)");
+    expect(presenterCss).toContain("var(--petra-color-teal)");
+    expect(presenterCss).toContain("var(--petra-color-mint)");
+    expect(presenterCss).toContain("var(--petra-color-amber)");
+    expect(presenterCss).toContain(
+      "rgb(var(--petra-rgb-ink-deep) / 0.98)",
+    );
+    expect(presenterCss).not.toMatch(/\brgba?\(\s*\d/);
+    expect(presenterCss).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+    expect(presenterCss).not.toContain("backdrop-filter");
+  });
+
+  it("keeps Presenter state reinforcement on shared semantic token families", () => {
+    const current = presenterCss.match(
+      /\.presenter-guide__rail li\[data-state="current"\] > span \{([\s\S]*?)\}/,
+    )?.[1];
+    const complete = presenterCss.match(
+      /\.presenter-guide__rail li\[data-state="complete"\] > span \{([\s\S]*?)\}/,
+    )?.[1];
+    const ready = presenterCss.match(
+      /\.presenter-guide__gate--ready \{([\s\S]*?)\}/,
+    )?.[1];
+    const waiting = presenterCss.match(
+      /\.presenter-guide__gate--waiting \{([\s\S]*?)\}/,
+    )?.[1];
+
+    expect(current).toContain("--petra-rgb-teal");
+    expect(complete).toContain("--petra-rgb-mint");
+    expect(complete).toContain("--petra-color-mint");
+    expect(ready).toContain("--petra-rgb-mint");
+    expect(ready).toContain("--petra-color-mint");
+    expect(waiting).toContain("--petra-rgb-amber");
+    expect(waiting).toContain("--petra-color-amber");
+  });
+
   it("keeps the native runbook selector at Petra's expo touch target", () => {
     const profileRule = presenterCss.match(
       /\.presenter-guide__profile select \{([\s\S]*?)\}/,

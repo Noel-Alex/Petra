@@ -9,6 +9,7 @@ import {
 import type { MotionPreference } from "./motion/policy";
 import { resolveMicroInteraction } from "./motion/microInteractions";
 import {
+  beginActionPointerPress,
   createActionInteractionState,
   resolveActionMicroInteractionState,
   updateActionInteractionState,
@@ -94,9 +95,8 @@ export function PetraAction({
       }}
       onPointerDown={(event) => {
         if (!disabled) {
-          setInteraction((current) =>
-            updateActionInteractionState(current, "pointer-down"),
-          );
+          const button = event.button;
+          setInteraction((current) => beginActionPointerPress(current, button));
         }
         onPointerDown?.(event);
       }}

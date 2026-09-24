@@ -105,7 +105,6 @@ export function PixiDish({
     return () => {
       rendererRef.current = null;
       lifecycle.dispose();
-      host.replaceChildren();
     };
   }, [renderEnabled, retryAttempt]);
 

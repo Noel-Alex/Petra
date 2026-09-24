@@ -256,6 +256,52 @@ describe("experiment runtime", () => {
     expect(port.posted.at(-1)).toMatchObject({ type: "initialize" });
   });
 
+  it("rotates runtime history identity when a reset restarts command position", () => {
+    const { port, runtime } = readyRuntime(["advance-1"]);
+    const firstBranch = runtime.state.runBranchIdentity;
+
+    runtime.dispatch({ type: "step", ticks: 1 });
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      commandId: "advance-1",
+      snapshot: makeSnapshot({
+        tick: 1,
+        commandCount: 1,
+        events: [{
+          sequence: 1,
+          tick: 1,
+          simulationTimeHours: 1 / 60,
+          type: "advanced",
+          commandId: "advance-1",
+          value: 1,
+        }],
+      }),
+    });
+    expect(runtime.state.snapshot?.checkpoint.commandCount).toBe(1);
+
+    expect(runtime.dispatch({ type: "reset" }).accepted).toBe(true);
+    const resetBranch = runtime.state.runBranchIdentity;
+    expect(resetBranch).not.toBe(firstBranch);
+
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: makeSnapshot({ tick: 0, commandCount: 0 }),
+    });
+    expect(runtime.state.snapshot?.checkpoint.commandCount).toBe(0);
+    expect(runtime.state.runBranchIdentity).toBe(resetBranch);
+  });
+
+  it("rotates history identity for reseed even when no command was accepted", () => {
+    const { runtime } = readyRuntime();
+    const firstBranch = runtime.state.runBranchIdentity;
+
+    expect(runtime.dispatch({ type: "set-seed", seed: 24 }).accepted).toBe(true);
+    expect(runtime.state.runBranchIdentity).not.toBe(firstBranch);
+    expect(runtime.state.runBranchIdentity).toContain("24");
+  });
+
   it("rejects manual worker effects before initialization is ready", () => {
     const port = new FakePort();
     const session = new WorkerSession(port);

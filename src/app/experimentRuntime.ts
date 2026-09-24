@@ -19,12 +19,15 @@ import {
   buildScientificTimeline,
   type TimelineEntry,
 } from "../ui/timeline";
+import { createRunBranchIdentity } from "./runBranchIdentity";
 import {
   WorkerSession,
   type WorkerSessionState,
 } from "./workerSession";
 
 export interface ExperimentRuntimeState {
+  /** Runtime-owned identity for one monotonic accepted-command history generation. */
+  readonly runBranchIdentity: string;
   readonly controls: ExperimentControlState;
   readonly worker: WorkerSessionState;
   readonly snapshot: SimulationSnapshot | null;
@@ -49,6 +52,7 @@ export class ExperimentRuntime {
   private readonly pendingAcceptance = new Map<string, SimulationCommand>();
   private readonly unsubscribeWorker: () => void;
   private readonly composedConfig: ComposedSimulationConfig | undefined;
+  private historyGeneration = 0;
   private current: ExperimentRuntimeState;
 
   constructor(
@@ -60,6 +64,7 @@ export class ExperimentRuntime {
     this.composedConfig =
       composedConfig === undefined ? undefined : structuredClone(composedConfig);
     this.current = {
+      runBranchIdentity: createRunBranchIdentity(identity, this.historyGeneration),
       controls: createExperimentControlState(identity),
       worker: session.state,
       snapshot: null,
@@ -130,6 +135,7 @@ export class ExperimentRuntime {
 
       if (reinitializesRun) {
         this.pendingAcceptance.clear();
+        this.historyGeneration += 1;
       }
 
       if (action.type !== "replay") {
@@ -139,7 +145,16 @@ export class ExperimentRuntime {
       this.current = {
         ...this.current,
         controls: planned.state,
-        ...(reinitializesRun ? { snapshot: null, timeline: [] } : {}),
+        ...(reinitializesRun
+          ? {
+              runBranchIdentity: createRunBranchIdentity(
+                planned.state.identity,
+                this.historyGeneration,
+              ),
+              snapshot: null,
+              timeline: [],
+            }
+          : {}),
         integrationError: null,
       };
       this.publish();
@@ -241,6 +256,7 @@ export class ExperimentRuntime {
       }
 
       this.current = {
+        runBranchIdentity: this.current.runBranchIdentity,
         controls,
         worker,
         snapshot: structuredClone(candidate),

@@ -1,3 +1,4 @@
+import type { ComposedMetrics, ComposedSimulationConfig, ComposedSimulationState } from './authoritative'
 import type { RngState } from './rng'
 import { assertSimulationSeed } from './seed'
 
@@ -16,14 +17,36 @@ export interface RunIdentity {
   seed: number
 }
 
-export interface SimulationCheckpoint {
+interface SimulationCheckpointBase {
   identity: RunIdentity
   tick: number
   simulationTimeHours: number
-  syntheticPopulation: number
-  rngState: RngState
   commandCount: number
 }
+
+/**
+ * Infrastructure-only checkpoint retained for deterministic substrate tests.
+ * Product-facing science must not treat this shape as biological authority.
+ */
+export interface SyntheticSimulationCheckpoint extends SimulationCheckpointBase {
+  readonly authority?: 'synthetic'
+  syntheticPopulation: number
+  rngState: RngState
+}
+
+/**
+ * Serializable authoritative ecology/composition checkpoint.
+ * Mutable arrays are deep-copied at the engine boundary before transport.
+ */
+export interface ComposedSimulationCheckpoint extends SimulationCheckpointBase {
+  readonly authority: 'composed'
+  readonly composedState: ComposedSimulationState
+  readonly metrics: ComposedMetrics
+}
+
+export type SimulationCheckpoint =
+  | SyntheticSimulationCheckpoint
+  | ComposedSimulationCheckpoint
 
 export type SimulationCommand =
   | { id: string; type: 'advance'; ticks: number }
@@ -32,7 +55,16 @@ export type SimulationCommand =
   | { id: string; type: 'snapshot' }
 
 export type WorkerRequest =
-  | { protocolVersion: typeof PROTOCOL_VERSION; type: 'initialize'; identity: RunIdentity }
+  | {
+      protocolVersion: typeof PROTOCOL_VERSION
+      type: 'initialize'
+      identity: RunIdentity
+      /**
+       * Explicit authoritative composition capability. Omission preserves the
+       * synthetic infrastructure fixture; callers must never invent a config.
+       */
+      composedConfig?: ComposedSimulationConfig
+    }
   | { protocolVersion: typeof PROTOCOL_VERSION; type: 'command'; command: SimulationCommand }
 
 export interface SimulationEvent {
@@ -44,11 +76,22 @@ export interface SimulationEvent {
   value?: number
 }
 
-export interface SimulationSnapshot {
-  checkpoint: SimulationCheckpoint
+interface SimulationSnapshotBase {
   events: readonly SimulationEvent[]
   traceHash: string
 }
+
+export interface SyntheticSimulationSnapshot extends SimulationSnapshotBase {
+  checkpoint: SyntheticSimulationCheckpoint
+}
+
+export interface ComposedSimulationSnapshot extends SimulationSnapshotBase {
+  checkpoint: ComposedSimulationCheckpoint
+}
+
+export type SimulationSnapshot =
+  | SyntheticSimulationSnapshot
+  | ComposedSimulationSnapshot
 
 export type WorkerResponse =
   | { protocolVersion: typeof PROTOCOL_VERSION; type: 'ready'; snapshot: SimulationSnapshot }

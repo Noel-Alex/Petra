@@ -9,6 +9,7 @@ import {
   type ComposedSimulationState,
 } from './authoritative'
 import { assertEcologyLocalCapacity } from './ecology/capacity'
+import { assertComposedParameterSetBinding } from './parameterSetBinding'
 import type {
   ComposedSimulationCheckpoint,
   ComposedSimulationSnapshot,
@@ -268,6 +269,8 @@ export class ComposedSimulationEngine {
   private readonly events: SimulationEvent[] = []
 
   constructor(identity: RunIdentity, config: ComposedSimulationConfig) {
+    assertComposedParameterSetBinding(identity, config)
+
     if (
       identity.scenarioId !== config.evolutionScenario.scenarioId ||
       identity.scenarioVersion !== config.evolutionScenario.scenarioVersion

@@ -1,5 +1,6 @@
 import type { ComposedSimulationConfig } from "../../src/sim/authoritative";
 import type { CuratedMutationGraph } from "../../src/sim/evolution/graph";
+import { createFixtureComposedParameterSetBinding } from "../../src/sim/parameterSetBinding";
 import { describe, expect, it } from "vitest";
 import {
   ExperimentRuntime,
@@ -19,13 +20,8 @@ import {
   type WorkerResponse,
 } from "../../src/sim/protocol";
 
-const identity = createRunIdentity({
-  scenarioId: "runtime-fixture",
-  scenarioVersion: "1",
-  parameterSetId: "runtime-fixture",
-  parameterSetVersion: "1",
-  seed: 23,
-});
+const parameterSetId = "fixture:runtime-fixture";
+const parameterSetVersion = "1";
 
 const composedGraph: CuratedMutationGraph = {
   scenarioId: "runtime-fixture",
@@ -57,6 +53,19 @@ const composedConfig: ComposedSimulationConfig = {
   },
   hoursPerTick: 0.01,
 };
+
+const identity = createRunIdentity({
+  scenarioId: "runtime-fixture",
+  scenarioVersion: "1",
+  parameterSetId,
+  parameterSetVersion,
+  parameterSetBinding: createFixtureComposedParameterSetBinding(
+    parameterSetId,
+    parameterSetVersion,
+    composedConfig,
+  ),
+  seed: 23,
+});
 
 function makeSnapshot(args: {
   identity?: RunIdentity;
@@ -298,6 +307,31 @@ describe("experiment runtime", () => {
     });
     runtime.dispatch({ type: "play" });
     expect(runtime.advancePlayback()).toBe(false);
+  });
+
+  it("rejects a snapshot with the same parameter-set label but a different bound config", () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+    const runtime = new ExperimentRuntime(session, identity, commandIds());
+    const foreignIdentity = structuredClone(identity);
+    if (foreignIdentity.parameterSetBinding === undefined) {
+      throw new Error("expected bound fixture identity");
+    }
+    ;(
+      foreignIdentity.parameterSetBinding as { configurationFingerprint: string }
+    ).configurationFingerprint += "-foreign";
+
+    runtime.start();
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: makeSnapshot({ identity: foreignIdentity, tick: 0 }),
+    });
+
+    expect(runtime.state.snapshot).toBeNull();
+    expect(runtime.state.integrationError).toContain(
+      "does not match the active experiment controls",
+    );
   });
 
   it("does not use start as an implicit reset of a ready experiment", () => {

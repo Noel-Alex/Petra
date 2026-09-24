@@ -1,4 +1,4 @@
-import type { RunIdentity, SimulationEvent } from "../sim/protocol";
+import type { SimulationEvent } from "../sim/protocol";
 import {
   initialOnboardingState,
   reduceOnboarding,
@@ -7,6 +7,7 @@ import {
   type ScientificGate,
 } from "../ui/onboarding/story";
 import type { ExperimentRuntimeState } from "./experimentRuntime";
+import { runIdentityKey } from "./runIdentityKey";
 
 export type OnboardingUserAction = Extract<
   OnboardingEvent,
@@ -45,7 +46,7 @@ export function projectOnboardingRuntime(
   runtime: ExperimentRuntimeState | null,
 ): OnboardingRuntimeProjection {
   const runIdentityKey =
-    runtime === null ? null : serializeRunIdentity(runtime.controls.identity);
+    runtime === null ? null : runIdentityKey(runtime.controls.identity);
   const hasAuthoritativeSnapshot = runtime?.snapshot !== null && runtime?.snapshot !== undefined;
   const gates: ScientificGate[] = [];
 
@@ -140,14 +141,3 @@ export function applyOnboardingUserAction(
   };
 }
 
-function serializeRunIdentity(identity: RunIdentity): string {
-  return JSON.stringify([
-    identity.engineVersion,
-    identity.protocolVersion,
-    identity.scenarioId,
-    identity.scenarioVersion,
-    identity.parameterSetId,
-    identity.parameterSetVersion,
-    identity.seed,
-  ]);
-}

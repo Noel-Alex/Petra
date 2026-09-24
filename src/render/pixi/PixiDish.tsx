@@ -17,6 +17,8 @@ export interface PixiDishProps {
   readonly className?: string;
   readonly ariaLabel?: string;
   readonly ariaDescribedBy?: string;
+  /** Change this token to request the existing renderer camera return to overview. */
+  readonly overviewResetRequest?: number;
   /** Explicit opt-in for the deterministic presentation-only fixture. */
   readonly demoMode?: boolean;
 }
@@ -41,6 +43,7 @@ export function PixiDish({
   className,
   ariaLabel,
   ariaDescribedBy,
+  overviewResetRequest = 0,
   demoMode = false,
 }: PixiDishProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -48,6 +51,8 @@ export function PixiDish({
   const motionRef = useRef(motion);
   const overlayRef = useRef(overlayId);
   const demoSnapshotRef = useRef<DishRenderSnapshot | null>(null);
+  const overviewResetRef = useRef(overviewResetRequest);
+  const appliedOverviewResetRef = useRef(overviewResetRequest);
   const [startup, setStartup] = useState<RendererStartupState>(IDLE_STARTUP);
   const [retryAttempt, setRetryAttempt] = useState(0);
 
@@ -67,6 +72,7 @@ export function PixiDish({
 
   motionRef.current = motion;
   overlayRef.current = overlayId;
+  overviewResetRef.current = overviewResetRequest;
   snapshotRef.current = renderSnapshot;
 
   useEffect(() => {
@@ -92,6 +98,10 @@ export function PixiDish({
           const currentSnapshot = snapshotRef.current;
           if (currentSnapshot !== null) renderer.update(currentSnapshot);
           renderer.setOverlay(overlayRef.current);
+          if (overviewResetRef.current !== appliedOverviewResetRef.current) {
+            renderer.resetCamera();
+            appliedOverviewResetRef.current = overviewResetRef.current;
+          }
           setStartup({ status: "ready", errorMessage: null });
         },
         onError(error) {
@@ -120,6 +130,18 @@ export function PixiDish({
     snapshotRef.current = renderSnapshot;
     if (renderSnapshot !== null) rendererRef.current?.update(renderSnapshot);
   }, [renderSnapshot]);
+
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    if (
+      renderer === null ||
+      overviewResetRequest === appliedOverviewResetRef.current
+    ) {
+      return;
+    }
+    renderer.resetCamera();
+    appliedOverviewResetRef.current = overviewResetRequest;
+  }, [overviewResetRequest]);
 
   const source = usingAuthoritative
     ? "authoritative-snapshot"

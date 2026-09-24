@@ -284,6 +284,37 @@ describe('resource-limited ecology step', () => {
     expect(s.lineages[0]![1]).toBe(0)
   })
 
+  it('rejects materially over-capacity raw state atomically before mutation', () => {
+    const s = state(10, [100.001])
+    const beforeResource = s.resource.slice()
+    const beforeLineage = s.lineages[0]!.slice()
+
+    expect(() => stepEcology(s, params, neutral(1), 1)).toThrow(
+      /exceeds localCapacity beyond Float32 representation tolerance/,
+    )
+    expect(s.resource).toEqual(beforeResource)
+    expect(s.lineages[0]).toEqual(beforeLineage)
+  })
+
+  it('accepts a Float32 round-trip microscopically above capacity', () => {
+    const s = state(0, [Math.fround(0.0001), Math.fround(99.9999)])
+    const total = s.lineages[0]![0]! + s.lineages[1]![0]!
+    expect(total).toBeGreaterThan(params.localCapacity)
+
+    expect(() => stepEcology(s, params, neutral(2), 1)).not.toThrow()
+    expect(s.lineages[0]![0]! + s.lineages[1]![0]!).toBe(total)
+  })
+
+  it('accepts its own Float32 output again on the next ecology step', () => {
+    const s = state(100, [99])
+    stepEcology(s, params, neutral(1), 1)
+
+    const afterFirst = s.lineages[0]![0]!
+    expect(afterFirst).toBeCloseTo(params.localCapacity, 5)
+    expect(() => stepEcology(s, params, neutral(1), 1)).not.toThrow()
+    expect(s.lineages[0]![0]).toBe(afterFirst)
+  })
+
   it('rejects invalid lineage kinetics and death fields', () => {
     const s = state(1, [1])
     expect(() => stepEcology(s, params, [], 1)).toThrow(/one entry per lineage/)

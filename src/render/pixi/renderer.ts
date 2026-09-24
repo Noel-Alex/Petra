@@ -27,6 +27,10 @@ import {
 } from "./pointerGesture";
 import { createResizeRedrawScheduler } from "./resizeScheduler";
 import {
+  rendererResolutionForDevicePixelRatio,
+  watchRendererResolution,
+} from "./rendererResolution";
+import {
   cameraTransitionComplete,
   interpolateCameraTransition,
   type CameraMotionSpec,
@@ -65,7 +69,9 @@ export async function createPixiDishRenderer(
     backgroundAlpha: 0,
     antialias: true,
     autoDensity: true,
-    resolution: Math.min(globalThis.devicePixelRatio ?? 1, 2),
+    resolution: rendererResolutionForDevicePixelRatio(
+      globalThis.devicePixelRatio,
+    ),
   });
 
   app.canvas.className = "petra-pixi-canvas";
@@ -113,6 +119,22 @@ export async function createPixiDishRenderer(
   const resizeScheduler = createResizeRedrawScheduler(
     () => app.resize(),
     render,
+  );
+  const resolutionEnvironment = {
+    readDevicePixelRatio: () => globalThis.devicePixelRatio,
+    ...(typeof globalThis.matchMedia === "function"
+      ? {
+          matchMedia: (query: string) => globalThis.matchMedia(query),
+        }
+      : {}),
+  };
+  const resolutionWatcher = watchRendererResolution(
+    resolutionEnvironment,
+    app.renderer.resolution,
+    (resolution) => {
+      app.renderer.resolution = resolution;
+      resizeScheduler.schedule();
+    },
   );
   const resizeObserver = new ResizeObserver(() => {
     resizeScheduler.schedule();
@@ -324,6 +346,7 @@ export async function createPixiDishRenderer(
       if (destroyed) return;
       destroyed = true;
       resizeObserver.disconnect();
+      resolutionWatcher.dispose();
       resizeScheduler.cancel();
       app.canvas.removeEventListener("pointerdown", onPointerDown);
       app.canvas.removeEventListener("pointermove", onPointerMove);

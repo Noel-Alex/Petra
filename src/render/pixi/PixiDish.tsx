@@ -15,6 +15,7 @@ export interface PixiDishProps {
   readonly overlayId?: string | null;
   readonly className?: string;
   readonly ariaLabel?: string;
+  readonly ariaDescribedBy?: string;
 }
 
 /**
@@ -29,6 +30,7 @@ export function PixiDish({
   overlayId = null,
   className,
   ariaLabel,
+  ariaDescribedBy,
 }: PixiDishProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const rendererRef = useRef<PixiDishRenderer | null>(null);
@@ -98,7 +100,10 @@ export function PixiDish({
       ref={hostRef}
       className={className}
       data-render-source={usingDemo ? "visual-demo" : "authoritative-snapshot"}
-      role="img"
+      role="region"
+      tabIndex={0}
+      aria-roledescription="interactive Petri dish"
+      aria-describedby={ariaDescribedBy}
       aria-label={
         ariaLabel ??
         (usingDemo

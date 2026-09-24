@@ -1,5 +1,6 @@
 import {
   PROTOCOL_VERSION,
+  assertSimulationSeed,
   type RunIdentity,
   type SimulationCommand,
   type SimulationSnapshot,
@@ -84,7 +85,7 @@ export function planExperimentControlAction(
   }
 
   if (action.type === 'set-seed') {
-    if (!Number.isSafeInteger(action.seed)) throw new Error('seed must be a safe integer')
+    assertSimulationSeed(action.seed)
     const identity = { ...state.identity, seed: action.seed }
     return {
       state: { identity, playing: false, speed: state.speed, acceptedCommands: [] },

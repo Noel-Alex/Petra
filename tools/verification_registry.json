@@ -22,6 +22,11 @@
       "command": ["python", "tools/verify.py", "_scenario"]
     },
     {
+      "id": "local-command-resolution",
+      "modes": ["quick", "premerge"],
+      "command": ["python", "tools/local_command_test.py"]
+    },
+    {
       "id": "typescript-deterministic-suite",
       "modes": ["premerge"],
       "command": ["npm", "run", "verify"]

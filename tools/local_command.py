@@ -1,28 +1,49 @@
 """Resolve local subprocess argv without invoking a shell.
 
-Windows package-manager launchers such as npm are commonly installed as .cmd
-shims. Python's shell-free subprocess path may not resolve the bare shim name
-the same way an interactive shell does, so local experiment tooling resolves
-argv[0] through PATH before spawning it.
+Windows developer tools such as npm are commonly exposed through PATHEXT
+command shims (for example npm.cmd). Python's subprocess launcher does not
+perform the same PATH/PATHEXT lookup for a bare argv[0], so local Petra tools
+resolve the executable before process creation while preserving the remaining
+argv exactly.
 """
 
 from __future__ import annotations
 
+import os
 import shutil
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 
-def resolve_local_command(argv: Sequence[str]) -> list[str]:
-    """Return argv with a PATH-resolved executable when one is available.
+def _uses_windows_command_shims() -> bool:
+    return os.name == "nt"
 
-    Keeping the remaining arguments untouched preserves shell-free execution
-    and avoids quoting/interpolation changes. If PATH cannot resolve argv[0],
-    return the original command so subprocess raises its normal launch error.
+
+def resolve_local_command(
+    argv: Sequence[str],
+    *,
+    env: Mapping[str, str] | None = None,
+) -> list[str]:
+    """Return launch argv with a Windows PATH/PATHEXT executable resolved.
+
+    Non-Windows argv is copied unchanged. On Windows, a resolvable argv[0] is
+    replaced with the concrete path returned by shutil.which(). If lookup fails,
+    argv is left unchanged so subprocess preserves its normal missing-command
+    failure instead of turning absence into a misleading fallback.
     """
-    if not argv:
-        raise ValueError("local command argv must be non-empty")
-    command = list(argv)
-    resolved = shutil.which(command[0])
-    if resolved is not None:
-        command[0] = resolved
-    return command
+
+    if isinstance(argv, (str, bytes)) or not argv:
+        raise ValueError("local command argv must be a non-empty string sequence")
+    if not all(isinstance(part, str) for part in argv):
+        raise TypeError("local command argv entries must be strings")
+    if not argv[0].strip():
+        raise ValueError("local command argv[0] must be non-empty")
+
+    resolved = list(argv)
+    if not _uses_windows_command_shims():
+        return resolved
+
+    search_path = env.get("PATH") if env is not None else None
+    executable = shutil.which(resolved[0], path=search_path)
+    if executable is not None:
+        resolved[0] = executable
+    return resolved

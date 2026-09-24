@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";\nimport { PetraCompactAction } from "../../ui/PetraCompactAction";
 import type { DishRenderSnapshot, SemanticZoomLevel } from "../model";
 import type { CameraMotionSpec } from "./cameraMotion";
 import { createRendererDemoSnapshot } from "./demoSnapshot";
@@ -7,7 +7,7 @@ import {
   type PixiDishRenderer,
   type RendererMotionMode,
 } from "./renderer";
-import { beginRendererInitialization } from "./rendererLifecycle";
+import { beginRendererInitialization } from "./rendererLifecycle";\n\nimport "./rendererFailureFallback.css";
 
 export interface PixiDishProps {
   readonly snapshot?: DishRenderSnapshot | null;
@@ -216,6 +216,7 @@ export function PixiDish({
 
       {renderEnabled && startup.status === "failed" ? (
         <RendererFailureFallback
+          motion={motion}
           errorMessage={startup.errorMessage}
           descriptionId={failureDescriptionId}
           onRetry={() => setRetryAttempt((attempt) => attempt + 1)}
@@ -288,10 +289,12 @@ export function rendererStartupAnnouncement(
 }
 
 export function RendererFailureFallback({
+  motion,
   errorMessage,
   descriptionId,
   onRetry,
 }: {
+  readonly motion: RendererMotionMode;
   readonly errorMessage: string | null;
   readonly descriptionId: string;
   readonly onRetry: () => void;
@@ -346,21 +349,14 @@ export function RendererFailureFallback({
             demonstration biology or changed the simulation state.
           </span>
         </div>
-        <button
-          type="button"
+        <PetraCompactAction
+          motionPreference={motion}
+          className="pixi-renderer-retry-action"
           aria-describedby={descriptionId}
           onClick={onRetry}
-          style={{
-            border: "1px solid rgba(143, 220, 255, 0.42)",
-            borderRadius: "12px",
-            background: "rgba(143, 220, 255, 0.1)",
-            color: "#eef7ff",
-            padding: "0.58rem 0.82rem",
-            cursor: "pointer",
-          }}
         >
           Retry renderer
-        </button>
+        </PetraCompactAction>
       </div>
     </div>
   );

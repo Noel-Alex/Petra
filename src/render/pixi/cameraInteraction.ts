@@ -113,6 +113,19 @@ export function rebaseCameraTransitionForMotionSpecChange(
   };
 }
 
+export function wheelZoomWouldChangePendingTarget(
+  state: Pick<CameraTransitionState, "targetCamera">,
+  factor: number,
+): boolean {
+  const target = clampCamera(state.targetCamera);
+  const next = zoomAroundDishPoint(
+    target,
+    { x: target.centerX, y: target.centerY },
+    factor,
+  );
+  return next.zoom !== target.zoom;
+}
+
 export function retargetWheelZoomFromRendered(args: {
   readonly state: CameraTransitionState;
   readonly screen: ScreenPoint;

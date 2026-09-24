@@ -1,7 +1,10 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import type { AuthoritativeRegionInspection } from "../sim/regionInspector";
+import type {
+  AuthoritativeRegionInspection,
+  MeasuredAuthoritativeRegionInspection,
+} from "../sim/regionInspector";
 import { RegionInspectorPanel } from "./RegionInspectorPanel";
 import {
   acceptRegionInspection,
@@ -13,9 +16,10 @@ import {
 
 function readout(
   selectionId: string,
-  overrides: Partial<AuthoritativeRegionInspection> = {},
-): AuthoritativeRegionInspection {
+  overrides: Partial<MeasuredAuthoritativeRegionInspection> = {},
+): MeasuredAuthoritativeRegionInspection {
   return {
+    kind: "measured",
     selectionId,
     stateVersion: 1,
     configurationFingerprint: "config-fingerprint-v1",
@@ -38,6 +42,29 @@ function readout(
     ],
     ...overrides,
   };
+}
+
+function noCoverage(
+  selectionId: string,
+): AuthoritativeRegionInspection {
+  return {
+    kind: "no-grid-coverage",
+    selectionId,
+    stateVersion: 1,
+    configurationFingerprint: "config-fingerprint-v1",
+  };
+}
+
+function noCoverageState(
+  selectionId: string,
+): RegionInspectorPresentationState {
+  return acceptRegionInspection(
+    beginRegionInspection(
+      unavailableRegionInspector("No region selected."),
+      selectionId,
+    ),
+    noCoverage(selectionId),
+  ).state;
 }
 
 function readyState(selectionId: string): RegionInspectorPresentationState {
@@ -107,6 +134,44 @@ describe("RegionInspectorPanel", () => {
     );
     expect(html).not.toContain("Simulation time");
     expect(html).not.toContain(" h");
+  });
+
+  it("renders explicit no-grid coverage without numeric scientific measurements", () => {
+    const html = renderToStaticMarkup(
+      <RegionInspectorPanel state={noCoverageState("region-empty")} />,
+    );
+
+    expect(html).toContain('data-region-inspector-status="ready"');
+    expect(html).toContain('data-readout-kind="no-grid-coverage"');
+    expect(html).toContain('data-readout-selection-id="region-empty"');
+    expect(html).toContain("No grid coverage");
+    expect(html).toContain("No authoritative grid cells");
+    expect(html).toContain(
+      "No biomass or resource measurement is reported.",
+    );
+    expect(html).toContain("config-fingerprint-v1");
+    expect(html).not.toContain("Total biomass");
+    expect(html).not.toContain("Total resource");
+    expect(html).not.toContain("model-biomass");
+    expect(html).not.toContain("model-resource");
+    expect(html).not.toContain("Lineage composition");
+  });
+
+  it("keeps a no-grid-coverage result explicitly stale when selection changes", () => {
+    const state = beginRegionInspection(
+      noCoverageState("region-empty"),
+      "region-next",
+    );
+    const html = renderToStaticMarkup(<RegionInspectorPanel state={state} />);
+
+    expect(html).toContain('data-region-inspector-status="stale"');
+    expect(html).toContain('data-active-selection-id="region-next"');
+    expect(html).toContain('data-readout-selection-id="region-empty"');
+    expect(html).toContain('data-readout-kind="no-grid-coverage"');
+    expect(html).toContain('data-readout-stale="true"');
+    expect(html).toContain("The result below still belongs");
+    expect(html).not.toContain("Total biomass");
+    expect(html).not.toContain("model-biomass");
   });
 
   it("keeps an old readout visibly owned by the old selection while a new one is pending", () => {

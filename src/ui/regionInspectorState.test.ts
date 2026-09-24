@@ -16,6 +16,7 @@ function readout(
   stateVersion = 1,
 ): AuthoritativeRegionInspection {
   return {
+    kind: "measured",
     selectionId,
     stateVersion,
     configurationFingerprint: "config-v1",
@@ -31,6 +32,18 @@ function readout(
         fractionOfRegionBiomass: 1,
       },
     ],
+  };
+}
+
+function noCoverage(
+  selectionId: string,
+  stateVersion = 1,
+): AuthoritativeRegionInspection {
+  return {
+    kind: "no-grid-coverage",
+    selectionId,
+    stateVersion,
+    configurationFingerprint: "config-v1",
   };
 }
 
@@ -79,6 +92,28 @@ describe("region inspector presentation state", () => {
     expect(current.accepted).toBe(true);
     expect(current.state.status).toBe("ready");
     expect(visibleReadout(current.state)?.selectionId).toBe("region-b");
+  });
+
+  it("preserves explicit no-grid-coverage as an authoritative result across stale-safe state", () => {
+    let state = beginRegionInspection(
+      unavailableRegionInspector("No region selected."),
+      "region-empty",
+    );
+    state = acceptRegionInspection(state, noCoverage("region-empty")).state;
+
+    expect(state.status).toBe("ready");
+    expect(visibleReadout(state)).toMatchObject({
+      kind: "no-grid-coverage",
+      selectionId: "region-empty",
+    });
+
+    state = beginRegionInspection(state, "region-next");
+    expect(state.status).toBe("stale");
+    expect(activeSelectionId(state)).toBe("region-next");
+    expect(visibleReadout(state)).toMatchObject({
+      kind: "no-grid-coverage",
+      selectionId: "region-empty",
+    });
   });
 
   it("keeps any previous readout visibly stale when the current query fails", () => {

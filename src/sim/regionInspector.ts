@@ -18,10 +18,15 @@ export interface RegionLineageBiomass {
   readonly fractionOfRegionBiomass: number
 }
 
-export interface AuthoritativeRegionInspection {
+interface AuthoritativeRegionInspectionIdentity {
   readonly selectionId: string
   readonly stateVersion: number
   readonly configurationFingerprint: string
+}
+
+export interface MeasuredAuthoritativeRegionInspection
+  extends AuthoritativeRegionInspectionIdentity {
+  readonly kind: 'measured'
   readonly selectedCellCount: number
   readonly totalBiomass: number
   readonly totalResource: number
@@ -29,6 +34,15 @@ export interface AuthoritativeRegionInspection {
   readonly resourceUnit: 'model-resource'
   readonly lineageBiomass: readonly RegionLineageBiomass[]
 }
+
+export interface NoGridCoverageRegionInspection
+  extends AuthoritativeRegionInspectionIdentity {
+  readonly kind: 'no-grid-coverage'
+}
+
+export type AuthoritativeRegionInspection =
+  | MeasuredAuthoritativeRegionInspection
+  | NoGridCoverageRegionInspection
 
 function assertUnitInterval(name: string, value: number): void {
   if (!Number.isFinite(value) || value < 0 || value > 1) {
@@ -103,6 +117,19 @@ export function inspectAuthoritativeRegion(
     throw new Error('region inspection lineage fields must match grid dimensions')
   }
 
+  const identity: AuthoritativeRegionInspectionIdentity = {
+    selectionId: selection.id,
+    stateVersion: state.version,
+    configurationFingerprint: state.configurationFingerprint,
+  }
+
+  if (indices.length === 0) {
+    return {
+      ...identity,
+      kind: 'no-grid-coverage',
+    }
+  }
+
   const lineageTotals = state.lineageBiomass.map((channel) =>
     indices.reduce((sum, index) => sum + (channel[index] ?? 0), 0),
   )
@@ -110,9 +137,8 @@ export function inspectAuthoritativeRegion(
   const totalResource = indices.reduce((sum, index) => sum + (state.resource[index] ?? 0), 0)
 
   return {
-    selectionId: selection.id,
-    stateVersion: state.version,
-    configurationFingerprint: state.configurationFingerprint,
+    ...identity,
+    kind: 'measured',
     selectedCellCount: indices.length,
     totalBiomass,
     totalResource,

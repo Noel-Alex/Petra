@@ -6,7 +6,7 @@ function sample(
   overrides: Partial<WorkerSessionPerformanceSample>,
 ): WorkerSessionPerformanceSample {
   return {
-    version: 1,
+    version: 2,
     completedAtMs: 110,
     requestType: "command",
     commandType: "advance",
@@ -15,6 +15,8 @@ function sample(
     queuedRequestsBehindAtDispatch: 0,
     requestPayloadBytes: 100,
     responsePayloadBytes: 300,
+    senderPostMessageCallMs: 1.5,
+    mainThreadSnapshotCloneMs: 2.5,
     roundTripMs: 10,
     workerExecutionMs: 6,
     workerExecutionMsPerTick: 1.5,
@@ -44,7 +46,7 @@ describe("worker performance summary", () => {
     ]);
 
     expect(summary).toEqual({
-      version: 1,
+      version: 2,
       sampleCount: 2,
       successfulSampleCount: 2,
       advanceSampleCount: 2,
@@ -52,6 +54,12 @@ describe("worker performance summary", () => {
       totalAdvanceTicks: 6,
       totalRequestPayloadBytes: 180,
       totalResponsePayloadBytes: 520,
+      measuredSenderPostMessageSampleCount: 2,
+      totalSenderPostMessageCallMs: 3,
+      maxSenderPostMessageCallMs: 1.5,
+      measuredMainThreadSnapshotCloneSampleCount: 2,
+      totalMainThreadSnapshotCloneMs: 5,
+      maxMainThreadSnapshotCloneMs: 2.5,
       totalRoundTripMs: 15,
       totalWorkerExecutionMs: 8,
       workerExecutionMsPerAdvanceTick: 8 / 6,

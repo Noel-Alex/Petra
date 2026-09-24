@@ -126,6 +126,25 @@ describe("validateRenderSnapshot", () => {
     ).toThrow(/unsupported lineage pattern token/i);
   });
 
+  it("rejects duplicate field identities before overlay selection", () => {
+    const snapshot = fixture();
+    const first = snapshot.fields[0]!;
+    const duplicate = {
+      ...first,
+      kind: "antibiotic" as const,
+      label: "Different field with same id",
+      unit: "ug/mL",
+      values: new Float32Array([1, 0, 1, 0, 0.25, 0, 1, 0, 1]),
+    };
+
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        fields: [first, duplicate],
+      }),
+    ).toThrow(/duplicate render field id: nutrient/i);
+  });
+
   it("rejects dimensions that disagree with grid", () => {
     const snapshot = fixture();
     expect(() =>

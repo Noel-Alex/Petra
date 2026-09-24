@@ -13,9 +13,11 @@ import { ENGINE_VERSION } from "../sim/protocol";
 import {
   assertTaskMatchesMechanisticExecutionDefinition,
   createMechanisticExecutionDefinition,
+  createMechanisticRunConditionExecutionDefinition,
   createNoInterventionExecutionDefinition,
   createNoInterventionSweepFamily,
   createSweepParameterPointForBinding,
+  createSweepRunConditionForExecution,
   mechanisticInterventionFingerprint,
   mechanisticParameterSetHash,
   type NoInterventionExecutionDefinition,
@@ -67,14 +69,31 @@ const binding: ComposedParameterSetBinding = {
   configurationFingerprint: composedConfigurationFingerprint(config),
 };
 
+function runCondition(conditionId = "baseline-condition") {
+  return createMechanisticRunConditionExecutionDefinition({
+    conditionId,
+    conditionVersion: "fixture-initial-state-v1",
+    identityParts: [
+      "initial-resource=8",
+      "founders=ancestor:1|variant:2",
+    ],
+  });
+}
+
 function makeTask(args?: {
   parameterSetHash?: string;
+  runConditionId?: string;
+  runConditionFingerprint?: string;
   interventionFamilyId?: string;
   interventionFingerprint?: string;
 }): MechanisticSweepTask {
   const parameterPoint = createSweepParameterPointForBinding("baseline", binding);
+  const condition = createSweepRunConditionForExecution(runCondition());
   const family = createNoInterventionSweepFamily("untreated");
   const parameterSetHash = args?.parameterSetHash ?? parameterPoint.parameterSetHash;
+  const runConditionId = args?.runConditionId ?? condition.id;
+  const runConditionFingerprint =
+    args?.runConditionFingerprint ?? condition.fingerprint;
   const interventionFamilyId = args?.interventionFamilyId ?? family.id;
   const interventionFingerprint =
     args?.interventionFingerprint ?? family.fingerprint;
@@ -89,6 +108,7 @@ function makeTask(args?: {
       targetSchemaVersion: "fixture-target-v1",
     },
     parameterPointId: parameterPoint.id,
+    runConditionId,
     interventionFamilyId,
     split: "train",
     trajectory: {
@@ -97,6 +117,7 @@ function makeTask(args?: {
         parameterSetHash,
         scenarioId: evolutionGraph.scenarioId,
         scenarioVersion: evolutionGraph.scenarioVersion,
+        runConditionFingerprint,
         groupId: `intervention:${interventionFingerprint.length}:${interventionFingerprint}`,
       },
       seed: 7,
@@ -110,6 +131,7 @@ function makeTask(args?: {
 function executionDefinition(familyId = "untreated") {
   return createMechanisticExecutionDefinition({
     parameterSetBinding: binding,
+    runCondition: runCondition(),
     intervention: createNoInterventionExecutionDefinition(familyId),
   });
 }
@@ -150,9 +172,21 @@ describe("mechanistic execution-definition provenance", () => {
     expect(() =>
       createMechanisticExecutionDefinition({
         parameterSetBinding: fixtureBinding,
+        runCondition: runCondition(),
         intervention: createNoInterventionExecutionDefinition("untreated"),
       }),
     ).toThrow(/require provenance parameter-set authority/);
+  });
+
+  it("keeps equivalent run-condition biology independent of presentation naming", () => {
+    const baseline = runCondition("baseline-condition");
+    const renamed = runCondition("renamed-condition");
+
+    expect(renamed.fingerprint).toBe(baseline.fingerprint);
+    expect(createSweepRunConditionForExecution(renamed)).toEqual({
+      id: "renamed-condition",
+      fingerprint: baseline.fingerprint,
+    });
   });
 
   it("keeps no-intervention biology independent of presentation family naming", () => {
@@ -167,7 +201,7 @@ describe("mechanistic execution-definition provenance", () => {
     );
   });
 
-  it("accepts a task only when parameter and intervention identities match authority", () => {
+  it("accepts a task only when parameter, run-condition and intervention identities match authority", () => {
     expect(() =>
       assertTaskMatchesMechanisticExecutionDefinition(
         makeTask(),
@@ -183,6 +217,22 @@ describe("mechanistic execution-definition provenance", () => {
         config,
       ),
     ).toThrow(/parameterSetHash/);
+
+    expect(() =>
+      assertTaskMatchesMechanisticExecutionDefinition(
+        makeTask({ runConditionId: "renamed-condition" }),
+        executionDefinition(),
+        config,
+      ),
+    ).toThrow(/runConditionId/);
+
+    expect(() =>
+      assertTaskMatchesMechanisticExecutionDefinition(
+        makeTask({ runConditionFingerprint: "wrong-run-condition" }),
+        executionDefinition(),
+        config,
+      ),
+    ).toThrow(/run-condition fingerprint/);
 
     expect(() =>
       assertTaskMatchesMechanisticExecutionDefinition(
@@ -249,8 +299,10 @@ describe("mechanistic execution-definition provenance", () => {
     }));
 
     await expect(
-      executor.execute(makeTask({ parameterSetHash: "wrong-before-engine" })),
-    ).rejects.toThrow(/parameterSetHash/);
+      executor.execute(
+        makeTask({ runConditionFingerprint: "wrong-before-engine" }),
+      ),
+    ).rejects.toThrow(/run-condition fingerprint/);
     expect(projected).toBe(false);
   });
 

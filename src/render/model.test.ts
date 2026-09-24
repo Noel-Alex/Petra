@@ -126,6 +126,18 @@ describe("validateRenderSnapshot", () => {
     ).toThrow(/unsupported lineage pattern token/i);
   });
 
+  it("rejects unsupported runtime overlay kinds", () => {
+    const snapshot = fixture();
+    const invalid = {
+      ...snapshot.fields[0]!,
+      kind: "mystery-overlay",
+    } as unknown as DishRenderSnapshot["fields"][number];
+
+    expect(() =>
+      validateRenderSnapshot({ ...snapshot, fields: [invalid] }),
+    ).toThrow(/unsupported overlay kind/i);
+  });
+
   it("rejects dimensions that disagree with grid", () => {
     const snapshot = fixture();
     expect(() =>

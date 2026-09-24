@@ -13,8 +13,16 @@ import type { RendererMotionMode } from "../render/pixi/renderer";
 import { PetraCompactAction } from "../ui/PetraCompactAction";
 import { planSurfaceTransition } from "../ui/motion/semanticTransitions";
 import {
-  defaultDishOverlayId,
-  resolveDishOverlay,
+  AUTOMATIC_DISH_OVERLAY,
+  AUTOMATIC_DISH_OVERLAY_CONTROL_VALUE,
+  NO_DISH_OVERLAY_CONTROL_VALUE,
+  dishOverlayControlValue,
+  dishOverlayFieldSelection,
+  dishOverlaySelectionFromControlValue,
+  reconcileDishOverlaySelection,
+  resolveDishOverlaySelection,
+  sameDishOverlaySelection,
+  type DishOverlaySelection,
 } from "./dishPresentation";
 import {
   INITIAL_DISH_RENDER_SOURCE_STATE,
@@ -79,19 +87,22 @@ export function DishViewport({
   const usingAuthoritative =
     renderSource.kind === "authoritative-snapshot";
   const usingDemo = renderSource.kind === "visual-demo";
-  const [requestedOverlayId, setRequestedOverlayId] = useState<string | null>(
-    () => (activeSnapshot === null ? null : defaultDishOverlayId(activeSnapshot)),
-  );
+  const [overlaySelection, setOverlaySelection] =
+    useState<DishOverlaySelection>(AUTOMATIC_DISH_OVERLAY);
   const [cameraResetSignal, setCameraResetSignal] = useState(0);
   const [semanticGuide, setSemanticGuide] = useState<{
     readonly previous: SemanticZoomLevel;
     readonly current: SemanticZoomLevel;
   }>({ previous: "dish", current: "dish" });
-  const activeOverlay =
+  const resolvedOverlaySelection =
     activeSnapshot === null
       ? null
-      : resolveDishOverlay(activeSnapshot, requestedOverlayId);
-  const resolvedOverlayId = activeOverlay?.id ?? null;
+      : resolveDishOverlaySelection(activeSnapshot, overlaySelection);
+  const effectiveOverlaySelection =
+    resolvedOverlaySelection?.selection ?? overlaySelection;
+  const activeOverlay = resolvedOverlaySelection?.field ?? null;
+  const resolvedOverlayId =
+    resolvedOverlaySelection?.rendererOverlayId ?? null;
   const overlayLegend =
     activeOverlay === null ? null : buildOverlayLegend(activeOverlay);
   const renderEnabled = activeSnapshot !== null;
@@ -112,6 +123,19 @@ export function DishViewport({
     if (renderEnabled) return;
     setSemanticGuide({ previous: "dish", current: "dish" });
   }, [renderEnabled]);
+
+  useEffect(() => {
+    if (activeSnapshot === null) return;
+    setOverlaySelection((current) => {
+      const reconciled = reconcileDishOverlaySelection(
+        activeSnapshot,
+        current,
+      );
+      return sameDishOverlaySelection(current, reconciled)
+        ? current
+        : reconciled;
+    });
+  }, [activeSnapshot]);
 
   const handleSemanticZoomLevelChange = (level: SemanticZoomLevel) => {
     setSemanticGuide((current) =>
@@ -205,30 +229,45 @@ export function DishViewport({
           <span>Overlay</span>
           <select
             aria-label="Petri dish overlay"
-            value={resolvedOverlayId ?? ""}
-            disabled={activeSnapshot === null || activeSnapshot.fields.length === 0}
+            value={
+              activeSnapshot === null
+                ? "awaiting"
+                : dishOverlayControlValue(effectiveOverlaySelection)
+            }
+            disabled={activeSnapshot === null}
             onChange={(event) => {
-              setRequestedOverlayId(
-                event.target.value === "" ? null : event.target.value,
+              setOverlaySelection(
+                dishOverlaySelectionFromControlValue(event.target.value),
               );
             }}
           >
             {activeSnapshot === null ? (
-              <option value="">Awaiting authoritative data</option>
-            ) : activeSnapshot.fields.length === 0 ? (
-              <option value="">No overlay</option>
+              <option value="awaiting">Awaiting authoritative data</option>
             ) : (
-              activeSnapshot.fields.map((field) => (
-                <option key={field.id} value={field.id}>
-                  {field.label}
+              <>
+                <option value={AUTOMATIC_DISH_OVERLAY_CONTROL_VALUE}>
+                  Automatic
                 </option>
-              ))
+                <option value={NO_DISH_OVERLAY_CONTROL_VALUE}>None</option>
+                {activeSnapshot.fields.map((field) => (
+                  <option
+                    key={field.id}
+                    value={dishOverlayControlValue(
+                      dishOverlayFieldSelection(field.id),
+                    )}
+                  >
+                    {field.label}
+                  </option>
+                ))}
+              </>
             )}
           </select>
         </label>
 
         <div
           className="dish-overlay-legend"
+          data-overlay-selection-mode={effectiveOverlaySelection.mode}
+          data-overlay-resolved-id={resolvedOverlayId ?? "none"}
           data-overlay-kind={activeOverlay?.kind ?? "none"}
           data-overlay-transfer={overlayLegend?.transfer ?? "none"}
           data-overlay-pattern={overlayLegend?.patternToken ?? "none"}
@@ -246,15 +285,17 @@ export function DishViewport({
           } as CSSProperties}
         >
           <div
-            key={resolvedOverlayId ?? "none"}
+            key={`${effectiveOverlaySelection.mode}:${resolvedOverlayId ?? "none"}`}
             className="dish-overlay-legend__visual"
             data-transition-treatment={overlayMotion.treatment}
           >
             <span className="dish-overlay-swatch" aria-hidden="true" />
             {activeSnapshot === null ? (
               <span>No authoritative field overlay</span>
+            ) : effectiveOverlaySelection.mode === "none" ? (
+              <span>No field overlay selected</span>
             ) : overlayLegend === null ? (
-              <span>No field overlay</span>
+              <span>Automatic overlay · no source fields available</span>
             ) : (
               <span className="dish-overlay-copy">
                 <strong>

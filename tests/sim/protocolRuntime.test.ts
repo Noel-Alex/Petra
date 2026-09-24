@@ -243,8 +243,10 @@ describe('worker protocol-v4 runtime validation', () => {
 
   it('rejects malformed nested restore RNG state while retaining request correlation', () => {
     const sparseRng = [1, , 3, 4]
-    const checkpoint = structuredClone(syntheticSnapshot().checkpoint)
-    ;(checkpoint as { rngState: unknown }).rngState = sparseRng
+    const checkpoint = {
+      ...structuredClone(syntheticSnapshot().checkpoint),
+      rngState: sparseRng,
+    }
 
     const parsed = parseWorkerRequest({
       protocolVersion: PROTOCOL_VERSION,
@@ -288,8 +290,16 @@ describe('worker protocol-v4 runtime validation', () => {
   })
 
   it('rejects malformed composed metrics instead of promoting false authority', () => {
-    const corrupt = structuredClone(composedSnapshot)
-    ;(corrupt.checkpoint.metrics as { totalBiomass: number }).totalBiomass += 1
+    const corrupt = {
+      ...structuredClone(composedSnapshot),
+      checkpoint: {
+        ...structuredClone(composedSnapshot.checkpoint),
+        metrics: {
+          ...structuredClone(composedSnapshot.checkpoint.metrics),
+          totalBiomass: composedSnapshot.checkpoint.metrics.totalBiomass + 1,
+        },
+      },
+    }
 
     const parsed = parseWorkerResponse({
       protocolVersion: PROTOCOL_VERSION,
@@ -307,12 +317,18 @@ describe('worker protocol-v4 runtime validation', () => {
   })
 
   it('rejects composed state whose fingerprint is detached from run identity', () => {
-    const corrupt = structuredClone(composedSnapshot)
-    ;(
-      corrupt.checkpoint.composedState as {
-        configurationFingerprint: string
-      }
-    ).configurationFingerprint += '-forged'
+    const corrupt = {
+      ...structuredClone(composedSnapshot),
+      checkpoint: {
+        ...structuredClone(composedSnapshot.checkpoint),
+        composedState: {
+          ...structuredClone(composedSnapshot.checkpoint.composedState),
+          configurationFingerprint:
+            composedSnapshot.checkpoint.composedState.configurationFingerprint +
+            '-forged',
+        },
+      },
+    }
 
     const parsed = parseWorkerResponse({
       protocolVersion: PROTOCOL_VERSION,

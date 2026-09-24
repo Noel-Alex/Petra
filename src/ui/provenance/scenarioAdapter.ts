@@ -82,6 +82,9 @@ export interface ScenarioAssumptionsResolution {
 export function resolveScenarioProvenance(
   args: ResolveScenarioProvenanceArgs,
 ): ScenarioProvenanceResolution {
+  assertStableIdentity("provenance record id", args.id);
+  assertStableIdentity("provenance record label", args.label);
+
   const problems: string[] = [];
   const record = presentationRecord(args.record, problems);
   const sourceKeys = citationKeys(record, problems);
@@ -370,6 +373,12 @@ function citationLocator(
   }
 
   return null;
+}
+
+function assertStableIdentity(name: string, value: string): void {
+  if (value.length === 0 || value.trim() !== value) {
+    throw new TypeError(`${name} must be a trimmed non-empty string`);
+  }
 }
 
 function isRecord(value: unknown): value is ExplicitPresentationProvenanceRecord {

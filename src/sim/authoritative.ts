@@ -18,7 +18,7 @@ import {
 } from './samplingPolicy'
 
 /** Versioned serializable composition boundary. Biological values are caller supplied. */
-export const COMPOSED_STATE_VERSION = 2 as const
+export const COMPOSED_STATE_VERSION = 3 as const
 
 export interface ComposedLineageConfig {
   readonly id: string

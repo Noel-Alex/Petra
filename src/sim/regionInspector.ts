@@ -1,4 +1,6 @@
 import type { ComposedSimulationState } from './authoritative'
+import { assertComposedParameterSetBindingIdentity } from './parameterSetBinding'
+import type { ComposedSimulationCheckpoint, RunIdentity } from './protocol'
 
 /**
  * A presentation-independent circular query in normalized dish coordinates.
@@ -23,6 +25,10 @@ interface AuthoritativeRegionInspectionIdentity {
   readonly selectionId: string
   readonly stateVersion: number
   readonly configurationFingerprint: string
+  readonly runIdentity: RunIdentity
+  readonly tick: number
+  readonly simulationTimeHours: number
+  readonly commandCount: number
 }
 
 export interface MeasuredAuthoritativeRegionInspection
@@ -59,6 +65,43 @@ function validateSelection(selection: NormalizedRegionSelection): void {
   assertUnitInterval('region centerY', selection.centerY)
   if (!Number.isFinite(selection.radius) || selection.radius <= 0 || selection.radius > 1) {
     throw new Error('region radius must be finite and within (0, 1]')
+  }
+}
+
+function validateCheckpointIdentity(
+  checkpoint: ComposedSimulationCheckpoint,
+): void {
+  if (checkpoint.authority !== 'composed') {
+    throw new Error('region inspection requires composed checkpoint authority')
+  }
+  if (!Number.isSafeInteger(checkpoint.tick) || checkpoint.tick < 0) {
+    throw new Error('region inspection tick must be a non-negative safe integer')
+  }
+  if (
+    !Number.isFinite(checkpoint.simulationTimeHours) ||
+    checkpoint.simulationTimeHours < 0
+  ) {
+    throw new Error(
+      'region inspection simulation time must be finite and non-negative',
+    )
+  }
+  if (
+    !Number.isSafeInteger(checkpoint.commandCount) ||
+    checkpoint.commandCount < 0
+  ) {
+    throw new Error(
+      'region inspection command count must be a non-negative safe integer',
+    )
+  }
+
+  assertComposedParameterSetBindingIdentity(checkpoint.identity)
+  if (
+    checkpoint.identity.parameterSetBinding.configurationFingerprint !==
+    checkpoint.composedState.configurationFingerprint
+  ) {
+    throw new Error(
+      'region inspection run binding does not match composed state configuration',
+    )
   }
 }
 
@@ -104,9 +147,11 @@ export function selectedRegionCellIndices(
  * its authoritative state defines that bridge.
  */
 export function inspectAuthoritativeRegion(
-  state: ComposedSimulationState,
+  checkpoint: ComposedSimulationCheckpoint,
   selection: NormalizedRegionSelection,
 ): AuthoritativeRegionInspection {
+  validateCheckpointIdentity(checkpoint)
+  const state = checkpoint.composedState
   const indices = selectedRegionCellIndices(state, selection)
   if (state.resource.length !== state.width * state.height) {
     throw new Error('region inspection resource field must match grid dimensions')
@@ -127,6 +172,10 @@ export function inspectAuthoritativeRegion(
     selectionId: selection.id,
     stateVersion: state.version,
     configurationFingerprint: state.configurationFingerprint,
+    runIdentity: structuredClone(checkpoint.identity),
+    tick: checkpoint.tick,
+    simulationTimeHours: checkpoint.simulationTimeHours,
+    commandCount: checkpoint.commandCount,
   }
 
   if (indices.length === 0) {

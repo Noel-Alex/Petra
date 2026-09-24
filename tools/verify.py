@@ -203,8 +203,13 @@ def scenario_contracts() -> int:
     properties = schema.get("properties", {})
     preset_dir = ROOT / "data" / "presets"
     preset_paths = sorted(preset_dir.glob("*.json")) if preset_dir.exists() else []
+    run_preset_dir = ROOT / "data" / "run_presets"
+    run_preset_paths = (
+        sorted(run_preset_dir.glob("*.json")) if run_preset_dir.exists() else []
+    )
     errors: list[str] = []
     reference_count = 0
+    scenario_index: dict[tuple[str, str], dict[str, Any]] = {}
 
     for path in preset_paths:
         obj = load_json(path)
@@ -213,6 +218,17 @@ def scenario_contracts() -> int:
         if not isinstance(obj, dict):
             errors.append(f"{prefix}: preset root must be an object")
             continue
+
+        scenario_id = obj.get("id")
+        scenario_version = obj.get("version")
+        if _nonempty_string(scenario_id) and _nonempty_string(scenario_version):
+            identity = (scenario_id, scenario_version)
+            if identity in scenario_index:
+                errors.append(
+                    f"{prefix}: duplicate scenario identity {scenario_id}@{scenario_version}"
+                )
+            else:
+                scenario_index[identity] = obj
 
         for key in required:
             if key not in obj:
@@ -708,13 +724,211 @@ def scenario_contracts() -> int:
             elif source_key not in citations:
                 errors.append(f"{prefix}: {ref_path} references unknown citation key {source_key!r}")
 
+    for path in run_preset_paths:
+        preset = load_json(path)
+        prefix = path.name
+        preset_path = f"{prefix}: run preset"
+
+        if not isinstance(preset, dict):
+            errors.append(f"{preset_path} root must be an object")
+            continue
+
+        expected_keys = {
+            "schemaVersion",
+            "id",
+            "version",
+            "scenarioId",
+            "scenarioVersion",
+            "parameterSetId",
+            "parameterSetVersion",
+            "classification",
+            "seed",
+            "initialResourceLevel",
+            "inocula",
+            "provenance",
+        }
+        if set(preset) != expected_keys:
+            errors.append(
+                f"{preset_path} must contain exactly {sorted(expected_keys)!r}"
+            )
+
+        if preset.get("schemaVersion") != 1:
+            errors.append(f"{preset_path}.schemaVersion must equal 1")
+        for key in (
+            "id",
+            "version",
+            "scenarioId",
+            "scenarioVersion",
+            "parameterSetId",
+            "parameterSetVersion",
+        ):
+            if not _nonempty_string(preset.get(key)):
+                errors.append(f"{preset_path}.{key} must be a non-empty string")
+
+        if preset.get("classification") != "engineering":
+            errors.append(f"{preset_path}.classification must be engineering")
+
+        seed = preset.get("seed")
+        if (
+            not isinstance(seed, int)
+            or isinstance(seed, bool)
+            or seed < 0
+            or seed > 0xFFFF_FFFF
+        ):
+            errors.append(
+                f"{preset_path}.seed must be an unsigned 32-bit integer"
+            )
+
+        resource_level = preset.get("initialResourceLevel")
+        if (
+            not isinstance(resource_level, (int, float))
+            or isinstance(resource_level, bool)
+            or not math.isfinite(resource_level)
+            or resource_level < 0
+        ):
+            errors.append(
+                f"{preset_path}.initialResourceLevel must be finite and non-negative"
+            )
+
+        _validate_presentation_provenance(
+            preset,
+            preset_path,
+            errors,
+            require_context=True,
+        )
+        preset_provenance = preset.get("provenance")
+        if isinstance(preset_provenance, dict):
+            if preset_provenance.get("classification") != "engineering":
+                errors.append(
+                    f"{preset_path}.provenance.classification must be engineering"
+                )
+            if not _nonempty_string(preset_provenance.get("limitation")):
+                errors.append(
+                    f"{preset_path}.provenance.limitation is required"
+                )
+
+        identity = (preset.get("scenarioId"), preset.get("scenarioVersion"))
+        scenario = scenario_index.get(identity)
+        if scenario is None:
+            errors.append(
+                f"{preset_path} references unknown scenario "
+                f"{preset.get('scenarioId')}@{preset.get('scenarioVersion')}"
+            )
+            continue
+
+        composed_set = scenario.get("composedParameterSet")
+        if not isinstance(composed_set, dict):
+            errors.append(
+                f"{preset_path} referenced scenario has no composedParameterSet"
+            )
+            continue
+        if preset.get("parameterSetId") != composed_set.get("id"):
+            errors.append(
+                f"{preset_path}.parameterSetId must match scenario composedParameterSet.id"
+            )
+        if preset.get("parameterSetVersion") != composed_set.get("version"):
+            errors.append(
+                f"{preset_path}.parameterSetVersion must match scenario composedParameterSet.version"
+            )
+
+        environment = scenario.get("environment")
+        defaults = (
+            environment.get("engineeringDefaults")
+            if isinstance(environment, dict)
+            else None
+        )
+        if not isinstance(defaults, dict):
+            errors.append(
+                f"{preset_path} referenced scenario has no engineeringDefaults"
+            )
+            continue
+
+        grid_size = defaults.get("gridSize")
+        radius = defaults.get("dishRadiusCells")
+        lineages = composed_set.get("lineages")
+        lineage_ids = {
+            lineage.get("id")
+            for lineage in lineages
+            if isinstance(lineages, list)
+            for lineage in lineages
+            if isinstance(lineage, dict) and _nonempty_string(lineage.get("id"))
+        } if isinstance(lineages, list) else set()
+
+        inocula = preset.get("inocula")
+        if not isinstance(inocula, list):
+            errors.append(f"{preset_path}.inocula must be an array")
+            continue
+
+        for index, inoculum in enumerate(inocula):
+            inoculum_path = f"{preset_path}.inocula[{index}]"
+            if not isinstance(inoculum, dict):
+                errors.append(f"{inoculum_path} must be an object")
+                continue
+            expected_inoculum_keys = {"lineageId", "x", "y", "biomass"}
+            if set(inoculum) != expected_inoculum_keys:
+                errors.append(
+                    f"{inoculum_path} must contain exactly "
+                    f"{sorted(expected_inoculum_keys)!r}"
+                )
+
+            lineage_id = inoculum.get("lineageId")
+            if not _nonempty_string(lineage_id):
+                errors.append(f"{inoculum_path}.lineageId must be a non-empty string")
+            elif lineage_id not in lineage_ids:
+                errors.append(
+                    f"{inoculum_path}.lineageId references an unknown baseline lineage"
+                )
+
+            x = inoculum.get("x")
+            y = inoculum.get("y")
+            if (
+                not isinstance(x, int)
+                or isinstance(x, bool)
+                or not isinstance(y, int)
+                or isinstance(y, bool)
+            ):
+                errors.append(
+                    f"{inoculum_path} coordinates must be integers"
+                )
+            elif (
+                not isinstance(grid_size, int)
+                or isinstance(grid_size, bool)
+                or x < 0
+                or y < 0
+                or x >= grid_size
+                or y >= grid_size
+            ):
+                errors.append(
+                    f"{inoculum_path} coordinates must lie inside the scenario grid"
+                )
+            elif isinstance(radius, (int, float)) and math.isfinite(radius):
+                center = (grid_size - 1) / 2
+                dx = x - center
+                dy = y - center
+                if dx * dx + dy * dy > radius * radius:
+                    errors.append(
+                        f"{inoculum_path} must lie inside the authoritative circular dish"
+                    )
+
+            biomass = inoculum.get("biomass")
+            if (
+                not isinstance(biomass, (int, float))
+                or isinstance(biomass, bool)
+                or not math.isfinite(biomass)
+                or biomass <= 0
+            ):
+                errors.append(
+                    f"{inoculum_path}.biomass must be positive and finite"
+                )
+
     if errors:
         print("\n".join(errors))
         return 1
 
     print(
-        f"scenario contracts: validated {len(preset_paths)} preset(s), "
-        f"top-level schema constraints, and {reference_count} citation reference(s)"
+        f"scenario contracts: validated {len(preset_paths)} scenario preset(s), "
+        f"{len(run_preset_paths)} run preset(s), top-level schema constraints, "
+        f"and {reference_count} citation reference(s)"
     )
     return 0
 

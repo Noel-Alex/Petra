@@ -84,6 +84,25 @@ describe('flagship engineering ecology execution profile', () => {
     })
   })
 
+  it('changes execution identity when versioned engineering authority changes', () => {
+    const baseline = parseEcologyExecutionProfile(
+      flagshipScenario.executionProfile,
+    )
+    const changed = parseEcologyExecutionProfile({
+      ...flagshipScenario.executionProfile,
+      version: '1.0.1',
+      growth: {
+        ...flagshipScenario.executionProfile.growth,
+        localCapacity:
+          flagshipScenario.executionProfile.growth.localCapacity + 1,
+      },
+    })
+
+    expect(ecologyExecutionProfileIdentity(changed)).not.toBe(
+      ecologyExecutionProfileIdentity(baseline),
+    )
+  })
+
   it('fails closed on physical-unit relabeling, unknown fields, and unstable spread stepping', () => {
     expect(() =>
       parseEcologyExecutionProfile({

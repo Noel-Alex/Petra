@@ -69,6 +69,20 @@ describe("app shell native select touch targets", () => {
 });
 
 
+describe("timeline history shared visual theme", () => {
+  it("derives chrome from Petra's shared calm visual tokens", () => {
+    expect(timelineHistoryCss).toContain(
+      "border: 1px solid rgb(var(--petra-rgb-cream-muted) / 0.1);",
+    );
+    expect(timelineHistoryCss).toContain("color: var(--petra-color-cream);");
+    expect(timelineHistoryCss).toContain(
+      "background: rgb(var(--petra-rgb-teal) / 0.07);",
+    );
+    expect(timelineHistoryCss).not.toMatch(/\brgba?\(\s*\d/);
+    expect(timelineHistoryCss).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+  });
+});
+
 describe("timeline history touch target", () => {
   it("keeps the native Full history disclosure at Petra's 44px floor without constraining inline width", () => {
     const rule = ruleBody(".timeline-history > summary", timelineHistoryCss);

@@ -95,6 +95,23 @@ describe("experiment runtime view", () => {
     expect(view.canTogglePlayback).toBe(true);
   });
 
+  it("keeps continuous-playback live copy stable across ready/pending request churn", () => {
+    const ready = projectExperimentRuntimeView(
+      runtimeState("ready", { playing: true }),
+    );
+    const pending = projectExperimentRuntimeView(
+      runtimeState("pending", { playing: true }),
+    );
+
+    expect(ready.status).toBe("ready");
+    expect(pending.status).toBe("pending");
+    expect(ready.workerPhase).toBe("ready");
+    expect(pending.workerPhase).toBe("pending");
+    expect(ready.statusText).toBe("Simulation running");
+    expect(pending.statusText).toBe(ready.statusText);
+    expect(pending.statusRole).toBe("status");
+  });
+
   it("quarantines runtime and setup errors", () => {
     const runtimeError = projectExperimentRuntimeView(
       runtimeState("ready", { integrationError: "foreign snapshot" }),

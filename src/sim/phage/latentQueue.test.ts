@@ -105,6 +105,55 @@ describe("phage latent infection queue", () => {
     expect(next.nextSequence).toBe(0);
   });
 
+
+  it("uses the last safe sequence allocation and refuses the next positive cohort", () => {
+    const nearLimit: LatentInfectionQueueState = {
+      schemaVersion: PHAGE_LATENT_QUEUE_SCHEMA_VERSION,
+      currentTimeMinutes: 0,
+      nextSequence: Number.MAX_SAFE_INTEGER - 1,
+      cohorts: [],
+    };
+
+    const lastSuccessful = scheduleLatentInfections(nearLimit, {
+      infectionCount: 1,
+      infectedAtMinutes: 0,
+      latentPeriodMinutes: 10,
+    });
+
+    expect(lastSuccessful.nextSequence).toBe(Number.MAX_SAFE_INTEGER);
+    expect(lastSuccessful.cohorts).toHaveLength(1);
+    expect(lastSuccessful.cohorts[0]?.sequence).toBe(
+      Number.MAX_SAFE_INTEGER - 1,
+    );
+    expect(() => validateLatentInfectionQueue(lastSuccessful)).not.toThrow();
+
+    expect(() =>
+      scheduleLatentInfections(lastSuccessful, {
+        infectionCount: 1,
+        infectedAtMinutes: 0,
+        latentPeriodMinutes: 10,
+      }),
+    ).toThrow(/sequence identity exhausted safe integer range/);
+  });
+
+  it("keeps zero-count scheduling a no-op at sequence exhaustion", () => {
+    const saturated: LatentInfectionQueueState = {
+      schemaVersion: PHAGE_LATENT_QUEUE_SCHEMA_VERSION,
+      currentTimeMinutes: 5,
+      nextSequence: Number.MAX_SAFE_INTEGER,
+      cohorts: [],
+    };
+
+    const next = scheduleLatentInfections(saturated, {
+      infectionCount: 0,
+      infectedAtMinutes: 5,
+      latentPeriodMinutes: 10,
+    });
+
+    expect(next).toBe(saturated);
+    expect(next.nextSequence).toBe(Number.MAX_SAFE_INTEGER);
+  });
+
   it("refuses backward biological time and non-discrete infection counts", () => {
     const state = createLatentInfectionQueue(10);
 

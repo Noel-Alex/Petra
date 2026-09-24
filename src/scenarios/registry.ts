@@ -9,8 +9,8 @@ export interface BundledScenarioDiscoveryEntry {
   readonly version: string;
   readonly title: string;
   readonly scienceAdmission: ScenarioScienceAdmission;
-  readonly scienceModeSelectable: boolean;
-  readonly referenceScienceMode: boolean;
+  readonly educationalScienceSelectable: boolean;
+  readonly referenceScienceModeSelectable: boolean;
 }
 
 /**

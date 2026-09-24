@@ -83,11 +83,24 @@ Drug action and starvation physiology are not universally separable. Petra there
 
 Flagship policy:
 1. calculate no-drug resource-limited growth;
-2. calculate the drug effect relative to the reference no-drug PD state;
-3. compose them into local net growth/death with explicit unit conversion;
-4. test zero-drug, zero-resource, very-high-drug, and intermediate cases.
+2. calculate the genotype-shifted drug response relative to the Regoes reference no-drug PD state;
+3. convert the PD decrement from log10-density slope to a non-negative first-order loss hazard;
+4. compose that loss channel with the positive resource-limited division channel;
+5. test zero-drug, zero-resource, very-high-drug, intermediate, and spatially heterogeneous cases.
 
-The model must not claim quantitative stationary-phase fluoroquinolone killing without source-matched calibration.
+For genotype `g`:
+
+```
+delta_drug,g(a) = ln(10) * [psi_g(a) - psi_max] <= 0
+h_drug,g(a)     = -delta_drug,g(a)
+                 = ln(10) * [psi_max - psi_g(a)] >= 0
+```
+
+The ecology kernel integrates `h_drug,g` as a first-order loss hazard while its Monod/fitness mechanism independently supplies division biomass. At `a = 0`, `h_drug,g = 0` exactly.
+
+This policy deliberately separates the **drug effect relative to the source PD baseline** from Petra's resource-limited growth baseline. `ln(10) * psi_max` must not be silently equated with the flagship `mu_max`; those values come from different model seams unless a scenario explicitly calibrates them. Therefore the Regoes `zMIC` remains the zero crossing of the transferred PD curve, but it does not by itself guarantee the entire composed resource-limited model has zero net population change at exactly that concentration.
+
+The model must not claim quantitative stationary-phase fluoroquinolone killing without source-matched calibration. Applying the PD-derived loss channel at zero resource is a declared composition policy and sensitivity target, not evidence that the stationary-phase interaction was measured by the composed sources.
 
 ## 5. Birth, death, and mutation
 

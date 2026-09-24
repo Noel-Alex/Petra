@@ -51,6 +51,7 @@ const composedConfig: ComposedSimulationConfig = {
     scenarioId: "runtime-fixture",
     scenarioVersion: "1",
   },
+  samplingExecutionPolicy: null,
   hoursPerTick: 0.01,
 };
 

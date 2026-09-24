@@ -181,7 +181,7 @@ export function serializeMechanisticDatasetSummary(
   return `${canonicalJson(artifact.summary)}\n`;
 }
 
-function validatePlanForCollection(
+export function validatePlanForCollection(
   plan: MechanisticSweepPlan,
 ): ReadonlyMap<string, MechanisticSweepTask> {
   requireNonEmpty("planVersion", plan.planVersion);
@@ -322,7 +322,7 @@ function validatePlanForCollection(
   return taskById;
 }
 
-function validateTrajectoryResult<TInput, TTarget>(
+export function validateTrajectoryResult<TInput, TTarget>(
   task: MechanisticSweepTask,
   samples: readonly MechanisticSample<TInput, TTarget>[],
 ): void {
@@ -408,7 +408,7 @@ function requireNonEmpty(name: string, value: string): void {
   }
 }
 
-function canonicalJson(value: unknown): string {
+export function canonicalJson(value: unknown): string {
   return canonicalJsonValue(value, "$", new Set<object>());
 }
 

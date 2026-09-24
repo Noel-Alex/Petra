@@ -34,6 +34,7 @@ Own React/browser orchestration around Petra's authoritative worker and presenta
 
 ## Coordination
 - #37 may evolve the composed simulation snapshot/protocol. Keep the browser session generic over WorkerRequest/WorkerResponse so product integration can follow protocol changes without moving biology into React.
+- When an `ExperimentRuntime` is constructed with an explicit composed simulation config, start/reset/reseed/replay must carry that same config into every initialize request. Run lifecycle controls must never silently fall back from composed authority to the synthetic fixture path.
 - #39 owns persisted motion preference and onboarding shell presentation. App code must use the shared MotionSetting load/save/parse/resolve helpers; storage failure degrades to in-memory preference rather than breaking controls.
 - Judge-facing native Motion and dish-overlay selectors keep a `2.75rem` minimum block size (44px at Petra's default root size). They remain native selects; the dish-overlay selector also preserves `min-width: 0` so narrow renderer chrome can shrink without inventing a fixed-width control.
 - `onboardingRuntime.ts` is the only app-layer bridge from runtime state into canonical onboarding `ScientificGate` values. Current synthetic protocol events satisfy **no** causal gates; event-type coverage is exhaustive so protocol expansion requires an explicit gate/no-gate review rather than a silent fallback.

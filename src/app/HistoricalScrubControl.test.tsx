@@ -30,7 +30,7 @@ function keyframe(
         simulationTimeHours,
       },
     },
-  } as AuthoritativeHistoryKeyframe;
+  } as unknown as AuthoritativeHistoryKeyframe;
 }
 
 function history(): AuthoritativeHistoryIndex {
@@ -40,7 +40,7 @@ function history(): AuthoritativeHistoryIndex {
 
   return {
     runBranchIdentity: "branch-main",
-    identity: first.snapshot.checkpoint.identity,
+    identity: {} as AuthoritativeHistoryIndex["identity"],
     firstCommandCount: 0,
     lastCommandCount: 4,
     keyframeCount: 3,

@@ -1,4 +1,11 @@
 import {
+  resolveLineageVisualIdentity,
+  type LineageAppearanceToken,
+  type LineageContrastMode,
+  type LineagePatternToken,
+} from "../../design/lineageIdentity";
+import type { PetraVisualColorToken } from "../../design/visualTokens";
+import {
   resolveMotion,
   type MotionPreference,
   type MotionTreatment,
@@ -62,6 +69,11 @@ export interface LineageTreeNode extends LineageAncestryInput {
   readonly x: number;
   readonly y: number;
   readonly status: "extant" | "extinct";
+  readonly appearanceToken: LineageAppearanceToken;
+  readonly colorToken: PetraVisualColorToken;
+  readonly patternToken: LineagePatternToken;
+  readonly contrastMode: LineageContrastMode;
+  readonly strokeWidthScale: number;
   readonly ariaLabel: string;
 }
 
@@ -255,6 +267,7 @@ export function decimateSourcePoints(
 
 export function buildLineageTree(
   inputs: readonly LineageAncestryInput[],
+  options: { readonly contrastMode?: LineageContrastMode } = {},
 ): LineageTreeLayout {
   if (inputs.length === 0) {
     return { timeMinimumHours: 0, timeMaximumHours: 1, nodes: [], edges: [] };
@@ -327,12 +340,22 @@ export function buildLineageTree(
 
   const times = inputs.map((lineage) => lineage.createdAtHours);
   const domain = expandDegenerateTimeDomain(Math.min(...times), Math.max(...times));
-  const nodes = ordered.map((lineage, index): LineageTreeNode => ({
+  const nodes = ordered.map((lineage, index): LineageTreeNode => {
+    const visualIdentity = resolveLineageVisualIdentity(
+      lineage.lineageId,
+      options.contrastMode ?? "standard",
+    );
+    return {
     ...lineage,
     depth: depthMemo.get(lineage.lineageId)!,
     x: normalize(lineage.createdAtHours, domain.minimum, domain.maximum),
     y: ordered.length === 1 ? 0.5 : index / (ordered.length - 1),
     status: lineage.extinctAtHours === null ? "extant" : "extinct",
+    appearanceToken: visualIdentity.appearanceToken,
+    colorToken: visualIdentity.colorToken,
+    patternToken: visualIdentity.patternToken,
+    contrastMode: visualIdentity.contrastMode,
+    strokeWidthScale: visualIdentity.strokeWidthScale,
     ariaLabel:
       lineage.lineageId +
       ", genotype " +
@@ -343,7 +366,8 @@ export function buildLineageTree(
       (lineage.extinctAtHours === null
         ? "extant"
         : "extinct at " + formatHours(lineage.extinctAtHours)),
-  }));
+    };
+  });
 
   return {
     timeMinimumHours: domain.minimum,

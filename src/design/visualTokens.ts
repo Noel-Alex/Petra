@@ -59,6 +59,12 @@ const CSS_COLOR_NAMES = Object.freeze({
   lavender: "--petra-color-lavender",
 } as const satisfies Readonly<Record<PetraVisualColorToken, string>>);
 
+export function petraVisualColorCssVariableName(
+  token: PetraVisualColorToken,
+): string {
+  return CSS_COLOR_NAMES[token];
+}
+
 const CSS_RGB_NAMES = Object.freeze({
   inkDeep: "--petra-rgb-ink-deep",
   ink: "--petra-rgb-ink",

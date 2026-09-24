@@ -9,20 +9,35 @@ import {
 
 describe("lineage pattern geometry", () => {
   it("keeps a bounded versioned pattern vocabulary", () => {
-    expect(LINEAGE_PATTERN_SCHEMA_VERSION).toBe(1);
+    expect(LINEAGE_PATTERN_SCHEMA_VERSION).toBe(2);
     expect(LINEAGE_PATTERN_TOKENS).toEqual([
       "solid-ring",
       "double-ring",
+      "inner-ring",
+      "wide-halo",
+      "triple-ring",
     ]);
   });
 
   it("resolves supported tokens to distinct non-color ring geometry", () => {
     const solid = resolveLineagePattern("solid-ring");
     const double = resolveLineagePattern("double-ring");
+    const inner = resolveLineagePattern("inner-ring");
+    const halo = resolveLineagePattern("wide-halo");
+    const triple = resolveLineagePattern("triple-ring");
 
     expect(solid.ringScales).toEqual([1]);
     expect(double.ringScales).toEqual([1, 1.45]);
-    expect(double.ringScales).not.toEqual(solid.ringScales);
+    expect(inner.ringScales).toEqual([0.68, 1]);
+    expect(halo.ringScales).toEqual([1, 1.72]);
+    expect(triple.ringScales).toEqual([0.7, 1, 1.42]);
+    expect(new Set([
+      JSON.stringify(solid.ringScales),
+      JSON.stringify(double.ringScales),
+      JSON.stringify(inner.ringScales),
+      JSON.stringify(halo.ringScales),
+      JSON.stringify(triple.ringScales),
+    ]).size).toBe(5);
   });
 
   it("rejects arbitrary strings instead of silently treating them as accessible identity", () => {

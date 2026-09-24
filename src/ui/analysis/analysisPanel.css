@@ -223,13 +223,36 @@
 
 .analysis-lineage__node-shape {
   fill: var(--analysis-surface-strong);
-  stroke: var(--analysis-accent);
-  stroke-width: 2;
+  stroke: var(--analysis-lineage-color, var(--analysis-accent));
+  stroke-width: calc(2px * var(--analysis-lineage-stroke-scale, 1));
+}
+
+.analysis-lineage__node[data-lineage-pattern="double-ring"] .analysis-lineage__node-shape {
+  stroke-dasharray: 8 2;
+}
+
+.analysis-lineage__node[data-lineage-pattern="inner-ring"] .analysis-lineage__node-shape {
+  stroke-dasharray: 2 2;
+}
+
+.analysis-lineage__node[data-lineage-pattern="wide-halo"] .analysis-lineage__node-shape {
+  stroke-dasharray: 10 3 2 3;
+}
+
+.analysis-lineage__node[data-lineage-pattern="triple-ring"] .analysis-lineage__node-shape {
+  stroke-dasharray: 5 2 1 2;
 }
 
 .analysis-lineage__node[data-lineage-status="extinct"] .analysis-lineage__node-shape {
-  stroke-dasharray: 3 2;
-  opacity: 0.8;
+  opacity: 0.76;
+}
+
+.analysis-lineage__node[data-contrast-mode="high-contrast"] .analysis-lineage__node-id,
+.analysis-lineage__node[data-contrast-mode="high-contrast"] .analysis-lineage__node-genotype {
+  paint-order: stroke;
+  stroke: var(--petra-color-ink-deep);
+  stroke-width: 2px;
+  stroke-linejoin: round;
 }
 
 .analysis-lineage__node-id {

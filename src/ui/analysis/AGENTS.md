@@ -37,3 +37,8 @@
 Deterministic tests cover source-point-only decimation, full-data domains, unit mismatch rejection, lineage ancestry validation/layout, reduced/off motion semantics, server-render unit/time labels, non-color series identity, lineage status geometry, and empty-authority states.
 
 Browser visual density, focus/zoom behavior, screenshots, and performance belong to the local expo QA workflow rather than source-only claims.
+
+## Shared lineage identity
+- Lineage-tree nodes resolve presentation identity through `src/design/lineageIdentity.ts`; analysis must not create a second local lineage palette/pattern allocator.
+- Tree nodes carry explicit appearance, color, pattern, contrast mode, and stroke emphasis metadata while keeping the scientific lineage ID/genotype visible in text. High-contrast styling may strengthen outlines/text backing but must not alter ancestry or biological meaning.
+- Contrast preference and motion preference are orthogonal. Reduced/off motion must not disable high-contrast identity, and high contrast must not force animation.

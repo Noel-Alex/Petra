@@ -111,6 +111,36 @@ describe("causal announcement planner", () => {
     ).toThrow(/cannot be reused/);
   });
 
+  it("rejects truncated same-stream history while preserving valid sequence gaps", () => {
+    expect(() =>
+      planCausalAnnouncements(
+        [event("event-3", 3, "lysis-observed")],
+        {
+          sequence: 2,
+          eventId: "event-2",
+        },
+      ),
+    ).toThrow(/must remain present/);
+
+    const continued = planCausalAnnouncements(
+      [
+        event("event-2", 2, "mutation-observed"),
+        event("event-4", 4, "lysis-observed"),
+      ],
+      {
+        sequence: 2,
+        eventId: "event-2",
+      },
+    );
+
+    expect(continued.presentation).toBe("specific");
+    expect(continued.eventIds).toEqual(["event-4"]);
+    expect(continued.nextCursor).toEqual({
+      sequence: 4,
+      eventId: "event-4",
+    });
+  });
+
   it("rejects duplicate, out-of-order, and invalid cursor input", () => {
     expect(() =>
       planCausalAnnouncements([

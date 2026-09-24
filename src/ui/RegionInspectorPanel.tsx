@@ -1,6 +1,6 @@
 import { useId, type ReactElement } from "react";
 
-import type { AuthoritativeRegionInspection } from "../sim/regionInspector";
+import type { AuthoritativeRegionReadout } from "../sim/regionInspector";
 import {
   activeSelectionId,
   visibleReadout,
@@ -19,8 +19,8 @@ export interface RegionInspectorPanelProps {
  * Static scientific inspector over an already-authoritative region readout.
  *
  * This component never samples renderer state and never invents biological
- * time or physical units. Pending/stale/error ownership is supplied by the
- * framework-neutral region-inspector state machine.
+ * time or physical units. Pending/stale/no-coverage/error ownership is supplied
+ * by the framework-neutral region-inspector state machine.
  */
 export function RegionInspectorPanel({
   state,
@@ -86,7 +86,7 @@ function RegionReadout({
   readout,
   stale,
 }: {
-  readonly readout: AuthoritativeRegionInspection;
+  readonly readout: AuthoritativeRegionReadout;
   readonly stale: boolean;
 }): ReactElement {
   return (
@@ -197,9 +197,11 @@ function EmptyReadout({
   const message =
     state.status === "pending"
       ? "No prior authoritative readout is being reused while this selection is pending."
-      : state.status === "error"
-        ? "No authoritative scientific values are available for display."
-        : "Select a region after authoritative simulation state is available.";
+      : state.status === "no-grid-coverage"
+        ? "No authoritative simulation grid-cell centres fall inside this selection. Petra has not snapped or enlarged the scientific region to force a measurement."
+        : state.status === "error"
+          ? "No authoritative scientific values are available for display."
+          : "Select a region after authoritative simulation state is available.";
 
   return (
     <div
@@ -221,6 +223,8 @@ function statusLabel(state: RegionInspectorPresentationState): string {
       return "Stale data";
     case "ready":
       return "Current";
+    case "no-grid-coverage":
+      return "No grid coverage";
     case "error":
       return "Query error";
   }
@@ -236,6 +240,8 @@ function statusCopy(state: RegionInspectorPresentationState): string {
       return `Selection ${state.requestedSelectionId} is pending. Values below still belong to earlier selection ${state.readout.selectionId}.`;
     case "ready":
       return `Showing authoritative values for selection ${state.selectionId}.`;
+    case "no-grid-coverage":
+      return `Selection ${state.selectionId} covers no authoritative simulation grid-cell centres. Biomass and resource are not reported as measured zero.`;
     case "error":
       if (state.staleReadout !== null) {
         const requested =

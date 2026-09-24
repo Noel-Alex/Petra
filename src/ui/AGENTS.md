@@ -103,6 +103,7 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Touch devices must not depend on hover state. Keyboard focus must remain visibly distinct, and disabled state must be static.
 - Reusable action controls track persistent DOM focus independently from transient hover/press state. Press may temporarily take visual precedence, but pointer movement must not erase focus; the visible focus ring is owned by CSS `:focus-visible`.
 - Pointer cancellation is a transient-input reset: `pointercancel` must clear press state without clearing persistent focus, selected state, or synthesizing an action/command.
+- Decorative press feedback follows native activation semantics: only pointer button `0` may enter Petra's press state. Secondary/auxiliary pointer buttons remain browser/context-menu authority while caller pointer handlers are still forwarded unchanged.
 - Micro-interaction duration and easing are presentation wall-time policy only and must come from named Petra motion tokens; React/CSS adapters project them rather than defining parallel curves.
 
 

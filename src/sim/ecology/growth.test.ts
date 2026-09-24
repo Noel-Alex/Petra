@@ -98,6 +98,151 @@ describe('resource-limited ecology step', () => {
     expect(s.lineages[0]![7]).toBeCloseTo(1, 5)
   })
 
+
+  it('does not move biomass into an already-full destination', () => {
+    const s: EcologyState = {
+      width: 2,
+      height: 1,
+      mask: new Uint8Array([1, 1]),
+      resource: new Float32Array(2),
+      lineages: [new Float32Array([10, 10])],
+    }
+
+    const result = stepEcology(
+      s,
+      { ...params, maxDivisionRate: 0, localCapacity: 10, spreadRate: 0.25 },
+      neutral(1),
+      1,
+    )
+
+    expect(s.lineages[0]).toEqual(new Float32Array([10, 10]))
+    expect(result.metrics.totalBiomass).toBeCloseTo(20, 6)
+  })
+
+  it('accepts only destination free capacity and leaves rejected spread at its source', () => {
+    const s: EcologyState = {
+      width: 2,
+      height: 1,
+      mask: new Uint8Array([1, 1]),
+      resource: new Float32Array(2),
+      lineages: [new Float32Array([10, 9])],
+    }
+
+    stepEcology(
+      s,
+      { ...params, maxDivisionRate: 0, localCapacity: 10, spreadRate: 0.25 },
+      neutral(1),
+      1,
+    )
+
+    expect(s.lineages[0]![0]).toBeCloseTo(9, 6)
+    expect(s.lineages[0]![1]).toBeCloseTo(10, 6)
+    expect(s.lineages[0]![0]! + s.lineages[0]![1]!).toBeCloseTo(19, 6)
+  })
+
+  it('shares scarce destination capacity proportionally across sources and lineages', () => {
+    const s: EcologyState = {
+      width: 3,
+      height: 1,
+      mask: new Uint8Array([1, 1, 1]),
+      resource: new Float32Array(3),
+      lineages: [
+        new Float32Array([6, 5, 1]),
+        new Float32Array([2, 3, 3]),
+      ],
+    }
+
+    const beforeByLineage = s.lineages.map((lineage) =>
+      Array.from(lineage).reduce((sum, amount) => sum + amount, 0),
+    )
+
+    stepEcology(
+      s,
+      { ...params, maxDivisionRate: 0, localCapacity: 10, spreadRate: 0.25 },
+      neutral(2),
+      1,
+    )
+
+    const centreTotal = s.lineages[0]![1]! + s.lineages[1]![1]!
+    expect(centreTotal).toBeCloseTo(10, 6)
+    expect(s.lineages[0]![1]).toBeCloseTo(6.1666667, 5)
+    expect(s.lineages[1]![1]).toBeCloseTo(3.8333333, 5)
+
+    for (let lineageIndex = 0; lineageIndex < s.lineages.length; lineageIndex += 1) {
+      const after = Array.from(s.lineages[lineageIndex]!).reduce(
+        (sum, amount) => sum + amount,
+        0,
+      )
+      expect(after).toBeCloseTo(beforeByLineage[lineageIndex]!, 5)
+    }
+  })
+
+  it('is invariant to lineage-channel iteration order under capacity competition', () => {
+    const a: EcologyState = {
+      width: 3,
+      height: 1,
+      mask: new Uint8Array([1, 1, 1]),
+      resource: new Float32Array(3),
+      lineages: [
+        new Float32Array([6, 5, 1]),
+        new Float32Array([2, 3, 3]),
+      ],
+    }
+    const b: EcologyState = {
+      width: 3,
+      height: 1,
+      mask: new Uint8Array([1, 1, 1]),
+      resource: new Float32Array(3),
+      lineages: [
+        new Float32Array([2, 3, 3]),
+        new Float32Array([6, 5, 1]),
+      ],
+    }
+    const spreadParameters = {
+      ...params,
+      maxDivisionRate: 0,
+      localCapacity: 10,
+      spreadRate: 0.25,
+    }
+
+    stepEcology(a, spreadParameters, neutral(2), 1)
+    stepEcology(b, spreadParameters, neutral(2), 1)
+
+    expect(Array.from(a.lineages[0]!)).toEqual(Array.from(b.lineages[1]!))
+    expect(Array.from(a.lineages[1]!)).toEqual(Array.from(b.lineages[0]!))
+  })
+
+  it('keeps every in-mask cell at or below capacity after spread without deleting biomass', () => {
+    const s: EcologyState = {
+      width: 3,
+      height: 3,
+      mask: new Uint8Array(9).fill(1),
+      resource: new Float32Array(9),
+      lineages: [
+        new Float32Array([10, 9.9, 10, 9.8, 9.7, 9.6, 10, 9.5, 10]),
+        new Float32Array(9),
+      ],
+    }
+    const totalBefore = Array.from(s.lineages[0]!).reduce(
+      (sum, amount) => sum + amount,
+      0,
+    )
+
+    const result = stepEcology(
+      s,
+      { ...params, maxDivisionRate: 0, localCapacity: 10, spreadRate: 0.2 },
+      neutral(2),
+      1,
+    )
+
+    for (let index = 0; index < 9; index += 1) {
+      const local = s.lineages[0]![index]! + s.lineages[1]![index]!
+      expect(local).toBeLessThanOrEqual(10.00001)
+      expect(local).toBeGreaterThanOrEqual(0)
+    }
+    expect(result.metrics.totalBiomass).toBeCloseTo(totalBefore, 4)
+  })
+
   it('approaches exponential early growth when resource and capacity are non-limiting', () => {
     const s = state(1_000_000, [1])
     const p = { ...params, halfSaturation: 1, biomassYield: 1_000_000_000, localCapacity: 1_000_000 }

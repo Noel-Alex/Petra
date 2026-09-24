@@ -37,3 +37,8 @@ At minimum, test identical-seed/command replay, RNG state round-trip, checkpoint
 - `evolution/AGENTS.md` — discrete mutation-opportunity, lineage identity, RNG/replay, and evolution-authority contract.
 - `pharmacodynamics/AGENTS.md` — source-response, MIC-transfer, and resource×drug composition contract.
 - `phage/AGENTS.md` — phage life-history evidence resolution, interpolation/OOD, and pre-infection unit gates.
+
+### Composed command atomicity
+
+- Treat one protocol `advance` command as one replay transaction. Run multi-tick composed work on detached state and publish it only after every requested tick succeeds.
+- A rejected composed command must leave checkpoint state, metrics, tick, command count, and event history unchanged. Do not expose a partially advanced biological state after a numerical/model refusal.

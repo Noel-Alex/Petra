@@ -314,10 +314,18 @@ export class ComposedSimulationEngine {
       throw new Error('advance would exceed the safe integer command-count domain')
     }
 
+    // Execute the whole command against detached authority first. A biological
+    // or numerical refusal on any later tick must not leave a partially advanced
+    // live checkpoint behind: rejected commands are replay no-ops.
+    const workingState = cloneComposedState(this.state)
+    let workingMetrics = cloneMetrics(this.metrics)
     for (let index = 0; index < command.ticks; index += 1) {
-      this.metrics = stepComposedState(this.state, this.config)
-      this.tick += 1
+      workingMetrics = stepComposedState(workingState, this.config)
     }
+
+    this.state = workingState
+    this.metrics = workingMetrics
+    this.tick += command.ticks
     this.commandCount += 1
     this.pushEvent({
       type: 'advanced',

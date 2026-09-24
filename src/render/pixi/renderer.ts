@@ -18,6 +18,13 @@ import {
 import { applyKeyboardCameraKey } from "./keyboardCamera";
 import { createResizeRedrawScheduler } from "./resizeScheduler";
 import {
+  applyPinchCamera,
+  pinchFrame,
+  removeGesturePointer,
+  upsertGesturePointer,
+  type GesturePointer,
+} from "./touchGesture";
+import {
   cameraTransitionComplete,
   interpolateCameraTransition,
   type CameraMotionSpec,
@@ -59,6 +66,10 @@ export async function createPixiDishRenderer(
 
   app.canvas.className = "petra-pixi-canvas";
   app.canvas.setAttribute("aria-hidden", "true");
+  // Gesture suppression is scoped to the interactive dish surface only.
+  // The rest of the page retains normal browser pan/zoom behavior.
+  app.canvas.style.touchAction = "none";
+  app.canvas.style.userSelect = "none";
   host.appendChild(app.canvas);
 
   const root = new Container();
@@ -78,8 +89,7 @@ export async function createPixiDishRenderer(
   let targetCamera = camera;
   let cameraElapsedMs = options.cameraMotion.durationMs;
   let destroyed = false;
-  let dragging = false;
-  let lastPointer: ScreenPoint | null = null;
+  let activePointers: readonly GesturePointer[] = [];
 
   const maxRepresentativeGlyphs = options.maxRepresentativeGlyphs ?? 180;
 
@@ -154,28 +164,54 @@ export async function createPixiDishRenderer(
 
   const onPointerDown = (event: PointerEvent) => {
     if (event.button !== 0) return;
-    dragging = true;
-    lastPointer = localPointer(event);
+    activePointers = upsertGesturePointer(activePointers, {
+      pointerId: event.pointerId,
+      pointerType: event.pointerType || "mouse",
+      point: localPointer(event),
+    });
     app.canvas.setPointerCapture(event.pointerId);
   };
 
   const onPointerMove = (event: PointerEvent) => {
-    if (!dragging || lastPointer === null || targetCamera.zoom <= 1) return;
-    const next = localPointer(event);
+    const previousPointer = activePointers.find(
+      (pointer) => pointer.pointerId === event.pointerId,
+    );
+    if (previousPointer === undefined) return;
+
+    const previousPinch = pinchFrame(activePointers);
+    const nextPoint = localPointer(event);
+    activePointers = upsertGesturePointer(activePointers, {
+      pointerId: event.pointerId,
+      pointerType: event.pointerType || previousPointer.pointerType,
+      point: nextPoint,
+    });
+    const nextPinch = pinchFrame(activePointers);
+    const viewport = { width: app.screen.width, height: app.screen.height };
+
+    if (previousPinch !== null && nextPinch !== null) {
+      beginCameraTransition(
+        applyPinchCamera(targetCamera, previousPinch, nextPinch, viewport),
+      );
+      render();
+      return;
+    }
+
+    if (activePointers.length !== 1 || targetCamera.zoom <= 1) return;
     beginCameraTransition(
       panCamera(
         targetCamera,
-        { x: next.x - lastPointer.x, y: next.y - lastPointer.y },
-        { width: app.screen.width, height: app.screen.height },
+        {
+          x: nextPoint.x - previousPointer.point.x,
+          y: nextPoint.y - previousPointer.point.y,
+        },
+        viewport,
       ),
     );
-    lastPointer = next;
     render();
   };
 
   const finishPointer = (event: PointerEvent) => {
-    dragging = false;
-    lastPointer = null;
+    activePointers = removeGesturePointer(activePointers, event.pointerId);
     if (app.canvas.hasPointerCapture(event.pointerId)) {
       app.canvas.releasePointerCapture(event.pointerId);
     }

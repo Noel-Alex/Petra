@@ -134,6 +134,8 @@ function validateCheckpoint(checkpoint: LineageRegistryCheckpoint): void {
   if (!Array.isArray(checkpoint.records) || !Array.isArray(checkpoint.events)) {
     throw new Error('lineage checkpoint records and events must be arrays')
   }
+  assertDenseCheckpointArray(checkpoint.records, 'records')
+  assertDenseCheckpointArray(checkpoint.events, 'events')
 
   const records = new Map<string, LineageRecord>()
 
@@ -261,6 +263,19 @@ function validateCheckpoint(checkpoint: LineageRegistryCheckpoint): void {
     if (record.extinctAtHours === null && extinct.has(record.lineageId)) {
       throw new Error(
         `live lineage has an extinction event: ${record.lineageId}`,
+      )
+    }
+  }
+}
+
+function assertDenseCheckpointArray(
+  values: readonly unknown[],
+  field: 'records' | 'events',
+): void {
+  for (let index = 0; index < values.length; index += 1) {
+    if (!Object.prototype.hasOwnProperty.call(values, index)) {
+      throw new Error(
+        `lineage checkpoint ${field} must be dense; missing index ${index}`,
       )
     }
   }

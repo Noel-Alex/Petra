@@ -108,7 +108,7 @@
 
 .petra-onboarding__kicker {
   color: var(--onboarding-accent);
-  font-size: 0.68rem;
+  font-size: var(--petra-type-metadata);
   font-weight: 800;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -121,7 +121,7 @@
   border-radius: 999px;
   color: #8595aa;
   background: rgba(255, 255, 255, 0.025);
-  font-size: 0.66rem;
+  font-size: var(--petra-type-caption);
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
@@ -144,7 +144,7 @@
   border-color: transparent;
   background: transparent;
   color: #95a2b5;
-  font-size: 0.73rem;
+  font-size: var(--petra-type-caption);
 }
 
 .petra-onboarding__skip:hover {
@@ -210,7 +210,7 @@
   border-radius: 50%;
   background: #0a1728;
   color: #7e8da2;
-  font-size: 0.58rem;
+  font-size: var(--petra-type-caption);
   font-weight: 800;
   transition:
     border-color var(--onboarding-motion-ms) var(--onboarding-easing),
@@ -221,7 +221,7 @@
 .petra-onboarding__rail-label {
   max-width: 100%;
   overflow: hidden;
-  font-size: 0.57rem;
+  font-size: var(--petra-type-caption);
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -326,7 +326,7 @@
 
 .petra-onboarding__eyebrow-row p {
   color: var(--onboarding-accent);
-  font-size: 0.67rem;
+  font-size: var(--petra-type-eyebrow);
   font-weight: 800;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -337,7 +337,7 @@
   border-radius: 999px;
   color: #9aabc0;
   background: rgba(255, 255, 255, 0.045);
-  font-size: 0.61rem;
+  font-size: var(--petra-type-caption);
   font-weight: 700;
 }
 
@@ -380,12 +380,12 @@
 }
 
 .petra-onboarding__gate strong {
-  font-size: 0.73rem;
+  font-size: var(--petra-type-caption);
 }
 
 .petra-onboarding__gate span:last-child {
   color: #8d9aae;
-  font-size: 0.68rem;
+  font-size: var(--petra-type-metadata);
   line-height: 1.4;
 }
 

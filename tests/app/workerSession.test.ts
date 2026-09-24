@@ -56,7 +56,7 @@ class FakePort implements WorkerPort {
     this.disposed = true;
   }
 
-  emit(response: WorkerResponse): void {
+  emit(response: unknown): void {
     this.handlers?.message(response);
   }
 
@@ -179,6 +179,46 @@ describe("worker session", () => {
     expect(session.state.phase).toBe("error");
     expect(session.state.error).toContain("expected expected, received stale");
     expect(session.state.latestSnapshot).toBeNull();
+  });
+
+  it("fails closed on malformed deserialized responses and retains active command identity", () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+
+    session.enqueue([
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: { id: "active-command", type: "snapshot" },
+      },
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: { id: "queued-command", type: "snapshot" },
+      },
+    ]);
+
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      commandId: "active-command",
+      snapshot: {
+        ...snapshot(0),
+        checkpoint: {
+          ...snapshot(0).checkpoint,
+          tick: "malformed",
+        },
+      },
+    });
+
+    expect(session.state).toMatchObject({
+      phase: "error",
+      pendingCommandId: "active-command",
+      queuedRequests: 0,
+    });
+    expect(session.state.error).toContain("Invalid worker response");
+    expect(session.state.error).toContain("checkpoint.tick");
+    expect(port.posted).toHaveLength(1);
   });
 
   it("fails closed on message deserialization during initialization and can recover", () => {

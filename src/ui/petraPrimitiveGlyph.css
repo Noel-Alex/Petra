@@ -1,0 +1,91 @@
+.petra-primitive-glyph {
+  --petra-primitive-color: var(--petra-color-teal);
+  --petra-primitive-duration: 0ms;
+  --petra-primitive-easing: linear;
+  display: block;
+  overflow: visible;
+  color: var(--petra-primitive-color);
+  opacity: 0.88;
+  transform: scale(1);
+  transform-origin: center;
+  transform-box: fill-box;
+  transition:
+    opacity var(--petra-primitive-duration) var(--petra-primitive-easing),
+    transform var(--petra-primitive-duration) var(--petra-primitive-easing);
+}
+
+.petra-primitive-glyph__cluster,
+.petra-primitive-glyph__rod,
+.petra-primitive-glyph__marker {
+  fill: currentColor;
+}
+
+.petra-primitive-glyph__cluster circle {
+  stroke: rgb(var(--petra-rgb-cream) / 0.16);
+  stroke-width: 1.7;
+}
+
+.petra-primitive-glyph__rod {
+  stroke: rgb(var(--petra-rgb-cream) / 0.18);
+  stroke-width: 1.8;
+}
+
+.petra-primitive-glyph__ring {
+  fill: none;
+  stroke: currentColor;
+}
+
+.petra-primitive-glyph__marker circle {
+  opacity: 0.92;
+}
+
+.petra-primitive-glyph__marker rect {
+  opacity: 0.72;
+}
+
+.petra-primitive-glyph[data-state="hover"] {
+  opacity: 1;
+  transform: scale(1.035);
+}
+
+.petra-primitive-glyph[data-state="selected"] {
+  opacity: 1;
+  transform: scale(1.075);
+}
+
+.petra-primitive-glyph[data-state="active"] {
+  opacity: 1;
+  transform: scale(1.025);
+}
+
+.petra-primitive-glyph[data-state="disabled"] {
+  opacity: 0.38;
+  transform: scale(0.98);
+}
+
+.petra-primitive-glyph[data-state="loading"] {
+  opacity: 0.72;
+}
+
+.petra-primitive-glyph[data-state="loading"][data-loop="true"] {
+  animation: petra-primitive-breathe var(--petra-primitive-duration)
+    var(--petra-primitive-easing) infinite alternate;
+}
+
+.petra-primitive-glyph[data-motion-treatment="instant"],
+.petra-primitive-glyph[data-motion-treatment="static-emphasis"] {
+  transition-duration: 0ms;
+  animation: none;
+}
+
+@keyframes petra-primitive-breathe {
+  from {
+    opacity: 0.62;
+    transform: scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1.035);
+  }
+}

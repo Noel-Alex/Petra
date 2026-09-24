@@ -20,6 +20,8 @@ Own Petra's accessible DOM/UI presentation language, motion policy, story transi
 - Do not copy another studio's characters, compositions, palettes, or signature assets; Petra's geometry and timing language must remain original.
 
 ## Accessibility
+- Essential UI copy uses the shared `src/ui/typography.css` scale. `--petra-type-caption` is the hard 12px-equivalent floor at the default 16px root; scientific disclosures, statuses, units, interaction guidance, timeline metadata, provenance, compare metadata, and onboarding gate text must not render below it.
+- Preserve hierarchy with weight, opacity, spacing, and the larger metadata/body tokens rather than shrinking meaningful text. Expo-distance/browser acceptance remains a #59 evidence gate.
 - Support `full`, `reduced`, and `off` motion modes.
 - OS `prefers-reduced-motion` is the default input; an explicit in-app setting may override it.
 - Keyboard/touch operation and visible focus remain required.

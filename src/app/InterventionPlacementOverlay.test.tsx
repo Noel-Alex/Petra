@@ -59,7 +59,7 @@ describe("InterventionPlacementOverlay", () => {
 
     expect(html).toContain('data-transition-treatment="animate"');
     expect(html).toContain('data-motion-token="toolPreview"');
-    expect(html).toMatch(/--placement-motion-ms:\\d+ms/);
+    expect(html).toMatch(/--placement-motion-ms:\d+ms/);
     expect(html).toContain("--placement-motion-easing:cubic-bezier(");
   });
 });

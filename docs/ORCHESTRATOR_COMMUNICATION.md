@@ -52,3 +52,10 @@ Dense asynchronous notes for cross-agent decisions/discoveries. Issues/PRs are t
 - Deterministic verification remains available as local commands (for example `python tools/verify.py premerge` / `npm run verify`) and should be run manually where the current environment supports it.
 - Hardware/browser/GPU/model-training/scientific experiments that agents cannot execute should be registered into one laptop-facing experiment runner (#41). Noel-Alex can pull the repo, run one entrypoint locally, and push compact result summaries back so blocked Issues resume.
 - Large models, checkpoints, raw datasets, and bulky profiling outputs must stay local by default; Git should receive compact versioned metadata/results only.
+
+## 2026-09-24 — localized intervention preview boundary
+
+- #458 establishes a reusable presentation-only localized placement state: direct dish pointer/touch target + keyboard-equivalent X/Y controls, with circular coordinates tied to the renderer aperture authority.
+- Inoculation, fungi, antibiotic, and nutrient are available as **placement-preview vocabulary** without claiming the current synthetic protocol can apply them. The target ring is cursor affordance, not a modeled biological footprint.
+- Scientific Apply remains fail-closed until #37/#158 supplies authoritative intervention command schema plus parameter labels/units/bounds. Do not translate these previews into `synthetic-pulse`.
+- Placement survives transient pending requests, cancels on Escape/explicit Cancel, and is cleared when runtime authority is unavailable/starting/failed.

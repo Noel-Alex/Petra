@@ -172,3 +172,12 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Stable shell/source-badge chrome must not reintroduce blur-heavy `backdrop-filter` glass. Dish ambient `filter: blur(...)` is a separate decorative halo treatment governed by motion policy and is not this glass-material ban.
 - Runtime status color is reinforcement only: ready uses shared mint, pending/starting amber, error coral, while visible status text remains authoritative.
 - Theme cleanup must not change focus geometry, touch targets, dish-first focus-mode layout, intervention-placement semantics, semantic zoom, timeline ordering/content, or renderer scientific mapping.
+
+## Sandbox scenario-selection authority
+- `sandboxScenarios.ts` is the framework-neutral product boundary for Sandbox scenario discovery and selection. Bundled entries are projected directly from versioned scenario data; adding a preset alone never makes it executable.
+- A Sandbox scenario is selectable only when an explicit authoritative runtime binding matches its exact scenario ID/version and composed parameter-set ID/version. Missing or unsupported bindings remain visibly unavailable; do not invent placeholder biology to populate the selector.
+- The current flagship resource context may honestly remain scientifically `unbound` / `model-resource` while the scenario has an executable runtime binding. Do not conflate physical resource calibration status with runtime availability.
+- Accepted scenario selection plans are always `fresh-run` requests. Sandbox selection never mutates a live run in place; the eventual runtime factory must construct new authority and return a matching `RunIdentity`.
+- Active Sandbox identity display must come from that returned `RunIdentity` plus its provenance-owned parameter-set binding, including exact engine/protocol, scenario, parameter-set, configuration fingerprint, and seed. UI must not reconstruct these values from a card or renderer state.
+- Seed-policy support is explicit. The current selector supports the flagship's `user` seed policy; other policies stay unavailable until a reviewed runtime adapter defines their semantics.
+

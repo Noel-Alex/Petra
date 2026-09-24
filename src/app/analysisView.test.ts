@@ -214,6 +214,33 @@ describe("authoritative analysis app projection", () => {
     });
   });
 
+  it("refuses rich lineage detail on the generic ancestry-only app seam", () => {
+    const input = records();
+    const invalid = {
+      ...input,
+      lineages: [{
+        lineageId: "ancestor",
+        parentLineageId: null,
+        genotypeId: "ancestor-genotype",
+        createdAtHours: 0,
+        extinctAtHours: null,
+        scientificDetail: {
+          genotypeLabel: "Hand-authored label",
+          originCellIndex: null,
+          mutationClass: null,
+          abundanceModelBiomass: 99,
+          relativeFitness: 99,
+          sourceKeys: ["invented"],
+          assumptionKeys: [],
+        },
+      }],
+    } as unknown as AuthoritativeAnalysisRecords;
+
+    expect(() => projectAuthoritativeAnalysis(invalid)).toThrow(
+      /requires full authoritative lineageAnalysis/,
+    );
+  });
+
   it("requires exactly one lineage source and exact full-analysis time/lifecycle identity", () => {
     const input = records();
     expect(() =>

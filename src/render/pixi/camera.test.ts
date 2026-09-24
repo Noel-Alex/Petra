@@ -3,6 +3,7 @@ import {
   clampCamera,
   DISH_VIEWPORT_DIAMETER_FRACTION,
   dishToScreen,
+  isScreenPointInsideDishAperture,
   panCamera,
   resolveDishViewportGeometry,
   screenToDish,
@@ -35,6 +36,59 @@ describe("Pixi dish camera helpers", () => {
       centerY: 300,
       diameter: 600 * DISH_VIEWPORT_DIAMETER_FRACTION,
       radius: 300 * DISH_VIEWPORT_DIAMETER_FRACTION,
+    });
+  });
+
+  it("uses an inclusive circular aperture hit-test on non-square viewports", () => {
+    for (const viewport of [
+      { width: 800, height: 600 },
+      { width: 600, height: 900 },
+      { width: 1200, height: 500 },
+    ]) {
+      const geometry = resolveDishViewportGeometry(viewport);
+      const center = { x: geometry.centerX, y: geometry.centerY };
+      const rim = {
+        x: geometry.centerX + geometry.radius,
+        y: geometry.centerY,
+      };
+      const justOutside = {
+        x: geometry.centerX + geometry.radius + 1e-6,
+        y: geometry.centerY,
+      };
+
+      expect(isScreenPointInsideDishAperture(center, viewport)).toBe(true);
+      expect(isScreenPointInsideDishAperture(rim, viewport)).toBe(true);
+      expect(isScreenPointInsideDishAperture(justOutside, viewport)).toBe(false);
+      expect(
+        isScreenPointInsideDishAperture({ x: 0, y: 0 }, viewport),
+      ).toBe(false);
+      expect(
+        isScreenPointInsideDishAperture(
+          { x: viewport.width, y: viewport.height },
+          viewport,
+        ),
+      ).toBe(false);
+    }
+  });
+
+  it("keeps aperture admission fixed while the camera is zoomed and panned", () => {
+    const viewport = { width: 800, height: 600 };
+    const geometry = resolveDishViewportGeometry(viewport);
+    const zoomedCamera = { centerX: 0.7, centerY: 0.3, zoom: 4 };
+    const admittedScreenPoint = {
+      x: geometry.centerX - geometry.radius * 0.75,
+      y: geometry.centerY,
+    };
+    const outsideScreenPoint = {
+      x: geometry.centerX - geometry.radius - 0.01,
+      y: geometry.centerY,
+    };
+
+    expect(isScreenPointInsideDishAperture(admittedScreenPoint, viewport)).toBe(true);
+    expect(isScreenPointInsideDishAperture(outsideScreenPoint, viewport)).toBe(false);
+    expect(screenToDish(admittedScreenPoint, viewport, zoomedCamera)).toEqual({
+      x: 0.60625,
+      y: 0.3,
     });
   });
 
@@ -117,5 +171,11 @@ describe("Pixi dish camera helpers", () => {
         { centerX: 0.5, centerY: 0.5, zoom: 1 },
       ),
     ).toThrow(/viewport dimensions/);
+    expect(() =>
+      isScreenPointInsideDishAperture(
+        { x: Number.NaN, y: 0 },
+        { width: 800, height: 600 },
+      ),
+    ).toThrow(/screen coordinates/);
   });
 });

@@ -70,6 +70,7 @@ Any accelerated sampler additionally requires many-seed distribution comparison 
 - `analysis.ts` is a read-only authority join over a replay-critical `LineageRegistryCheckpoint`, one exact composed checkpoint, the matching curated evolution graph, and explicit genotype evidence descriptors.
 - Active composed lineage IDs/genotype IDs must match registry records exactly. Extant registry records missing from active abundance authority are an error; extinct records may project zero abundance only after an authoritative extinction time at or before the checkpoint time.
 - Relative fitness is resolved from the curated mutation graph. Labels/source/assumption keys come only from explicit evidence records. Never infer phenotype, resistance, MIC, citation, or evidence class from genotype names, renderer color, tree layout, or abundance.
+- Optional ciprofloxacin lineage evidence is transported only when the explicit genotype evidence descriptor supplies a finite positive MIC in `mg/L` and, when present, a finite positive MIC-ratio response shift plus canonical reference-genotype identity. `analysis.ts` must not derive MIC or response shift from genotype names, relative fitness, drug concentration, or mutation class.
 - This projection does not create lineage history and does not make the current composed checkpoint lineage-registry-complete. #5/#37 still own integrating replay-critical ancestry/evolution state into the composed runtime before product lineage analysis can be considered end-to-end authoritative.
 
 

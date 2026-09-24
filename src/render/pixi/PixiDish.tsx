@@ -280,7 +280,7 @@ export function PixiDish({
             borderRadius: "999px",
             background: "rgba(5, 13, 25, 0.86)",
             color: "#f2d98e",
-            fontSize: "0.7rem",
+            fontSize: "var(--petra-type-metadata, 0.8125rem)",
             fontWeight: 700,
             letterSpacing: "0.04em",
             textAlign: "center",

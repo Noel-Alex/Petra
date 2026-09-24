@@ -51,6 +51,24 @@ export function resolveDishViewportGeometry(
   };
 }
 
+/**
+ * Returns whether a screen-space point lies on or inside the fixed visible
+ * circular dish aperture. The rim is intentionally inclusive.
+ *
+ * This is presentation/input geometry only; camera zoom/pan does not move the
+ * physical aperture on screen.
+ */
+export function isScreenPointInsideDishAperture(
+  point: ScreenPoint,
+  viewport: ViewportSize,
+): boolean {
+  assertScreenPoint(point);
+  const geometry = resolveDishViewportGeometry(viewport);
+  const dx = point.x - geometry.centerX;
+  const dy = point.y - geometry.centerY;
+  return dx * dx + dy * dy <= geometry.radius * geometry.radius;
+}
+
 export function clampCamera(
   camera: CameraView,
   limits: CameraLimits = DEFAULT_CAMERA_LIMITS,
@@ -143,6 +161,12 @@ export function panCamera(
     },
     limits,
   );
+}
+
+function assertScreenPoint(point: ScreenPoint): void {
+  if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) {
+    throw new RangeError("screen coordinates must be finite");
+  }
 }
 
 function assertViewport(viewport: ViewportSize): void {

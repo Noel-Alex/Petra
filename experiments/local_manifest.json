@@ -53,24 +53,25 @@
     },
     {
       "id": "flagship-long-soak",
-      "description": "BLOCKED on #37: long accelerated mechanistic run with invariant and timing summary.",
+      "description": "Multi-seed authoritative composed-engine soak with invariant, replay-continuation, memory, event-growth, and throughput evidence.",
       "command": [
-        "python",
-        "experiments/blocked.py",
-        "--experiment-id",
-        "flagship-long-soak",
-        "--blocked-on",
-        "37",
-        "--reason",
-        "Issue #37 must land the composed authoritative flagship loop before a long soak can measure the integrated mechanism honestly."
+        "npm",
+        "exec",
+        "--offline",
+        "--",
+        "vitest",
+        "run",
+        "--config",
+        "experiments/vitest.flagship_long_soak.config.ts"
       ],
       "issues": [
         3,
         5,
         37,
-        542
+        542,
+        558
       ],
-      "timeout_seconds": 30
+      "timeout_seconds": 3600
     },
     {
       "id": "seed-replay-matrix",

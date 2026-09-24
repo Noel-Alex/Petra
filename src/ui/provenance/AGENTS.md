@@ -22,6 +22,7 @@ Own framework-neutral presentation of authoritative scientific/source provenance
 - Critical evidence meaning uses text labels plus icon and **visibly distinct** non-color pattern tokens; `data-pattern` metadata alone is not sufficient without a rendered pattern treatment.
 - `needs-provenance` must be visible in text and must not degrade into a reassuring neutral badge.
 - Sources/assumptions panels must remain keyboard/focus operable; motion is presentation-only.
+- Provenance action controls consume the already-resolved app `MotionPreference` through Petra shared action adapters. Filtering/reset remains presentation-only; provenance components must not query OS motion locally or invent interaction timing.
 
 ## Discovery and filtering
 - Search/evidence filters are presentation-only discoverability aids; they must never rewrite evidence class, source metadata, or scientific status.

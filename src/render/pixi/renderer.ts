@@ -88,7 +88,7 @@ export interface PixiDishOptions {
   readonly maxRepresentativeGlyphs?: number;
   readonly onSemanticZoomLevelChange?: (level: SemanticZoomLevel) => void;
   /** Presentation-only normalized dish activation for inspector/selection adapters. */
-  readonly onDishPointActivate?: (point: ScreenPoint) => void;
+  readonly onDishPointActivate?: (point: ScreenPoint) => boolean;
 }
 
 export interface PixiDishRenderer {
@@ -522,12 +522,14 @@ export async function createPixiDishRenderer(
     if (!keyboardCameraModifiersAllowInput(event)) return;
 
     if (event.key === "Enter" && options.onDishPointActivate !== undefined) {
-      event.preventDefault();
-      options.onDishPointActivate({
+      const handled = options.onDishPointActivate({
         x: camera.centerX,
         y: camera.centerY,
       });
-      return;
+      if (handled) {
+        event.preventDefault();
+        return;
+      }
     }
 
     const result = applyKeyboardCameraKey(

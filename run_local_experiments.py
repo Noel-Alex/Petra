@@ -22,6 +22,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from tools.local_command import resolve_local_command
+
 ROOT = Path(__file__).resolve().parent
 MANIFEST = ROOT / "experiments" / "local_manifest.json"
 RESULTS_ROOT = ROOT / "experiments" / "results"
@@ -91,7 +93,7 @@ def load_manifest() -> dict[str, Any]:
 def short_command(argv: list[str], timeout: int = 8) -> str | None:
     try:
         proc = subprocess.run(
-            argv,
+            resolve_local_command(argv),
             cwd=ROOT,
             text=True,
             capture_output=True,
@@ -176,7 +178,7 @@ def run_experiment(item: dict[str, Any], run_id: str, log_tail_bytes: int) -> di
     try:
         with log_path.open("wb") as log_handle:
             proc = subprocess.run(
-                item["command"],
+                resolve_local_command(item["command"]),
                 cwd=cwd,
                 env=env,
                 stdout=log_handle,

@@ -41,6 +41,7 @@ import {
   type CameraMotionSpec,
 } from "./cameraMotion";
 import { resolveSnapshotOverlayUpdate } from "./snapshotOverlay";
+import { wheelZoomFactor } from "./wheelZoom";
 
 export type RendererMotionMode = "full" | "reduced" | "off";
 
@@ -297,7 +298,11 @@ export async function createPixiDishRenderer(
   const onWheel = (event: WheelEvent) => {
     event.preventDefault();
     const screen = localPointer(event);
-    const factor = Math.exp(-event.deltaY * 0.0015);
+    const factor = wheelZoomFactor({
+      deltaY: event.deltaY,
+      deltaMode: event.deltaMode,
+      viewportHeight: app.screen.height,
+    });
     writeCameraTransitionState(
       retargetWheelZoomFromRendered({
         state: readCameraTransitionState(),

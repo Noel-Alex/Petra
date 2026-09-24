@@ -104,3 +104,11 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - `visualTheme.css` is a late-loaded presentation theme that consumes CSS variables installed from `src/design/visualTokens.ts`; it must not become a second hard-coded Petra palette.
 - Theme overrides may change color, border, elevation, and quiet depth, but must not own layout, simulation state, scientific semantics, or intervention capability. Keep issue-specific layout/interaction styles in their owning modules.
 - Browser startup installs shared visual variables before React mounts so DOM chrome and Pixi can consume one token authority. Core text/accent pairs are regression-tested for WCAG AA contrast; critical science still needs non-color cues.
+
+## Localized placement integration
+- `App.tsx` owns active intervention-placement presentation state. It may keep previews alive through transient `pending` runtime requests, but clears them when runtime authority is unavailable, starting, or failed.
+- Active placement gets first refusal on Escape, including while a range input is focused; cancellation precedes dish-camera reset and never sends worker traffic.
+- `DishViewport.tsx` recenters to whole-dish overview when a placement tool becomes active so the DOM/SVG target and Pixi viewport share a stable coordinate projection during targeting.
+- `InterventionPlacementOverlay.tsx` consumes `src/render/pixi/camera.ts` aperture geometry rather than repeating dish diameter assumptions. Pointer/touch outside the circular aperture is ignored.
+- Tool buttons may enable **placement preview** in ready/pending runtime states even while `InterventionCapabilityView.available` remains false. A visible disabled Apply gate and explanatory copy preserve that distinction until #37/#158 provides authoritative intervention schema/metadata.
+- Placement colors consume the shared Petra visual-token CSS variables locally; #458 does not own or fork the central visual theme.

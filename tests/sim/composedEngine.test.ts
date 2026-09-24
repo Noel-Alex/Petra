@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { ADVANCE_EXECUTION_POLICY_SCHEMA_VERSION } from '../../src/sim/advanceExecutionPolicy'
 import {
   ComposedSimulationEngine,
 } from '../../src/sim/composedEngine'
@@ -328,4 +329,30 @@ describe('ComposedSimulationEngine', () => {
       }),
     ).toThrow(/not available in composed authority/)
   })
+  it('refuses over-budget composed work before cloning or advancing authority', () => {
+    const engine = new ComposedSimulationEngine(identity, config, {
+      schemaVersion: ADVANCE_EXECUTION_POLICY_SCHEMA_VERSION,
+      id: 'composed-test-one-tick-cap',
+      maximumTicksPerAdvance: 1,
+    })
+    const before = engine.snapshot()
+
+    expect(() =>
+      engine.execute({
+        id: 'over-budget-composed',
+        type: 'advance',
+        ticks: 2,
+      }),
+    ).toThrow(/execution policy cap 1/)
+    expect(engine.snapshot()).toEqual(before)
+
+    const accepted = engine.execute({
+      id: 'within-budget-composed',
+      type: 'advance',
+      ticks: 1,
+    })
+    expect(accepted.checkpoint.tick).toBe(1)
+    expect(accepted.checkpoint.commandCount).toBe(1)
+  })
+
 })

@@ -91,7 +91,10 @@ function ProvenanceRecord({
       </header>
 
       {presentation === null ? (
-        <IncompleteProblems problems={resolution.problems} />
+        <>
+          <DeclaredSources sources={resolution.sources} />
+          <IncompleteProblems problems={resolution.problems} />
+        </>
       ) : (
         <>
           <BadgeList presentation={presentation} />
@@ -166,6 +169,28 @@ function DisclosureList({
       <ul>
         {presentation.disclosures.map((disclosure, index) => (
           <li key={`disclosure-${index}`}>{disclosure}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function DeclaredSources({
+  sources,
+}: {
+  readonly sources: ScenarioProvenanceResolution["sources"];
+}): ReactElement | null {
+  if (sources.length === 0) return null;
+
+  return (
+    <div className="provenance-record__declared-sources">
+      <h4>Declared sources</h4>
+      <ul>
+        {sources.map((source) => (
+          <li key={source.id}>
+            {source.label}
+            {source.locator === undefined ? "" : ` · ${source.locator}`}
+          </li>
         ))}
       </ul>
     </div>

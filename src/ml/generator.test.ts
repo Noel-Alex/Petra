@@ -32,6 +32,11 @@ function definition(): MechanisticSweepDefinition {
     scenarioId: "selection-not-mutation",
     scenarioVersion: "2",
     normalizationProfileId: "aggregate-v1",
+    datasetSchema: {
+      schemaVersion: "mechanistic-dataset-schema-v1",
+      inputSchemaVersion: "aggregate-input-v1",
+      targetSchemaVersion: "aggregate-target-v1",
+    },
     parameterPoints: [
       { id: "point-a", parameterSetHash: "params-a" },
       { id: "point-b", parameterSetHash: "params-b" },
@@ -58,6 +63,7 @@ function trajectoryResult(
         snapshotIndex: 0,
         simulationTimeHours: 0,
         normalizationProfileId: task.normalizationProfileId,
+        datasetSchema: structuredClone(task.datasetSchema),
         input: { population: 100, resource: 1 },
         target: { futurePopulation: 110 },
       },
@@ -67,6 +73,7 @@ function trajectoryResult(
         snapshotIndex: 1,
         simulationTimeHours: 1,
         normalizationProfileId: task.normalizationProfileId,
+        datasetSchema: structuredClone(task.datasetSchema),
         input: { population: 110, resource: 0.8 },
         target: { futurePopulation: 120 },
         terminationReason: "requested-horizon-complete",
@@ -91,13 +98,14 @@ describe("mechanistic ML dataset generator", () => {
 
     expect(reversed).toEqual(first);
     expect(first.summary).toMatchObject({
-      schemaVersion: "petra-ml-dataset-artifact-v2",
+      schemaVersion: "petra-ml-dataset-artifact-v3",
       planVersion: plan.planVersion,
       datasetVersion: plan.datasetVersion,
       engineVersion: plan.engineVersion,
       scenarioId: plan.scenarioId,
       scenarioVersion: plan.scenarioVersion,
       normalizationProfileId: plan.normalizationProfileId,
+      datasetSchema: plan.datasetSchema,
       splitPolicyVersion: plan.splitPolicy.version,
       splitCoveragePolicyVersion: plan.splitCoveragePolicy.version,
       groupCount: plan.groupCount,
@@ -269,6 +277,29 @@ describe("mechanistic ML dataset generator", () => {
         ...results.slice(1),
       ]),
     ).toThrow(/wrong normalizationProfileId/);
+  });
+
+  it("refuses sample schema drift even when normalization and payload keys look compatible", () => {
+    const plan = planMechanisticSweep(definition());
+    const results = completeResults(plan);
+    const first = results[0]!;
+    const initial = first.samples[0]!;
+    const terminal = first.samples[1]!;
+
+    const wrongInputSchema: MechanisticSample<FixtureInput, FixtureTarget> = {
+      ...initial,
+      datasetSchema: {
+        ...initial.datasetSchema,
+        inputSchemaVersion: "aggregate-input-v2",
+      },
+    };
+
+    expect(() =>
+      buildMechanisticDatasetArtifact(plan, [
+        { ...first, samples: [wrongInputSchema, terminal] },
+        ...results.slice(1),
+      ]),
+    ).toThrow(/wrong dataset schema/);
   });
 
   it("requires contiguous snapshots, monotonic time, and one final termination reason", () => {

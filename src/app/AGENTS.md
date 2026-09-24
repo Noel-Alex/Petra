@@ -99,6 +99,7 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - The protocol-v4 **synthetic fixture authority branch** is not eligible analysis authority. Do not adapt `syntheticPopulation`, renderer density/glyphs, demo snapshots, or visual interpolation into this contract to make the panel look populated.
 - `AnalysisSurface.tsx` remains secondary/collapsed when data is available so the living dish stays the primary world; absent records render a visible unavailable state rather than fixture data.
 - Analysis records carry explicit run/state identity + simulation time. No source sample or lineage lifecycle record may claim a biological time later than its bound authoritative state.
+- Rich `AuthoritativeLineageAnalysis` injection additionally requires the exact structured composed `RunIdentity` expected by the analysis state and must pass the shared replay-compatibility gate before genotype/fitness/source detail is projected. Matching an opaque run label or biological time alone is never sufficient; ancestry-only callers may remain on the narrower generic contract.
 - When #37/#42 supplies product-facing composed analysis records, the runtime composition layer must project this contract from the same active composed run/branch rather than teaching React how to infer scientific data.
 
 ## Authoritative causal narration bridge

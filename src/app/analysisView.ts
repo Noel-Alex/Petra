@@ -1,4 +1,6 @@
 import type { AuthoritativeLineageAnalysis } from "../sim/evolution/analysis";
+import type { RunIdentity } from "../sim/protocol";
+import { assertReplayCompatibility } from "../sim/replayCompatibility";
 import type { LineageContrastMode } from "../design/lineageIdentity";
 import {
   buildLineageTree,
@@ -17,6 +19,11 @@ export interface AuthoritativeAnalysisIdentity {
   readonly runIdentity: string;
   /** Stable snapshot/checkpoint/view identity for the records below. */
   readonly stateIdentity: string;
+  /**
+   * Exact composed run identity required when rich lineageAnalysis authority is
+   * supplied. The opaque runIdentity above remains presentation/branch identity.
+   */
+  readonly composedRunIdentity?: RunIdentity;
   readonly simulationTimeHours: number;
 }
 
@@ -150,6 +157,17 @@ function resolveLineageInputs(
         "authoritative lineage analysis time does not match its bound analysis state",
       );
     }
+    if (records.identity.composedRunIdentity === undefined) {
+      throw new Error(
+        "authoritative lineage analysis requires an exact composed run identity",
+      );
+    }
+    assertReplayCompatibility({
+      artifactIdentity: analysis.identity,
+      targetIdentity: records.identity.composedRunIdentity,
+      artifactAuthority: "composed",
+      targetAuthority: "composed",
+    });
 
     return analysis.records.map((record) => {
       const expectedStatus =

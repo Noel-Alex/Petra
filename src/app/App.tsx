@@ -138,7 +138,12 @@ export function App({
   }, [onboardingProjection]);
 
   useEffect(() => {
-    if (experiment.view.status === "ready") return;
+    if (
+      experiment.view.status === "ready" ||
+      experiment.view.status === "pending"
+    ) {
+      return;
+    }
     setInterventionPlacement((current) =>
       cancelInterventionPlacement(current),
     );
@@ -218,6 +223,18 @@ export function App({
       className="petra-app"
       data-motion={motionPreference}
       onKeyDown={(event) => {
+        if (
+          interventionPlacement.phase === "placing" &&
+          event.key === "Escape" &&
+          !event.defaultPrevented
+        ) {
+          event.preventDefault();
+          setInterventionPlacement((current) =>
+            cancelInterventionPlacement(current),
+          );
+          return;
+        }
+
         const plan = planAppKeyboardShortcut({
           sourcesOpen: sourcesLifecycle.requestedOpen,
           key: event.key,

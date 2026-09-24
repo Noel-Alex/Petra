@@ -196,9 +196,11 @@ function ScenarioAssumptions({
 }: {
   readonly assumptions: ScenarioAssumptionsResolution;
 }): ReactElement {
+  const headingId = useId();
+
   return (
-    <section className="provenance-assumptions" aria-labelledby="scenario-assumptions-heading">
-      <h3 id="scenario-assumptions-heading">Scenario assumptions</h3>
+    <section className="provenance-assumptions" aria-labelledby={headingId}>
+      <h3 id={headingId}>Scenario assumptions</h3>
       {assumptions.assumptions.length === 0 ? (
         <p>No scenario-wide transfer assumptions are declared.</p>
       ) : (

@@ -326,13 +326,10 @@ function spread(
     }
   }
 
+  const finalLineages = lineages.map((lineage) => Float64Array.from(lineage))
   for (let index = 0; index < n; index += 1) {
     if (mask[index] === 0) continue
-    const total = stableCellBiomass(
-      lineages.map((lineage) => Float64Array.from(lineage)),
-      index,
-      lineageScratch,
-    )
+    const total = stableCellBiomass(finalLineages, index, lineageScratch)
     if (total > localCapacity + capacityTolerance) {
       throw new Error('spread exceeded localCapacity')
     }

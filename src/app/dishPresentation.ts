@@ -25,10 +25,15 @@ export function resolveDishOverlay(
 }
 
 
+export type DishOverlayFieldSelection = Readonly<{
+  readonly mode: "field";
+  readonly fieldId: string;
+}>;
+
 export type DishOverlaySelection =
   | Readonly<{ readonly mode: "automatic" }>
   | Readonly<{ readonly mode: "none" }>
-  | Readonly<{ readonly mode: "field"; readonly fieldId: string }>;
+  | DishOverlayFieldSelection;
 
 export interface ResolvedDishOverlaySelection {
   readonly selection: DishOverlaySelection;
@@ -45,7 +50,9 @@ export const NO_DISH_OVERLAY: DishOverlaySelection = Object.freeze({
   mode: "none",
 });
 
-export function dishOverlayFieldSelection(fieldId: string): DishOverlaySelection {
+export function dishOverlayFieldSelection(
+  fieldId: string,
+): DishOverlayFieldSelection {
   const normalized = fieldId.trim();
   if (normalized.length === 0) {
     throw new Error("dish overlay field id must be non-empty");

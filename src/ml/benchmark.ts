@@ -1,4 +1,22 @@
 import type { DatasetSplit } from "./dataset";
+import {
+  GROUP_HORIZON_BALANCED_EVALUATION_POLICY_VERSION,
+  assessStratifiedRegressionEvidence,
+  type BenchmarkEvaluationCoverage,
+  type EvaluationHorizon,
+  type StratifiedRegressionMetrics,
+} from "./evaluation";
+
+export {
+  GROUP_HORIZON_BALANCED_EVALUATION_POLICY_VERSION,
+  computeStratifiedRegressionBenchmark,
+} from "./evaluation";
+export type {
+  BenchmarkEvaluationCoverage,
+  EvaluationHorizon,
+  RegressionEvaluationRow,
+  StratifiedRegressionMetrics,
+} from "./evaluation";
 
 export interface RegressionTargetMetrics {
   readonly mae: number;
@@ -22,7 +40,7 @@ export interface SurrogateCompatibilityIdentity {
 }
 
 export interface SurrogateBenchmarkEvidence {
-  readonly schemaVersion: "surrogate-benchmark-evidence-v3";
+  readonly schemaVersion: "surrogate-benchmark-evidence-v4";
   readonly modelId: string;
   readonly modelVersion: string;
   readonly baselineId: string;
@@ -31,16 +49,21 @@ export interface SurrogateBenchmarkEvidence {
   readonly compatibility: SurrogateCompatibilityIdentity;
   readonly splitPolicyVersion: string;
   readonly splitCoveragePolicyVersion: string;
+  readonly evaluationPolicyVersion: string;
   readonly heldOutSplit: Exclude<DatasetSplit, "train">;
-  readonly candidate: RegressionMetrics;
-  readonly baseline: RegressionMetrics;
+  readonly coverage: BenchmarkEvaluationCoverage;
+  readonly candidate: StratifiedRegressionMetrics;
+  readonly baseline: StratifiedRegressionMetrics;
 }
 
 export interface SurrogatePromotionRequirements {
   readonly splitPolicyVersion: string;
   readonly splitCoveragePolicyVersion: string;
+  readonly evaluationPolicyVersion: string;
   readonly heldOutSplit: Exclude<DatasetSplit, "train">;
   readonly targetIds: readonly string[];
+  readonly requiredGroupKeys: readonly string[];
+  readonly requiredHorizons: readonly EvaluationHorizon[];
 }
 
 export type PromotionIssueKind =
@@ -51,16 +74,20 @@ export type PromotionIssueKind =
   | "compatibility-mismatch"
   | "split-policy-mismatch"
   | "split-coverage-policy-mismatch"
+  | "evaluation-policy-mismatch"
   | "held-out-split-mismatch"
   | "target-coverage-mismatch"
+  | "stratum-coverage-mismatch"
   | "invalid-metrics"
   | "evaluation-count-mismatch"
+  | "stratum-metrics-inconsistent"
   | "baseline-not-beaten";
 
 export interface PromotionIssue {
   readonly kind: PromotionIssueKind;
   readonly message: string;
   readonly targetId?: string;
+  readonly stratum?: string;
 }
 
 export interface SurrogatePromotionAssessment {
@@ -140,9 +167,10 @@ export function computeRegressionMetrics(args: {
 }
 
 /**
- * Promotion is intentionally conservative: every declared held-out target must
- * have matching evaluation counts and the candidate must strictly improve both
- * MAE and RMSE over the simple baseline. No percentage margin is invented here.
+ * Promotion is intentionally conservative: compatibility must match, held-out
+ * evidence must satisfy the supported versioned group/horizon weighting policy,
+ * and the candidate must strictly improve both MAE and RMSE in every required
+ * overall/group/horizon/group×horizon stratum. No percentage margin is invented.
  */
 export function assessSurrogatePromotion(args: {
   readonly evidence: SurrogateBenchmarkEvidence;
@@ -157,7 +185,7 @@ export function assessSurrogatePromotion(args: {
   const { evidence, requirements } = args;
   const targetIds = validateTargetIds(requirements.targetIds);
 
-  if (evidence.schemaVersion !== "surrogate-benchmark-evidence-v3") {
+  if (evidence.schemaVersion !== "surrogate-benchmark-evidence-v4") {
     issues.push({
       kind: "evidence-schema-mismatch",
       message: "benchmark evidence schema version is not supported",
@@ -218,6 +246,17 @@ export function assessSurrogatePromotion(args: {
         "benchmark evidence split coverage policy does not match promotion requirements",
     });
   }
+  if (
+    evidence.evaluationPolicyVersion !== requirements.evaluationPolicyVersion ||
+    evidence.evaluationPolicyVersion !==
+      GROUP_HORIZON_BALANCED_EVALUATION_POLICY_VERSION
+  ) {
+    issues.push({
+      kind: "evaluation-policy-mismatch",
+      message:
+        "benchmark evidence evaluation policy is unsupported or does not match promotion requirements",
+    });
+  }
   if (evidence.heldOutSplit !== requirements.heldOutSplit) {
     issues.push({
       kind: "held-out-split-mismatch",
@@ -225,48 +264,16 @@ export function assessSurrogatePromotion(args: {
     });
   }
 
-  const candidateTargets = Object.keys(evidence.candidate).sort();
-  const baselineTargets = Object.keys(evidence.baseline).sort();
-  const expectedTargets = [...targetIds].sort();
-  if (
-    candidateTargets.join("\u0000") !== expectedTargets.join("\u0000") ||
-    baselineTargets.join("\u0000") !== expectedTargets.join("\u0000")
-  ) {
-    issues.push({
-      kind: "target-coverage-mismatch",
-      message: "candidate and baseline metrics must exactly cover declared promotion targets",
-    });
-  }
-
-  for (const targetId of targetIds) {
-    const candidate = evidence.candidate[targetId];
-    const baseline = evidence.baseline[targetId];
-    if (candidate === undefined || baseline === undefined) continue;
-
-    if (!validMetrics(candidate) || !validMetrics(baseline)) {
-      issues.push({
-        kind: "invalid-metrics",
-        targetId,
-        message: `metrics for ${targetId} must be finite, non-negative and have a positive integer count`,
-      });
-      continue;
-    }
-    if (candidate.count !== baseline.count) {
-      issues.push({
-        kind: "evaluation-count-mismatch",
-        targetId,
-        message: `candidate and baseline counts differ for ${targetId}`,
-      });
-      continue;
-    }
-    if (!(candidate.mae < baseline.mae && candidate.rmse < baseline.rmse)) {
-      issues.push({
-        kind: "baseline-not-beaten",
-        targetId,
-        message: `candidate must strictly improve both MAE and RMSE for ${targetId}`,
-      });
-    }
-  }
+  issues.push(
+    ...assessStratifiedRegressionEvidence({
+      targetIds,
+      requiredGroupKeys: requirements.requiredGroupKeys,
+      requiredHorizons: requirements.requiredHorizons,
+      coverage: evidence.coverage,
+      candidate: evidence.candidate,
+      baseline: evidence.baseline,
+    }),
+  );
 
   return { eligible: issues.length === 0, issues };
 }

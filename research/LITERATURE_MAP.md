@@ -10,7 +10,7 @@
 | Cipro mutation supply | Huseby et al. 2017, DOI 10.1093/molbev/msx052 | transition classes + validation targets | ready |
 | Spatial evolution | Baym et al. 2016, DOI 10.1126/science.aag0822 | qualitative front/lineage target | ready |
 | Persistence | Balaban et al. 2004, DOI 10.1126/science.1099390 | reversible phenotype state | mechanism ready |
-| Phage host dependence | Hadas 1997; You et al. 2002 | host-state-dependent lytic module | preset calibration needed |
+| T4 / MG1655 phage life history | Nabergoj et al. 2018, DOI 10.1002/mbo3.558; corroboration Hadas 1997 / You et al. 2002 | growth-dependent adsorption + latent period + burst | named life-history pack ready; spatial transport/loss pending |
 | HGT/plasmids | DOI 10.15252/msb.20209913; 10.1371/journal.pgen.1011560 | local conjugation/cost | named preset needed |
 | Collateral sensitivity | Imamovic & Sommer 2013, DOI 10.1126/scitranslmed.3006609 | future multi-drug network | data import needed |
 | Temperature | Ratkowsky 1982/1983 | species-specific growth curve | parameter curation needed |

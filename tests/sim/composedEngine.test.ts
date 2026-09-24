@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   ComposedSimulationEngine,
 } from '../../src/sim/composedEngine'
-import type { ComposedSimulationConfig } from '../../src/sim/authoritative'
+import type { ComposedMetrics, ComposedSimulationConfig } from '../../src/sim/authoritative'
 import { createRunIdentity } from '../../src/sim/protocol'
 
 const identity = createRunIdentity({
@@ -121,10 +121,7 @@ describe('ComposedSimulationEngine', () => {
     ).toThrow(/fingerprint mismatch/)
 
     const corrupted = structuredClone(checkpoint)
-    corrupted.metrics = {
-      ...corrupted.metrics,
-      totalBiomass: corrupted.metrics.totalBiomass + 1,
-    }
+    ;(corrupted.metrics as Pick<ComposedMetrics, 'totalBiomass'>).totalBiomass += 1
     const clean = new ComposedSimulationEngine(identity, config)
     expect(() =>
       clean.execute({ id: 'restore-corrupt', type: 'restore', checkpoint: corrupted }),

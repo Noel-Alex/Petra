@@ -131,5 +131,8 @@ export function createRunIdentity(
     engineVersion: ENGINE_VERSION,
     protocolVersion: PROTOCOL_VERSION,
     ...input,
+    ...(input.parameterSetBinding === undefined
+      ? {}
+      : { parameterSetBinding: structuredClone(input.parameterSetBinding) }),
   }
 }

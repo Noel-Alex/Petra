@@ -25,6 +25,8 @@ Own Petra's accessible DOM/UI presentation language, motion policy, story transi
 - Essential UI copy uses the shared `src/ui/typography.css` scale. `--petra-type-caption` is the hard 12px-equivalent floor at the default 16px root; scientific disclosures, statuses, units, interaction guidance, timeline metadata, provenance, compare metadata, and onboarding gate text must not render below it.
 - Preserve hierarchy with weight, opacity, spacing, and the larger metadata/body tokens rather than shrinking meaningful text. Expo-distance/browser acceptance remains a #59 evidence gate.
 - Support `full`, `reduced`, and `off` motion modes.
+- Visual contrast is an independent persisted preference (`standard | high-contrast`) owned by `src/ui/contrastPreference.ts`. Never couple high contrast to motion reduction/off, and never make motion settings silently remap lineage identity.
+- High-contrast presentation strengthens redundant non-color cues (outline/pattern/text backing) while preserving the same scientific lineage IDs and shared appearance/pattern tokens.
 - OS `prefers-reduced-motion` is the default input; an explicit in-app setting may override it.
 - Keyboard/touch operation and visible focus remain required.
 - Global shortcuts must not hijack editable controls.

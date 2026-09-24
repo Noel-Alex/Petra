@@ -1,4 +1,4 @@
-import type { DishRenderSnapshot } from "./model";
+import type { DishVisualState } from "./visualInterpolation";
 
 export interface LineageDensityPresentation {
   readonly visible: boolean;
@@ -14,7 +14,7 @@ export interface LineageDensityPresentation {
  * truth.
  */
 export function resolveSharedLineageDensityMaximum(
-  snapshot: DishRenderSnapshot,
+  snapshot: DishVisualState,
 ): number {
   let maximum = 0;
 

@@ -200,7 +200,7 @@ export function stepEcology(
       const channel = divisionBiomass[lineageIndex]!
       channel[index] = channel[index]! * scale
     }
-    capacityOccupancy[index] += allowed
+    capacityOccupancy[index] = capacityOccupancy[index]! + allowed
 
     const consumed = allowed / p.biomassYield
     state.resource[index] = Math.max(0, resource - consumed)
@@ -281,7 +281,7 @@ function spread(
           if (mask[destinationIndex] === 0) continue
           const amount = source[sourceIndex]! * fractionPerNeighbour
           proposals.push({ lineageIndex, sourceIndex, destinationIndex, amount })
-          incomingDemand[destinationIndex] += amount
+          incomingDemand[destinationIndex] = incomingDemand[destinationIndex]! + amount
         }
       }
     }
@@ -299,8 +299,8 @@ function spread(
   for (const proposal of proposals) {
     const accepted = proposal.amount * acceptance[proposal.destinationIndex]!
     const delta = deltas[proposal.lineageIndex]!
-    delta[proposal.sourceIndex] -= accepted
-    delta[proposal.destinationIndex] += accepted
+    delta[proposal.sourceIndex] = delta[proposal.sourceIndex]! - accepted
+    delta[proposal.destinationIndex] = delta[proposal.destinationIndex]! + accepted
   }
 
   for (let lineageIndex = 0; lineageIndex < state.lineages.length; lineageIndex += 1) {

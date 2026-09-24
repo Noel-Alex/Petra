@@ -14,6 +14,7 @@ import { planSurfaceTransition } from "../ui/motion/semanticTransitions";
 import { OnboardingGuide } from "../ui/onboarding/OnboardingGuide";
 import { ProvenancePanel } from "../ui/provenance/ProvenancePanel";
 import { DishViewport } from "./DishViewport";
+import { resolveDishFocusMode } from "./dishFocusMode";
 import { CausalNarrationMount } from "./CausalNarrationMount";
 import type { AuthoritativeCausalEventStream } from "./causalNarration";
 import { InterventionPalette } from "./InterventionPalette";
@@ -196,6 +197,10 @@ export function App({
     () => surfaceMotionCss(activeSourcesPlan),
     [activeSourcesPlan],
   );
+  const dishFocusMode = resolveDishFocusMode({
+    status: experiment.view.status,
+    playing: experiment.view.playing,
+  });
 
   return (
     <main
@@ -234,6 +239,7 @@ export function App({
         }
       }}
       data-panel-transition={panelMotion.treatment}
+      data-dish-focus={dishFocusMode}
       style={{
         "--panel-motion-ms": panelMotion.duration,
         "--panel-motion-easing": panelMotion.easing,

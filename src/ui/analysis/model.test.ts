@@ -138,6 +138,110 @@ describe("scientific analysis projection", () => {
     ).toThrow(/duplicate scientific series id/);
   });
 
+  it("rejects duplicate biological timestamps with equal values within one series", () => {
+    expect(() =>
+      buildScientificChart(
+        [{
+          id: "population",
+          label: "Population",
+          unit: "relative biomass",
+          appearanceToken: "lineage-cyan",
+          patternToken: "solid",
+          points: [
+            { timeHours: 0, value: 1 },
+            { timeHours: 1, value: 2 },
+            { timeHours: 1, value: 2 },
+          ],
+        }],
+        { maxPointsPerSeries: 20 },
+      ),
+    ).toThrow(/unique simulation timestamps/i);
+  });
+
+  it("rejects duplicate biological timestamps with different values within one series", () => {
+    expect(() =>
+      buildScientificChart(
+        [{
+          id: "population",
+          label: "Population",
+          unit: "relative biomass",
+          appearanceToken: "lineage-cyan",
+          patternToken: "solid",
+          points: [
+            { timeHours: 0, value: 1 },
+            { timeHours: 1, value: 2 },
+            { timeHours: 1, value: 9 },
+          ],
+        }],
+        { maxPointsPerSeries: 20 },
+      ),
+    ).toThrow(/unique simulation timestamps/i);
+  });
+
+  it("keeps descending timestamps distinct from duplicate timestamp errors", () => {
+    expect(() =>
+      buildScientificChart(
+        [{
+          id: "population",
+          label: "Population",
+          unit: "relative biomass",
+          appearanceToken: "lineage-cyan",
+          patternToken: "solid",
+          points: [
+            { timeHours: 0, value: 1 },
+            { timeHours: 2, value: 2 },
+            { timeHours: 1, value: 3 },
+          ],
+        }],
+        { maxPointsPerSeries: 20 },
+      ),
+    ).toThrow(/ordered by simulation time/i);
+  });
+
+  it("allows different series to share the same biological timestamp", () => {
+    expect(() =>
+      buildScientificChart(
+        [
+          {
+            id: "a",
+            label: "A",
+            unit: "relative biomass",
+            appearanceToken: "a",
+            patternToken: "solid",
+            points: [{ timeHours: 1, value: 2 }],
+          },
+          {
+            id: "b",
+            label: "B",
+            unit: "relative biomass",
+            appearanceToken: "b",
+            patternToken: "dash",
+            points: [{ timeHours: 1, value: 3 }],
+          },
+        ],
+        { maxPointsPerSeries: 20 },
+      ),
+    ).not.toThrow();
+  });
+
+  it("rejects duplicate timestamps before long-series decimation", () => {
+    const source: ScientificSeriesPoint[] = Array.from(
+      { length: 100 },
+      (_, index) => ({
+        timeHours: index * 0.25,
+        value: Math.sin(index / 9) + 3,
+      }),
+    );
+    source[60] = {
+      timeHours: source[59]!.timeHours,
+      value: source[60]!.value,
+    };
+
+    expect(() => decimateSourcePoints(source, 12)).toThrow(
+      /unique simulation timestamps/i,
+    );
+  });
+
   it("preserves scientific meaning when motion is reduced or off", () => {
     const reduced = resolveAnalysisMotion("reduced");
     expect(reduced.chart.treatment).toBe("crossfade");

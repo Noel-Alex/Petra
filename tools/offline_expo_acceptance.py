@@ -120,14 +120,98 @@ def wait_http(url: str, timeout: float = 30.0) -> None:
     raise RuntimeError("Timed out waiting for {}: {!r}".format(url, last_error))
 
 
-def new_page(port: int, url: str) -> CDP:
+class RecordingCDP(CDP):
+    """CDP client that enforces and records the page's HTTP(S) network boundary."""
+
+    def __init__(self, websocket_url: str):
+        super().__init__(websocket_url)
+        self.network_attempts: list[dict[str, Any]] = []
+
+    def _send_without_wait(self, method: str, params: dict[str, Any]) -> None:
+        request_id = self.next_id
+        self.next_id += 1
+        self._send_text(
+            json.dumps({"id": request_id, "method": method, "params": params})
+        )
+
+    def _record_event(self, message: dict[str, Any]) -> None:
+        method = message.get("method")
+        params = message.get("params")
+        if not isinstance(params, dict):
+            return
+
+        if method == "Fetch.requestPaused":
+            request = params.get("request")
+            request_id = params.get("requestId")
+            if not isinstance(request, dict):
+                return
+            url = request.get("url")
+            if not isinstance(url, str):
+                return
+            external = is_external_runtime_url(url)
+            self.network_attempts.append(
+                {
+                    "source": method,
+                    "url": url,
+                    "resource_type": params.get("resourceType"),
+                    "external": external,
+                    "blocked": external,
+                }
+            )
+            if isinstance(request_id, str):
+                if external:
+                    self._send_without_wait(
+                        "Fetch.failRequest",
+                        {"requestId": request_id, "errorReason": "BlockedByClient"},
+                    )
+                else:
+                    self._send_without_wait(
+                        "Fetch.continueRequest",
+                        {"requestId": request_id},
+                    )
+            return
+
+        if method == "Network.webSocketCreated":
+            url = params.get("url")
+            if isinstance(url, str):
+                self.network_attempts.append(
+                    {
+                        "source": method,
+                        "url": url,
+                        "resource_type": "WebSocket",
+                        "external": is_external_runtime_url(url),
+                        "blocked": False,
+                    }
+                )
+
+    def call(self, method: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+        request_id = self.next_id
+        self.next_id += 1
+        payload: dict[str, Any] = {"id": request_id, "method": method}
+        if params:
+            payload["params"] = params
+        self._send_text(json.dumps(payload))
+        while True:
+            message = json.loads(self._recv_text())
+            if isinstance(message, dict) and "method" in message:
+                self._record_event(message)
+                continue
+            if message.get("id") != request_id:
+                continue
+            if "error" in message:
+                raise RuntimeError(f"CDP {method} failed: {message['error']}")
+            result = message.get("result", {})
+            return result if isinstance(result, dict) else {}
+
+
+def new_page(port: int, url: str) -> RecordingCDP:
     request = urllib.request.Request(
         "http://{}:{}/json/new?{}".format(HOST, port, url),
         method="PUT",
     )
     with urllib.request.urlopen(request, timeout=5) as response:
         target = json.load(response)
-    return CDP(target["webSocketDebuggerUrl"])
+    return RecordingCDP(target["webSocketDebuggerUrl"])
 
 
 def wait_app(cdp: CDP, expected_url: str, timeout: float = 15.0) -> dict[str, Any]:
@@ -180,7 +264,7 @@ class BuildReferenceParser(HTMLParser):
 
 def is_external_runtime_url(value: str) -> bool:
     parsed = urllib.parse.urlparse(value)
-    return parsed.scheme in {"http", "https"} and parsed.hostname not in {
+    return parsed.scheme in {"http", "https", "ws", "wss"} and parsed.hostname not in {
         None,
         "localhost",
         "127.0.0.1",
@@ -361,7 +445,7 @@ def main() -> int:
     browser_version: str | None = None
     server: subprocess.Popen[bytes] | None = None
     browser: subprocess.Popen[bytes] | None = None
-    cdp: CDP | None = None
+    cdp: RecordingCDP | None = None
     user_data: tempfile.TemporaryDirectory[str] | None = None
     observed_resources: list[str] = []
 
@@ -406,10 +490,19 @@ def main() -> int:
                 stderr=subprocess.DEVNULL,
             )
             wait_http("http://{}:{}/json/version".format(HOST, CDP_PORT))
-            cdp = new_page(CDP_PORT, TARGET_URL)
+            cdp = new_page(CDP_PORT, "about:blank")
             cdp.call("Page.enable")
             cdp.call("Runtime.enable")
             cdp.call("Network.enable")
+            cdp.call(
+                "Fetch.enable",
+                {
+                    "patterns": [
+                        {"urlPattern": "http://*/*"},
+                        {"urlPattern": "https://*/*"},
+                    ]
+                },
+            )
             cdp.call("Page.navigate", {"url": TARGET_URL})
             first = wait_app(cdp, TARGET_URL)
             checks.append(
@@ -475,6 +568,20 @@ def main() -> int:
                     {
                         "external": outside,
                         "observed_resource_count": len(set(observed_resources)),
+                    },
+                )
+            )
+
+            external_attempts = [
+                item for item in cdp.network_attempts if item.get("external") is True
+            ]
+            checks.append(
+                check(
+                    "startup/reload/navigation attempt no external page network request",
+                    not external_attempts,
+                    {
+                        "external_attempts": external_attempts,
+                        "attempt_count": len(cdp.network_attempts),
                     },
                 )
             )
@@ -547,18 +654,21 @@ def main() -> int:
         "network_policy": {
             "loopback_http_allowed": True,
             "external_hostname_resolution": "mapped to 0.0.0.0 in fresh Chromium profile",
+            "page_http_https": "CDP Fetch continues loopback and fails non-loopback with BlockedByClient",
             "browser_background_networking": "disabled",
         },
         "build": build,
         "static_dependency_audit": static_audit,
         "observed_resources": sorted(set(observed_resources)),
+        "observed_network_attempts": cdp.network_attempts if cdp else [],
         "checks": checks,
         "summary": summary,
         "evidence_boundary": (
             "This is a current-build offline preflight, not the final expo rehearsal. "
             "It proves the built SPA can start/reload/navigate from a loopback static server "
-            "with external hostname resolution blocked and no observed external runtime asset "
-            "loads. It does not prove the unfinished 90-second authoritative intervention flow, "
+            "with external hostname resolution blocked; page HTTP(S) requests are intercepted "
+            "so non-loopback attempts fail before loading, and observed runtime resources are also audited. "
+            "It does not prove the unfinished 90-second authoritative intervention flow, "
             "user-triggered citation links, or future optional online features."
         ),
     }

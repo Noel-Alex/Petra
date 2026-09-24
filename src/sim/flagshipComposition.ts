@@ -415,8 +415,8 @@ function applyInocula(args: {
  */
 export function buildFlagshipComposedRunPlan(
   initialization: FlagshipRunInitialization,
-  scenario: unknown = flagshipScenario,
 ): FlagshipComposedRunPlan {
+  const scenario: unknown = flagshipScenario
   const scenarioRecord = requireRecord('flagship scenario', scenario)
   const environment = requireRecord(
     'flagship scenario environment',

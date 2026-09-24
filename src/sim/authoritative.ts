@@ -1,4 +1,6 @@
 import { assertEcologyLocalCapacity } from './ecology/capacity'
+import { composeSpatialCiprofloxacinLoss } from './pharmacodynamics/composition'
+import type { RegoesPharmacodynamics } from './pharmacodynamics/ciprofloxacin'
 import { stepEcology } from './ecology/growth'
 import type {
   EcologyState,
@@ -24,6 +26,12 @@ export interface ComposedLineageConfig {
   readonly deathHazardPerHour: number
 }
 
+export interface ComposedCiprofloxacinConfig {
+  readonly reference: Readonly<RegoesPharmacodynamics>
+  readonly referenceMicMgL: number
+  readonly genotypeMicMgL: Readonly<Record<string, number>>
+}
+
 export interface ComposedSimulationConfig {
   readonly width: number
   readonly height: number
@@ -36,6 +44,7 @@ export interface ComposedSimulationConfig {
   readonly evolutionScenario: EvolutionScenarioIdentity
   readonly samplingExecutionPolicy: SamplingExecutionPolicy | null
   readonly hoursPerTick: number
+  readonly ciprofloxacin?: Readonly<ComposedCiprofloxacinConfig>
 }
 
 export interface ComposedSimulationState {
@@ -47,6 +56,7 @@ export interface ComposedSimulationState {
   readonly lineageIds: string[]
   readonly genotypeIds: string[]
   resource: number[]
+  ciprofloxacinMgL: number[]
   lineageBiomass: number[][]
 }
 
@@ -230,6 +240,10 @@ function validateConfig(config: ComposedSimulationConfig): void {
   composedSamplingPolicyIdentity(config.samplingExecutionPolicy)
 
   positiveFinite('hoursPerTick', config.hoursPerTick)
+  if (config.ciprofloxacin !== undefined) {
+    positiveFinite('ciprofloxacin.referenceMicMgL', config.ciprofloxacin.referenceMicMgL)
+    for (const genotypeId of new Set(config.lineages.map((lineage) => lineage.genotypeId))) positiveFinite('ciprofloxacin genotype MIC', config.ciprofloxacin.genotypeMicMgL[genotypeId]!)
+  }
   finiteNonNegative('maxDivisionRate', config.growth.maxDivisionRate)
   positiveFinite('halfSaturation', config.growth.halfSaturation)
   positiveFinite('biomassYield', config.growth.biomassYield)
@@ -314,6 +328,7 @@ export function composedConfigurationFingerprint(
       deathHazardPerHour: lineage.deathHazardPerHour,
     })),
     hoursPerTick: config.hoursPerTick,
+    ciprofloxacin: config.ciprofloxacin === undefined ? null : config.ciprofloxacin,
   })
 }
 
@@ -330,6 +345,7 @@ export function createComposedState(
     lineageIds: config.lineages.map((lineage) => lineage.id),
     genotypeIds: config.lineages.map((lineage) => lineage.genotypeId),
     resource: Array.from(config.initialResource),
+    ciprofloxacinMgL: new Array(config.mask.length).fill(0),
     lineageBiomass: config.initialLineageBiomass.map((channel) =>
       Array.from(channel),
     ),
@@ -353,7 +369,7 @@ function validateStateAgainstConfig(
   }
 
   const cellCount = state.width * state.height
-  if (state.mask.length !== cellCount || state.resource.length !== cellCount) {
+  if (state.mask.length !== cellCount || state.resource.length !== cellCount || state.ciprofloxacinMgL.length !== cellCount) {
     throw new Error('composed state fields do not match grid dimensions')
   }
   if (state.mask.some((value) => value !== 0 && value !== 1)) {
@@ -390,9 +406,11 @@ function validateStateAgainstConfig(
     throw new Error('composed state lineage arrays must match grid dimensions')
   }
 
-  state.resource.forEach((value) =>
-    finiteNonNegative('state.resource', value),
-  )
+  state.resource.forEach((value) => finiteNonNegative('state.resource', value))
+  state.ciprofloxacinMgL.forEach((value, index) => {
+    finiteNonNegative('state.ciprofloxacinMgL', value)
+    if (state.mask[index] === 0 && value !== 0) throw new Error('composed state ciprofloxacin must be zero outside composed mask')
+  })
   state.lineageBiomass.forEach((channel) =>
     channel.forEach((value) =>
       finiteNonNegative('state.lineageBiomass', value),
@@ -431,12 +449,12 @@ export function stepComposedState(
 
   const ecology = asEcologyState(state)
   const fitness = lineageFitness(config)
-  const lineageParameters: LineageEcologyParameters[] = config.lineages.map(
-    (lineage, index) => ({
-      relativeFitness: fitness[index]!.relativeFitness,
-      deathHazardPerTime: lineage.deathHazardPerHour,
-    }),
-  )
+  const drugLoss = config.ciprofloxacin === undefined ? undefined : composeSpatialCiprofloxacinLoss(Float64Array.from(state.ciprofloxacinMgL), Uint8Array.from(state.mask), config.ciprofloxacin.reference, config.ciprofloxacin.referenceMicMgL, [...new Set(config.lineages.map((lineage) => lineage.genotypeId))].map((genotypeId) => ({ genotypeId, genotypeMic: config.ciprofloxacin!.genotypeMicMgL[genotypeId]! })))
+  const hazardByGenotype = new Map(drugLoss?.fields.map((field) => [field.genotypeId, field.deathHazardPerHour] as const) ?? [])
+  const lineageParameters: LineageEcologyParameters[] = config.lineages.map((lineage, index) => {
+    const drugHazard = hazardByGenotype.get(lineage.genotypeId)
+    return { relativeFitness: fitness[index]!.relativeFitness, deathHazardPerTime: drugHazard === undefined ? lineage.deathHazardPerHour : Float64Array.from(drugHazard, (value) => value + lineage.deathHazardPerHour) }
+  })
   const result = stepEcology(
     ecology,
     config.growth,
@@ -478,6 +496,7 @@ export function cloneComposedState(
     lineageIds: [...state.lineageIds],
     genotypeIds: [...state.genotypeIds],
     resource: [...state.resource],
+    ciprofloxacinMgL: [...state.ciprofloxacinMgL],
     lineageBiomass: state.lineageBiomass.map((channel) => [...channel]),
   }
 }

@@ -92,6 +92,46 @@ describe('flagship composed run planning', () => {
     )
   })
 
+  it('applies authoritative ciprofloxacin and changes the composed ecology through the sourced PD policy', () => {
+    const plan = buildFlagshipComposedRunPlan(baseline)
+    const control = new ComposedSimulationEngine(plan.identity, plan.config)
+    const treated = new ComposedSimulationEngine(plan.identity, plan.config)
+
+    const initial = treated.execute({
+      id: 'dose',
+      type: 'apply-ciprofloxacin-uniform',
+      concentrationMgL: 0.03,
+    })
+    expect(initial.checkpoint.composedState.ciprofloxacinMgL).toContain(0.03)
+    expect(initial.events.at(-1)).toMatchObject({
+      type: 'ciprofloxacin-applied',
+      commandId: 'dose',
+      value: 0.03,
+    })
+
+    const controlAfter = control.execute({ id: 'advance-control', type: 'advance', ticks: 10 })
+    const treatedAfter = treated.execute({ id: 'advance-treated', type: 'advance', ticks: 10 })
+    expect(treatedAfter.checkpoint.metrics.totalBiomass).toBeLessThan(
+      controlAfter.checkpoint.metrics.totalBiomass,
+    )
+  })
+
+  it('rejects invalid ciprofloxacin commands without mutating replay state', () => {
+    const plan = buildFlagshipComposedRunPlan(baseline)
+    const engine = new ComposedSimulationEngine(plan.identity, plan.config)
+    const before = engine.snapshot()
+
+    expect(() =>
+      engine.execute({
+        id: 'bad-dose',
+        type: 'apply-ciprofloxacin-uniform',
+        concentrationMgL: Number.NaN,
+      }),
+    ).toThrow(/concentrationMgL/)
+
+    expect(engine.snapshot()).toEqual(before)
+  })
+
   it('keeps run-state initialization outside mechanism parameter-set identity', () => {
     const first = buildFlagshipComposedRunPlan(baseline)
     const second = buildFlagshipComposedRunPlan({

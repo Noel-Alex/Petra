@@ -422,12 +422,14 @@ export function createBrowserWorkerPort(worker: Worker): WorkerPort {
   };
 }
 
-export function createSimulationWorkerSession(): WorkerSession {
+export function createSimulationWorkerSession(
+  performanceOptions?: WorkerSessionPerformanceOptions,
+): WorkerSession {
   const worker = new Worker(
     new URL("../worker/simulation.worker.ts", import.meta.url),
     { type: "module", name: "petra-simulation" },
   );
-  return new WorkerSession(createBrowserWorkerPort(worker));
+  return new WorkerSession(createBrowserWorkerPort(worker), performanceOptions);
 }
 
 function responseCommandId(response: WorkerResponse): string | null {

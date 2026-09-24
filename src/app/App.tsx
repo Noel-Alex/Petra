@@ -315,7 +315,14 @@ export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
               "--dish-ambient-easing": `cubic-bezier(${dishAmbient.easing.join(", ")})`,
             } as CSSProperties}
           />
-          <DishViewport motion={motionPreference} />
+          <DishViewport
+            motion={motionPreference}
+            onEscapeBeforeOverview={() => {
+              if (!sourcesLifecycle.requestedOpen) return false;
+              closeSources();
+              return true;
+            }}
+          />
           {synchronizedOnboardingSession.state.completed ? null : (
             <div className="dish-onboarding-layer">
               <OnboardingGuide

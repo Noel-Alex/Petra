@@ -60,6 +60,12 @@ export function scheduleLatentInfections(
 
   if (args.infectionCount === 0) return state;
 
+  if (state.nextSequence === Number.MAX_SAFE_INTEGER) {
+    throw new RangeError(
+      "latent cohort sequence identity exhausted safe integer range",
+    );
+  }
+
   const cohort: LatentInfectionCohort = {
     sequence: state.nextSequence,
     infectionCount: args.infectionCount,

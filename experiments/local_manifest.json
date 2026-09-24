@@ -50,21 +50,23 @@
     },
     {
       "id": "flagship-runtime-smoke",
-      "description": "BLOCKED on #37: composed scenario init/advance/intervention/checkpoint/restore/replay smoke.",
+      "description": "PREPARED; BLOCKED on #626: composed init/advance/checkpoint/restore/replay harness is ready; mutable authoritative ciprofloxacin intervention remains required.",
       "command": [
         "python",
         "experiments/blocked.py",
         "--experiment-id",
         "flagship-runtime-smoke",
         "--blocked-on",
-        "37",
+        "626",
         "--reason",
-        "Issue #37 must land the authoritative composed worker/runtime path before this smoke can exercise real authority."
+        "The composed init/advance/checkpoint/restore/replay harness is prepared in experiments/flagship_runtime_smoke.experiment.ts. Issue #626 must land the mutable authoritative ciprofloxacin intervention checkpoint/protocol command before the full smoke can test intervention replay truthfully."
       ],
       "issues": [
         37,
         42,
-        542
+        542,
+        626,
+        717
       ],
       "timeout_seconds": 30
     },

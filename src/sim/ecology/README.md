@@ -9,7 +9,7 @@ This directory turns resource availability into deterministic **continuous bioma
 - genotype/lineage relative-fitness scaling of division demand;
 - simultaneous proportional allocation of shared resource across lineages;
 - biomass yield accounting;
-- local-capacity limiting;
+- local-capacity limiting plus pre-step rejection of materially over-capacity state;
 - explicit per-lineage/per-cell division-biomass and death-biomass ledgers;
 - bounded first-order death hazards, uniform or spatial;
 - conservative four-neighbour effective colony spread;
@@ -25,6 +25,8 @@ All numeric parameters are passed by the scenario/composition layer. This module
 
 Division demand and death are computed from the same pre-step biomass. Death uses the exact constant-hazard survival fraction `1 - exp(-h * dt)`, which prevents a finite non-negative first-order hazard from deleting more than the available pre-step biomass. Same-step death does not create extra growth capacity until the next step; that operator-order policy is deterministic and should be versioned if changed.
 
+`localCapacity` is also a state-domain invariant: an in-mask cell that is already materially above capacity is rejected before any resource or biomass mutation. Because lineage channels are stored as independent Float32 values, a mathematically capacity-exact state can round a few representation units above the double-precision capacity when channels are written. Petra therefore permits only a numerical tolerance equal to one Float32 relative spacing per actual stored lineage value (with the minimum positive Float32 subnormal near zero). This tolerance scales with representation error, not with an arbitrary biological percentage, and is shared by the raw ecology kernel plus composed create/restore/continue validation. State is never clipped or renormalized to satisfy capacity.
+
 ## Mutation boundary
 
 The division ledger is **continuous biomass production**, not an integer count of cell-division events. It must not be passed directly to `sampleDivisionMutations`, whose input is an integer event count.
@@ -37,4 +39,4 @@ The kernel now separates division and death fluxes and accepts relative fitness.
 
 ## Verification
 
-`growth.test.ts` covers the Monod half-saturation identity, zero-resource behavior, yield/capacity limiting, lineage-order independence, high-resource early exponential behavior, nutrient-depletion slowdown, relative-fitness scaling, bounded death bookkeeping, spatial death fields, and spread mass conservation. Run the repository-level `python tools/verify.py premerge` gate for executable evidence.
+`growth.test.ts` and `growth.capacity.test.ts` cover the Monod half-saturation identity, zero-resource behavior, yield/capacity limiting, rejection atomicity for pre-existing over-capacity state, Float32 capacity round-trips, lineage-order independence, high-resource early exponential behavior, nutrient-depletion slowdown, relative-fitness scaling, bounded death bookkeeping, spatial death fields, and spread mass conservation. Run the repository-level `python tools/verify.py premerge` gate for executable evidence.

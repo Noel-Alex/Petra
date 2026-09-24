@@ -11,6 +11,7 @@ Presentation-only transformation of authoritative Petra simulation snapshots int
 - Camera, interpolation, LOD, particles, shaders, contours, highlights, and animation are visual-only.
 - A rendered glyph/particle is a **visual proxy** unless a feature explicitly proves one-to-one identity with a simulated entity. Never infer cell count from glyph count.
 - Render interpolation may smooth between snapshots but must not feed interpolated values back into simulation commands or scientific metrics.
+- Snapshot continuity lives in `src/render/visualInterpolation.ts`. Intermediate `DishPresentationFrame` values are explicitly presentation-only and intentionally omit authoritative snapshot/time/event identity. Compatible frames interpolate continuous biomass, field, and lineage-density channels only; grid/mask/sampling identity or field/lineage metadata incompatibility fails closed to an immediate authoritative snap. Lineage enter/exit may ease visual density to/from zero without inventing a genotype, mutation, or event. Full motion may rebase a new snapshot transition from the currently rendered presentation frame; Reduced/Off must collapse immediately to the exact authoritative target. The implementation reuses preallocated Float32 buffers during a transition to avoid per-frame object/array churn.
 - Overlay legends must carry units/meaning supplied by the scenario/view model; rendering code must not invent scientific units.
 
 ## Semantic zoom

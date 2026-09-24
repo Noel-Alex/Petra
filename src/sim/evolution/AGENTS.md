@@ -38,6 +38,7 @@
 ## Scientific provenance
 - Curated mutation edges/target classes come from scenario-owned records. Aggregate selected appearance rates must not be silently converted into one exact edge probability.
 - Genotype fitness and mutation supply remain separate concepts; mutation count is not a generic fitness penalty.
+- `fitness.ts` is the strict composition boundary from active lineage `{lineageId, genotypeId}` identity to scenario-owned relative fitness. Composition must preserve active lineage channel order, bind against the exact scenario id/version of the curated graph, and reject unknown genotypes/duplicate lineage IDs instead of re-entering or defaulting fitness values. Drug/MIC/death-hazard state is not a fitness input.
 - Selection changes frequencies among variants; it does not choose useful mutations.
 
 ## Verification

@@ -8,6 +8,14 @@ import {
   resolveDemoPresenterPresentation,
 } from "./presenter";
 
+function presenterActions(html: string): string[] {
+  return (
+    html.match(
+      /<button[^>]*class="[^"]*petra-compact-action[^"]*"[^>]*>[\s\S]*?<\/button>/g,
+    ) ?? []
+  );
+}
+
 describe("PresenterGuide", () => {
   it("renders a locked authoritative first cue without fake progress", () => {
     const html = renderToStaticMarkup(
@@ -56,6 +64,32 @@ describe("PresenterGuide", () => {
     }
   });
 
+  it("routes both navigation controls through shared motion semantics", () => {
+    const state = initialDemoPresenterState();
+
+    for (const motionPreference of ["full", "reduced", "off"] as const) {
+      const html = renderToStaticMarkup(
+        <PresenterGuide
+          state={state}
+          motionPreference={motionPreference}
+          onEvent={() => undefined}
+        />,
+      );
+      const actions = presenterActions(html);
+
+      expect(actions).toHaveLength(2);
+      expect(actions[0]).toContain(">Back</button>");
+      expect(actions[1]).toContain(">Next cue</button>");
+      expect(actions[0]).toContain(`data-motion="${motionPreference}"`);
+      expect(actions[1]).toContain(`data-motion="${motionPreference}"`);
+      expect(actions[0]).toContain('disabled=""');
+      expect(actions[1]).toContain('disabled=""');
+      expect(actions[1]).toContain(
+        'aria-describedby="presenter-guide-gate-status"',
+      );
+    }
+  });
+
   it("renders an enabled next action only after evidence is supplied", () => {
     const state = reduceDemoPresenter(
       initialDemoPresenterState("90-second", "run-a"),
@@ -76,7 +110,12 @@ describe("PresenterGuide", () => {
     expect(html).toContain("Required authoritative evidence is available.");
     expect(html).toContain('data-motion="off"');
     expect(html).toContain('data-run-identity="run-a"');
-    expect(html).toContain("Next cue");
+    const actions = presenterActions(html);
+    expect(actions).toHaveLength(2);
+    expect(actions[0]).toContain('disabled=""');
+    expect(actions[1]).toContain(">Next cue</button>");
+    expect(actions[1]).not.toContain('disabled=""');
+    expect(actions[1]).not.toContain("aria-describedby");
   });
 
   it("renders all extended runbook cues without hiding them behind color", () => {

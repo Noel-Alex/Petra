@@ -21,3 +21,4 @@ At minimum, test identical-seed/command replay, RNG state round-trip, checkpoint
 - `ecology/AGENTS.md` — resource-limited biomass flux, loss-hazard, and event-boundary contract.
 - `evolution/AGENTS.md` — discrete mutation-opportunity, lineage identity, RNG/replay, and evolution-authority contract.
 - `pharmacodynamics/AGENTS.md` — source-response, MIC-transfer, and resource×drug composition contract.
+- `phage/AGENTS.md` — phage life-history evidence resolution, interpolation/OOD, and pre-infection unit gates.

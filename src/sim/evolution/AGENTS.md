@@ -4,7 +4,7 @@
 `src/sim/evolution/` owns mutation sampling, lineage ancestry/event identity, and replay-sensitive evolutionary authority.
 
 ## Mutation opportunity boundary
-- `sampleDivisionMutations(divisions, targets, rng)` consumes a **non-negative safe-integer count of reviewed discrete division/event opportunities**.
+- `sampleDivisionMutations(divisions, targets, rng, policy)` is the exact reference path over a **non-negative safe-integer count of reviewed discrete division/event opportunities**. The caller-owned versioned sampling policy must permit the count inside its categorical exact budget before the O(divisions) loop can run.
 - `src/sim/ecology/**` currently reports `divisionBiomass` as continuous aggregate flux. It is not an integer birth count and must never be rounded, scaled, or passed directly into the exact mutation sampler.
 - The continuous-biomass → discrete-event bridge is intentionally unresolved until #5/#37 land an implementation and validation contract. Do not choose a convenience conversion inside composition code.
 - Mutation targets/probabilities are scenario + provenance inputs. The current mutation sampler has no antibiotic/selective-pressure input.
@@ -19,9 +19,12 @@
 - Per-source transition probability mass must remain ≤ 1. A missing outgoing edge set means no curated mutation target from that genotype; an unknown genotype lookup is an error rather than an empty fallback.
 
 ## Exact and accelerated sampling
-- The current per-division categorical path is the bounded reference sampler: each opportunity creates at most one mutually exclusive child class, so mutant births cannot exceed opportunities.
-- A future binomial/multinomial/Poisson/tau-leap acceleration must preserve target exclusivity/bounds and be validated statistically against the exact reference over representative small and rare-event cases.
-- Do not “fix” unsafe accelerated draws by clamping negative populations or excess mutant counts after the fact; use bounded sampling/step control.
+- The per-division categorical path remains the deterministic bounded reference sampler: each opportunity creates at most one mutually exclusive child class, so mutant births cannot exceed opportunities. It is no longer permission to execute arbitrary safe-integer counts: an explicit `SamplingExecutionPolicy` exact budget is required.
+- `sampleDivisionMutationsWithPolicy` uses the versioned `bounded-hybrid-binomial-v1` accelerator when the exact budget is exceeded and acceleration is enabled. It factorizes the multinomial law into ordered conditional binomials, preserving mutually-exclusive category counts and total mutant births ≤ reviewed division opportunities.
+- The shared binomial accelerator uses exact geometric skipping when the rare side has bounded expected count and bounded normal rejection in the high-count interior. The normal branch is an explicit numerical approximation; it rejects out-of-range draws rather than clamping them.
+- Exact and accelerated paths consume different RNG sequences. Sampling policy id/schema, exact budgets, and accelerator version are therefore replay-critical configuration and must join the authoritative configuration/checkpoint fingerprint before mutation sampling is enabled in #37 composition.
+- If an exact budget is exceeded and acceleration is disabled, fail with `SamplingPolicyRefusal`; this is a numerical execution-policy refusal, not biological OOD.
+- Do not “fix” unsafe accelerated draws by clamping negative populations or excess mutant counts after the fact; bounded sampling/rejection is part of the algorithm contract.
 
 ## RNG and replay
 - All stochastic evolution consumes an explicit `SimulationRng`; never call `Math.random()`.
@@ -44,7 +47,7 @@
 ## Verification
 Deterministic tests for this subtree should cover zero opportunities, probability bounds/exclusivity, mutant-count ≤ opportunities, identical-seed sequence replay, parent/lineage validation, extinction ordering, checkpoint isolation, allocator round-trip, corrupted-checkpoint rejection, and post-restore lineage/event continuation.
 
-Any accelerated sampler additionally requires many-seed distribution comparison against the exact bounded reference path.
+Accelerated sampler changes require many-seed distribution comparison against the exact bounded reference path, including rare-event and 0/1 probability limits.
 
 ## Coordination
 - #5 owns mutation/evolution semantics and the reviewed discrete-event bridge.

@@ -10,15 +10,46 @@ export interface ScreenPoint {
   readonly y: number;
 }
 
+export interface DishViewportGeometry {
+  readonly centerX: number;
+  readonly centerY: number;
+  readonly diameter: number;
+  readonly radius: number;
+}
+
 export interface CameraLimits {
   readonly minimumZoom: number;
   readonly maximumZoom: number;
 }
 
+/**
+ * Presentation aperture used by both Pixi drawing and pointer/camera transforms.
+ * Changing this value must move every consumer together.
+ */
+export const DISH_VIEWPORT_DIAMETER_FRACTION = 0.93;
+
 export const DEFAULT_CAMERA_LIMITS: CameraLimits = Object.freeze({
   minimumZoom: 1,
   maximumZoom: 9,
 });
+
+export function resolveDishViewportGeometry(
+  viewport: ViewportSize,
+): DishViewportGeometry {
+  assertViewport(viewport);
+  const diameter = Math.max(
+    1,
+    Math.min(viewport.width, viewport.height) *
+      DISH_VIEWPORT_DIAMETER_FRACTION,
+  );
+
+  return {
+    centerX: viewport.width / 2,
+    centerY: viewport.height / 2,
+    diameter,
+    radius: diameter / 2,
+  };
+}
 
 export function clampCamera(
   camera: CameraView,
@@ -40,17 +71,31 @@ export function screenToDish(
   viewport: ViewportSize,
   camera: CameraView,
 ): ScreenPoint {
-  assertViewport(viewport);
+  const geometry = resolveDishViewportGeometry(viewport);
   const safeCamera = clampCamera(camera);
-  const size = Math.min(viewport.width, viewport.height);
-  const originX = (viewport.width - size) / 2;
-  const originY = (viewport.height - size) / 2;
-  const normalizedX = (point.x - originX) / size;
-  const normalizedY = (point.y - originY) / size;
 
   return {
-    x: safeCamera.centerX + (normalizedX - 0.5) / safeCamera.zoom,
-    y: safeCamera.centerY + (normalizedY - 0.5) / safeCamera.zoom,
+    x:
+      safeCamera.centerX +
+      (point.x - geometry.centerX) / (geometry.diameter * safeCamera.zoom),
+    y:
+      safeCamera.centerY +
+      (point.y - geometry.centerY) / (geometry.diameter * safeCamera.zoom),
+  };
+}
+
+export function dishToScreen(
+  point: ScreenPoint,
+  camera: CameraView,
+  geometry: DishViewportGeometry,
+): ScreenPoint {
+  return {
+    x:
+      geometry.centerX +
+      (point.x - camera.centerX) * geometry.diameter * camera.zoom,
+    y:
+      geometry.centerY +
+      (point.y - camera.centerY) * geometry.diameter * camera.zoom,
   };
 }
 
@@ -64,7 +109,11 @@ export function zoomAroundDishPoint(
     throw new RangeError("zoom factor must be finite and > 0");
   }
 
-  const nextZoom = clamp(camera.zoom * factor, limits.minimumZoom, limits.maximumZoom);
+  const nextZoom = clamp(
+    camera.zoom * factor,
+    limits.minimumZoom,
+    limits.maximumZoom,
+  );
   const ratio = camera.zoom / nextZoom;
 
   return clampCamera(
@@ -83,9 +132,8 @@ export function panCamera(
   viewport: ViewportSize,
   limits: CameraLimits = DEFAULT_CAMERA_LIMITS,
 ): CameraView {
-  assertViewport(viewport);
-  const size = Math.min(viewport.width, viewport.height);
-  const scale = 1 / (size * camera.zoom);
+  const geometry = resolveDishViewportGeometry(viewport);
+  const scale = 1 / (geometry.diameter * camera.zoom);
 
   return clampCamera(
     {

@@ -1,36 +1,18 @@
 import { SimulationRng } from './rng'
 import type {
   RunIdentity,
-  SimulationCheckpoint,
   SimulationCommand,
   SimulationEvent,
-  SimulationSnapshot,
+  SyntheticSimulationCheckpoint,
+  SyntheticSimulationSnapshot,
 } from './protocol'
+import { simulationTraceHash, stableStringify } from './trace'
 
 const HOURS_PER_TICK = 1 / 60
 
-function stableStringify(value: unknown): string {
-  if (value === null || typeof value !== 'object') return JSON.stringify(value)
-  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`
-  const object = value as Record<string, unknown>
-  return `{${Object.keys(object)
-    .sort()
-    .map((key) => `${JSON.stringify(key)}:${stableStringify(object[key])}`)
-    .join(',')}}`
-}
-
-/** FNV-1a 32-bit trace checksum: a regression identity, not a security hash. */
-function traceHash(value: unknown): string {
-  const text = stableStringify(value)
-  let hash = 0x811c9dc5
-  for (let index = 0; index < text.length; index += 1) {
-    hash ^= text.charCodeAt(index)
-    hash = Math.imul(hash, 0x01000193) >>> 0
-  }
-  return hash.toString(16).padStart(8, '0')
-}
-
-function assertCheckpointScalarInvariants(checkpoint: SimulationCheckpoint): void {
+function assertCheckpointScalarInvariants(
+  checkpoint: SyntheticSimulationCheckpoint,
+): void {
   if (!Number.isSafeInteger(checkpoint.tick) || checkpoint.tick < 0) {
     throw new Error('checkpoint.tick must be a non-negative safe integer')
   }
@@ -43,11 +25,21 @@ function assertCheckpointScalarInvariants(checkpoint: SimulationCheckpoint): voi
       'checkpoint.simulationTimeHours must be finite, non-negative, and exactly match checkpoint.tick',
     )
   }
-  if (!Number.isFinite(checkpoint.syntheticPopulation) || checkpoint.syntheticPopulation < 0) {
-    throw new Error('checkpoint.syntheticPopulation must be finite and non-negative')
+  if (
+    !Number.isFinite(checkpoint.syntheticPopulation) ||
+    checkpoint.syntheticPopulation < 0
+  ) {
+    throw new Error(
+      'checkpoint.syntheticPopulation must be finite and non-negative',
+    )
   }
-  if (!Number.isSafeInteger(checkpoint.commandCount) || checkpoint.commandCount < 0) {
-    throw new Error('checkpoint.commandCount must be a non-negative safe integer')
+  if (
+    !Number.isSafeInteger(checkpoint.commandCount) ||
+    checkpoint.commandCount < 0
+  ) {
+    throw new Error(
+      'checkpoint.commandCount must be a non-negative safe integer',
+    )
   }
 }
 
@@ -65,8 +57,13 @@ export class SimulationEngine {
     this.pushEvent({ type: 'initialized' })
   }
 
-  execute(command: SimulationCommand): SimulationSnapshot {
+  execute(command: SimulationCommand): SyntheticSimulationSnapshot {
     if (command.type === 'restore') {
+      if (command.checkpoint.authority === 'composed') {
+        throw new Error(
+          'Cannot restore a composed checkpoint into synthetic authority',
+        )
+      }
       this.restore(command.checkpoint)
       this.pushEvent({ type: 'restored', commandId: command.id })
       return this.snapshot()
@@ -75,12 +72,22 @@ export class SimulationEngine {
     if (command.type === 'snapshot') return this.snapshot()
 
     if (command.type === 'advance') {
-      if (!Number.isSafeInteger(command.ticks) || command.ticks < 0) throw new Error('advance.ticks must be a non-negative safe integer')
+      if (!Number.isSafeInteger(command.ticks) || command.ticks < 0) {
+        throw new Error(
+          'advance.ticks must be a non-negative safe integer',
+        )
+      }
+      if (!Number.isSafeInteger(this.tick + command.ticks)) {
+        throw new Error('advance would exceed the safe integer tick domain')
+      }
       for (let index = 0; index < command.ticks; index += 1) {
         // Synthetic stochastic state exists only to prove the deterministic substrate.
         // Biology modules replace this with explicit mechanisms in later issues.
         const jitter = this.rng.nextFloat() - 0.5
-        this.syntheticPopulation = Math.max(0, this.syntheticPopulation + jitter)
+        this.syntheticPopulation = Math.max(
+          0,
+          this.syntheticPopulation + jitter,
+        )
         this.tick += 1
       }
       this.commandCount += 1
@@ -92,8 +99,13 @@ export class SimulationEngine {
       return this.snapshot()
     }
 
-    if (!Number.isFinite(command.magnitude)) throw new Error('synthetic-pulse.magnitude must be finite')
-    this.syntheticPopulation = Math.max(0, this.syntheticPopulation + command.magnitude)
+    if (!Number.isFinite(command.magnitude)) {
+      throw new Error('synthetic-pulse.magnitude must be finite')
+    }
+    this.syntheticPopulation = Math.max(
+      0,
+      this.syntheticPopulation + command.magnitude,
+    )
     this.commandCount += 1
     this.pushEvent({
       type: 'synthetic-pulse',
@@ -103,8 +115,8 @@ export class SimulationEngine {
     return this.snapshot()
   }
 
-  snapshot(): SimulationSnapshot {
-    const checkpoint: SimulationCheckpoint = {
+  snapshot(): SyntheticSimulationSnapshot {
+    const checkpoint: SyntheticSimulationCheckpoint = {
       identity: structuredClone(this.identity),
       tick: this.tick,
       simulationTimeHours: this.currentSimulationTimeHours(),
@@ -113,7 +125,11 @@ export class SimulationEngine {
       commandCount: this.commandCount,
     }
     const events = this.events.map((event) => ({ ...event }))
-    return { checkpoint, events, traceHash: traceHash({ checkpoint, events }) }
+    return {
+      checkpoint,
+      events,
+      traceHash: simulationTraceHash({ checkpoint, events }),
+    }
   }
 
   private currentSimulationTimeHours(): number {
@@ -121,7 +137,10 @@ export class SimulationEngine {
   }
 
   private pushEvent(
-    event: Omit<SimulationEvent, 'sequence' | 'tick' | 'simulationTimeHours'>,
+    event: Omit<
+      SimulationEvent,
+      'sequence' | 'tick' | 'simulationTimeHours'
+    >,
   ): void {
     this.events.push({
       sequence: this.events.length,
@@ -131,9 +150,13 @@ export class SimulationEngine {
     })
   }
 
-  private restore(checkpoint: SimulationCheckpoint): void {
-    if (stableStringify(checkpoint.identity) !== stableStringify(this.identity)) {
-      throw new Error('Cannot restore a checkpoint from a different run identity')
+  private restore(checkpoint: SyntheticSimulationCheckpoint): void {
+    if (
+      stableStringify(checkpoint.identity) !== stableStringify(this.identity)
+    ) {
+      throw new Error(
+        'Cannot restore a checkpoint from a different run identity',
+      )
     }
 
     assertCheckpointScalarInvariants(checkpoint)

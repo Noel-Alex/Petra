@@ -32,6 +32,7 @@ import {
   beginRebasedCameraTransition,
   completeCameraTransitionAtRendered,
   retargetWheelZoomFromRendered,
+  wheelZoomWouldChangePendingTarget,
   type CameraTransitionState,
 } from "./cameraInteraction";
 import {
@@ -327,15 +328,18 @@ export async function createPixiDishRenderer(
     const viewport = { width: app.screen.width, height: app.screen.height };
     if (!isScreenPointInsideDishAperture(screen, viewport)) return;
 
-    event.preventDefault();
     const factor = wheelZoomFactor({
       deltaY: event.deltaY,
       deltaMode: event.deltaMode,
       viewportHeight: app.screen.height,
     });
+    const state = readCameraTransitionState();
+    if (!wheelZoomWouldChangePendingTarget(state, factor)) return;
+
+    event.preventDefault();
     writeCameraTransitionState(
       retargetWheelZoomFromRendered({
-        state: readCameraTransitionState(),
+        state,
         screen,
         viewport,
         factor,

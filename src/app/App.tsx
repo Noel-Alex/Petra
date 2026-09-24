@@ -12,6 +12,7 @@ import { planSurfaceTransition } from "../ui/motion/semanticTransitions";
 import { ProvenancePanel } from "../ui/provenance/ProvenancePanel";
 import { DishViewport } from "./DishViewport";
 import { AnalysisSurface } from "./AnalysisSurface";
+import { shouldCloseSourcesOnEscape } from "./sourcesKeyboard";
 import type { AuthoritativeAnalysisRecords } from "./analysisView";
 import { buildFlagshipProvenanceView } from "./flagshipProvenance";
 import { surfaceMotionCss } from "./motionAdapter";
@@ -51,6 +52,8 @@ export interface AppProps {
   readonly analysisRecords?: AuthoritativeAnalysisRecords | null;
 }
 
+const SOURCES_TRIGGER_ID = "petra-sources-trigger";
+
 const SOURCES_SURFACE_STYLE: CSSProperties = {
   position: "fixed",
   inset: "5.5rem 1rem 1rem auto",
@@ -59,6 +62,11 @@ const SOURCES_SURFACE_STYLE: CSSProperties = {
   overflow: "auto",
   zIndex: 30,
 };
+
+function focusSourcesTrigger(): void {
+  if (typeof document === "undefined") return;
+  document.getElementById(SOURCES_TRIGGER_ID)?.focus();
+}
 
 export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
   const systemReduced = useSystemReducedMotion();
@@ -78,6 +86,35 @@ export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
     setting: motionSetting,
     prefersReducedMotion: systemReduced,
   });
+
+  const closeSources = () => {
+    setSourcesOpen(false);
+    focusSourcesTrigger();
+  };
+
+  useEffect(() => {
+    if (!sourcesOpen || typeof window === "undefined") return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        !shouldCloseSourcesOnEscape({
+          open: true,
+          key: event.key,
+          defaultPrevented: event.defaultPrevented,
+          target: event.target,
+        })
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      setSourcesOpen(false);
+      focusSourcesTrigger();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [sourcesOpen]);
 
   const panelMotion = useMemo(
     () =>
@@ -130,11 +167,18 @@ export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
             </select>
           </label>
           <PetraCompactAction
+            id={SOURCES_TRIGGER_ID}
             motionPreference={motionPreference}
             className="ghost-button"
             aria-expanded={sourcesOpen}
             aria-controls="petra-sources-panel"
-            onClick={() => setSourcesOpen((open) => !open)}
+            onClick={() => {
+              if (sourcesOpen) {
+                closeSources();
+              } else {
+                setSourcesOpen(true);
+              }
+            }}
           >
             {sourcesOpen ? "Close sources" : "Sources"}
           </PetraCompactAction>
@@ -148,12 +192,6 @@ export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
           aria-label="Flagship scientific sources and assumptions"
           data-transition-treatment={panelMotion.treatment}
           style={SOURCES_SURFACE_STYLE}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") {
-              event.stopPropagation();
-              setSourcesOpen(false);
-            }
-          }}
         >
           <div className="sources-drawer__chrome">
             <p className="sources-drawer__scope" role="note">
@@ -170,7 +208,7 @@ export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
             <PetraCompactAction
               motionPreference={motionPreference}
               className="ghost-button"
-              onClick={() => setSourcesOpen(false)}
+              onClick={closeSources}
             >
               Close
             </PetraCompactAction>

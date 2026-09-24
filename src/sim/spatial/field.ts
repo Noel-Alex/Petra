@@ -139,7 +139,7 @@ export class CircularScalarField {
     const stableDt =
       (this.cellSize * this.cellSize) /
       (diffusivity / MAX_EXPLICIT_2D_DIFFUSION_ALPHA)
-    if (Number.isNaN(stableDt) || stableDt <= 0) {
+    if (!Number.isFinite(stableDt) || stableDt <= 0) {
       throw new Error(
         'diffusion parameters require a non-representable stable substep interval',
       )

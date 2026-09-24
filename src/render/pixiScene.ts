@@ -118,11 +118,13 @@ export async function mountPixiDishScene(
   };
 
   const stopDragging = (event: PointerEvent) => {
+    const wasDragging = dragOrigin !== null;
     dragOrigin = null;
     app.canvas.classList.remove("is-dragging");
     if (app.canvas.hasPointerCapture(event.pointerId)) {
       app.canvas.releasePointerCapture(event.pointerId);
     }
+    if (wasDragging && semanticLevel !== "dish") redrawSnapshot();
   };
 
   const onWheel = (event: WheelEvent) => {
@@ -139,7 +141,11 @@ export async function mountPixiDishScene(
       Math.exp(-event.deltaY * 0.0012),
     );
     applyCamera();
+    const previousLevel = semanticLevel;
     reportLevel();
+    if (semanticLevel === previousLevel && semanticLevel !== "dish") {
+      redrawSnapshot();
+    }
   };
 
   app.canvas.addEventListener("pointerdown", onPointerDown);
@@ -285,7 +291,10 @@ function drawBiomass(
 ): void {
   const cellWidth = (DISH_RADIUS * 2) / snapshot.gridWidth;
   const cellHeight = (DISH_RADIUS * 2) / snapshot.gridHeight;
-  const maxBiomass = Math.max(0.0001, ...snapshot.biomass);
+  let maxBiomass = 0.0001;
+  for (const value of snapshot.biomass) {
+    if (value > maxBiomass) maxBiomass = value;
+  }
 
   for (let index = 0; index < snapshot.biomass.length; index += 1) {
     if (snapshot.dishMask[index] !== 1) continue;

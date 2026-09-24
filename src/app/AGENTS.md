@@ -45,6 +45,7 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Representative-cell semantic zoom must remain visibly labelled illustrative/explanatory and never be described as literal microscopy or a finer simulation scale.
 - Dish-hero ambient motion is decorative presentation only. The shell consumes `resolveDishAmbient()`: Full may loop subtle transform/opacity ambience from the named `MOTION.dishAmbient` token; Reduced/Off retain static halo depth with no loop. Ambient rhythm must never imply growth, diffusion, biological pulse rate, or simulation speed.
 - Semantic zoom guidance may explain renderer meaning, but it must not infer current scientific state from camera position unless the renderer explicitly reports a presentation-only semantic level.
+- The live semantic guide consumes only renderer-reported named levels. Exactly one entry is marked current; raw camera zoom never enters React state. Full motion may use shared semantic-transition emphasis, Reduced remains non-spatial, and Off is instant/static. The guide is not a live-region feed, so camera animation frames never become announcement spam.
 
 
 ## Timeline history presentation

@@ -11,6 +11,8 @@
 - Renderer sampling must not consume the biological RNG stream.
 - Synthetic fixture state may exercise infrastructure but must be named as synthetic and removed/replaced as real mechanisms arrive; never present it as biology.
 - Protocol/state changes require deterministic tests and coordination because they are high-conflict integration surfaces.
+- `authoritative.ts` is a bounded composition scaffold over merged mechanism kernels. It accepts only caller-supplied configuration/state, carries a canonical configuration fingerprint so lineage ordering/mechanism configuration cannot drift silently between steps, and is not itself the browser worker protocol or a substitute for versioned run identity/provenance.
+- Composed ecology metrics may expose continuous `divisionBiomass`; that value remains aggregate flux and must not be rounded or passed into the exact evolution sampler until #5/#37 lands the reviewed discrete-event bridge.
 
 ## Verification
 At minimum, test identical-seed/command replay, RNG state round-trip, checkpoint continuation, invalid cross-run restore, and validation of command bounds. Scientific mechanisms add their own invariants/fixtures.

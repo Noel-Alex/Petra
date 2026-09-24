@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import type {
-  SurrogateBenchmarkEvidence,
-  SurrogateCompatibilityIdentity,
-  SurrogatePromotionRequirements,
+import {
+  GROUP_HORIZON_BALANCED_EVALUATION_POLICY_VERSION,
+  computeStratifiedRegressionBenchmark,
+  type SurrogateBenchmarkEvidence,
+  type SurrogateCompatibilityIdentity,
+  type SurrogatePromotionRequirements,
 } from "./benchmark";
 import {
   checkSurrogateDomain,
@@ -36,12 +38,32 @@ const activeSelection: ActiveSurrogateCompatibility = {
 const promotionRequirements: SurrogatePromotionRequirements = {
   splitPolicyVersion: "trajectory-group-v1",
   splitCoveragePolicyVersion: "held-out-group-coverage-v1",
+  evaluationPolicyVersion: GROUP_HORIZON_BALANCED_EVALUATION_POLICY_VERSION,
   heldOutSplit: "test",
   targetIds: ["population"],
+  requiredGroupKeys: ["group-a"],
+  requiredHorizons: [{ id: "four-hours", hours: 4 }],
 };
 
+const promotionBenchmark = computeStratifiedRegressionBenchmark({
+  targetIds: promotionRequirements.targetIds,
+  requiredGroupKeys: promotionRequirements.requiredGroupKeys,
+  requiredHorizons: promotionRequirements.requiredHorizons,
+  rows: [
+    {
+      groupKey: "group-a",
+      trajectoryKey: "trajectory-a",
+      horizonId: "four-hours",
+      forecastHorizonHours: 4,
+      actual: { population: 100 },
+      candidate: { population: 101 },
+      baseline: { population: 102 },
+    },
+  ],
+});
+
 const promotionEvidence: SurrogateBenchmarkEvidence = {
-  schemaVersion: "surrogate-benchmark-evidence-v3",
+  schemaVersion: "surrogate-benchmark-evidence-v4",
   modelId: "aggregate-baseline",
   modelVersion: "1",
   baselineId: "mean-by-scenario-v1",
@@ -50,13 +72,9 @@ const promotionEvidence: SurrogateBenchmarkEvidence = {
   compatibility,
   splitPolicyVersion: "trajectory-group-v1",
   splitCoveragePolicyVersion: "held-out-group-coverage-v1",
+  evaluationPolicyVersion: GROUP_HORIZON_BALANCED_EVALUATION_POLICY_VERSION,
   heldOutSplit: "test",
-  candidate: {
-    population: { mae: 1, rmse: 1.2, count: 20 },
-  },
-  baseline: {
-    population: { mae: 2, rmse: 2.4, count: 20 },
-  },
+  ...promotionBenchmark,
 };
 
 const model: SurrogateModelCard = {
@@ -307,9 +325,7 @@ describe("surrogate runtime safety gates", () => {
         ...model,
         promotionEvidence: {
           ...promotionEvidence,
-          candidate: {
-            population: { mae: 2, rmse: 2.4, count: 20 },
-          },
+          candidate: promotionEvidence.baseline,
         },
       },
     });

@@ -109,7 +109,6 @@ describe("surrogate runtime safety gates", () => {
       resolveExecutionMode({
         requested: "mechanistic",
         activeEngineVersion: "engine-a",
-        activeCompatibility: activeSelection,
         emulatedFeatureEnabled: false,
         model: {
           modelId: model.modelId,
@@ -129,6 +128,14 @@ describe("surrogate runtime safety gates", () => {
       mode: "mechanistic",
       requested: "mechanistic",
       violations: [],
+    });
+  });
+
+  it("requires runtime compatibility only when Emulated mode is requested", () => {
+    expect(resolve({ activeCompatibility: undefined })).toMatchObject({
+      mode: "mechanistic",
+      requested: "emulated",
+      refusalReason: "runtime-compatibility-missing",
     });
   });
 

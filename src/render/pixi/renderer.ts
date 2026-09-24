@@ -31,7 +31,7 @@ import {
 } from "./cameraInteraction";
 import { applyKeyboardCameraKey } from "./keyboardCamera";
 import {
-  beginPointerGesture,
+  beginPointerGestureInDishAperture,
   createPointerGestureState,
   endPointerGesture,
   movePointerGesture,
@@ -253,12 +253,11 @@ export async function createPixiDishRenderer(
     if (event.pointerType === "mouse" && event.button !== 0) return;
     const screen = localPointer(event);
     const viewport = { width: app.screen.width, height: app.screen.height };
-    if (!isScreenPointInsideDishAperture(screen, viewport)) return;
-
-    const started = beginPointerGesture(
+    const started = beginPointerGestureInDishAperture(
       gestureState,
       event.pointerId,
       screen,
+      viewport,
     );
     gestureState = started.state;
     if (!started.accepted) return;

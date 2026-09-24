@@ -13,6 +13,7 @@ import {
 import {
   clampCamera,
   panCamera,
+  resolveDishViewportGeometry,
   screenToDish,
   zoomAroundDishPoint,
   type ScreenPoint,
@@ -362,12 +363,14 @@ function drawScene(args: {
     accentLayer,
   } = args;
 
-  const viewportWidth = app.screen.width;
-  const viewportHeight = app.screen.height;
-  const dishSize = Math.max(1, Math.min(viewportWidth, viewportHeight) * 0.93);
-  const centerX = viewportWidth / 2;
-  const centerY = viewportHeight / 2;
-  const radius = dishSize / 2;
+  const geometry = resolveDishViewportGeometry({
+    width: app.screen.width,
+    height: app.screen.height,
+  });
+  const dishSize = geometry.diameter;
+  const centerX = geometry.centerX;
+  const centerY = geometry.centerY;
+  const radius = geometry.radius;
   const level = semanticZoomLevel(camera.zoom);
 
   for (const layer of [plateLayer, fieldLayer, densityLayer, glyphLayer, accentLayer]) {

@@ -204,5 +204,17 @@ describe("experiment runtime", () => {
       "does not match the active experiment controls",
     );
     expect(runtime.state.controls.playing).toBe(false);
+    expect(runtime.dispatch({ type: "step" })).toEqual({
+      accepted: false,
+      reason: "worker-not-ready",
+    });
+    runtime.dispatch({ type: "play" });
+    expect(runtime.advancePlayback()).toBe(false);
+  });
+
+  it("does not use start as an implicit reset of a ready experiment", () => {
+    const { port, runtime } = readyRuntime();
+    expect(runtime.start()).toBe(false);
+    expect(port.posted).toHaveLength(1);
   });
 });

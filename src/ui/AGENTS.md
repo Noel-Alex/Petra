@@ -125,3 +125,5 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Async results/errors for superseded selection IDs are ignored rather than overwriting current scientific UI state.
 - `ready` values must come from the authoritative simulation region projection. Renderer density, glyphs, interpolation, camera state, and demo fixtures are never acceptable substitutes.
 - Until runtime #37/#42 supplies exact run/tick/simulation-time identity, this state machine preserves selection + composed-state identity only; adapters must not fabricate a biological timestamp.
+- `RegionInspectorPanel.tsx` is the reusable DOM readout for this lifecycle. It may display only `AuthoritativeRegionInspection` values, must label stale/error-retained values with their original selection identity, and must keep `model-biomass` / `model-resource` explicit rather than upgrading them into physical units.
+- Selected-cell count means authoritative simulation grid cells, not bacterial cell count. Configuration fingerprint and composed state version are identity/schema metadata, not a biological timestamp.

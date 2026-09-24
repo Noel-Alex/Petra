@@ -134,9 +134,10 @@ export function assessFirstAggregateSweepReadiness(
   options: FirstAggregateSweepReadinessOptions,
 ): FirstAggregateSweepReadiness {
   mechanisticIncrementalPlanDigest(plan);
-  requirePositiveSafeInteger(
+  requireSafeIntegerAtLeast(
     "minimumSeedsPerGroup",
     options.minimumSeedsPerGroup,
+    2,
   );
   requirePositiveSafeInteger(
     "maximumTrajectories",
@@ -722,6 +723,23 @@ function requireCanonicalText(name: string, value: unknown): string {
 function requireFiniteNonNegative(name: string, value: number): void {
   if (!Number.isFinite(value) || value < 0) {
     throw new RangeError(`${name} must be finite and non-negative`);
+  }
+}
+
+function requireSafeIntegerAtLeast(
+  name: string,
+  value: number,
+  minimum: number,
+): void {
+  if (
+    !Number.isSafeInteger(value) ||
+    !Number.isSafeInteger(minimum) ||
+    minimum < 1 ||
+    value < minimum
+  ) {
+    throw new RangeError(
+      `${name} must be a safe integer greater than or equal to ${minimum}`,
+    );
   }
 }
 

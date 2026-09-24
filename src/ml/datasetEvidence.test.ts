@@ -216,6 +216,13 @@ describe("first aggregate dataset evidence", () => {
       observedTrajectoryCount: 6,
     });
 
+    expect(() =>
+      assessFirstAggregateSweepReadiness(readyPlan, {
+        minimumSeedsPerGroup: 1,
+        maximumTrajectories: 16,
+      }),
+    ).toThrow(/greater than or equal to 2/);
+
     const oneSeed = plan([11]);
     const notReady = assessFirstAggregateSweepReadiness(oneSeed, {
       minimumSeedsPerGroup: 2,

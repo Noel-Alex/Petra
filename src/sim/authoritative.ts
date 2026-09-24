@@ -1,4 +1,4 @@
-import { stepEcology } from './ecology/growth'
+import { assertLocalCapacityInvariant, stepEcology } from './ecology/growth'
 import type {
   EcologyState,
   GrowthParameters,
@@ -210,6 +210,12 @@ function validateConfig(config: ComposedSimulationConfig): void {
     config.initialResource,
     config.initialLineageBiomass,
   )
+  assertLocalCapacityInvariant(
+    config.mask,
+    config.initialLineageBiomass,
+    config.growth.localCapacity,
+    'initial composed state',
+  )
   config.lineages.forEach((lineage) => {
     finiteNonNegative(
       'deathHazardPerHour(' + lineage.id + ')',
@@ -346,6 +352,12 @@ function validateStateAgainstConfig(
     state.mask,
     state.resource,
     state.lineageBiomass,
+  )
+  assertLocalCapacityInvariant(
+    state.mask,
+    state.lineageBiomass,
+    config.growth.localCapacity,
+    'composed state',
   )
 }
 

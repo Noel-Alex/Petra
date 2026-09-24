@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./app/App";
-import { AppErrorBoundary } from "./app/AppErrorBoundary";
+import { AppErrorBoundary } from "./app/AppErrorBoundary";\nimport { createFlagshipExperimentRuntime } from "./app/flagshipRuntime";
 import { applyPetraVisualCssVariables } from "./design/visualTokens";
 import "./ui/typography.css";
 import "./app/app.css";
@@ -18,7 +18,7 @@ if (root === null) {
 createRoot(root).render(
   <StrictMode>
     <AppErrorBoundary>
-      <App />
+      <App runtimeFactory={createFlagshipExperimentRuntime} />
     </AppErrorBoundary>
   </StrictMode>,
 );

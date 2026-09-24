@@ -54,3 +54,19 @@ describe("OnboardingGuide semantic motion fallback contract", () => {
     expect(css).toContain("var(--onboarding-easing)");
   });
 });
+
+
+describe("OnboardingGuide navigation interaction authority", () => {
+  it("leaves hover/press motion to the shared compact-action adapter", () => {
+    const continueRule = css.match(
+      /\.petra-onboarding__continue\s*\{([^}]*)\}/s,
+    );
+    expect(continueRule).not.toBeNull();
+    expect(continueRule?.[1]).not.toMatch(/\btransition\s*:/);
+    expect(css).not.toMatch(
+      /\.petra-onboarding__continue[^\{]*:hover\s*\{/,
+    );
+    expect(css).not.toContain("translateY(-0.06rem)");
+    expect(css).not.toContain("brightness(1.045)");
+  });
+});

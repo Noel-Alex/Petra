@@ -10,5 +10,8 @@ describe("App authoritative runtime boundary", () => {
     expect(html).toContain("Simulation time —");
     expect(html).toContain("No authoritative events yet");
     expect(html).not.toContain("00:00 simulation time");
+    expect(html).toContain('id="petra-sources-trigger"');
+    expect(html).toContain('aria-controls="petra-sources-panel"');
+    expect(html).toContain('aria-expanded="false"');
   });
 });

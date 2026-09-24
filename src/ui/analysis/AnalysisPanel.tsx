@@ -365,6 +365,8 @@ function LineageSourceData({
               <th scope="col">Extinct</th>
               <th scope="col">Abundance</th>
               <th scope="col">Relative fitness</th>
+              <th scope="col">Ciprofloxacin MIC</th>
+              <th scope="col">Response shift</th>
               <th scope="col">Origin cell</th>
               <th scope="col">Mutation class</th>
               <th scope="col">Source keys</th>
@@ -399,6 +401,20 @@ function LineageSourceData({
                   {node.scientificDetail === undefined
                     ? "Not supplied"
                     : formatSourceNumber(node.scientificDetail.relativeFitness)}
+                </td>
+                <td>
+                  {node.scientificDetail === undefined
+                    ? "Not supplied"
+                    : node.scientificDetail.ciprofloxacin == null
+                      ? "Not supplied"
+                      : `${formatSourceNumber(node.scientificDetail.ciprofloxacin.micMgPerL)} mg/L`}
+                </td>
+                <td>
+                  {node.scientificDetail === undefined
+                    ? "Not supplied"
+                    : node.scientificDetail.ciprofloxacin?.responseShift == null
+                      ? "Not supplied"
+                      : `${formatSourceNumber(node.scientificDetail.ciprofloxacin.responseShift.micRatio)}× MIC vs ${node.scientificDetail.ciprofloxacin.responseShift.referenceGenotypeId}`}
                 </td>
                 <td>
                   {node.scientificDetail === undefined

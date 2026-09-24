@@ -9,6 +9,7 @@ Own React/browser orchestration around Petra's authoritative worker and presenta
 - Keep src/sim/** and src/worker/** independent from React. Active simulation-composition work belongs to #37.
 - UI control planning stays in src/ui/experimentControls.ts; app adapters execute its ControlEffect rather than duplicating replay/reset/seed semantics.
 - experimentRuntime.ts composes control intent, WorkerSession state, authoritative command confirmation, and timeline projection. Commands become replay history only after a returned authoritative event confirms their command id.
+- `ExperimentRuntime` may own one immutable caller-supplied `ComposedSimulationConfig` for the run. Start/reset/reseed/replay must clone and resend that same configuration so lifecycle actions cannot demote a biological run to the synthetic fixture path. React does not derive or edit the config.
 - Intervention tooling fails closed unless the active protocol exposes a real typed intervention schema plus authoritative parameter metadata. The current `synthetic-pulse` command is never an inoculate/antibiotic/nutrient substitute. Labels, units, ranges, defaults, and command conversion must come from authoritative scenario/runtime contracts; presentation previews never imply command acceptance, and timeline success remains authoritative-event-driven. Region inspection is a separate #159 authority path and must not be hidden inside the intervention palette.
 - Scientific timeline presentation stays in src/ui/timeline.ts.
 - Renderer/Pixi scene authority stays under src/render/**.
@@ -103,6 +104,13 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Demo snapshot factories used during candidate resolution must remain deterministic and side-effect free for the same explicit demo configuration. They are presentation factories, never a place for RNG progression, network work, persistent mutation, or scientific authority.
 - Source identity is explicit and separate from snapshot shape. Passing a demo-shaped `DishRenderSnapshot` through props must never cause it to be relabelled authoritative.
 - Authoritative state always takes precedence and must not invoke demo generation. Visual-demo state remains explicit opt-in, visibly disclosed, and presentation-only.
+
+
+## Authoritative dish replay keyframe bridge
+- `dishReplayKeyframe.ts` is the narrow app-layer bridge between worker/runtime authority and renderer replay history. It may bind an already-authoritative `DishRenderSnapshot` to runtime identity; it may not derive biology from renderer state.
+- Replay order is sourced from `SimulationCheckpoint.commandCount`, the current versioned worker protocol's accepted mutating-command position. The bridge copies it into the versioned renderer replay-order contract and requires exact equality between runtime checkpoint `simulationTimeHours` and the dish projection's biological timestamp.
+- `runBranchIdentity` is explicit caller/runtime authority. A reset, replay, restore branch, or other history generation that can restart/regress accepted-command position must receive a fresh branch identity; React/Pixi must never infer branch ancestry from array order, snapshot IDs, arrival time, or presentation state.
+- Snapshot-only observations that do not advance `commandCount` are not distinct replay positions. If callers attempt to append two different keyframes with the same order identity, renderer replay validation must reject the history rather than inventing an ordering.
 
 
 ## Shared visual theme

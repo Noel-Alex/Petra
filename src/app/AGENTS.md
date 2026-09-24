@@ -41,7 +41,7 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - React shell panels and dish overlay chrome consume `src/ui/motion/semanticTransitions.ts`; do not derive competing durations/easings directly in components.
 - `src/app/motionAdapter.ts` is the thin CSS projection layer for framework-neutral surface plans.
 - Representative-cell semantic zoom must remain visibly labelled illustrative/explanatory and never be described as literal microscopy or a finer simulation scale.
-- Semantic zoom guidance may explain renderer meaning, but it must not infer current scientific state from camera position unless the renderer explicitly reports a presentation-only semantic level.
+- Semantic zoom guidance may explain renderer meaning, but it must not infer current scientific state from camera position unless the renderer explicitly reports a presentation-only semantic level. The live guide consumes only that named threshold report, marks exactly one current level while the renderer is active, and never polls/owns raw camera zoom; Reduced/Off keep the same current-state meaning without spatial animation.
 
 
 ## Timeline history presentation

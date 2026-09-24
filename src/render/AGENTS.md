@@ -21,7 +21,7 @@ Use named semantic levels rather than raw camera scale as scientific meaning:
 - `colony` — local lineages, sampled cell glyphs, contours and local state;
 - `representative-cell` — explanatory illustration only, clearly labelled representative rather than microscopic truth.
 
-Zoom thresholds are presentation policy. Crossing them may reveal/hide information but may not change the simulation.
+Zoom thresholds are presentation policy. Crossing them may reveal/hide information but may not change the simulation. A renderer may report the current **named** semantic level to presentation adapters, but it must emit only on named-level changes rather than streaming raw camera zoom into React or scientific state.
 
 ## LOD
 

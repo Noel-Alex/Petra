@@ -8,11 +8,11 @@ import {
 } from "../lineageDensityPresentation";
 import { resolveLineagePattern, type LineagePatternToken } from "../lineagePatterns";
 import {
-  semanticZoomLevel,
   type CameraView,
   type DishRenderSnapshot,
   type RenderField,
   type RenderLineage,
+  type SemanticZoomLevel,
 } from "../model";
 import {
   isScreenPointInsideDishAperture,
@@ -48,6 +48,7 @@ import {
   type CameraMotionSpec,
 } from "./cameraMotion";
 import { updateCameraMotionRuntime } from "./cameraMotionLifecycle";
+import { resolveSemanticZoomReport } from "../semanticZoomReporter";
 import { resolveSnapshotOverlayUpdate } from "./snapshotOverlay";
 import { wheelZoomFactor } from "./wheelZoom";
 
@@ -58,6 +59,7 @@ export interface PixiDishOptions {
   readonly cameraMotion: CameraMotionSpec;
   readonly overlayId?: string | null;
   readonly maxRepresentativeGlyphs?: number;
+  readonly onSemanticZoomChange?: (level: SemanticZoomLevel) => void;
 }
 
 export interface PixiDishRenderer {
@@ -122,17 +124,24 @@ export async function createPixiDishRenderer(
   let cameraElapsedMs = cameraMotion.durationMs;
   let destroyed = false;
   let gestureState = createPointerGestureState();
+  let reportedSemanticZoomLevel: SemanticZoomLevel | null = null;
 
   const maxRepresentativeGlyphs = options.maxRepresentativeGlyphs ?? 180;
 
   const render = () => {
     if (snapshot === null || destroyed) return;
+
+    const semanticZoom = resolveSemanticZoomReport(
+      reportedSemanticZoomLevel,
+      camera.zoom,
+    );
     drawScene({
       app,
       snapshot,
       camera,
       overlayId,
       motion,
+      level: semanticZoom.level,
       maxRepresentativeGlyphs,
       plateLayer,
       dishInteriorMask,
@@ -141,6 +150,11 @@ export async function createPixiDishRenderer(
       glyphLayer,
       accentLayer,
     });
+
+    if (semanticZoom.changed) {
+      reportedSemanticZoomLevel = semanticZoom.level;
+      options.onSemanticZoomChange?.(semanticZoom.level);
+    }
   };
 
   const applySnapshotOverlayUpdate = (
@@ -462,6 +476,7 @@ function drawScene(args: {
   readonly camera: CameraView;
   readonly overlayId: string | null;
   readonly motion: RendererMotionMode;
+  readonly level: SemanticZoomLevel;
   readonly maxRepresentativeGlyphs: number;
   readonly plateLayer: Graphics;
   readonly dishInteriorMask: Graphics;
@@ -476,6 +491,7 @@ function drawScene(args: {
     camera,
     overlayId,
     motion,
+    level,
     maxRepresentativeGlyphs,
     plateLayer,
     dishInteriorMask,
@@ -493,7 +509,6 @@ function drawScene(args: {
   const centerX = geometry.centerX;
   const centerY = geometry.centerY;
   const radius = geometry.radius;
-  const level = semanticZoomLevel(camera.zoom);
 
   for (const layer of [
     plateLayer,

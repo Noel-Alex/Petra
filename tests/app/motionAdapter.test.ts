@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { planSurfaceTransition } from "../../src/ui/motion/semanticTransitions";
 import {
   SEMANTIC_ZOOM_GUIDE,
+  semanticZoomGuideMotionCss,
   surfaceMotionCss,
 } from "../../src/app/motionAdapter";
 
@@ -42,6 +43,18 @@ describe("app motion adapter", () => {
     expect(reduced.treatment).toBe("instant");
     expect(off.duration).toBe("0ms");
     expect(off.treatment).toBe("instant");
+  });
+
+  it("uses shared motion policy for semantic-guide emphasis", () => {
+    expect(semanticZoomGuideMotionCss("full")).toEqual({
+      duration: "160ms",
+      easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+      treatment: "animate",
+    });
+    expect(semanticZoomGuideMotionCss("reduced").duration).toBe("0ms");
+    expect(semanticZoomGuideMotionCss("reduced").treatment).toBe("instant");
+    expect(semanticZoomGuideMotionCss("off").duration).toBe("0ms");
+    expect(semanticZoomGuideMotionCss("off").treatment).toBe("instant");
   });
 
   it("labels representative-cell zoom as illustrative rather than literal microscopy", () => {

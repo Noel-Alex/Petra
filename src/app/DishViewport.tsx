@@ -1,11 +1,12 @@
 import {
+  useEffect,
   useId,
   useMemo,
   useState,
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import type { DishRenderSnapshot } from "../render/model";
+import type { DishRenderSnapshot, SemanticZoomLevel } from "../render/model";
 import { PixiDish } from "../render/pixi/PixiDish";
 import { createRendererDemoSnapshot } from "../render/pixi/demoSnapshot";
 import type { RendererMotionMode } from "../render/pixi/renderer";
@@ -15,10 +16,8 @@ import {
   defaultDishOverlayId,
   resolveDishOverlay,
 } from "./dishPresentation";
-import {
-  SEMANTIC_ZOOM_GUIDE,
-  surfaceMotionCss,
-} from "./motionAdapter";
+import { surfaceMotionCss } from "./motionAdapter";
+import { SemanticZoomGuide } from "./SemanticZoomGuide";
 import { dishEscapeAction } from "./dishKeyboard";
 import { resolveDishCameraMotion } from "./dishCameraMotion";
 
@@ -68,6 +67,7 @@ export function DishViewport({
     () => (activeSnapshot === null ? null : defaultDishOverlayId(activeSnapshot)),
   );
   const [cameraResetSignal, setCameraResetSignal] = useState(0);
+  const [semanticZoom, setSemanticZoom] = useState<SemanticZoomLevel>("dish");
   const activeOverlay =
     activeSnapshot === null
       ? null
@@ -75,6 +75,10 @@ export function DishViewport({
   const resolvedOverlayId = activeOverlay?.id ?? null;
   const renderEnabled = activeSnapshot !== null;
   const cameraPlan = resolveDishCameraMotion(motion);
+
+  useEffect(() => {
+    if (!renderEnabled) setSemanticZoom("dish");
+  }, [renderEnabled]);
   const overlayMotion = useMemo(
     () =>
       surfaceMotionCss(
@@ -137,6 +141,7 @@ export function DishViewport({
                 : "Petra Petri dish waiting for authoritative simulation data"
           }
           ariaDescribedBy={interactionHintId}
+          onSemanticZoomChange={setSemanticZoom}
         />
         <span className="dish-source-badge">
           {usingAuthoritative
@@ -206,18 +211,10 @@ export function DishViewport({
         </div>
       </div>
 
-      <div
-        className="dish-semantic-guide"
-        role="note"
-        aria-label="Semantic zoom meaning"
-      >
-        {SEMANTIC_ZOOM_GUIDE.map((entry) => (
-          <span key={entry.id} data-semantic-view={entry.id}>
-            <strong>{entry.label}</strong>
-            <span>{entry.meaning}</span>
-          </span>
-        ))}
-      </div>
+      <SemanticZoomGuide
+        level={renderEnabled ? semanticZoom : null}
+        motion={motion}
+      />
 
       <p className="dish-interaction-hint" id={interactionHintId}>
         Pointer: wheel to zoom · drag while zoomed · double-click to focus.

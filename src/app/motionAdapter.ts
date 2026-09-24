@@ -1,4 +1,9 @@
-import type { MotionTreatment } from "../ui/motion/policy";
+import {
+  resolveMotion,
+  type MotionPreference,
+  type MotionTreatment,
+} from "../ui/motion/policy";
+import { MOTION } from "../ui/motion/tokens";
 import type { SurfaceTransitionPlan } from "../ui/motion/semanticTransitions";
 
 export interface SurfaceMotionCss {
@@ -12,6 +17,21 @@ export function surfaceMotionCss(plan: SurfaceTransitionPlan): SurfaceMotionCss 
     duration: `${plan.durationMs}ms`,
     easing: cubicBezier(plan.easing),
     treatment: plan.treatment,
+  };
+}
+
+export function semanticZoomGuideMotionCss(
+  preference: MotionPreference,
+): SurfaceMotionCss {
+  const resolved = resolveMotion(preference, {
+    kind: "decorative",
+    durationMs: MOTION.toolPreview.durationMs,
+  });
+
+  return {
+    duration: `${resolved.durationMs}ms`,
+    easing: cubicBezier(MOTION.toolPreview.easing),
+    treatment: resolved.treatment,
   };
 }
 

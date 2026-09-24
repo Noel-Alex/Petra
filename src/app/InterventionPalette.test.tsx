@@ -48,4 +48,19 @@ describe("InterventionPalette", () => {
       "Controls are shell-only in this checkpoint",
     );
   });
+  it("makes collapsed focus chrome inert without changing tool authority", () => {
+    const html = renderToStaticMarkup(
+      <InterventionPalette
+        motion="full"
+        runtimeStatus="ready"
+        collapsed
+      />,
+    );
+
+    expect(html).toContain('data-focus-collapsed="true"');
+    expect(html).toContain('aria-hidden="true"');
+    expect(html).toContain("inert");
+    expect(html).toContain("disabled");
+  });
+
 });

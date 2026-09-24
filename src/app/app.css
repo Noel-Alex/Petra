@@ -265,6 +265,26 @@ button:hover {
   }
 }
 
+.dish-onboarding-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  align-items: end;
+  justify-items: start;
+  padding: clamp(0.65rem, 2vw, 1.15rem);
+  pointer-events: none;
+}
+
+.dish-onboarding-layer > .petra-onboarding {
+  width: min(34rem, 100%);
+  max-height: calc(100% - 0.25rem);
+  overflow-x: hidden;
+  overflow-y: auto;
+  pointer-events: auto;
+  scrollbar-gutter: stable;
+}
+
 .dish-mount {
   width: min(72vh, 44rem);
   max-width: 88%;

@@ -12,6 +12,25 @@ ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / "tools" / "verification_registry.json"
 SCENARIO_SCHEMA = ROOT / "data" / "schemas" / "scenario.schema.json"
 
+PRESENTATION_EVIDENCE_CLASSES = {
+    "measured",
+    "derived",
+    "transferred",
+    "calibrated",
+    "mechanistic_approximation",
+    "engineering",
+    "visual_only",
+    "hypothesis_experimental",
+    "transferred_mechanistic_approximation",
+}
+SOURCE_REQUIRED_EVIDENCE_CLASSES = {
+    "measured",
+    "derived",
+    "transferred",
+    "mechanistic_approximation",
+    "transferred_mechanistic_approximation",
+}
+
 REQUIRED = [
     "AGENTS.md", "README.md", "research/AGENTS.md", "research/CLAIM_LEDGER.md",
     "docs/AGENTS.md", "docs/TEAM_BOARD.md", "docs/ORCHESTRATOR_COMMUNICATION.md",
@@ -90,13 +109,92 @@ def _citation_references(value: Any, path: str = "$") -> list[tuple[str, Any]]:
     if isinstance(value, dict):
         if "citation" in value:
             refs.append((f"{path}.citation", value["citation"]))
+        if "citations" in value:
+            citations = value["citations"]
+            if isinstance(citations, list):
+                for index, source_key in enumerate(citations):
+                    refs.append((f"{path}.citations[{index}]", source_key))
+            else:
+                refs.append((f"{path}.citations", citations))
         for key, child in value.items():
-            if key != "citations":
+            if key not in {"citation", "citations"}:
                 refs.extend(_citation_references(child, f"{path}.{key}"))
     elif isinstance(value, list):
         for index, child in enumerate(value):
             refs.extend(_citation_references(child, f"{path}[{index}]"))
     return refs
+
+
+def _nonempty_string(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _validate_presentation_provenance(
+    record: Any,
+    path: str,
+    errors: list[str],
+    *,
+    require_context: bool = False,
+) -> None:
+    if not isinstance(record, dict):
+        errors.append(f"{path} must be an object")
+        return
+
+    provenance = record.get("provenance")
+    if not isinstance(provenance, dict):
+        errors.append(f"{path}.provenance must be an object")
+        return
+
+    classification = provenance.get("classification")
+    if not _nonempty_string(classification):
+        errors.append(f"{path}.provenance.classification must be a non-empty string")
+        return
+    if classification not in PRESENTATION_EVIDENCE_CLASSES:
+        errors.append(
+            f"{path}.provenance.classification {classification!r} is not a supported presentation evidence class"
+        )
+
+    source_keys: list[Any] = []
+    if "citation" in provenance:
+        source_keys.append(provenance["citation"])
+    if "citations" in provenance:
+        citations = provenance["citations"]
+        if isinstance(citations, list):
+            source_keys.extend(citations)
+        else:
+            errors.append(f"{path}.provenance.citations must be an array of citation keys")
+
+    if classification in SOURCE_REQUIRED_EVIDENCE_CLASSES and not source_keys:
+        errors.append(f"{path}.provenance requires at least one citation key for {classification}")
+
+    for index, source_key in enumerate(source_keys):
+        if not _nonempty_string(source_key):
+            errors.append(f"{path}.provenance source key {index} must be a non-empty string")
+
+    if require_context and not _nonempty_string(provenance.get("context")):
+        errors.append(f"{path}.provenance.context must be a non-empty string")
+
+    if classification in {"transferred", "transferred_mechanistic_approximation"}:
+        if not _nonempty_string(provenance.get("transferNote")):
+            errors.append(f"{path}.provenance.transferNote is required for transferred evidence")
+
+    if classification in {"mechanistic_approximation", "transferred_mechanistic_approximation"}:
+        if not _nonempty_string(provenance.get("limitation")):
+            errors.append(f"{path}.provenance.limitation is required for model approximations")
+
+    if classification == "derived" and not _nonempty_string(provenance.get("transformation")):
+        errors.append(f"{path}.provenance.transformation is required for derived evidence")
+
+    for field in (
+        "context",
+        "transformation",
+        "uncertainty",
+        "transferNote",
+        "calibrationNote",
+        "limitation",
+    ):
+        if field in provenance and not _nonempty_string(provenance[field]):
+            errors.append(f"{path}.provenance.{field} must be a non-empty string when supplied")
 
 
 def scenario_contracts() -> int:
@@ -168,6 +266,39 @@ def scenario_contracts() -> int:
             has_locator = any(isinstance(source.get(key), str) and source[key].strip() for key in ("doi", "url"))
             if not has_locator:
                 errors.append(f"{prefix}: citation {source_key!r} needs a DOI or URL")
+
+        if obj.get("id") == "ecoli-ciprofloxacin-spatial":
+            genotypes = obj.get("genotypes")
+            if not isinstance(genotypes, list) or not genotypes:
+                errors.append(f"{prefix}: flagship genotypes must be a non-empty array")
+            else:
+                for index, genotype in enumerate(genotypes):
+                    _validate_presentation_provenance(
+                        genotype,
+                        f"{prefix}: genotypes[{index}]",
+                        errors,
+                        require_context=True,
+                    )
+
+            transitions = obj.get("mutationTransitions")
+            if not isinstance(transitions, list) or not transitions:
+                errors.append(f"{prefix}: flagship mutationTransitions must be a non-empty array")
+            else:
+                for index, transition in enumerate(transitions):
+                    _validate_presentation_provenance(
+                        transition,
+                        f"{prefix}: mutationTransitions[{index}]",
+                        errors,
+                        require_context=True,
+                    )
+
+            policy = obj.get("drug", {}).get("resourceDrugCompositionPolicy") if isinstance(obj.get("drug"), dict) else None
+            _validate_presentation_provenance(
+                policy,
+                f"{prefix}: drug.resourceDrugCompositionPolicy",
+                errors,
+                require_context=True,
+            )
 
         for ref_path, source_key in _citation_references(obj):
             reference_count += 1

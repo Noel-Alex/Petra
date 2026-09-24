@@ -23,3 +23,10 @@ Own the guided science-story choreography that introduces Petra without duplicat
 
 ## Verification
 Deterministic tests must prove gated progression, skip/reset behavior, and reduced/off presentation semantics. Browser polish and screenshot/FPS acceptance require browser-capable verification.
+
+
+## Visual-theme ownership
+- `OnboardingGuide.css` consumes Petra's shared `--petra-color-*` / `--petra-rgb-*` variables for stable chrome and focus reinforcement. Do not create an onboarding-only numeric hex/RGB/RGBA palette.
+- The visual focus families are presentation-only mappings: default teal, pressure lavender, lineage amber, and controls mint. They reinforce explicit stage copy/geometry and never satisfy or reinterpret a scientific gate.
+- Waiting/ready gate color uses shared amber/mint reinforcement while visible labels and gate structure remain the semantic authority.
+- Theme changes must preserve `resolveOnboardingPresentation` timing ownership, Full/Reduced/Off behavior, canonical stage order, scientific-gate readiness, navigation semantics, focus visibility, and responsive/touch behavior.

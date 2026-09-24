@@ -2,6 +2,7 @@ import {
   useEffect,
   useId,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -24,6 +25,10 @@ import {
   dishEscapeAllowsFirstRefusal,
 } from "./dishKeyboard";
 import { resolveDishCameraMotion } from "./dishCameraMotion";
+import {
+  INITIAL_DISH_RENDER_SOURCE_STATE,
+  resolveDishRenderSource,
+} from "./dishRenderSource";
 
 export interface DishViewportProps {
   readonly motion: RendererMotionMode;
@@ -55,18 +60,22 @@ export function DishViewport({
   onEscapeBeforeOverview,
 }: DishViewportProps) {
   const interactionHintId = useId();
-  const authoritativeSnapshot = snapshot ?? null;
-  const usingAuthoritative = authoritativeSnapshot !== null;
-  const usingDemo = !usingAuthoritative && demoMode;
-  const demoSnapshot = useMemo(
-    () => (demoMode ? createRendererDemoSnapshot() : null),
-    [demoMode],
+  const renderSourceStateRef = useRef(INITIAL_DISH_RENDER_SOURCE_STATE);
+  const renderSource = resolveDishRenderSource(
+    renderSourceStateRef.current,
+    {
+      authoritativeSnapshot: snapshot ?? null,
+      demoMode,
+    },
+    createRendererDemoSnapshot,
   );
-  const activeSnapshot = usingAuthoritative
-    ? authoritativeSnapshot
-    : usingDemo
-      ? demoSnapshot
-      : null;
+  renderSourceStateRef.current = renderSource.state;
+
+  const renderSourceKind = renderSource.source.kind;
+  const activeSnapshot = renderSource.source.snapshot;
+  const usingAuthoritative =
+    renderSourceKind === "authoritative-snapshot";
+  const usingDemo = renderSourceKind === "visual-demo";
   const [requestedOverlayId, setRequestedOverlayId] = useState<string | null>(
     () => (activeSnapshot === null ? null : defaultDishOverlayId(activeSnapshot)),
   );
@@ -147,19 +156,13 @@ export function DishViewport({
   return (
     <div
       className="dish-renderer-shell"
-      data-render-source={
-        usingAuthoritative
-          ? "authoritative-snapshot"
-          : usingDemo
-            ? "visual-demo"
-            : "awaiting-authoritative-snapshot"
-      }
+      data-render-source={renderSourceKind}
       onKeyDown={handleDishKeyDown}
     >
       <div className="dish-renderer-frame">
         <PixiDish
-          snapshot={authoritativeSnapshot}
-          demoMode={usingDemo}
+          snapshot={activeSnapshot}
+          source={renderSourceKind}
           motion={cameraPlan.mode}
           cameraMotion={cameraPlan.cameraMotion}
           overlayId={resolvedOverlayId}

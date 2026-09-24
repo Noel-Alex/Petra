@@ -146,6 +146,22 @@ describe("surrogate held-out benchmarks", () => {
     expect(assess()).toEqual({ eligible: true, issues: [] });
   });
 
+  it("fails closed on malformed benchmark compatibility evidence", () => {
+    const malformed = {
+      ...compatibility,
+      supportedScenarios: [],
+    } as SurrogateCompatibilityIdentity;
+    const assessment = assess({
+      ...goodEvidence,
+      compatibility: malformed,
+    });
+
+    expect(assessment.eligible).toBe(false);
+    expect(assessment.issues.map((issue) => issue.kind)).toContain(
+      "compatibility-mismatch",
+    );
+  });
+
   it("rejects evidence promoted under another compatibility contract", () => {
     const assessment = assess({
       ...goodEvidence,

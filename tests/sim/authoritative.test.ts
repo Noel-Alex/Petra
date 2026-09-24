@@ -7,6 +7,7 @@ import {
   type ComposedSimulationConfig,
 } from '../../src/sim/authoritative'
 import type { CuratedMutationGraph } from '../../src/sim/evolution/graph'
+import type { SamplingExecutionPolicy } from '../../src/sim/samplingPolicy'
 
 const evolutionGraph: CuratedMutationGraph = {
   scenarioId: 'test-scenario',
@@ -17,6 +18,15 @@ const evolutionGraph: CuratedMutationGraph = {
     { id: 'ISO', relativeFitness: 1, sourceOrder: 2 },
   ],
   transitions: [],
+}
+
+const acceleratedSamplingPolicy: SamplingExecutionPolicy = {
+  schemaVersion: 1,
+  id: 'test-sampling-policy',
+  exactTrialLimit: 1000,
+  acceleration: 'exact-sparse-binomial-v1',
+  maximumExpectedAcceleratedDraws: 10000,
+  maximumAcceleratedDraws: 20000,
 }
 
 const config: ComposedSimulationConfig = {
@@ -34,6 +44,7 @@ const config: ComposedSimulationConfig = {
   },
   evolutionGraph,
   evolutionScenario: { scenarioId: 'test-scenario', scenarioVersion: '1' },
+  samplingExecutionPolicy: null,
   lineages: [
     { id: 'ancestor', genotypeId: 'WT', deathHazardPerHour: 0 },
     { id: 'variant', genotypeId: 'VAR', deathHazardPerHour: 0.1 },
@@ -100,6 +111,60 @@ describe('authoritative composed state', () => {
         growth: { ...config.growth, maxDivisionRate: 0.81 },
       }),
     ).toThrow(/fingerprint mismatch/)
+  })
+
+  it('binds sampling execution policy identity into composed replay configuration', () => {
+    const nullFingerprint = composedConfigurationFingerprint(config)
+    expect(JSON.parse(nullFingerprint).samplingExecutionPolicy).toBeNull()
+
+    const withPolicy: ComposedSimulationConfig = {
+      ...config,
+      samplingExecutionPolicy: acceleratedSamplingPolicy,
+    }
+    const equivalentPolicy: ComposedSimulationConfig = {
+      ...withPolicy,
+      samplingExecutionPolicy: { ...acceleratedSamplingPolicy },
+    }
+    expect(composedConfigurationFingerprint(equivalentPolicy)).toBe(
+      composedConfigurationFingerprint(withPolicy),
+    )
+    expect(composedConfigurationFingerprint(withPolicy)).not.toBe(
+      nullFingerprint,
+    )
+
+    const state = createComposedState(withPolicy)
+    const reassigned: ComposedSimulationConfig = {
+      ...withPolicy,
+      samplingExecutionPolicy: {
+        ...acceleratedSamplingPolicy,
+        maximumAcceleratedDraws:
+          acceleratedSamplingPolicy.maximumAcceleratedDraws + 1,
+      },
+    }
+    expect(composedConfigurationFingerprint(reassigned)).not.toBe(
+      state.configurationFingerprint,
+    )
+    expect(() => stepComposedState(state, reassigned)).toThrow(
+      /fingerprint mismatch/,
+    )
+  })
+
+  it('requires an explicit valid sampling execution policy or null', () => {
+    expect(() =>
+      createComposedState({
+        ...config,
+        samplingExecutionPolicy: {
+          ...acceleratedSamplingPolicy,
+          exactTrialLimit: -1,
+        },
+      }),
+    ).toThrow(/exactTrialLimit/)
+
+    const missing = { ...config } as Partial<ComposedSimulationConfig>
+    delete missing.samplingExecutionPolicy
+    expect(() =>
+      createComposedState(missing as ComposedSimulationConfig),
+    ).toThrow(/sampling execution policy must be explicit null/)
   })
 
   it('rejects genotype reassignment even when numerical fitness is identical', () => {

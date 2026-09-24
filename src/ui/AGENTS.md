@@ -109,6 +109,7 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Decorative press feedback follows native activation semantics: only pointer button `0` may enter Petra's press state. Secondary/auxiliary pointer buttons remain browser/context-menu authority while caller pointer handlers are still forwarded unchanged.
 - Transient pointer state is fail-safe across dynamic disabling: when an action becomes disabled it proactively clears pointer press/hover state, and terminal pointer-up/cancel cleanup is never gated by the latest disabled prop. This prevents pending-command disable/re-enable cycles from resurrecting stale press compression; persistent focus/selection semantics remain separate.
 - Micro-interaction duration and easing are presentation wall-time policy only and must come from named Petra motion tokens; React/CSS adapters project them rather than defining parallel curves.
+- Shared action stylesheet fallback variables are deliberately static (`0ms` + `linear`). Motion exists only when the adapter projects a resolved named Petra token; missing projection must fail static rather than revive a stale CSS timing.
 
 
 ## Causal event narration

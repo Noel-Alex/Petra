@@ -1,6 +1,7 @@
 import {
   useMemo,
   useState,
+  type ChangeEvent,
   type CSSProperties,
 } from "react";
 
@@ -106,7 +107,9 @@ export function ProvenancePanel({
         <input
           type="search"
           value={query}
-          onChange={(event) => setQuery(event.currentTarget.value)}
+          onChange={(event: ChangeEvent<HTMLInputElement>) =>
+            setQuery(event.currentTarget.value)
+          }
           placeholder="e.g. ciprofloxacin, MIC, diffusion"
         />
       </label>

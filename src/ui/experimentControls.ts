@@ -1,4 +1,7 @@
-import type { ComposedSimulationConfig } from '../sim/authoritative'
+import {
+  composedConfigurationFingerprint,
+  type ComposedSimulationConfig,
+} from '../sim/authoritative'
 import {
   PROTOCOL_VERSION,
   assertSimulationSeed,
@@ -119,9 +122,10 @@ export function schedulerAdvanceTicks(speed: PlaybackSpeed): number {
 export function snapshotMatchesControlIdentity(
   state: ExperimentControlState,
   snapshot: SimulationSnapshot,
+  composedConfig?: ComposedSimulationConfig,
 ): boolean {
   const checkpoint = snapshot.checkpoint
-  return (
+  const identityMatches =
     checkpoint.identity.engineVersion === state.identity.engineVersion &&
     checkpoint.identity.protocolVersion === state.identity.protocolVersion &&
     checkpoint.identity.scenarioId === state.identity.scenarioId &&
@@ -129,6 +133,17 @@ export function snapshotMatchesControlIdentity(
     checkpoint.identity.parameterSetId === state.identity.parameterSetId &&
     checkpoint.identity.parameterSetVersion === state.identity.parameterSetVersion &&
     checkpoint.identity.seed === state.identity.seed
+
+  if (!identityMatches) return false
+
+  if (composedConfig === undefined) {
+    return checkpoint.authority !== 'composed'
+  }
+
+  return (
+    checkpoint.authority === 'composed' &&
+    checkpoint.composedState.configurationFingerprint ===
+      composedConfigurationFingerprint(composedConfig)
   )
 }
 

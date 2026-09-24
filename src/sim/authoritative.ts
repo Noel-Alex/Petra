@@ -312,6 +312,11 @@ function composedCiprofloxacinIdentity(
 function composedDiscretePopulationAuthorityConfig(
   config: ComposedSimulationConfig,
 ): DiscretePopulationAuthorityConfig | null {
+  if (config.populationAuthority === undefined) {
+    throw new Error(
+      'composed populationAuthority must be explicit config or explicit null',
+    )
+  }
   if (config.populationAuthority === null) return null
   return {
     width: config.width,

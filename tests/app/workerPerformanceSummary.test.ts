@@ -19,7 +19,7 @@ function sample(
     workerExecutionMs: 6,
     workerExecutionMsPerTick: 1.5,
     nonWorkerRoundTripMs: 4,
-    authoritativeEventQueueLength: 3,
+    authoritativeEventArrayLength: 3,
     outcome: "success",
     ...overrides,
   };
@@ -38,7 +38,7 @@ describe("worker performance summary", () => {
         workerExecutionMs: 2,
         workerExecutionMsPerTick: 1,
         nonWorkerRoundTripMs: 3,
-        authoritativeEventQueueLength: 5,
+        authoritativeEventArrayLength: 5,
         queuedRequestsBehindAtDispatch: 2,
       }),
     ]);
@@ -57,7 +57,7 @@ describe("worker performance summary", () => {
       workerExecutionMsPerAdvanceTick: 8 / 6,
       totalNonWorkerRoundTripMs: 7,
       maxQueuedRequestsBehindAtDispatch: 2,
-      maxAuthoritativeEventQueueLength: 5,
+      maxAuthoritativeEventArrayLength: 5,
       observationWindowMs: 30,
       observedPayloadBytesPerSecond: 700 / 0.03,
     });

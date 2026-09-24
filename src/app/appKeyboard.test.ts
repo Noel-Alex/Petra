@@ -1,0 +1,143 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  isGlobalShortcutBlockedTarget,
+  planAppKeyboardShortcut,
+} from "./appKeyboard";
+
+function target(
+  tagName: string,
+  options: {
+    readonly role?: string;
+    readonly href?: string;
+    readonly contentEditable?: boolean;
+  } = {},
+) {
+  return {
+    tagName,
+    isContentEditable: options.contentEditable ?? false,
+    getAttribute(name: string) {
+      if (name === "role") return options.role ?? null;
+      if (name === "href") return options.href ?? null;
+      return null;
+    },
+  };
+}
+
+describe("app keyboard shortcut policy", () => {
+  it("projects playback shortcuts only from non-interactive surfaces", () => {
+    expect(
+      planAppKeyboardShortcut({
+        sourcesOpen: false,
+        key: " ",
+        defaultPrevented: false,
+        target: target("div"),
+      }),
+    ).toEqual({ type: "dispatch", action: { type: "toggle-play" } });
+
+    expect(
+      planAppKeyboardShortcut({
+        sourcesOpen: false,
+        key: ".",
+        defaultPrevented: false,
+        target: target("main"),
+      }),
+    ).toEqual({ type: "dispatch", action: { type: "step", ticks: 1 } });
+
+    expect(
+      ["1", "2", "3"].map((key) =>
+        planAppKeyboardShortcut({
+          sourcesOpen: false,
+          key,
+          defaultPrevented: false,
+          target: target("section"),
+        }),
+      ),
+    ).toEqual([
+      { type: "dispatch", action: { type: "set-speed", speed: 1 } },
+      { type: "dispatch", action: { type: "set-speed", speed: 4 } },
+      { type: "dispatch", action: { type: "set-speed", speed: 16 } },
+    ]);
+  });
+
+  it("preserves native keyboard semantics for interactive targets", () => {
+    for (const blockedTarget of [
+      target("button"),
+      target("input"),
+      target("textarea"),
+      target("select"),
+      target("summary"),
+      target("a", { href: "https://example.test" }),
+      target("div", { contentEditable: true }),
+      target("div", { role: "button" }),
+      target("div", { role: "slider" }),
+      target("div", { role: "spinbutton" }),
+      target("div", { role: "textbox" }),
+      target("div", { role: "combobox" }),
+      target("div", { role: "switch" }),
+    ]) {
+      expect(isGlobalShortcutBlockedTarget(blockedTarget)).toBe(true);
+      expect(
+        planAppKeyboardShortcut({
+          sourcesOpen: false,
+          key: " ",
+          defaultPrevented: false,
+          target: blockedTarget,
+        }),
+      ).toEqual({ type: "none" });
+    }
+  });
+
+  it("lets an open Sources disclosure own Escape before global pause", () => {
+    expect(
+      planAppKeyboardShortcut({
+        sourcesOpen: true,
+        key: "Escape",
+        defaultPrevented: false,
+        target: target("div"),
+      }),
+    ).toEqual({ type: "close-sources" });
+
+    expect(
+      planAppKeyboardShortcut({
+        sourcesOpen: true,
+        key: "Escape",
+        defaultPrevented: false,
+        target: target("input"),
+      }),
+    ).toEqual({ type: "none" });
+
+    expect(
+      planAppKeyboardShortcut({
+        sourcesOpen: false,
+        key: "Escape",
+        defaultPrevented: false,
+        target: target("div"),
+      }),
+    ).toEqual({ type: "dispatch", action: { type: "pause" } });
+  });
+
+  it("honors child ownership and ignores unrelated keys", () => {
+    expect(
+      planAppKeyboardShortcut({
+        sourcesOpen: false,
+        key: " ",
+        defaultPrevented: true,
+        target: target("div"),
+      }),
+    ).toEqual({ type: "none" });
+
+    expect(
+      planAppKeyboardShortcut({
+        sourcesOpen: false,
+        key: "Enter",
+        defaultPrevented: false,
+        target: target("div"),
+      }),
+    ).toEqual({ type: "none" });
+  });
+
+  it("does not block a plain anchor without an href", () => {
+    expect(isGlobalShortcutBlockedTarget(target("a"))).toBe(false);
+  });
+});

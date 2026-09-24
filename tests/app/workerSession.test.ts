@@ -121,6 +121,13 @@ describe("worker session", () => {
 
     expect(port.posted).toHaveLength(1);
     expect(port.posted[0]).toMatchObject({ type: "initialize" });
+    expect(
+      (
+        port.posted[0] as WorkerRequest & {
+          performanceDiagnostics?: boolean;
+        }
+      ).performanceDiagnostics,
+    ).toBeUndefined();
     expect(session.state).toMatchObject({
       phase: "initializing",
       pendingCommandId: null,

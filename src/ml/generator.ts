@@ -24,6 +24,8 @@ export interface MechanisticTrajectoryResult<TInput, TTarget> {
 export interface MechanisticDatasetRow<TInput, TTarget> {
   readonly schemaVersion: typeof MECHANISTIC_DATASET_ROW_SCHEMA_VERSION;
   readonly taskId: string;
+  readonly parameterPointId: string;
+  readonly interventionFamilyId: string;
   readonly split: DatasetSplit;
   readonly splitGroupKey: string;
   readonly trajectoryKey: string;
@@ -40,8 +42,10 @@ export interface MechanisticDatasetSummary {
   readonly normalizationProfileId: string;
   readonly splitPolicyVersion: string;
   readonly splitCoveragePolicyVersion: string;
+  readonly groupCount: number;
   readonly trajectoryCount: number;
   readonly sampleCount: number;
+  readonly splitGroupCounts: Readonly<Record<DatasetSplit, number>>;
   readonly splitTrajectoryCounts: Readonly<Record<DatasetSplit, number>>;
   readonly splitSampleCounts: Readonly<Record<DatasetSplit, number>>;
 }
@@ -103,6 +107,8 @@ export function buildMechanisticDatasetArtifact<TInput, TTarget>(
       const row: MechanisticDatasetRow<TInput, TTarget> = {
         schemaVersion: MECHANISTIC_DATASET_ROW_SCHEMA_VERSION,
         taskId: task.taskId,
+        parameterPointId: task.parameterPointId,
+        interventionFamilyId: task.interventionFamilyId,
         split: task.split,
         splitGroupKey: task.splitGroupKey,
         trajectoryKey: task.trajectoryKey,
@@ -111,7 +117,7 @@ export function buildMechanisticDatasetArtifact<TInput, TTarget>(
       // Fail before returning an artifact if a runner emitted a payload that
       // cannot be represented losslessly in the stable JSONL interchange.
       canonicalJson(row);
-      rows.push(row);
+      rows.push(deepFreezeJson(row));
       splitSampleCounts[task.split] += 1;
     }
   }
@@ -126,8 +132,10 @@ export function buildMechanisticDatasetArtifact<TInput, TTarget>(
     normalizationProfileId: plan.normalizationProfileId,
     splitPolicyVersion: plan.splitPolicy.version,
     splitCoveragePolicyVersion: plan.splitCoveragePolicy.version,
+    groupCount: plan.groupCount,
     trajectoryCount: plan.trajectoryCount,
     sampleCount: rows.length,
+    splitGroupCounts: Object.freeze({ ...plan.splitGroupCounts }),
     splitTrajectoryCounts: Object.freeze({ ...plan.splitTrajectoryCounts }),
     splitSampleCounts: Object.freeze({ ...splitSampleCounts }),
   };
@@ -177,6 +185,10 @@ function validatePlanForCollection(
   requireNonEmpty("scenarioVersion", plan.scenarioVersion);
   requireNonEmpty("normalizationProfileId", plan.normalizationProfileId);
 
+  if (!Number.isSafeInteger(plan.groupCount) || plan.groupCount < 1) {
+    throw new RangeError("mechanistic sweep groupCount must be a positive safe integer");
+  }
+
   if (
     !Number.isSafeInteger(plan.trajectoryCount) ||
     plan.trajectoryCount < 1 ||
@@ -189,10 +201,14 @@ function validatePlanForCollection(
 
   const taskById = new Map<string, MechanisticSweepTask>();
   const trajectoryKeys = new Set<string>();
+  const groupSplits = new Map<string, DatasetSplit>();
+  const observedGroupCounts = emptySplitCounts();
   const observedSplitCounts = emptySplitCounts();
 
   for (const task of plan.tasks) {
     requireNonEmpty("taskId", task.taskId);
+    requireNonEmpty("parameterPointId", task.parameterPointId);
+    requireNonEmpty("interventionFamilyId", task.interventionFamilyId);
     if (taskById.has(task.taskId)) {
       throw new RangeError(`duplicate planned task id: ${task.taskId}`);
     }
@@ -246,10 +262,31 @@ function validatePlanForCollection(
         `task ${task.taskId} split does not match the plan's split policy`,
       );
     }
+
+    const existingGroupSplit = groupSplits.get(expectedGroupKey);
+    if (existingGroupSplit === undefined) {
+      groupSplits.set(expectedGroupKey, task.split);
+      observedGroupCounts[task.split] += 1;
+    } else if (existingGroupSplit !== task.split) {
+      throw new TypeError(
+        `planned group ${expectedGroupKey} spans multiple dataset splits`,
+      );
+    }
     observedSplitCounts[task.split] += 1;
   }
 
+  if (groupSplits.size !== plan.groupCount) {
+    throw new RangeError(
+      "mechanistic sweep groupCount does not match planned group identities",
+    );
+  }
+
   for (const split of DATASET_SPLITS) {
+    if (observedGroupCounts[split] !== plan.splitGroupCounts[split]) {
+      throw new RangeError(
+        `planned ${split} group count does not match task identities`,
+      );
+    }
     if (observedSplitCounts[split] !== plan.splitTrajectoryCounts[split]) {
       throw new RangeError(
         `planned ${split} trajectory count does not match task identities`,
@@ -357,6 +394,7 @@ function canonicalJsonValue(
     if (!Number.isFinite(value)) {
       throw new TypeError(`${path} contains a non-finite number`);
     }
+    if (Object.is(value, -0)) return "-0";
     return JSON.stringify(value);
   }
 
@@ -401,4 +439,15 @@ function canonicalJsonValue(
   } finally {
     ancestors.delete(value);
   }
+}
+
+function deepFreezeJson<T>(value: T): T {
+  if (value === null || typeof value !== "object" || Object.isFrozen(value)) {
+    return value;
+  }
+
+  for (const nested of Object.values(value as Record<string, unknown>)) {
+    deepFreezeJson(nested);
+  }
+  return Object.freeze(value);
 }

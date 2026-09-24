@@ -11,6 +11,7 @@ Own React/browser orchestration around Petra's authoritative worker and presenta
 - experimentRuntime.ts composes control intent, WorkerSession state, authoritative command confirmation, and timeline projection. Commands become replay history only after a returned authoritative event confirms their command id.
 - Scientific timeline presentation stays in src/ui/timeline.ts.
 - Renderer/Pixi scene authority stays under src/render/**.
+- `DishViewport.tsx` may choose/display source-provided render overlays and units, but it must not derive scientific units or fabricate authoritative snapshots. Until #42/#37 supplies a valid `DishRenderSnapshot`, the renderer demo fixture must remain visibly labelled visual-only.
 
 ## Runtime rules
 - Do not emit the next queued request until the active request receives its expected authoritative response.

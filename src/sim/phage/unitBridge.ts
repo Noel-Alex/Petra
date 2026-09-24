@@ -1,3 +1,7 @@
+import {
+  CELL_EQUIVALENT_CALIBRATION_SCHEMA_VERSION,
+  type CellEquivalentCalibration,
+} from "../populationAuthority";
 import { SimulationRng } from "../rng";
 import {
   createSamplingDrawBudget,
@@ -82,6 +86,27 @@ export function phageSpatialUnitBridgeIdentity(
     ),
     gridCellPitchMeters: identityParameter(bridge.gridCellPitchMeters),
   });
+}
+
+export function cellEquivalentCalibrationFromPhageSpatialUnitBridge(
+  bridge: PhageSpatialUnitBridge,
+): CellEquivalentCalibration {
+  validatePhageSpatialUnitBridge(bridge);
+  return {
+    schemaVersion: CELL_EQUIVALENT_CALIBRATION_SCHEMA_VERSION,
+    id: `${bridge.id}/model-biomass-cell-equivalent`,
+    modelBiomassPerCellEquivalent:
+      bridge.modelBiomassPerCellEquivalent.value,
+    provenance: {
+      classification:
+        bridge.modelBiomassPerCellEquivalent.provenance.classification,
+      sourceKeys: [
+        ...bridge.modelBiomassPerCellEquivalent.provenance.sourceKeys,
+      ],
+      limitation:
+        bridge.modelBiomassPerCellEquivalent.provenance.limitation,
+    },
+  };
 }
 
 export function modelBiomassToCellEquivalents(

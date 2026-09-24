@@ -9,7 +9,7 @@ describe("surface CSS transition adapter", () => {
     expect(planPanelCssTransition("full")).toEqual({
       treatment: "animate",
       durationCss: "220ms",
-      easingCss: "cubic-bezier(0.16, 1, 0.3, 1)",
+      easingCss: "cubic-bezier(0.2, 0.8, 0.2, 1)",
       keepMountedDuringExit: false,
     });
   });

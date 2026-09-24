@@ -281,6 +281,11 @@ function validateBetweenResolution(
       'historical presentation bounds must increase accepted command count',
     )
   }
+  if (lower.simulationTimeHours > upper.simulationTimeHours) {
+    throw new Error(
+      'historical presentation bounds must not regress biological time',
+    )
+  }
   if (
     resolution.requestedCommandPosition <= lower.commandCount ||
     resolution.requestedCommandPosition >= upper.commandCount

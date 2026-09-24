@@ -7,9 +7,16 @@ import {
   validateMechanisticSample,
   validateSplitPolicy,
   type DatasetGroupIdentity,
+  type MechanisticDatasetSchemaIdentity,
   type MechanisticSample,
   type TrajectoryIdentity,
 } from "./dataset";
+
+const datasetSchema: MechanisticDatasetSchemaIdentity = {
+  schemaVersion: "mechanistic-dataset-schema-v1",
+  inputSchemaVersion: "aggregate-input-v1",
+  targetSchemaVersion: "aggregate-target-v1",
+};
 
 const group: DatasetGroupIdentity = {
   engineVersion: "engine-a",
@@ -57,6 +64,7 @@ describe("mechanistic ML dataset contract", () => {
         snapshotIndex: 3,
         simulationTimeHours: 1.5,
         normalizationProfileId: "aggregate-v1",
+        datasetSchema,
         input: { population: 100 },
         target: { future: 140 },
       };
@@ -76,6 +84,7 @@ describe("mechanistic ML dataset contract", () => {
         snapshotIndex: 0,
         simulationTimeHours: 0,
         normalizationProfileId: "aggregate-v1",
+        datasetSchema,
         input: null,
         target: null,
       }),
@@ -88,6 +97,40 @@ describe("mechanistic ML dataset contract", () => {
     expect(() => trajectoryKey(trajectory(0xffff_ffff))).not.toThrow();
   });
 
+  it("rejects malformed input/target schema identity instead of inferring from payload keys", () => {
+    expect(() =>
+      validateMechanisticSample({
+        datasetVersion: "dataset-v1",
+        trajectory: trajectory(42),
+        snapshotIndex: 0,
+        simulationTimeHours: 0,
+        normalizationProfileId: "aggregate-v1",
+        datasetSchema: {
+          ...datasetSchema,
+          inputSchemaVersion: "",
+        },
+        input: { population: 100 },
+        target: { future: 140 },
+      }),
+    ).toThrow(/inputSchemaVersion/);
+
+    expect(() =>
+      validateMechanisticSample({
+        datasetVersion: "dataset-v1",
+        trajectory: trajectory(42),
+        snapshotIndex: 0,
+        simulationTimeHours: 0,
+        normalizationProfileId: "aggregate-v1",
+        datasetSchema: {
+          ...datasetSchema,
+          schemaVersion: "mechanistic-dataset-schema-v2",
+        } as unknown as MechanisticDatasetSchemaIdentity,
+        input: { population: 100 },
+        target: { future: 140 },
+      }),
+    ).toThrow(/unsupported mechanistic dataset schema/);
+  });
+
   it("rejects invalid time/index and malformed split policies", () => {
     const invalid: MechanisticSample<null, null> = {
       datasetVersion: "dataset-v1",
@@ -95,6 +138,7 @@ describe("mechanistic ML dataset contract", () => {
       snapshotIndex: -1,
       simulationTimeHours: 1,
       normalizationProfileId: "aggregate-v1",
+      datasetSchema,
       input: null,
       target: null,
     };

@@ -24,3 +24,9 @@ JSON must parse; schemas/presets must pass the repository verifier. Science-mode
 
 ## Child DOX index
 No child contracts yet.
+
+## Record-level presentation provenance
+- Science records exposed to UI may carry a nested `provenance` object with an explicit presentation evidence classification, source key(s), and any record-specific context/transfer/calibration/limitation metadata.
+- Preserve domain-specific scientific classifications such as mutation target classes; do not overwrite them just to satisfy UI vocabulary.
+- A nested `provenance.classification` is owned by data/science, not inferred by React from citations, field names, evidence tiers, or paper count.
+- Flagship records required by the Sources/Assumptions UI must fail visibly when required source/transfer/limitation metadata is missing.

@@ -14,6 +14,7 @@ export interface NormalizedRegionSelection {
 
 export interface RegionLineageBiomass {
   readonly lineageId: string
+  readonly genotypeId: string
   readonly biomass: number
   readonly fractionOfRegionBiomass: number
 }
@@ -110,8 +111,13 @@ export function inspectAuthoritativeRegion(
   if (state.resource.length !== state.width * state.height) {
     throw new Error('region inspection resource field must match grid dimensions')
   }
-  if (state.lineageIds.length !== state.lineageBiomass.length) {
-    throw new Error('region inspection lineage ids/channels must align')
+  if (
+    state.lineageIds.length !== state.genotypeIds.length ||
+    state.lineageIds.length !== state.lineageBiomass.length
+  ) {
+    throw new Error(
+      'region inspection lineage ids, genotype ids, and channels must align',
+    )
   }
   if (state.lineageBiomass.some((channel) => channel.length !== state.width * state.height)) {
     throw new Error('region inspection lineage fields must match grid dimensions')
@@ -146,6 +152,7 @@ export function inspectAuthoritativeRegion(
     resourceUnit: 'model-resource',
     lineageBiomass: state.lineageIds.map((lineageId, index) => ({
       lineageId,
+      genotypeId: state.genotypeIds[index]!,
       biomass: lineageTotals[index] ?? 0,
       fractionOfRegionBiomass: totalBiomass > 0 ? (lineageTotals[index] ?? 0) / totalBiomass : 0,
     })),

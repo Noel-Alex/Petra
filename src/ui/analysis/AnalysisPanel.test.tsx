@@ -132,6 +132,46 @@ describe("AnalysisPanel", () => {
     expect(html).toContain("gyrA S83L");
   });
 
+
+  it("preserves round-trip numeric precision in semantic source records", () => {
+    const preciseChart = buildScientificChart(
+      [{
+        id: "precise",
+        label: "Precise lineage",
+        unit: "model-biomass",
+        appearanceToken: "lineage-precise",
+        patternToken: "solid",
+        points: [
+          { timeHours: 0, value: 1 },
+          { timeHours: 0.123456789, value: 1.2345678912345 },
+        ],
+      }],
+      { maxPointsPerSeries: 20 },
+    );
+    const preciseTree = buildLineageTree([
+      {
+        lineageId: "P1",
+        parentLineageId: null,
+        genotypeId: "WT",
+        createdAtHours: 0.3333333333333333,
+        extinctAtHours: 1.23456789012345,
+      },
+    ]);
+
+    const html = renderToStaticMarkup(
+      <AnalysisPanel
+        chart={preciseChart}
+        lineageTree={preciseTree}
+        motion="off"
+      />,
+    );
+
+    expect(html).toContain("0.123456789 h");
+    expect(html).toContain("1.2345678912345");
+    expect(html).toContain("0.3333333333333333 h");
+    expect(html).toContain("1.23456789012345 h");
+  });
+
   it("projects shared motion policy without tying it to biological time", () => {
     const full = renderToStaticMarkup(
       <AnalysisPanel chart={chart} lineageTree={tree} motion="full" />,

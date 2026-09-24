@@ -9,6 +9,7 @@ import {
   type MotionSetting,
 } from "../ui/motion/preference";
 import { planSurfaceTransition } from "../ui/motion/semanticTransitions";
+import { OnboardingGuide } from "../ui/onboarding/OnboardingGuide";
 import { ProvenancePanel } from "../ui/provenance/ProvenancePanel";
 import { DishViewport } from "./DishViewport";
 import { InterventionPalette } from "./InterventionPalette";
@@ -16,6 +17,12 @@ import { AnalysisSurface } from "./AnalysisSurface";
 import type { AuthoritativeAnalysisRecords } from "./analysisView";
 import { buildFlagshipProvenanceView } from "./flagshipProvenance";
 import { surfaceMotionCss } from "./motionAdapter";
+import {
+  applyOnboardingUserAction,
+  createOnboardingRuntimeSession,
+  projectOnboardingRuntime,
+  reconcileOnboardingRuntimeSession,
+} from "./onboardingRuntime";
 import { shouldCloseSourcesOnEscape } from "./sourcesKeyboard";
 import {
   closeSourcesSurface,
@@ -79,6 +86,21 @@ function focusSourcesTrigger(): void {
 export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
   const systemReduced = useSystemReducedMotion();
   const experiment = useExperimentRuntime(runtimeFactory);
+  const onboardingProjection = useMemo(
+    () => projectOnboardingRuntime(experiment.state),
+    [experiment.state],
+  );
+  const [onboardingSession, setOnboardingSession] = useState(() =>
+    createOnboardingRuntimeSession(onboardingProjection),
+  );
+  const synchronizedOnboardingSession = useMemo(
+    () =>
+      reconcileOnboardingRuntimeSession(
+        onboardingSession,
+        onboardingProjection,
+      ),
+    [onboardingProjection, onboardingSession],
+  );
   const [sourcesLifecycle, setSourcesLifecycle] = useState(
     createSourcesSurfaceLifecycle,
   );
@@ -91,6 +113,12 @@ export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
   });
 
   const provenance = useMemo(() => buildFlagshipProvenanceView(), []);
+
+  useEffect(() => {
+    setOnboardingSession((current) =>
+      reconcileOnboardingRuntimeSession(current, onboardingProjection),
+    );
+  }, [onboardingProjection]);
 
   const motionPreference = resolveMotionSetting({
     setting: motionSetting,
@@ -278,6 +306,23 @@ export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
         <section className="dish-stage" aria-label="Petri dish viewport">
           <div className="dish-stage__halo" aria-hidden="true" />
           <DishViewport motion={motionPreference} />
+          {synchronizedOnboardingSession.state.completed ? null : (
+            <div className="dish-onboarding-layer">
+              <OnboardingGuide
+                state={synchronizedOnboardingSession.state}
+                motionPreference={motionPreference}
+                onAction={(action) => {
+                  setOnboardingSession((current) =>
+                    applyOnboardingUserAction(
+                      current,
+                      onboardingProjection,
+                      action,
+                    ),
+                  );
+                }}
+              />
+            </div>
+          )}
         </section>
 
         <aside className="petra-panel petra-panel--inspector" aria-label="Inspector">

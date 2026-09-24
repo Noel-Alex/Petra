@@ -29,8 +29,12 @@ export function PixiDish({
 }: PixiDishProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const rendererRef = useRef<PixiDishRenderer | null>(null);
+  const demoSnapshotRef = useRef<DishRenderSnapshot | null>(null);
+  if (demoSnapshotRef.current === null) {
+    demoSnapshotRef.current = createRendererDemoSnapshot();
+  }
   const snapshotRef = useRef<DishRenderSnapshot>(
-    snapshot ?? createRendererDemoSnapshot(),
+    snapshot ?? demoSnapshotRef.current,
   );
 
   snapshotRef.current = snapshot ?? snapshotRef.current;

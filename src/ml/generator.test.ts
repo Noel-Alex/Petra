@@ -354,6 +354,7 @@ describe("mechanistic ML dataset generator", () => {
       snapshotIndex: terminal.snapshotIndex,
       simulationTimeHours: terminal.simulationTimeHours,
       normalizationProfileId: terminal.normalizationProfileId,
+      datasetSchema: terminal.datasetSchema,
       input: terminal.input,
       target: terminal.target,
     };

@@ -16,12 +16,18 @@ describe("PresenterGuide resolved motion CSS", () => {
   it("uses resolved motion attributes without a second OS motion authority", () => {
     expect(presenterCss).not.toContain("@media (prefers-reduced-motion: reduce)");
     expect(presenterCss).toContain(
-      '.presenter-guide[data-motion="full"] .presenter-guide__card',
+      '.presenter-guide[data-motion="full"] .presenter-guide__card-content {',
     );
     expect(presenterCss).toContain(
-      '.presenter-guide[data-motion="reduced"] .presenter-guide__card',
+      '.presenter-guide[data-motion="reduced"] .presenter-guide__card-content {',
     );
     expect(presenterCss).toContain('.presenter-guide[data-motion="off"] *');
+    expect(presenterCss).not.toContain(
+      '.presenter-guide[data-motion="full"] .presenter-guide__card {',
+    );
+    expect(presenterCss).not.toContain(
+      '.presenter-guide[data-motion="reduced"] .presenter-guide__card {',
+    );
   });
 
   it("keys only the cue visual layer while keeping the polite live region stable", () => {

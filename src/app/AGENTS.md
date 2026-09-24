@@ -83,3 +83,9 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Narration stores the planner's returned sequence + event-id cursor per active stream identity. React rerenders may clear the live-region text but must not replay already accepted events.
 - #37/#42 should eventually supply this stream from the composed authoritative runtime. Until that capability exists, the default product remains correctly silent rather than adapting timeline labels, Pixi state, animation cues, or wall-clock timing.
 
+
+## Dish render-source transaction
+- `DishViewport.tsx` owns one `DishRenderSourceState` per mounted dish surface and resolves authoritative / visual-demo / awaiting presentation through `dishRenderSource.ts`.
+- The resolved `DishRenderSource.snapshot` object is the single transaction consumed by DOM overlay controls/legend and `PixiDish`; adapters must not call the demo fixture factory independently.
+- Source identity is explicit and separate from snapshot shape. Passing a demo-shaped `DishRenderSnapshot` through props must never cause it to be relabelled authoritative.
+- Authoritative state always takes precedence and must not invoke demo generation. Visual-demo state remains explicit opt-in, visibly disclosed, and presentation-only.

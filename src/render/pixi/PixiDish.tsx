@@ -2,7 +2,6 @@ import { useEffect, useId, useRef, useState } from "react";
 import { PetraCompactAction } from "../../ui/PetraCompactAction";
 import type { DishRenderSnapshot, SemanticZoomLevel } from "../model";
 import type { CameraMotionSpec } from "./cameraMotion";
-import { createRendererDemoSnapshot } from "./demoSnapshot";
 import {
   createPixiDishRenderer,
   type PixiDishRenderer,
@@ -12,8 +11,14 @@ import { beginRendererInitialization } from "./rendererLifecycle";
 
 import "./PixiDish.css";
 
+export type PixiDishSourceKind =
+  | "authoritative-snapshot"
+  | "visual-demo"
+  | "awaiting-authoritative-snapshot";
+
 export interface PixiDishProps {
-  readonly snapshot?: DishRenderSnapshot | null;
+  readonly snapshot: DishRenderSnapshot | null;
+  readonly sourceKind: PixiDishSourceKind;
   readonly motion?: RendererMotionMode;
   readonly cameraMotion: CameraMotionSpec;
   readonly overlayId?: string | null;
@@ -23,8 +28,6 @@ export interface PixiDishProps {
   /** Monotonic presentation-only request counter from the React shell. */
   readonly resetCameraSignal?: number;
   readonly onSemanticZoomLevelChange?: (level: SemanticZoomLevel) => void;
-  /** Explicit opt-in for the deterministic presentation-only fixture. */
-  readonly demoMode?: boolean;
 }
 
 export type RendererStartupStatus = "idle" | "initializing" | "ready" | "failed";
@@ -39,8 +42,23 @@ const IDLE_STARTUP: RendererStartupState = {
   errorMessage: null,
 };
 
+function assertRenderSource(
+  sourceKind: PixiDishSourceKind,
+  snapshot: DishRenderSnapshot | null,
+): void {
+  const expectsSnapshot = sourceKind !== "awaiting-authoritative-snapshot";
+  if (expectsSnapshot === (snapshot !== null)) return;
+
+  throw new Error(
+    sourceKind === "awaiting-authoritative-snapshot"
+      ? "awaiting dish render source must not include a snapshot"
+      : sourceKind + " dish render source requires a snapshot",
+  );
+}
+
 export function PixiDish({
   snapshot,
+  sourceKind,
   motion = "full",
   cameraMotion,
   overlayId = null,
@@ -49,7 +67,6 @@ export function PixiDish({
   ariaDescribedBy,
   resetCameraSignal = 0,
   onSemanticZoomLevelChange,
-  demoMode = false,
 }: PixiDishProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const rendererRef = useRef<PixiDishRenderer | null>(null);
@@ -57,23 +74,15 @@ export function PixiDish({
   const cameraMotionRef = useRef(cameraMotion);
   const overlayRef = useRef(overlayId);
   const semanticZoomCallbackRef = useRef(onSemanticZoomLevelChange);
-  const demoSnapshotRef = useRef<DishRenderSnapshot | null>(null);
   const resetCameraSignalRef = useRef(resetCameraSignal);
   const [startup, setStartup] = useState<RendererStartupState>(IDLE_STARTUP);
   const [retryAttempt, setRetryAttempt] = useState(0);
   const failureDescriptionId = useId();
 
-  const usingAuthoritative = snapshot !== null && snapshot !== undefined;
-  const usingDemo = !usingAuthoritative && demoMode;
-  if (usingDemo && demoSnapshotRef.current === null) {
-    demoSnapshotRef.current = createRendererDemoSnapshot();
-  }
-
-  const renderSnapshot = usingAuthoritative
-    ? snapshot
-    : usingDemo
-      ? demoSnapshotRef.current
-      : null;
+  assertRenderSource(sourceKind, snapshot);
+  const usingAuthoritative = sourceKind === "authoritative-snapshot";
+  const usingDemo = sourceKind === "visual-demo";
+  const renderSnapshot = snapshot;
   const renderEnabled = renderSnapshot !== null;
   const snapshotRef = useRef<DishRenderSnapshot | null>(renderSnapshot);
 
@@ -153,12 +162,6 @@ export function PixiDish({
     }
   }, [renderSnapshot, overlayId]);
 
-  const source = usingAuthoritative
-    ? "authoritative-snapshot"
-    : usingDemo
-      ? "visual-demo"
-      : "awaiting-authoritative-snapshot";
-
   const resolvedAriaLabel =
     startup.status === "failed"
       ? "Petra dish renderer unavailable"
@@ -174,7 +177,7 @@ export function PixiDish({
   return (
     <div
       className={className}
-      data-render-source={source}
+      data-render-source={sourceKind}
       data-render-status={startup.status}
       style={{
         width: "100%",

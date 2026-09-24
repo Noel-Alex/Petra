@@ -5,6 +5,7 @@ import {
   type ProvenancePresentationInput,
   type ProvenanceSource,
 } from "./model";
+import type { SourceUncertaintyInput } from "./uncertainty";
 
 export interface ScenarioCitationRecord {
   readonly title?: unknown;
@@ -49,6 +50,7 @@ export interface ResolveScenarioProvenanceArgs {
   readonly context?: string;
   readonly transformation?: string;
   readonly uncertainty?: string;
+  readonly sourceUncertainty?: readonly SourceUncertaintyInput[];
   readonly transferNote?: string;
   readonly calibrationNote?: string;
   readonly limitation?: string;
@@ -170,6 +172,9 @@ export function resolveScenarioProvenance(
     ...(sources.length === 0 ? {} : { sources }),
     ...(transformation === undefined ? {} : { transformation }),
     ...(uncertainty === undefined ? {} : { uncertainty }),
+    ...(args.sourceUncertainty === undefined
+      ? {}
+      : { sourceUncertainty: args.sourceUncertainty }),
     ...(transferNote === undefined ? {} : { transferNote }),
     ...(calibrationNote === undefined ? {} : { calibrationNote }),
     ...(limitation === undefined ? {} : { limitation }),

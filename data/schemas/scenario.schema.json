@@ -123,6 +123,110 @@
     },
     "composedParameterSet": {
       "$ref": "#/$defs/composedParameterSet"
+    },
+    "scienceModeAdmission": {
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "scenarioId",
+        "scenarioVersion",
+        "requestedMaturity",
+        "primaryEvidenceCitationKeys",
+        "decisiveParameterPaths",
+        "requiredNonEmptyPaths",
+        "limitationPaths",
+        "referenceBindings",
+        "engineeringExecutionProfilePath"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "scenarioId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scenarioVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requestedMaturity": {
+          "enum": [
+            "experimental",
+            "validated-educational",
+            "reference"
+          ]
+        },
+        "primaryEvidenceCitationKeys": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "decisiveParameterPaths": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "requiredNonEmptyPaths": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "limitationPaths": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "referenceBindings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "path",
+              "expected",
+              "label"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "expected": {
+                "type": "string",
+                "minLength": 1
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "engineeringExecutionProfilePath": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": true,

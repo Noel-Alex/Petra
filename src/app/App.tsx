@@ -10,6 +10,10 @@ import {
   type MotionSetting,
 } from "../ui/motion/preference";
 import { resolveDishAmbient } from "../ui/motion/dishAmbient";
+import {
+  resolveDishFocusPresentation,
+  type DishFocusMode,
+} from "../ui/motion/focusMode";
 import { planSurfaceTransition } from "../ui/motion/semanticTransitions";
 import { OnboardingGuide } from "../ui/onboarding/OnboardingGuide";
 import { ProvenancePanel } from "../ui/provenance/ProvenancePanel";
@@ -112,6 +116,7 @@ export function App({
   const [sourcesLifecycle, setSourcesLifecycle] = useState(
     createSourcesSurfaceLifecycle,
   );
+  const [focusMode, setFocusMode] = useState<DishFocusMode>("workspace");
   const [motionSetting, setMotionSetting] = useState<MotionSetting>(() => {
     try {
       return loadMotionSetting(globalThis.localStorage);
@@ -136,6 +141,10 @@ export function App({
   const dishAmbient = useMemo(
     () => resolveDishAmbient(motionPreference),
     [motionPreference],
+  );
+  const focusPresentation = useMemo(
+    () => resolveDishFocusPresentation(focusMode, motionPreference),
+    [focusMode, motionPreference],
   );
 
   const showSourcesPlan = useMemo(
@@ -201,6 +210,8 @@ export function App({
     <main
       className="petra-app"
       data-motion={motionPreference}
+      data-focus-mode={focusPresentation.mode}
+      data-focus-treatment={focusPresentation.treatment}
       onKeyDown={(event) => {
         const plan = planAppKeyboardShortcut({
           sourcesOpen: sourcesLifecycle.requestedOpen,
@@ -237,6 +248,8 @@ export function App({
       style={{
         "--panel-motion-ms": panelMotion.duration,
         "--panel-motion-easing": panelMotion.easing,
+        "--focus-motion-ms": `${focusPresentation.durationMs}ms`,
+        "--focus-motion-easing": `cubic-bezier(${focusPresentation.easing.join(", ")})`,
       } as CSSProperties}
     >
       <CausalNarrationMount
@@ -272,6 +285,18 @@ export function App({
               <option value="off">Off</option>
             </select>
           </label>
+          <PetraCompactAction
+            motionPreference={motionPreference}
+            className="ghost-button"
+            aria-pressed={focusMode === "focus"}
+            onClick={() => {
+              setFocusMode((current) =>
+                current === "focus" ? "workspace" : "focus",
+              );
+            }}
+          >
+            {focusMode === "focus" ? "Exit focus" : "Focus dish"}
+          </PetraCompactAction>
           <PetraCompactAction
             id={SOURCES_TRIGGER_ID}
             motionPreference={motionPreference}
@@ -332,10 +357,15 @@ export function App({
         </section>
       ) : null}
 
-      <section className="petra-workspace" aria-label="Experiment workspace">
+      <section
+        className="petra-workspace"
+        aria-label="Experiment workspace"
+        data-dish-priority={focusPresentation.dishPriority}
+      >
         <InterventionPalette
           motion={motionPreference}
           runtimeStatus={experiment.view.status}
+          collapsed={focusPresentation.sideChrome === "collapsed"}
         />
 
         <section className="dish-stage" aria-label="Petri dish viewport">
@@ -380,7 +410,14 @@ export function App({
           )}
         </section>
 
-        <aside className="petra-panel petra-panel--inspector" aria-label="Inspector">
+        <aside
+          className="petra-panel petra-panel--inspector"
+          aria-label="Inspector"
+          aria-hidden={
+            focusPresentation.sideChrome === "collapsed" ? true : undefined
+          }
+          inert={focusPresentation.sideChrome === "collapsed"}
+        >
           <p className="petra-kicker">Inspector</p>
           <h2>Selected region</h2>
           <dl className="metric-list">
@@ -424,7 +461,14 @@ export function App({
           </span>
         </div>
 
-        <TimelineHistory entries={experiment.view.timeline} />
+        {focusPresentation.timelineDensity === "full" ? (
+          <TimelineHistory entries={experiment.view.timeline} />
+        ) : (
+          <p className="timeline-focus-summary">
+            Focus mode · {experiment.view.timeline.length} authoritative{" "}
+            {experiment.view.timeline.length === 1 ? "event" : "events"}
+          </p>
+        )}
 
         <div className="timeline-controls">
           <PetraCompactAction

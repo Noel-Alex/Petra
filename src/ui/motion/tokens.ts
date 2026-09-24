@@ -20,6 +20,10 @@ export const MOTION = {
     durationMs: 420,
     easing: [0.22, 0.78, 0.28, 1],
   },
+  toolPreview: {
+    durationMs: 160,
+    easing: [0.2, 0.8, 0.2, 1],
+  },
   mutationEmphasis: {
     durationMs: 360,
     easing: [0.18, 0.9, 0.24, 1],

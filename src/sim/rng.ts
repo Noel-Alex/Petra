@@ -1,4 +1,4 @@
-import { assertSimulationSeed } from './seed'
+import { MAX_SIMULATION_SEED, assertSimulationSeed } from './seed'
 
 export type RngState = readonly [number, number, number, number]
 
@@ -19,6 +19,36 @@ function splitmix32(seed: number): () => number {
   }
 }
 
+function copyValidatedRngState(state: RngState): [number, number, number, number] {
+  if (!Array.isArray(state) || state.length !== 4) {
+    throw new Error('RNG state must contain exactly four uint32 values')
+  }
+
+  const values = state as readonly unknown[]
+  const copy: number[] = []
+
+  for (let index = 0; index < 4; index += 1) {
+    const value = values[index]
+    if (
+      typeof value !== 'number' ||
+      !Number.isInteger(value) ||
+      value < 0 ||
+      value > MAX_SIMULATION_SEED
+    ) {
+      throw new RangeError(
+        `RNG state word ${index} must be an unsigned 32-bit integer`,
+      )
+    }
+    copy.push(value)
+  }
+
+  if (copy.every((value) => value === 0)) {
+    throw new Error('RNG state cannot be all zero')
+  }
+
+  return copy as [number, number, number, number]
+}
+
 /**
  * Deterministic xoshiro128** stream used by simulation authority.
  * State is explicitly serializable so replay/checkpoints do not depend on
@@ -33,10 +63,7 @@ export class SimulationRng {
       this.state = [nextSeed(), nextSeed(), nextSeed(), nextSeed()]
       if (this.state.every((value) => value === 0)) this.state[0] = 1
     } else {
-      if (seedOrState.length !== 4 || seedOrState.every((value) => value === 0)) {
-        throw new Error('RNG state must contain four uint32 values and cannot be all zero')
-      }
-      this.state = seedOrState.map((value) => value >>> 0) as [number, number, number, number]
+      this.state = copyValidatedRngState(seedOrState)
     }
   }
 

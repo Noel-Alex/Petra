@@ -36,3 +36,7 @@ Run `python tools/verify.py premerge` locally for the broader deterministic suit
 
 ## Child DOX index
 No child contracts yet.
+
+
+## Human laptop entrypoint
+The single manual experiment entrypoint is `python run_local_experiments.py`, governed by `experiments/AGENTS.md`. Register requested hardware/browser/GPU/ML/scientific runs in `experiments/local_manifest.json`; do not create alternative user-facing runbooks for Noel-Alex.

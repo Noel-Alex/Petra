@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { PetraCompactAction } from "../../ui/PetraCompactAction";
 import type { DishRenderSnapshot, SemanticZoomLevel } from "../model";
 import {
   assertDishRenderSourceSnapshot,
@@ -11,6 +12,8 @@ import {
   type RendererMotionMode,
 } from "./renderer";
 import { beginRendererInitialization } from "./rendererLifecycle";
+
+import "./PixiDish.css";
 
 export interface PixiDishProps {
   readonly snapshot: DishRenderSnapshot | null;
@@ -207,6 +210,7 @@ export function PixiDish({
         <RendererFailureFallback
           errorMessage={startup.errorMessage}
           descriptionId={failureDescriptionId}
+          motionPreference={motion}
           onRetry={() => setRetryAttempt((attempt) => attempt + 1)}
         />
       ) : null}
@@ -279,10 +283,12 @@ export function rendererStartupAnnouncement(
 export function RendererFailureFallback({
   errorMessage,
   descriptionId,
+  motionPreference,
   onRetry,
 }: {
   readonly errorMessage: string | null;
   readonly descriptionId: string;
+  readonly motionPreference: RendererMotionMode;
   readonly onRetry: () => void;
 }) {
   return (
@@ -335,21 +341,14 @@ export function RendererFailureFallback({
             demonstration biology or changed the simulation state.
           </span>
         </div>
-        <button
-          type="button"
+        <PetraCompactAction
+          motionPreference={motionPreference}
+          className="pixi-dish__retry-action"
           aria-describedby={descriptionId}
           onClick={onRetry}
-          style={{
-            border: "1px solid rgba(143, 220, 255, 0.42)",
-            borderRadius: "12px",
-            background: "rgba(143, 220, 255, 0.1)",
-            color: "#eef7ff",
-            padding: "0.58rem 0.82rem",
-            cursor: "pointer",
-          }}
         >
           Retry renderer
-        </button>
+        </PetraCompactAction>
       </div>
     </div>
   );

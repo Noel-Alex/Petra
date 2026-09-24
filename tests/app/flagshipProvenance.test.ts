@@ -8,7 +8,7 @@ describe("flagship provenance presentation projection", () => {
 
     expect(view.scenario).toEqual({
       id: "ecoli-ciprofloxacin-spatial",
-      version: "1.2.0-research",
+      version: "1.3.0-research",
       title: "E. coli / ciprofloxacin spatial evolution",
     });
   });
@@ -19,6 +19,20 @@ describe("flagship provenance presentation projection", () => {
     expect(view.records.length).toBeGreaterThan(1);
     expect(view.records.every((record) => record.status === "complete")).toBe(true);
     expect(view.records.every((record) => record.rawClassification !== null)).toBe(true);
+  });
+
+  it("exposes the runnable ecology profile as engineering rather than measured science", () => {
+    const view = buildFlagshipProvenanceView();
+    const profile = view.records.find((record) =>
+      record.id.startsWith("execution-profile:"),
+    );
+
+    expect(profile?.status).toBe("complete");
+    expect(profile?.rawClassification).toBe("engineering");
+    expect(profile?.sourceKeys).toEqual([]);
+    expect(profile?.presentation?.limitation).toContain(
+      "Science-Mode physical growth parameters remain UNBOUND",
+    );
   });
 
   it("keeps the cross-study drug composition explicitly transferred and mechanistic", () => {

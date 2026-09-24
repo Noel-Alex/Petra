@@ -22,7 +22,7 @@ Own React/browser orchestration around Petra's authoritative worker and presenta
 
 ## Coordination
 - #37 may evolve the composed simulation snapshot/protocol. Keep the browser session generic over WorkerRequest/WorkerResponse so product integration can follow protocol changes without moving biology into React.
-- #39 owns persisted motion preference and onboarding shell presentation.
+- #39 owns persisted motion preference and onboarding shell presentation. App code must use the shared MotionSetting load/save/parse/resolve helpers; storage failure degrades to in-memory preference rather than breaking controls.
 - #42 owns the worker/session/control/timeline integration seam.
 
 ## Verification

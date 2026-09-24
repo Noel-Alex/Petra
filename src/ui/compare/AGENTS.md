@@ -29,6 +29,7 @@ Presentation-only side-by-side and swipe comparison of already-authoritative bra
 - Compare layout toggles consume `PetraCompactAction` so hover/focus/press/selected treatment stays on the shared Petra micro-interaction authority; compare CSS may style group geometry/tone but must not invent a second timing/interaction state machine.
 - Toggle motion remains presentation-only: selecting Side by side or Swipe may change layout state, never branch identity, synchronized biological time, scientific surface identity, or simulation state.
 - Swipe must remain keyboard operable through an ordinary range control.
+- The browser-native swipe reveal range owns a 2.75rem minimum block size so repeated expo/touch use does not depend on browser-default control height; keep its inline width fluid and do not replace native range semantics with custom drag authority.
 - Critical distinction is never color-only: text labels and geometric marks remain present.
 
 ## Verification

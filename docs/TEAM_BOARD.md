@@ -18,14 +18,24 @@ Deliver a reproducible spatial *E. coli + ciprofloxacin* vertical slice that is 
 
 ## Immediate execution priority — functionality first
 
-Noel-Alex's current scheduling directive is to make the **working flagship simulation/runtime the number-one priority**. The repository has many strong isolated pieces, but current `main` is still not one complete authoritative browser experiment. Until that changes:
+The current project scheduling directive is to make the **working flagship simulation/runtime the number-one priority**. The repository has many strong isolated pieces, but current `main` is still not one complete authoritative browser experiment. Until that changes:
 
 1. prioritize #37 and every concrete prerequisite/blocker needed for a real composed worker-owned flagship loop;
 2. prioritize numerical/scientific validation, parameter binding, local experiments, data generation, and tooling when they unblock that loop;
 3. keep UI, visual-system, and motion work moving only on spare/non-conflicting capacity or when the functional path is blocked;
-4. keep learned-model work downstream of authoritative mechanistic trajectories and explicit promotion/validation gates.
+4. keep learned-model authority downstream of authoritative mechanistic trajectories and explicit promotion/validation gates, while preparing batch/dataset/training/benchmark infrastructure early enough that local compute can start immediately once those trajectories exist.
 
 This is a scheduling rule, not a reduction in the visual-quality bar. Petra still needs premium dish-first interaction and motion; it simply must not become a beautiful interface around synthetic or incomplete authority.
+
+## Latency-adjusted queue policy
+
+Use live GitHub state as a scheduler, not merely a catalog.
+
+1. **PR recovery first:** before opening new implementation, inspect stale/non-mergeable/duplicate PRs and recover useful work. A nearly-finished integration often outranks a fresh ticket.
+2. **Long-lead first when delay is expensive:** #542 and related calibration/dataset/training/profiling/soak/rehearsal work should be prepared before its final prerequisite lands whenever that preparation can be truthful.
+3. **Balance lanes:** avoid sending multiple uncoordinated agents into cosmetic UI refinement while authoritative runtime/science, experiment/ML, or release-hardening blockers are unclaimed.
+4. **Finish means integrated:** a bounded branch should be kept fresh, verified as far as the environment allows, made mergeable, and merged or handed off precisely. Large private deltas and duplicate PRs are schedule debt.
+5. **No global phase serialization:** #517 governs parallel roadmap execution. A later-phase task may proceed when its own dependencies are stable even if another phase remains incomplete.
 
 ## Current queue orientation
 
@@ -56,9 +66,9 @@ This list is intentionally selective. Use the live issue search for the complete
 ## Work selection
 
 1. Read root and scoped DOX.
-2. Inspect live Issues/PRs/branches before claiming; do not rely on this snapshot alone.
-3. Treat an ephemeral-agent claim as a ~35-minute lease from its latest meaningful GitHub progress signal. Recover useful expired work before duplicating it.
-4. Prefer the highest-value unblocked focused issue; **while the functional flagship is incomplete, functional/runtime/science-validation blockers outrank cosmetic/UI polish of comparable scope**. Use umbrella issues for coordination/context rather than parallel mega-claims.
+2. Inspect live PRs first, then Issues/branches before claiming; do not rely on this snapshot alone.
+3. Treat an ephemeral-agent claim as a ~35-minute lease from its latest meaningful GitHub progress signal. Recover useful expired work before duplicating it, including stale PRs that can be repaired or transplanted.
+4. Prefer the highest latency-adjusted-value unblocked focused issue; **while the functional flagship is incomplete, functional/runtime/science-validation blockers and ready-to-prepare long-lead experiments outrank cosmetic/UI polish of comparable scope**. Use umbrella issues for coordination/context rather than parallel mega-claims.
 5. Claim a bounded slice with identity, branch, paths and capability limits; re-read the issue immediately after claiming for races.
 6. Leave a durable checkpoint before an ephemeral session ends.
 
@@ -91,7 +101,7 @@ Issue/PR + branch + commit SHA, changed paths, observed verification, science/pr
 
 ## Project-wide CI freeze
 
-- **No GitHub Actions / hosted CI for Petra until Noel-Alex explicitly re-enables it.**
+- **No GitHub Actions / hosted CI for Petra until repository maintainers explicitly re-enable it in durable project DOX.**
 - Do not create or restore workflow files, required hosted checks, scheduled Actions, hosted experiment jobs, or artifact-upload automation.
 - Verification is local/manual; record what actually ran in the relevant Issue/PR.
 - Local-only hardware/browser/GPU/ML experiments should be routed through the single laptop experiment runner/evidence inbox (`python run_local_experiments.py`), not through CI.

@@ -132,6 +132,12 @@ export function App({
 
   const provenance = useMemo(() => buildFlagshipProvenanceView(), []);
 
+  const runtimeScenarioIdentity = experiment.state?.controls.identity ?? null;
+  const provenanceMatchesRuntime =
+    runtimeScenarioIdentity !== null &&
+    runtimeScenarioIdentity.scenarioId === provenance.scenario.id &&
+    runtimeScenarioIdentity.scenarioVersion === provenance.scenario.version;
+
   useEffect(() => {
     setOnboardingSession((current) =>
       reconcileOnboardingRuntimeSession(current, onboardingProjection),
@@ -350,8 +356,11 @@ export function App({
                 <code>{provenance.scenario.version}</code>.
               </span>
               <span>
-                This does not claim that the current runtime has selected this
-                scenario.
+                {provenanceMatchesRuntime
+                  ? "This evidence set matches the scenario configured for the active authoritative runtime."
+                  : runtimeScenarioIdentity === null
+                    ? "This does not claim that the current runtime has selected this scenario."
+                    : "This curated evidence set does not match the active runtime scenario identity."}
               </span>
             </p>
             <PetraCompactAction

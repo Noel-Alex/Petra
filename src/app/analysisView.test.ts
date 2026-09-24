@@ -62,7 +62,8 @@ describe("authoritative analysis app projection", () => {
 
     expect(ANALYSIS_MAX_POINTS_PER_SERIES).toBe(240);
     expect(view.identity.stateIdentity).toBe("snapshot-12");
-    expect(view.charts).toHaveLength(1);\n    expect(view.charts[0]!.unit).toBe("model-biomass");
+    expect(view.charts).toHaveLength(1);
+    expect(view.charts[0]!.unit).toBe("model-biomass");
     expect(view.charts[0]!.interpolation).toBe("none");
     expect(view.charts[0]!.series[0]?.sourcePointCount).toBe(3);
     expect(view.lineageTree.nodes.map((node) => node.lineageId)).toEqual([

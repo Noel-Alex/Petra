@@ -18,10 +18,14 @@ export interface RegionLineageBiomass {
   readonly fractionOfRegionBiomass: number
 }
 
-export interface AuthoritativeRegionInspection {
+interface AuthoritativeRegionInspectionIdentity {
   readonly selectionId: string
   readonly stateVersion: number
   readonly configurationFingerprint: string
+}
+
+export interface AuthoritativeRegionReadout extends AuthoritativeRegionInspectionIdentity {
+  readonly coverage: 'covered'
   readonly selectedCellCount: number
   readonly totalBiomass: number
   readonly totalResource: number
@@ -29,6 +33,15 @@ export interface AuthoritativeRegionInspection {
   readonly resourceUnit: 'model-resource'
   readonly lineageBiomass: readonly RegionLineageBiomass[]
 }
+
+export interface AuthoritativeRegionNoGridCoverage extends AuthoritativeRegionInspectionIdentity {
+  readonly coverage: 'no-grid-coverage'
+  readonly selectedCellCount: 0
+}
+
+export type AuthoritativeRegionInspection =
+  | AuthoritativeRegionReadout
+  | AuthoritativeRegionNoGridCoverage
 
 function assertUnitInterval(name: string, value: number): void {
   if (!Number.isFinite(value) || value < 0 || value > 1) {
@@ -87,6 +100,10 @@ export function selectedRegionCellIndices(
  * not reinterpret biomass as cell count, concentration, area, or renderer
  * density. A later physical-units scenario may replace these labels only when
  * its authoritative state defines that bridge.
+ *
+ * A geometrically valid selection may cover zero authoritative grid-cell
+ * centres. That is a valid query outcome, not a measured scientific zero, so
+ * it returns a typed no-grid-coverage result with no biomass/resource fields.
  */
 export function inspectAuthoritativeRegion(
   state: ComposedSimulationState,
@@ -103,6 +120,20 @@ export function inspectAuthoritativeRegion(
     throw new Error('region inspection lineage fields must match grid dimensions')
   }
 
+  const identity: AuthoritativeRegionInspectionIdentity = {
+    selectionId: selection.id,
+    stateVersion: state.version,
+    configurationFingerprint: state.configurationFingerprint,
+  }
+
+  if (indices.length === 0) {
+    return {
+      ...identity,
+      coverage: 'no-grid-coverage',
+      selectedCellCount: 0,
+    }
+  }
+
   const lineageTotals = state.lineageBiomass.map((channel) =>
     indices.reduce((sum, index) => sum + (channel[index] ?? 0), 0),
   )
@@ -110,9 +141,8 @@ export function inspectAuthoritativeRegion(
   const totalResource = indices.reduce((sum, index) => sum + (state.resource[index] ?? 0), 0)
 
   return {
-    selectionId: selection.id,
-    stateVersion: state.version,
-    configurationFingerprint: state.configurationFingerprint,
+    ...identity,
+    coverage: 'covered',
     selectedCellCount: indices.length,
     totalBiomass,
     totalResource,

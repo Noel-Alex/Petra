@@ -168,8 +168,9 @@ describe('policy-bounded division mutation sampling', () => {
         acceleratedPolicy,
       ).counts
       for (let index = 0; index < targets.length; index += 1) {
-        exactTotals[index] += exact[index]!.count
-        acceleratedTotals[index] += accelerated[index]!.count
+        exactTotals[index] = exactTotals[index]! + exact[index]!.count
+        acceleratedTotals[index] =
+          acceleratedTotals[index]! + accelerated[index]!.count
       }
     }
 

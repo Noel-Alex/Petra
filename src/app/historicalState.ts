@@ -1,3 +1,4 @@
+import { sameComposedParameterSetBinding } from '../sim/parameterSetBinding'
 import type {
   ComposedSimulationSnapshot,
   RunIdentity,
@@ -50,8 +51,10 @@ function sameRunIdentity(left: RunIdentity, right: RunIdentity): boolean {
     left.scenarioVersion === right.scenarioVersion &&
     left.parameterSetId === right.parameterSetId &&
     left.parameterSetVersion === right.parameterSetVersion &&
-    JSON.stringify(left.parameterSetBinding ?? null) ===
-      JSON.stringify(right.parameterSetBinding ?? null) &&
+    sameComposedParameterSetBinding(
+      left.parameterSetBinding,
+      right.parameterSetBinding,
+    ) &&
     left.seed === right.seed
   )
 }

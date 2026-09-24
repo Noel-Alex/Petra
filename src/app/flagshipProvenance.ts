@@ -1,5 +1,9 @@
 import flagshipScenario from "../../data/presets/ecoli_ciprofloxacin_v1.json";
 import {
+  evaluateScenarioScienceAdmission,
+  type ScenarioScienceAdmission,
+} from "../scenarios/scienceModeAdmission";
+import {
   resolveScenarioProvenance,
   resolveScenarioTransferAssumptions,
   type ScenarioAssumptionsResolution,
@@ -20,6 +24,8 @@ export interface FlagshipScenarioIdentity {
 
 export interface FlagshipProvenanceView {
   readonly scenario: FlagshipScenarioIdentity;
+  readonly scienceAdmission: ScenarioScienceAdmission;
+  readonly scienceAdmissionLabel: string;
   readonly records: readonly ScenarioProvenanceResolution[];
   readonly assumptions: ScenarioAssumptionsResolution;
 }
@@ -88,13 +94,26 @@ export function buildFlagshipProvenanceView(
     }),
   );
 
+  const scienceAdmission = evaluateScenarioScienceAdmission(scenario);
+
   return {
     scenario: {
       id: scenario.id,
       version: scenario.version,
       title: scenario.title,
     },
+    scienceAdmission,
+    scienceAdmissionLabel: maturityLabel(scienceAdmission.maturity),
     records: [composedParameterSet, executionProfile, composition, ...genotypeRecords, ...mutationRecords],
     assumptions: resolveScenarioTransferAssumptions(context),
   };
+}
+
+
+function maturityLabel(
+  maturity: ScenarioScienceAdmission["maturity"],
+): string {
+  if (maturity === "validated-educational") return "Validated educational";
+  if (maturity === "reference") return "Reference";
+  return "Experimental";
 }

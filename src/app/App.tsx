@@ -25,7 +25,6 @@ function useSystemReducedMotion(): boolean {
   useEffect(() => {
     const query = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)");
     if (query === undefined) return;
-
     const update = () => setReduced(query.matches);
     update();
     query.addEventListener("change", update);
@@ -38,6 +37,17 @@ function useSystemReducedMotion(): boolean {
 export interface AppProps {
   readonly runtimeFactory?: ExperimentRuntimeFactory;
 }
+
+const SOURCES_SURFACE_STYLE: CSSProperties = {
+  position: "fixed",
+  inset: "5.5rem 1rem 1rem auto",
+  width: "min(34rem, calc(100vw - 2rem))",
+  maxHeight: "calc(100vh - 6.5rem)",
+  overflow: "auto",
+  zIndex: 30,
+  borderRadius: "24px",
+  boxShadow: "0 28px 90px rgba(0, 0, 0, 0.46)",
+};
 
 export function App({ runtimeFactory }: AppProps) {
   const systemReduced = useSystemReducedMotion();
@@ -56,7 +66,6 @@ export function App({ runtimeFactory }: AppProps) {
     setting: motionSetting,
     prefersReducedMotion: systemReduced,
   });
-
   const panelMotion = useMemo(
     () =>
       surfaceMotionCss(
@@ -84,7 +93,6 @@ export function App({ runtimeFactory }: AppProps) {
           <p className="petra-kicker">Living laboratory</p>
           <h1>Petra</h1>
         </div>
-
         <div className="petra-topbar__actions">
           <label className="motion-control">
             <span>Motion</span>
@@ -120,7 +128,11 @@ export function App({ runtimeFactory }: AppProps) {
       </header>
 
       {sourcesOpen ? (
-        <section id="petra-sources-panel" className="petra-sources-surface">
+        <section
+          id="petra-sources-panel"
+          aria-label="Flagship scientific sources and assumptions"
+          style={SOURCES_SURFACE_STYLE}
+        >
           <ProvenancePanel
             records={provenance.records}
             assumptions={provenance.assumptions}
@@ -154,18 +166,9 @@ export function App({ runtimeFactory }: AppProps) {
           <p className="petra-kicker">Inspector</p>
           <h2>Selected region</h2>
           <dl className="metric-list">
-            <div>
-              <dt>Lineage</dt>
-              <dd>—</dd>
-            </div>
-            <div>
-              <dt>Population</dt>
-              <dd>—</dd>
-            </div>
-            <div>
-              <dt>Drug</dt>
-              <dd>—</dd>
-            </div>
+            <div><dt>Lineage</dt><dd>—</dd></div>
+            <div><dt>Population</dt><dd>—</dd></div>
+            <div><dt>Drug</dt><dd>—</dd></div>
           </dl>
           <p className="panel-note">
             Scientific values appear only when supplied by authoritative state.
@@ -188,7 +191,6 @@ export function App({ runtimeFactory }: AppProps) {
             {experiment.view.statusText}
           </span>
         </div>
-
         {experiment.view.timeline.length > 0 ? (
           <ol className="timeline-events" aria-label="Authoritative simulation events">
             {experiment.view.timeline.slice(-4).map((entry) => (
@@ -201,15 +203,12 @@ export function App({ runtimeFactory }: AppProps) {
         ) : (
           <p className="timeline-empty">No authoritative events yet</p>
         )}
-
         <div className="timeline-controls">
           <button
             type="button"
             disabled={!experiment.view.canTogglePlayback}
             onClick={() => {
-              experiment.dispatch({
-                type: experiment.view.playing ? "pause" : "play",
-              });
+              experiment.dispatch({ type: experiment.view.playing ? "pause" : "play" });
             }}
           >
             {experiment.view.playing ? "Pause" : "Play"}
@@ -220,9 +219,7 @@ export function App({ runtimeFactory }: AppProps) {
               type="button"
               aria-pressed={experiment.view.speed === speed}
               disabled={!experiment.view.canChangeSpeed}
-              onClick={() => {
-                experiment.dispatch({ type: "set-speed", speed });
-              }}
+              onClick={() => experiment.dispatch({ type: "set-speed", speed })}
             >
               {speed}×
             </button>

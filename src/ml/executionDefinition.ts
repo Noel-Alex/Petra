@@ -4,7 +4,11 @@ import {
   assertComposedParameterSetBindingRecord,
   type ComposedParameterSetBinding,
 } from "../sim/parameterSetBinding";
-import type { MechanisticSweepTask } from "./sweep";
+import type {
+  MechanisticSweepTask,
+  SweepInterventionFamily,
+  SweepParameterPoint,
+} from "./sweep";
 
 export const MECHANISTIC_EXECUTION_DEFINITION_SCHEMA_VERSION =
   "petra-ml-execution-definition-v1" as const;
@@ -75,6 +79,27 @@ export function mechanisticInterventionFingerprint(
     intervention.scheduleVersion,
     "commands=0",
   ]);
+}
+
+export function createSweepParameterPointForBinding(
+  id: string,
+  binding: ComposedParameterSetBinding,
+): SweepParameterPoint {
+  requireCanonicalText("parameter point id", id);
+  return Object.freeze({
+    id,
+    parameterSetHash: mechanisticParameterSetHash(binding),
+  });
+}
+
+export function createNoInterventionSweepFamily(
+  familyId: string,
+): SweepInterventionFamily {
+  const intervention = createNoInterventionExecutionDefinition(familyId);
+  return Object.freeze({
+    id: familyId,
+    fingerprint: mechanisticInterventionFingerprint(intervention),
+  });
 }
 
 export function createMechanisticExecutionDefinition(args: {

@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useState, type KeyboardEvent } from "react";
 import type { DishRenderSnapshot } from "../render/model";
 import { PixiDish } from "../render/pixi/PixiDish";
 import { createRendererDemoSnapshot } from "../render/pixi/demoSnapshot";
@@ -9,17 +9,23 @@ import {
   defaultDishOverlayId,
   resolveDishOverlay,
 } from "./dishPresentation";
+import { dishEscapeActionForKey } from "./dishKeyboard";
 
 export interface DishViewportProps {
   readonly motion: RendererMotionMode;
   readonly snapshot?: DishRenderSnapshot | null;
+  readonly interventionToolCanCancel?: boolean;
+  readonly onCancelInterventionTool?: () => void;
 }
 
 export function DishViewport({
   motion,
   snapshot,
+  interventionToolCanCancel = false,
+  onCancelInterventionTool,
 }: DishViewportProps) {
   const interactionHintId = useId();
+  const [overviewResetRequest, setOverviewResetRequest] = useState(0);
   const demoSnapshot = useMemo(() => createRendererDemoSnapshot(), []);
   const activeSnapshot = snapshot ?? demoSnapshot;
   const [requestedOverlayId, setRequestedOverlayId] = useState<string | null>(
@@ -36,10 +42,35 @@ export function DishViewport({
     durationMs: MOTION.cameraFocus.durationMs,
   });
 
+  const requestOverview = () => {
+    setOverviewResetRequest((request) => request + 1);
+  };
+
+  const handleKeyDownCapture = (event: KeyboardEvent<HTMLDivElement>) => {
+    const action = dishEscapeActionForKey(event.key, {
+      editableTarget: isEditableTarget(event.target),
+      dishOwnsFocus: true,
+      interventionToolCanCancel:
+        interventionToolCanCancel && onCancelInterventionTool !== undefined,
+    });
+    if (action === null) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (action === "cancel-tool") {
+      onCancelInterventionTool?.();
+      return;
+    }
+
+    requestOverview();
+  };
+
   return (
     <div
       className="dish-renderer-shell"
       data-render-source={usingDemo ? "visual-demo" : "authoritative-snapshot"}
+      onKeyDownCapture={handleKeyDownCapture}
     >
       <div className="dish-renderer-frame">
         <PixiDish
@@ -58,6 +89,7 @@ export function DishViewport({
               : "Interactive Petra Petri dish from authoritative simulation state"
           }
           ariaDescribedBy={interactionHintId}
+          overviewResetRequest={overviewResetRequest}
         />
         <span className="dish-source-badge">
           {usingDemo ? "visual demo · not biology" : "authoritative snapshot"}
@@ -89,6 +121,15 @@ export function DishViewport({
           </select>
         </label>
 
+        <button
+          type="button"
+          className="dish-overview-button"
+          onClick={requestOverview}
+          aria-label="Return Petri dish camera to whole-dish overview"
+        >
+          Dish
+        </button>
+
         <div
           className="dish-overlay-legend"
           data-overlay-kind={activeOverlay?.kind ?? "none"}
@@ -105,7 +146,7 @@ export function DishViewport({
 
       <p className="dish-interaction-hint" id={interactionHintId}>
         Pointer: wheel to zoom · drag while zoomed · double-click to focus.
-        Keyboard: +/− zoom · arrow keys pan · Home or 0 reset.
+        Keyboard: +/− zoom · arrow keys pan · Home, 0, Escape, or Dish reset overview.
       </p>
       {usingDemo ? (
         <p className="dish-demo-disclosure">
@@ -114,5 +155,16 @@ export function DishViewport({
         </p>
       ) : null}
     </div>
+  );
+}
+
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return (
+    target.isContentEditable ||
+    target.tagName === "INPUT" ||
+    target.tagName === "TEXTAREA" ||
+    target.tagName === "SELECT"
   );
 }

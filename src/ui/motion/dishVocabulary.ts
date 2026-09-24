@@ -103,7 +103,7 @@ export type DishMotionPhaseResult =
 export function planDishMotionPhase(
   request: DishMotionPhaseRequest,
 ): DishMotionPhaseResult {
-  const spec = PHASE_SPECS[request.phase];
+  const spec: DishMotionPhaseSpec | undefined = PHASE_SPECS[request.phase];
   if (spec === undefined) {
     throw new RangeError(
       `unknown dish motion phase: ${String(request.phase)}`,
@@ -142,109 +142,93 @@ export function planDishMotionPhase(
   };
 }
 
-const PHASE_SPECS: Readonly<Record<DishMotionPhase, DishMotionPhaseSpec>> =
-  Object.freeze({
-    appear: Object.freeze({
-      token: "fieldShift",
-      kind: "causal",
-      acceptedEvidence: Object.freeze([
-        "authoritative-state",
-        "authoritative-event",
-      ]),
-      channels: Object.freeze(["opacity", "density", "radius"]),
-      semanticBoundary: "authoritative-change-presentation",
-      preserveUserCamera: true,
-    }),
-    grow: Object.freeze({
-      token: "fieldShift",
-      kind: "causal",
-      acceptedEvidence: Object.freeze([
-        "authoritative-state",
-        "authoritative-event",
-      ]),
-      channels: Object.freeze(["density", "radius", "contour"]),
-      semanticBoundary: "authoritative-change-presentation",
-      preserveUserCamera: true,
-    }),
-    divide: Object.freeze({
-      token: "selectionEmphasis",
-      kind: "causal",
-      acceptedEvidence: Object.freeze(["authoritative-event"]),
-      channels: Object.freeze(["opacity", "position", "outline"]),
-      semanticBoundary: "authoritative-change-presentation",
-      preserveUserCamera: true,
-    }),
-    "aggregate-merge": Object.freeze({
-      token: "fieldShift",
-      kind: "spatial",
-      acceptedEvidence: Object.freeze(["presentation-lod"]),
-      channels: Object.freeze(["opacity", "density", "contour"]),
-      semanticBoundary: "presentation-only-lod",
-      preserveUserCamera: true,
-    }),
-    recede: Object.freeze({
-      token: "fieldShift",
-      kind: "causal",
-      acceptedEvidence: Object.freeze([
-        "authoritative-state",
-        "authoritative-event",
-      ]),
-      channels: Object.freeze(["opacity", "density", "radius"]),
-      semanticBoundary: "authoritative-change-presentation",
-      preserveUserCamera: true,
-    }),
-    migrate: Object.freeze({
-      token: "fieldShift",
-      kind: "causal",
-      acceptedEvidence: Object.freeze([
-        "authoritative-state",
-        "authoritative-event",
-      ]),
-      channels: Object.freeze(["position", "density", "contour"]),
-      semanticBoundary: "authoritative-change-presentation",
-      preserveUserCamera: true,
-    }),
-    "fungal-branch": Object.freeze({
-      token: "selectionEmphasis",
-      kind: "causal",
-      acceptedEvidence: Object.freeze([
-        "authoritative-state",
-        "authoritative-event",
-      ]),
-      channels: Object.freeze(["path-length", "opacity", "outline"]),
-      semanticBoundary: "authoritative-change-presentation",
-      preserveUserCamera: true,
-    }),
-    "field-diffusion": Object.freeze({
-      token: "fieldShift",
-      kind: "causal",
-      acceptedEvidence: Object.freeze(["authoritative-state"]),
-      channels: Object.freeze(["field-texture", "contour", "opacity"]),
-      semanticBoundary: "authoritative-change-presentation",
-      preserveUserCamera: true,
-    }),
-    select: Object.freeze({
-      token: "selectionEmphasis",
-      kind: "navigational",
-      acceptedEvidence: Object.freeze(["presentation-intent"]),
-      channels: Object.freeze(["outline", "opacity"]),
-      semanticBoundary: "presentation-only-interaction",
-      preserveUserCamera: true,
-    }),
-    "intervention-placement": Object.freeze({
-      token: "toolPreview",
-      kind: "spatial",
-      acceptedEvidence: Object.freeze(["presentation-intent"]),
-      channels: Object.freeze(["outline", "radius", "opacity"]),
-      semanticBoundary: "presentation-only-interaction",
-      preserveUserCamera: true,
-    }),
-    focus: Object.freeze({
-      token: "cameraFocus",
-      kind: "navigational",
-      acceptedEvidence: Object.freeze(["presentation-intent"]),
-      channels: Object.freeze(["camera", "outline"]),
-      semanticBoundary: "presentation-only-interaction",
-      preserveUserCamera: false,
-    }),
-  });
+const PHASE_SPECS = {
+  appear: {
+    token: "fieldShift",
+    kind: "causal",
+    acceptedEvidence: ["authoritative-state", "authoritative-event"],
+    channels: ["opacity", "density", "radius"],
+    semanticBoundary: "authoritative-change-presentation",
+    preserveUserCamera: true,
+  },
+  grow: {
+    token: "fieldShift",
+    kind: "causal",
+    acceptedEvidence: ["authoritative-state", "authoritative-event"],
+    channels: ["density", "radius", "contour"],
+    semanticBoundary: "authoritative-change-presentation",
+    preserveUserCamera: true,
+  },
+  divide: {
+    token: "selectionEmphasis",
+    kind: "causal",
+    acceptedEvidence: ["authoritative-event"],
+    channels: ["opacity", "position", "outline"],
+    semanticBoundary: "authoritative-change-presentation",
+    preserveUserCamera: true,
+  },
+  "aggregate-merge": {
+    token: "fieldShift",
+    kind: "spatial",
+    acceptedEvidence: ["presentation-lod"],
+    channels: ["opacity", "density", "contour"],
+    semanticBoundary: "presentation-only-lod",
+    preserveUserCamera: true,
+  },
+  recede: {
+    token: "fieldShift",
+    kind: "causal",
+    acceptedEvidence: ["authoritative-state", "authoritative-event"],
+    channels: ["opacity", "density", "radius"],
+    semanticBoundary: "authoritative-change-presentation",
+    preserveUserCamera: true,
+  },
+  migrate: {
+    token: "fieldShift",
+    kind: "causal",
+    acceptedEvidence: ["authoritative-state", "authoritative-event"],
+    channels: ["position", "density", "contour"],
+    semanticBoundary: "authoritative-change-presentation",
+    preserveUserCamera: true,
+  },
+  "fungal-branch": {
+    token: "selectionEmphasis",
+    kind: "causal",
+    acceptedEvidence: ["authoritative-state", "authoritative-event"],
+    channels: ["path-length", "opacity", "outline"],
+    semanticBoundary: "authoritative-change-presentation",
+    preserveUserCamera: true,
+  },
+  "field-diffusion": {
+    token: "fieldShift",
+    kind: "causal",
+    acceptedEvidence: ["authoritative-state"],
+    channels: ["field-texture", "contour", "opacity"],
+    semanticBoundary: "authoritative-change-presentation",
+    preserveUserCamera: true,
+  },
+  select: {
+    token: "selectionEmphasis",
+    kind: "navigational",
+    acceptedEvidence: ["presentation-intent"],
+    channels: ["outline", "opacity"],
+    semanticBoundary: "presentation-only-interaction",
+    preserveUserCamera: true,
+  },
+  "intervention-placement": {
+    token: "toolPreview",
+    kind: "spatial",
+    acceptedEvidence: ["presentation-intent"],
+    channels: ["outline", "radius", "opacity"],
+    semanticBoundary: "presentation-only-interaction",
+    preserveUserCamera: true,
+  },
+  focus: {
+    token: "cameraFocus",
+    kind: "navigational",
+    acceptedEvidence: ["presentation-intent"],
+    channels: ["camera", "outline"],
+    semanticBoundary: "presentation-only-interaction",
+    preserveUserCamera: false,
+  },
+} as const satisfies Readonly<Record<DishMotionPhase, DishMotionPhaseSpec>>;

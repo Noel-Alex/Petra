@@ -2,6 +2,7 @@ import {
   assessSurrogatePromotion,
   type PromotionIssue,
   type SurrogateBenchmarkEvidence,
+  type SurrogateCompatibilityIdentity,
   type SurrogatePromotionRequirements,
 } from "./benchmark";
 
@@ -23,11 +24,21 @@ export interface SurrogateInput {
   readonly categorical: Readonly<Record<string, string>>;
 }
 
+export interface ActiveSurrogateCompatibility {
+  readonly schemaVersion: "surrogate-compatibility-v1";
+  readonly scenarioId: string;
+  readonly scenarioVersion: string;
+  readonly normalizationProfileId: string;
+  readonly inputSchemaVersion: string;
+  readonly targetSchemaVersion: string;
+}
+
 interface SurrogateModelCardBase {
   readonly modelId: string;
   readonly modelVersion: string;
   readonly datasetVersion: string;
   readonly engineVersion: string;
+  readonly compatibility: SurrogateCompatibilityIdentity;
   readonly domain: SurrogateDomain;
 }
 
@@ -64,6 +75,12 @@ export type EmulatedRefusalReason =
   | "feature-disabled"
   | "model-not-promoted"
   | "engine-version-mismatch"
+  | "runtime-compatibility-missing"
+  | "compatibility-schema-mismatch"
+  | "scenario-compatibility-mismatch"
+  | "normalization-profile-mismatch"
+  | "input-schema-mismatch"
+  | "target-schema-mismatch"
   | "promotion-evidence-invalid"
   | "out-of-domain";
 
@@ -184,6 +201,7 @@ export function checkSurrogateDomain(
 export function resolveExecutionMode(args: {
   readonly requested: ExecutionMode;
   readonly activeEngineVersion: string;
+  readonly activeCompatibility?: ActiveSurrogateCompatibility;
   readonly emulatedFeatureEnabled: boolean;
   readonly model: SurrogateModelCard;
   readonly input: SurrogateInput;
@@ -219,6 +237,28 @@ export function resolveExecutionMode(args: {
     };
   }
 
+  if (args.activeCompatibility === undefined) {
+    return {
+      mode: "mechanistic",
+      requested: "emulated",
+      refusalReason: "runtime-compatibility-missing",
+      violations: [],
+    };
+  }
+
+  const compatibilityRefusal = resolveCompatibilityRefusal(
+    args.activeCompatibility,
+    args.model.compatibility,
+  );
+  if (compatibilityRefusal !== null) {
+    return {
+      mode: "mechanistic",
+      requested: "emulated",
+      refusalReason: compatibilityRefusal,
+      violations: [],
+    };
+  }
+
   const promotion = assessSurrogatePromotion({
     evidence: args.model.promotionEvidence,
     requirements: args.model.promotionRequirements,
@@ -226,6 +266,7 @@ export function resolveExecutionMode(args: {
     expectedModelVersion: args.model.modelVersion,
     expectedDatasetVersion: args.model.datasetVersion,
     expectedEngineVersion: args.model.engineVersion,
+    expectedCompatibility: args.model.compatibility,
   });
   if (!promotion.eligible) {
     return {
@@ -254,4 +295,30 @@ export function resolveExecutionMode(args: {
     modelVersion: args.model.modelVersion,
     violations: [],
   };
+}
+
+
+function resolveCompatibilityRefusal(
+  active: ActiveSurrogateCompatibility,
+  trained: SurrogateCompatibilityIdentity,
+): EmulatedRefusalReason | null {
+  if (active.schemaVersion !== trained.schemaVersion) {
+    return "compatibility-schema-mismatch";
+  }
+  const scenarioSupported = trained.supportedScenarios.some(
+    (scenario) =>
+      scenario.scenarioId === active.scenarioId &&
+      scenario.scenarioVersion === active.scenarioVersion,
+  );
+  if (!scenarioSupported) return "scenario-compatibility-mismatch";
+  if (trained.normalizationProfileId !== active.normalizationProfileId) {
+    return "normalization-profile-mismatch";
+  }
+  if (trained.inputSchemaVersion !== active.inputSchemaVersion) {
+    return "input-schema-mismatch";
+  }
+  if (trained.targetSchemaVersion !== active.targetSchemaVersion) {
+    return "target-schema-mismatch";
+  }
+  return null;
 }

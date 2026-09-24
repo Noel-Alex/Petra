@@ -9,7 +9,7 @@ Own Petra's optional learned-surrogate infrastructure without granting ML author
 - The mechanistic simulator remains authoritative and must always remain available.
 - ML may accelerate or preview validated mechanistic behavior; it may not invent mutations, MICs, biological parameters, intervention outcomes, or lineage events.
 - Product modes are explicit: `mechanistic` or `emulated`. Never present an emulated result as mechanistic.
-- Emulated mode is feature-gated, promotion-gated, engine-version-gated, and domain-gated. A failed gate falls back to mechanistic execution with an explicit refusal reason for the UI. A model validated against an older/different engine may not silently remain active.
+- Emulated mode is feature-gated, promotion-gated, engine-version-gated, compatibility-gated, and domain-gated. A failed gate falls back to mechanistic execution with an explicit refusal reason for the UI. A model validated against an older/different engine, scenario/version, normalization profile, or input/target schema may not silently remain active.
 - Model/runtime code consumes declared inputs and metadata. It does not mutate simulator state.
 
 ## Dataset integrity
@@ -32,7 +32,10 @@ Own Petra's optional learned-surrogate infrastructure without granting ML author
 A surrogate is not product-eligible until it has a versioned dataset, leakage-safe held-out evaluation, a simple baseline comparison, declared domain envelope, visible error metrics, and a mechanistic spot-check path.
 
 - Held-out regression evidence uses complete rows and declared targets; missing/extra targets, non-finite values, row-count mismatch, or metric overflow are invalid evidence.
-- Benchmark evidence binds model id/version, dataset version, engine version, split-assignment policy version, split-coverage policy version, held-out split, baseline id, and per-target MAE/RMSE/count.
+- Benchmark evidence binds model id/version, dataset version, engine version, a versioned surrogate-compatibility identity, split-assignment policy version, split-coverage policy version, held-out split, baseline id, and per-target MAE/RMSE/count.
+- Surrogate compatibility explicitly declares supported scenario/version pairs plus normalization-profile, input-schema, and target-schema versions. Multi-scenario compatibility must be enumerated; never infer it from overlapping feature names or numeric ranges.
+- Parameter-set hash is deliberately not an exact runtime compatibility gate when a surrogate is designed to span a validated parameter envelope; the declared OOD domain remains authoritative for that dimension.
+- Malformed or mismatched compatibility metadata is invalid promotion evidence and must fail closed to Mechanistic mode rather than throwing or silently coercing.
 - A `validated` model card must carry its promotion evidence and requirements. Emulated admission re-checks that evidence rather than trusting the status label alone.
 - Candidate and baseline must cover exactly the declared targets and use equal evaluation counts for each target.
 - The current default promotion rule requires strict improvement in both MAE and RMSE on every declared target. Petra does not invent a percentage margin; any future margin must be separately versioned and justified.
@@ -51,4 +54,4 @@ Pure dataset/split/OOD/mode-gate/benchmark helpers require deterministic unit te
 - Sweep definitions require an explicit `maxTrajectories` budget. Refuse oversized Cartesian products before execution rather than silently launching an unbounded local/cloud workload.
 - The default held-out coverage gate requires at least one group in train, validation, and test. A failed gate must report observed per-split group/trajectory counts and instruct the caller to enlarge/change the declared sweep or adopt a separately versioned policy; it must never rebalance individual replicas.
 - Dataset-generation manifest v2 records plan/dataset/engine/scenario identity, split-assignment policy, split-coverage policy, per-split group/trajectory counts, and stable trajectory keys. These are execution provenance, not evidence that trajectories were actually simulated.
-- Surrogate benchmark evidence v2 and promotion requirements carry the same split-coverage-policy version so evidence produced under an older coverage contract cannot be silently reinterpreted.
+- Surrogate benchmark evidence v3 carries the same split-coverage-policy version and the same versioned compatibility identity as the model card, so evidence produced under another coverage/scenario/normalization/schema contract cannot be silently reinterpreted.

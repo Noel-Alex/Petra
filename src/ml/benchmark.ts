@@ -8,13 +8,27 @@ export interface RegressionTargetMetrics {
 
 export type RegressionMetrics = Readonly<Record<string, RegressionTargetMetrics>>;
 
+export interface SurrogateScenarioCompatibility {
+  readonly scenarioId: string;
+  readonly scenarioVersion: string;
+}
+
+export interface SurrogateCompatibilityIdentity {
+  readonly schemaVersion: "surrogate-compatibility-v1";
+  readonly supportedScenarios: readonly SurrogateScenarioCompatibility[];
+  readonly normalizationProfileId: string;
+  readonly inputSchemaVersion: string;
+  readonly targetSchemaVersion: string;
+}
+
 export interface SurrogateBenchmarkEvidence {
-  readonly schemaVersion: "surrogate-benchmark-evidence-v2";
+  readonly schemaVersion: "surrogate-benchmark-evidence-v3";
   readonly modelId: string;
   readonly modelVersion: string;
   readonly baselineId: string;
   readonly datasetVersion: string;
   readonly engineVersion: string;
+  readonly compatibility: SurrogateCompatibilityIdentity;
   readonly splitPolicyVersion: string;
   readonly splitCoveragePolicyVersion: string;
   readonly heldOutSplit: Exclude<DatasetSplit, "train">;
@@ -30,9 +44,11 @@ export interface SurrogatePromotionRequirements {
 }
 
 export type PromotionIssueKind =
+  | "evidence-schema-mismatch"
   | "identity-mismatch"
   | "dataset-version-mismatch"
   | "engine-version-mismatch"
+  | "compatibility-mismatch"
   | "split-policy-mismatch"
   | "split-coverage-policy-mismatch"
   | "held-out-split-mismatch"
@@ -135,10 +151,18 @@ export function assessSurrogatePromotion(args: {
   readonly expectedModelVersion: string;
   readonly expectedDatasetVersion: string;
   readonly expectedEngineVersion: string;
+  readonly expectedCompatibility: SurrogateCompatibilityIdentity;
 }): SurrogatePromotionAssessment {
   const issues: PromotionIssue[] = [];
   const { evidence, requirements } = args;
   const targetIds = validateTargetIds(requirements.targetIds);
+
+  if (evidence.schemaVersion !== "surrogate-benchmark-evidence-v3") {
+    issues.push({
+      kind: "evidence-schema-mismatch",
+      message: "benchmark evidence schema version is not supported",
+    });
+  }
 
   if (
     evidence.modelId !== args.expectedModelId ||
@@ -159,6 +183,23 @@ export function assessSurrogatePromotion(args: {
     issues.push({
       kind: "engine-version-mismatch",
       message: "benchmark evidence engine version does not match the model card",
+    });
+  }
+  const evidenceCompatibilityKey = safeSurrogateCompatibilityKey(
+    evidence.compatibility,
+  );
+  const expectedCompatibilityKey = safeSurrogateCompatibilityKey(
+    args.expectedCompatibility,
+  );
+  if (
+    evidenceCompatibilityKey === null ||
+    expectedCompatibilityKey === null ||
+    evidenceCompatibilityKey !== expectedCompatibilityKey
+  ) {
+    issues.push({
+      kind: "compatibility-mismatch",
+      message:
+        "benchmark evidence scenario/normalization/schema compatibility does not match the model card",
     });
   }
   if (evidence.splitPolicyVersion !== requirements.splitPolicyVersion) {
@@ -264,4 +305,67 @@ function validMetrics(metrics: RegressionTargetMetrics): boolean {
     Number.isSafeInteger(metrics.count) &&
     metrics.count > 0
   );
+}
+
+
+export function surrogateCompatibilityKey(
+  identity: SurrogateCompatibilityIdentity,
+): string {
+  if (identity.schemaVersion !== "surrogate-compatibility-v1") {
+    throw new RangeError("unsupported surrogate compatibility schema version");
+  }
+  requireCompatibilityText(
+    "normalizationProfileId",
+    identity.normalizationProfileId,
+  );
+  requireCompatibilityText("inputSchemaVersion", identity.inputSchemaVersion);
+  requireCompatibilityText("targetSchemaVersion", identity.targetSchemaVersion);
+  if (identity.supportedScenarios.length === 0) {
+    throw new RangeError(
+      "surrogate compatibility must declare at least one supported scenario",
+    );
+  }
+
+  const scenarioKeys = identity.supportedScenarios.map((scenario) => {
+    requireCompatibilityText("scenarioId", scenario.scenarioId);
+    requireCompatibilityText("scenarioVersion", scenario.scenarioVersion);
+    return encodeCompatibilityParts([
+      scenario.scenarioId,
+      scenario.scenarioVersion,
+    ]);
+  });
+  const unique = new Set(scenarioKeys);
+  if (unique.size !== scenarioKeys.length) {
+    throw new TypeError(
+      "surrogate compatibility must not contain duplicate scenario/version pairs",
+    );
+  }
+
+  return encodeCompatibilityParts([
+    identity.schemaVersion,
+    ...scenarioKeys.sort(),
+    identity.normalizationProfileId,
+    identity.inputSchemaVersion,
+    identity.targetSchemaVersion,
+  ]);
+}
+
+function safeSurrogateCompatibilityKey(
+  identity: SurrogateCompatibilityIdentity,
+): string | null {
+  try {
+    return surrogateCompatibilityKey(identity);
+  } catch {
+    return null;
+  }
+}
+
+function requireCompatibilityText(name: string, value: string): void {
+  if (value.trim().length === 0) {
+    throw new TypeError(`${name} must be non-empty`);
+  }
+}
+
+function encodeCompatibilityParts(parts: readonly string[]): string {
+  return parts.map((part) => `${part.length}:${part}`).join("|");
 }

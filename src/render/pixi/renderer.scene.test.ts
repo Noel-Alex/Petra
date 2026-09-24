@@ -16,4 +16,13 @@ describe("Pixi dish aperture scene contract", () => {
       ".circle(geometry.centerX, geometry.centerY, geometry.radius)",
     );
   });
+
+  it("routes sequential nutrient/drug fields through deterministic contour extraction", () => {
+    expect(rendererSource).toContain(
+      'import { extractFieldContourSegments } from "../fieldContours"',
+    );
+    expect(rendererSource).toContain("const contours = extractFieldContourSegments({");
+    expect(rendererSource).toContain("dishMask: snapshot.dishMask");
+    expect(rendererSource).toContain(".lineTo(to.x, to.y)");
+  });
 });

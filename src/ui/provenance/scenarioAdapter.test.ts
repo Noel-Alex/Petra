@@ -54,6 +54,7 @@ describe("scenario provenance adapter", () => {
       label: "Source",
       value:
         "Regoes et al. 2004 · DOI: 10.1128/AAC.48.10.3670-3676.2004",
+      href: "https://doi.org/10.1128/AAC.48.10.3670-3676.2004",
     });
   });
 
@@ -84,6 +85,7 @@ describe("scenario provenance adapter", () => {
     expect(result.presentation?.details).toContainEqual({
       label: "Source",
       value: "Huseby et al. 2017 · DOI: 10.1093/molbev/msx052",
+      href: "https://doi.org/10.1093/molbev/msx052",
     });
   });
 
@@ -202,6 +204,63 @@ describe("scenario provenance adapter", () => {
     );
     expect(result.problems).toContain(
       'Provenance incomplete: citation key "missing_source" is not present in the active scenario citation map.',
+    );
+  });
+
+  it("preserves explicit HTTP(S) citation URLs as actionable source authority", () => {
+    const result = resolveScenarioProvenance({
+      id: "url-source",
+      label: "Explicit URL source",
+      record: { classification: "measured", citation: "source" },
+      scenario: {
+        citations: {
+          source: {
+            title: "Explicit evidence page",
+            url: "https://example.org/petra-evidence",
+          },
+        },
+      },
+    });
+
+    expect(result.status).toBe("complete");
+    expect(result.sources).toContainEqual({
+      id: "source",
+      label: "Explicit evidence page",
+      locator: "https://example.org/petra-evidence",
+      href: "https://example.org/petra-evidence",
+    });
+    expect(result.presentation?.details).toContainEqual({
+      label: "Source",
+      value:
+        "Explicit evidence page · https://example.org/petra-evidence",
+      href: "https://example.org/petra-evidence",
+    });
+  });
+
+  it("keeps unsupported citation URL schemes visible but non-actionable", () => {
+    const result = resolveScenarioProvenance({
+      id: "unsafe-url",
+      label: "Unsupported locator",
+      record: { classification: "measured", citation: "source" },
+      scenario: {
+        citations: {
+          source: {
+            title: "Unsupported source locator",
+            url: "javascript:alert(1)",
+          },
+        },
+      },
+    });
+
+    expect(result.status).toBe("needs-provenance");
+    expect(result.sources).toContainEqual({
+      id: "source",
+      label: "Unsupported source locator",
+      locator: "javascript:alert(1)",
+    });
+    expect(result.sources[0]?.href).toBeUndefined();
+    expect(result.problems).toContain(
+      'Provenance incomplete: citation "source" uses unsupported URL protocol "javascript:".',
     );
   });
 

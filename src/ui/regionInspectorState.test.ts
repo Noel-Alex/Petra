@@ -11,6 +11,23 @@ import {
   visibleReadout,
 } from "./regionInspectorState";
 
+const runIdentityFixture = {
+  engineVersion: "petra-ts-core/0.1.0",
+  protocolVersion: 4,
+  scenarioId: "region-inspector-ui",
+  scenarioVersion: "1",
+  parameterSetId: "fixture:region-inspector-ui",
+  parameterSetVersion: "1",
+  parameterSetBinding: {
+    schemaVersion: 1,
+    authority: "fixture",
+    parameterSetId: "fixture:region-inspector-ui",
+    parameterSetVersion: "1",
+    configurationFingerprint: "config-fingerprint-v1",
+  },
+  seed: 17,
+} as const;
+
 function readout(
   selectionId: string,
   stateVersion = 1,
@@ -20,6 +37,10 @@ function readout(
     selectionId,
     stateVersion,
     configurationFingerprint: "config-v1",
+    runIdentity: runIdentityFixture,
+    tick: 3,
+    simulationTimeHours: 0.03,
+    commandCount: 2,
     selectedCellCount: 1,
     totalBiomass: 4,
     totalResource: 3,
@@ -45,6 +66,10 @@ function noCoverage(
     selectionId,
     stateVersion,
     configurationFingerprint: "config-v1",
+    runIdentity: runIdentityFixture,
+    tick: 3,
+    simulationTimeHours: 0.03,
+    commandCount: 2,
   };
 }
 

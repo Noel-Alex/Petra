@@ -51,11 +51,13 @@ Prerequisites: a current LTS release of Node.js with npm.
 ```bash
 git clone https://github.com/Noel-Alex/Petra.git
 cd Petra
-npm ci
+npm install
 npm run dev
 ```
 
 Open the local URL printed by Vite (typically `http://localhost:5173`).
+
+Current `main` does not yet commit a JavaScript lockfile (tracked by issue #30), so `npm install` is the working bootstrap command today. Once the generated `package-lock.json` lands, clean reproducible installs should use `npm ci` instead.
 
 Before submitting changes, run the repository verification suite:
 

@@ -1,3 +1,18 @@
+export interface DishEscapeFirstRefusalContext {
+  readonly defaultPrevented: boolean;
+  readonly editableTarget: boolean;
+}
+
+export function dishEscapeAllowsFirstRefusal(
+  key: string,
+  context: DishEscapeFirstRefusalContext,
+): boolean {
+  if (key !== "Escape") return false;
+  if (context.defaultPrevented) return false;
+  if (context.editableTarget) return false;
+  return true;
+}
+
 export interface DishEscapeContext {
   readonly defaultPrevented: boolean;
   readonly editableTarget: boolean;

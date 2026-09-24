@@ -136,16 +136,16 @@
     },
     {
       "id": "evolution-replicate-statistics",
-      "description": "BLOCKED on #562: many-seed mutation/emergence distribution checks require the shared discrete mutation-opportunity authority before composed execution is scientifically valid.",
+      "description": "Numerical many-seed mutation sampler validation: exact categorical reference vs exact-sparse accelerated law; synthetic fixture probabilities, not end-to-end lineage-emergence evidence.",
       "command": [
-        "python",
-        "experiments/blocked.py",
-        "--experiment-id",
-        "evolution-replicate-statistics",
-        "--blocked-on",
-        "562",
-        "--reason",
-        "Issue #37 now provides the composed engine path, but issue #562 must land the shared continuous-biomass to discrete mutation-opportunity authority before many-seed composed mutation statistics are scientifically valid."
+        "npm",
+        "exec",
+        "--offline",
+        "--",
+        "vitest",
+        "run",
+        "--config",
+        "experiments/vitest.evolution_replicate_statistics.config.ts"
       ],
       "issues": [
         5,
@@ -153,7 +153,7 @@
         562,
         542
       ],
-      "timeout_seconds": 30
+      "timeout_seconds": 1800
     },
     {
       "id": "phage-mechanism-statistics",

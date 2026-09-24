@@ -215,7 +215,7 @@ function resolveSources(
       continue;
     }
 
-    const locator = citationLocator(citation);
+    const locator = citationLocator(key, citation, problems);
     sources.push({
       id: key,
       label: citation.title.trim(),
@@ -226,12 +226,30 @@ function resolveSources(
   return sources;
 }
 
-function citationLocator(citation: ScenarioCitationRecord): string | null {
-  if (typeof citation.doi === "string" && citation.doi.trim().length > 0) {
-    return `DOI: ${citation.doi.trim()}`;
+function citationLocator(
+  key: string,
+  citation: ScenarioCitationRecord,
+  problems: string[],
+): string | null {
+  if (citation.doi !== undefined) {
+    if (typeof citation.doi !== "string" || citation.doi.trim().length === 0) {
+      problems.push(
+        `Provenance incomplete: citation "${key}" has an invalid DOI locator.`,
+      );
+    } else {
+      return `DOI: ${citation.doi.trim()}`;
+    }
   }
-  if (typeof citation.url === "string" && citation.url.trim().length > 0) {
-    return citation.url.trim();
+
+  if (citation.url !== undefined) {
+    if (typeof citation.url !== "string" || citation.url.trim().length === 0) {
+      problems.push(
+        `Provenance incomplete: citation "${key}" has an invalid URL locator.`,
+      );
+    } else {
+      return citation.url.trim();
+    }
   }
+
   return null;
 }

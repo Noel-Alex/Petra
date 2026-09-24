@@ -129,6 +129,42 @@ describe("phage latent infection queue", () => {
     );
   });
 
+  it("refuses sequence allocation before nextSequence becomes unsafe", () => {
+    const nearLimit: LatentInfectionQueueState = {
+      schemaVersion: PHAGE_LATENT_QUEUE_SCHEMA_VERSION,
+      currentTimeMinutes: 0,
+      nextSequence: Number.MAX_SAFE_INTEGER - 1,
+      cohorts: [],
+    };
+
+    const lastRepresentable = scheduleLatentInfections(nearLimit, {
+      infectionCount: 1,
+      infectedAtMinutes: 0,
+      latentPeriodMinutes: 10,
+    });
+
+    expect(lastRepresentable.nextSequence).toBe(Number.MAX_SAFE_INTEGER);
+    expect(lastRepresentable.cohorts[0]?.sequence).toBe(
+      Number.MAX_SAFE_INTEGER - 1,
+    );
+    expect(() => validateLatentInfectionQueue(lastRepresentable)).not.toThrow();
+
+    expect(() =>
+      scheduleLatentInfections(lastRepresentable, {
+        infectionCount: 1,
+        infectedAtMinutes: 0,
+        latentPeriodMinutes: 10,
+      }),
+    ).toThrow(/sequence allocation would exceed safe integer range/);
+
+    const zeroCount = scheduleLatentInfections(lastRepresentable, {
+      infectionCount: 0,
+      infectedAtMinutes: 0,
+      latentPeriodMinutes: 10,
+    });
+    expect(zeroCount).toBe(lastRepresentable);
+  });
+
   it("rejects corrupted or nondeterministically ordered queue state", () => {
     const corruptSequence: LatentInfectionQueueState = {
       schemaVersion: PHAGE_LATENT_QUEUE_SCHEMA_VERSION,

@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any
 
 from expo_browser_acceptance import CDP, browser_path, wait_http
+from local_command import resolve_local_command
 
 ROOT = Path(__file__).resolve().parents[1]
 HOST = "127.0.0.1"
@@ -298,7 +299,7 @@ def main() -> int:
 
     try:
         vite = subprocess.Popen(
-            [
+            resolve_local_command([
                 "npm",
                 "run",
                 "dev",
@@ -308,7 +309,7 @@ def main() -> int:
                 "--port",
                 str(VITE_PORT),
                 "--strictPort",
-            ],
+            ]),
             cwd=ROOT,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,

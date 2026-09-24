@@ -81,8 +81,13 @@ describe("deterministic phage burst-count policy", () => {
       },
     );
 
-    expect(result.meanBurstPfuPerCell).toBe(sourceRow.burstSizePfuPerCell);
-    expect(result.l ysedInfections);
+    expect(result).toMatchObject({
+      lysedInfections: 3,
+      meanBurstPfuPerCell: sourceRow.burstSizePfuPerCell,
+      cohortExpectedPfu: 24,
+      releasedPfu: 24,
+      residualAfterPfu: 0,
+    });
   });
 
   it("reports lysed infections separately from progeny PFU", () => {

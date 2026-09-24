@@ -6,9 +6,10 @@ import {
   type DatasetSplit,
   type MechanisticSample,
 } from "./dataset";
-import type {
-  MechanisticSweepPlan,
-  MechanisticSweepTask,
+import {
+  validateSplitCoveragePolicy,
+  type MechanisticSweepPlan,
+  type MechanisticSweepTask,
 } from "./sweep";
 
 export const MECHANISTIC_DATASET_ARTIFACT_SCHEMA_VERSION =
@@ -184,6 +185,7 @@ function validatePlanForCollection(
   requireNonEmpty("scenarioId", plan.scenarioId);
   requireNonEmpty("scenarioVersion", plan.scenarioVersion);
   requireNonEmpty("normalizationProfileId", plan.normalizationProfileId);
+  validateSplitCoveragePolicy(plan.splitCoveragePolicy);
 
   if (!Number.isSafeInteger(plan.groupCount) || plan.groupCount < 1) {
     throw new RangeError("mechanistic sweep groupCount must be a positive safe integer");
@@ -279,6 +281,17 @@ function validatePlanForCollection(
     throw new RangeError(
       "mechanistic sweep groupCount does not match planned group identities",
     );
+  }
+
+  for (const split of plan.splitCoveragePolicy.requiredSplits) {
+    if (
+      observedGroupCounts[split] <
+      plan.splitCoveragePolicy.minimumGroupsPerSplit
+    ) {
+      throw new RangeError(
+        `planned ${split} group coverage does not satisfy policy ${plan.splitCoveragePolicy.version}`,
+      );
+    }
   }
 
   for (const split of DATASET_SPLITS) {
@@ -411,9 +424,25 @@ function canonicalJsonValue(
 
   try {
     if (Array.isArray(value)) {
-      const encoded = value.map((item, index) =>
-        canonicalJsonValue(item, `${path}[${index}]`, ancestors),
-      );
+      const encoded: string[] = [];
+      const expectedKeys = new Set<string>();
+      for (let index = 0; index < value.length; index += 1) {
+        const key = String(index);
+        expectedKeys.add(key);
+        if (!Object.prototype.hasOwnProperty.call(value, index)) {
+          throw new TypeError(`${path} contains a sparse array slot at ${index}`);
+        }
+        encoded.push(
+          canonicalJsonValue(value[index], `${path}[${index}]`, ancestors),
+        );
+      }
+      for (const key of Object.keys(value)) {
+        if (!expectedKeys.has(key)) {
+          throw new TypeError(
+            `${path} contains a non-index array property ${JSON.stringify(key)}`,
+          );
+        }
+      }
       return `[${encoded.join(",")}]`;
     }
 

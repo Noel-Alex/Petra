@@ -136,6 +136,9 @@ describe("authoritative historical scrub control", () => {
     expect(markup).toContain('max="4"');
     expect(markup).toContain('step="1"');
     expect(markup).toContain("Presentation-only cursor");
+    expect(markup).toContain(
+      'aria-valuetext="Presentation-only command 1, between authoritative commands 0 and 2"',
+    );
     expect(markup).toContain("Command 1 between authoritative commands 0 and 2");
     expect(markup).toContain("Biological time is bounded by 0.00 h–0.20 h");
     expect(markup).toContain("No scientific state or biological time is interpolated.");
@@ -152,6 +155,9 @@ describe("authoritative historical scrub control", () => {
     );
 
     expect(markup).toContain("Authoritative checkpoint");
+    expect(markup).toContain(
+      'aria-valuetext="Authoritative checkpoint, command 2, 0.20 h"',
+    );
     expect(markup).toContain("Command 2");
     expect(markup).toContain("0.20 h");
     expect(markup).not.toContain("Presentation-only cursor");

@@ -3,6 +3,7 @@ import {
   micShiftedRegoesResponse,
   prepareMicShiftedRegoes,
   preparedMicShiftedNetRateNaturalPerHour,
+  validateRegoesParameters,
   type MicShiftedResponse,
   type PreparedMicShiftedRegoes,
   type RegoesPharmacodynamics,
@@ -88,7 +89,7 @@ export function ciprofloxacinIncrementalLoss(
     policyId: CIPROFLOXACIN_RESOURCE_COMPOSITION_POLICY.id,
     classification: CIPROFLOXACIN_RESOURCE_COMPOSITION_POLICY.classification,
     response,
-    drugEffectNaturalPerHour: -deathHazardPerHour,
+    drugEffectNaturalPerHour: deathHazardPerHour === 0 ? 0 : -deathHazardPerHour,
     deathHazardPerHour,
   }
 }
@@ -107,6 +108,10 @@ export function composeSpatialCiprofloxacinLoss(
 ): SpatialCiprofloxacinComposition {
   if (concentration.length !== mask.length) {
     throw new Error('concentration and mask arrays must have identical length')
+  }
+  validateRegoesParameters(reference)
+  if (!Number.isFinite(referenceMic) || referenceMic <= 0) {
+    throw new RangeError('referenceMic must be positive and finite')
   }
 
   const ids = new Set<string>()

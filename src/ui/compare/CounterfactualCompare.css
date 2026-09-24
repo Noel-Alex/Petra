@@ -315,6 +315,7 @@
 
 .petra-compare__reveal input {
   width: 100%;
+  min-height: 2.75rem;
   accent-color: #8fdcff;
   cursor: ew-resize;
 }

@@ -21,6 +21,13 @@ describe("CounterfactualCompare resolved motion CSS", () => {
     );
   });
 
+  it("keeps the native swipe range at Petra's minimum touch target height", () => {
+    expect(compareCss).toContain(".petra-compare__reveal input {");
+    expect(compareCss).toContain("min-height: 2.75rem;");
+    expect(compareCss).toContain("width: 100%;");
+    expect(compareCss).not.toContain("min-width: 2.75rem;");
+  });
+
   it("retains full-treatment transition definitions", () => {
     expect(compareCss).toContain(
       "transition:\n    opacity var(--compare-motion-ms) var(--compare-easing)",

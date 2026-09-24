@@ -42,6 +42,7 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - `src/app/motionAdapter.ts` is the thin CSS projection layer for framework-neutral surface plans.
 - Representative-cell semantic zoom must remain visibly labelled illustrative/explanatory and never be described as literal microscopy or a finer simulation scale.
 - Semantic zoom guidance may explain renderer meaning, but it must not infer current scientific state from camera position unless the renderer explicitly reports a presentation-only semantic level.
+- The live dish guide consumes only renderer-reported named levels (`dish | colony | representative-cell`). Exactly one guide item is marked current; numeric zoom stays inside Pixi. Full may use the shared navigational semantic-transition token for subtle emphasis, while Reduced uses non-spatial crossfade and Off is instant/static. Do not announce every camera frame as live-region output.
 
 
 ## Timeline history presentation

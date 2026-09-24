@@ -61,6 +61,7 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 
 
 ## Child DOX index
+- [`analysis/AGENTS.md`](analysis/AGENTS.md) — authoritative-sample chart projection, lineage ancestry layout, and accessible analysis presentation.
 - [`onboarding/AGENTS.md`](onboarding/AGENTS.md) — canonical science-gated onboarding/story semantics and presentation metadata.
 - [`compare/AGENTS.md`](compare/AGENTS.md) — accessible counterfactual side-by-side/swipe presentation over authoritative branch state.
 - [`provenance/AGENTS.md`](provenance/AGENTS.md) — evidence-class presentation, strict source resolution, and incomplete-provenance rules.

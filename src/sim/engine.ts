@@ -1,0 +1,100 @@
+import { SimulationRng } from './rng'
+import type {
+  RunIdentity,
+  SimulationCheckpoint,
+  SimulationCommand,
+  SimulationEvent,
+  SimulationSnapshot,
+} from './protocol'
+
+const HOURS_PER_TICK = 1 / 60
+
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value)
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`
+  const object = value as Record<string, unknown>
+  return `{${Object.keys(object)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${stableStringify(object[key])}`)
+    .join(',')}}`
+}
+
+/** FNV-1a 32-bit trace checksum: a regression identity, not a security hash. */
+function traceHash(value: unknown): string {
+  const text = stableStringify(value)
+  let hash = 0x811c9dc5
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index)
+    hash = Math.imul(hash, 0x01000193) >>> 0
+  }
+  return hash.toString(16).padStart(8, '0')
+}
+
+export class SimulationEngine {
+  private readonly identity: RunIdentity
+  private rng: SimulationRng
+  private tick = 0
+  private syntheticPopulation = 1_000
+  private commandCount = 0
+  private readonly events: SimulationEvent[] = []
+
+  constructor(identity: RunIdentity) {
+    this.identity = structuredClone(identity)
+    this.rng = new SimulationRng(identity.seed)
+    this.events.push({ sequence: 0, tick: 0, type: 'initialized' })
+  }
+
+  execute(command: SimulationCommand): SimulationSnapshot {
+    if (command.type === 'restore') {
+      this.restore(command.checkpoint)
+      this.events.push({ sequence: this.events.length, tick: this.tick, type: 'restored', commandId: command.id })
+      return this.snapshot()
+    }
+
+    if (command.type === 'snapshot') return this.snapshot()
+
+    if (command.type === 'advance') {
+      if (!Number.isSafeInteger(command.ticks) || command.ticks < 0) throw new Error('advance.ticks must be a non-negative safe integer')
+      for (let index = 0; index < command.ticks; index += 1) {
+        // Synthetic stochastic state exists only to prove the deterministic substrate.
+        // Biology modules replace this with explicit mechanisms in later issues.
+        const jitter = this.rng.nextFloat() - 0.5
+        this.syntheticPopulation = Math.max(0, this.syntheticPopulation + jitter)
+        this.tick += 1
+      }
+      this.commandCount += 1
+      this.events.push({ sequence: this.events.length, tick: this.tick, type: 'advanced', commandId: command.id, value: command.ticks })
+      return this.snapshot()
+    }
+
+    if (!Number.isFinite(command.magnitude)) throw new Error('synthetic-pulse.magnitude must be finite')
+    this.syntheticPopulation = Math.max(0, this.syntheticPopulation + command.magnitude)
+    this.commandCount += 1
+    this.events.push({ sequence: this.events.length, tick: this.tick, type: 'synthetic-pulse', commandId: command.id, value: command.magnitude })
+    return this.snapshot()
+  }
+
+  snapshot(): SimulationSnapshot {
+    const checkpoint: SimulationCheckpoint = {
+      identity: structuredClone(this.identity),
+      tick: this.tick,
+      simulationTimeHours: this.tick * HOURS_PER_TICK,
+      syntheticPopulation: this.syntheticPopulation,
+      rngState: this.rng.snapshot(),
+      commandCount: this.commandCount,
+    }
+    const events = this.events.map((event) => ({ ...event }))
+    return { checkpoint, events, traceHash: traceHash({ checkpoint, events }) }
+  }
+
+  private restore(checkpoint: SimulationCheckpoint): void {
+    if (stableStringify(checkpoint.identity) !== stableStringify(this.identity)) {
+      throw new Error('Cannot restore a checkpoint from a different run identity')
+    }
+    this.tick = checkpoint.tick
+    this.syntheticPopulation = checkpoint.syntheticPopulation
+    this.commandCount = checkpoint.commandCount
+    this.rng = new SimulationRng(checkpoint.rngState)
+    this.events.length = 0
+  }
+}

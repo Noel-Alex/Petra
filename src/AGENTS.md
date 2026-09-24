@@ -27,4 +27,5 @@ Start the authoritative core in TypeScript inside a Web Worker so the scientific
 Unit/determinism tests for the core, reference-vs-accelerated numerical comparisons, browser interaction tests, and measured performance budgets. Never claim device/browser acceptance without running it.
 
 ## Child DOX index
-Create child contracts when `sim/`, `render/`, or `ui/` becomes an active durable boundary.
+- [`sim/AGENTS.md`](sim/AGENTS.md) — authoritative simulation state, deterministic RNG, replay/checkpoint, and mechanism-core contracts.
+- Create `render/` or `ui/` child contracts when those become active durable boundaries.

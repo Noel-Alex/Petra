@@ -164,9 +164,13 @@ describe('resource-limited ecology step', () => {
     )
 
     const centreTotal = s.lineages[0]![1]! + s.lineages[1]![1]!
-    expect(centreTotal).toBeCloseTo(10, 6)
-    expect(s.lineages[0]![1]).toBeCloseTo(6.1666667, 5)
-    expect(s.lineages[1]![1]).toBeCloseTo(3.8333333, 5)
+    expect(centreTotal).toBeCloseTo(6, 6)
+    expect(s.lineages[0]![0]).toBeCloseTo(6.25, 5)
+    expect(s.lineages[0]![1]).toBeCloseTo(3.6666667, 5)
+    expect(s.lineages[0]![2]).toBeCloseTo(2.0833333, 5)
+    expect(s.lineages[1]![0]).toBeCloseTo(2.4166667, 5)
+    expect(s.lineages[1]![1]).toBeCloseTo(2.3333333, 5)
+    expect(s.lineages[1]![2]).toBeCloseTo(3.25, 5)
 
     for (let lineageIndex = 0; lineageIndex < s.lineages.length; lineageIndex += 1) {
       const after = Array.from(s.lineages[lineageIndex]!).reduce(

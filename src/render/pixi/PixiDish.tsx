@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { DishRenderSnapshot } from "../model";
+import type { DishRenderSnapshot, SemanticZoomLevel } from "../model";
 import type { CameraMotionSpec } from "./cameraMotion";
 import { createRendererDemoSnapshot } from "./demoSnapshot";
 import {
@@ -19,6 +19,7 @@ export interface PixiDishProps {
   readonly ariaDescribedBy?: string;
   /** Monotonic presentation-only request counter from the React shell. */
   readonly resetCameraSignal?: number;
+  readonly onSemanticZoomLevelChange?: (level: SemanticZoomLevel) => void;
   /** Explicit opt-in for the deterministic presentation-only fixture. */
   readonly demoMode?: boolean;
 }
@@ -44,6 +45,7 @@ export function PixiDish({
   ariaLabel,
   ariaDescribedBy,
   resetCameraSignal = 0,
+  onSemanticZoomLevelChange,
   demoMode = false,
 }: PixiDishProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -51,6 +53,7 @@ export function PixiDish({
   const motionRef = useRef(motion);
   const cameraMotionRef = useRef(cameraMotion);
   const overlayRef = useRef(overlayId);
+  const semanticZoomCallbackRef = useRef(onSemanticZoomLevelChange);
   const demoSnapshotRef = useRef<DishRenderSnapshot | null>(null);
   const resetCameraSignalRef = useRef(resetCameraSignal);
   const [startup, setStartup] = useState<RendererStartupState>(IDLE_STARTUP);
@@ -73,6 +76,7 @@ export function PixiDish({
   motionRef.current = motion;
   cameraMotionRef.current = cameraMotion;
   overlayRef.current = overlayId;
+  semanticZoomCallbackRef.current = onSemanticZoomLevelChange;
   snapshotRef.current = renderSnapshot;
 
   useEffect(() => {
@@ -90,7 +94,15 @@ export function PixiDish({
     setStartup({ status: "initializing", errorMessage: null });
 
     const lifecycle = beginRendererInitialization(
-      () => createPixiDishRenderer(host, { motion, cameraMotion, overlayId }),
+      () =>
+        createPixiDishRenderer(host, {
+          motion,
+          cameraMotion,
+          overlayId,
+          onSemanticZoomLevelChange(level) {
+            semanticZoomCallbackRef.current?.(level);
+          },
+        }),
       {
         onReady(renderer) {
           rendererRef.current = renderer;

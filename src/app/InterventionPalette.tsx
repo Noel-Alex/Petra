@@ -8,11 +8,14 @@ import type { RuntimeUiStatus } from "./runtimeView";
 export interface InterventionPaletteProps {
   readonly motion: MotionPreference;
   readonly runtimeStatus: RuntimeUiStatus;
+  /** Presentation-only dish focus state; never changes intervention authority. */
+  readonly collapsed?: boolean;
 }
 
 export function InterventionPalette({
   motion,
   runtimeStatus,
+  collapsed = false,
 }: InterventionPaletteProps) {
   const reasonId = useId();
   const view = projectInterventionCapability(runtimeStatus);
@@ -22,6 +25,9 @@ export function InterventionPalette({
       className="petra-panel petra-panel--tools"
       aria-label="Interventions"
       data-intervention-capability={view.reason}
+      data-focus-collapsed={collapsed ? "true" : "false"}
+      aria-hidden={collapsed ? true : undefined}
+      inert={collapsed}
     >
       <p className="petra-kicker">Interventions</p>
       <h2>Shape the environment</h2>

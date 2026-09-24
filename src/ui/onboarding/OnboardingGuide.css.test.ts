@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import compactActionCss from "../petraCompactAction.css?raw";\nimport css from "./OnboardingGuide.css?raw";
 
+// Vite resolves raw modules in Vitest; this project intentionally omits vite/client globals.
+// @ts-expect-error Vite raw source import is runtime-supported but not declared in tsconfig types.
+import guideSource from "./OnboardingGuide.tsx?raw";
+
 describe("OnboardingGuide ambient motion source contract", () => {
   it("consumes projected shared loop variables instead of local timing authority", () => {
     expect(css).toContain("var(--onboarding-ambient-primary-ms)");
@@ -27,5 +31,25 @@ describe("OnboardingGuide navigation touch target contract", () => {
     expect(navigationRule).not.toBeNull();
     expect(navigationRule?.[1]).not.toMatch(/min-height\s*:/);
     expect(css).not.toContain("min-height: 2.65rem");
+  });
+});
+
+
+describe("OnboardingGuide semantic motion fallback contract", () => {
+  it("fails static in CSS until the canonical presentation adapter projects motion", () => {
+    const rootRule = css.match(/\.petra-onboarding\s*\{([^}]*)\}/s);
+    expect(rootRule).not.toBeNull();
+    expect(rootRule?.[1]).toContain("--onboarding-motion-ms: 0ms;");
+    expect(rootRule?.[1]).toContain("--onboarding-easing: linear;");
+    expect(rootRule?.[1]).not.toContain("220ms");
+
+    expect(guideSource).toContain(
+      '"--onboarding-motion-ms": `${presentation.motion.durationMs}ms`,',
+    );
+    expect(guideSource).toContain(
+      '"--onboarding-easing": `cubic-bezier(${presentation.easing.join(", ")})`,',
+    );
+    expect(css).toContain("var(--onboarding-motion-ms)");
+    expect(css).toContain("var(--onboarding-easing)");
   });
 });

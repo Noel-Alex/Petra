@@ -407,4 +407,36 @@ describe('worker protocol-v4 runtime validation', () => {
     expect(parsed).toMatchObject({ ok: false })
     if (!parsed.ok) expect(parsed.error).toContain('events must be dense')
   })
+  it('accepts the stable advance execution-policy refusal code', () => {
+    const payload = {
+      protocolVersion: PROTOCOL_VERSION,
+      type: 'error' as const,
+      commandId: 'too-large',
+      code: 'advance-execution-policy-refusal' as const,
+      message: 'advance request exceeds execution policy',
+    }
+
+    const parsed = parseWorkerResponse(payload)
+    expect(parsed).toMatchObject({ ok: true })
+    if (!parsed.ok) throw new Error(parsed.error)
+    expect(parsed.value).toBe(payload)
+  })
+
+  it('rejects unknown Worker error codes instead of promoting them', () => {
+    const parsed = parseWorkerResponse({
+      protocolVersion: PROTOCOL_VERSION,
+      type: 'error',
+      commandId: 'unknown-code',
+      code: 'mystery-refusal',
+      message: 'not a registered runtime outcome',
+    })
+
+    expect(parsed).toEqual({
+      ok: false,
+      error:
+        'Invalid worker response: error.code is not a supported worker error code',
+      commandId: null,
+    })
+  })
+
 })

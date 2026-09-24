@@ -1,0 +1,326 @@
+:root {
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  color: #f4f7fb;
+  background: #081120;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(80, 112, 176, 0.16), transparent 34rem),
+    #081120;
+}
+
+button,
+select {
+  font: inherit;
+}
+
+button,
+select {
+  color: inherit;
+}
+
+button {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.72rem 0.9rem;
+  cursor: pointer;
+}
+
+button:hover,
+button:focus-visible,
+select:focus-visible {
+  border-color: rgba(137, 211, 255, 0.65);
+  outline: none;
+}
+
+.petra-app {
+  --panel-motion-ms: 220ms;
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.petra-topbar,
+.timeline-shell,
+.petra-panel {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(9, 21, 39, 0.84);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(18px);
+}
+
+.petra-topbar,
+.timeline-shell {
+  border-radius: 20px;
+  padding: 0.9rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.petra-topbar h1,
+.petra-panel h2 {
+  margin: 0;
+}
+
+.petra-topbar h1 {
+  font-size: clamp(1.8rem, 3vw, 2.7rem);
+  letter-spacing: -0.05em;
+}
+
+.petra-kicker {
+  margin: 0 0 0.2rem;
+  color: #8fdcff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.petra-topbar__actions,
+.timeline-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.motion-control {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.82rem;
+  color: #bec9da;
+}
+
+.motion-control select {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: #101d31;
+  padding: 0.5rem 0.65rem;
+}
+
+.ghost-button {
+  background: transparent;
+}
+
+.petra-workspace {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(12rem, 17rem) minmax(22rem, 1fr) minmax(12rem, 18rem);
+  gap: 1rem;
+}
+
+.petra-panel {
+  border-radius: 24px;
+  padding: 1rem;
+  transition:
+    transform var(--panel-motion-ms) ease,
+    opacity var(--panel-motion-ms) ease;
+}
+
+.tool-stack {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+
+.tool-stack button {
+  text-align: left;
+}
+
+.panel-note {
+  margin-top: 1rem;
+  color: #93a0b4;
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.dish-stage {
+  min-height: 34rem;
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at center, rgba(70, 109, 173, 0.12), transparent 64%),
+    rgba(5, 13, 25, 0.55);
+}
+
+.dish-stage__halo {
+  position: absolute;
+  width: min(70vw, 46rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(94, 201, 255, 0.11), transparent 68%);
+  filter: blur(18px);
+}
+
+.dish-mount {
+  width: min(72vh, 44rem);
+  max-width: 88%;
+  aspect-ratio: 1;
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(194, 231, 255, 0.45);
+  background:
+    radial-gradient(circle at 34% 26%, rgba(255, 255, 255, 0.2), transparent 12%),
+    radial-gradient(circle at center, rgba(21, 54, 78, 0.92), rgba(8, 22, 40, 0.96) 72%);
+  box-shadow:
+    inset 0 0 0 10px rgba(255, 255, 255, 0.025),
+    inset 0 0 60px rgba(108, 206, 255, 0.08),
+    0 36px 100px rgba(0, 0, 0, 0.38);
+}
+
+.dish-placeholder {
+  position: absolute;
+  inset: 12%;
+  border-radius: 50%;
+  opacity: 0.84;
+}
+
+.dish-placeholder__colony {
+  position: absolute;
+  width: 18%;
+  aspect-ratio: 1.4;
+  border-radius: 60% 45% 55% 40%;
+  filter: blur(1px);
+}
+
+.dish-placeholder__colony--a {
+  left: 26%;
+  top: 34%;
+  background: #4ed1ef;
+  transform: rotate(-18deg);
+}
+
+.dish-placeholder__colony--b {
+  right: 23%;
+  top: 24%;
+  width: 12%;
+  background: #f174b8;
+  transform: rotate(28deg);
+}
+
+.dish-placeholder__colony--c {
+  right: 31%;
+  bottom: 25%;
+  width: 9%;
+  background: #f5c968;
+  transform: rotate(-42deg);
+}
+
+.dish-caption {
+  z-index: 1;
+  max-width: 15rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: rgba(5, 13, 25, 0.72);
+  text-align: center;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.dish-caption span {
+  color: #9daabd;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.metric-list {
+  display: grid;
+  gap: 0.7rem;
+  margin: 1rem 0 0;
+}
+
+.metric-list div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.metric-list dt {
+  color: #9daabd;
+}
+
+.metric-list dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline-shell strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.petra-app[data-motion="off"] *,
+.petra-app[data-motion="reduced"] .dish-stage__halo {
+  animation: none !important;
+}
+
+.petra-app[data-motion="off"] * {
+  transition-duration: 0ms !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dish-stage__halo {
+    display: none;
+  }
+}
+
+@media (max-width: 980px) {
+  .petra-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .dish-stage {
+    order: -1;
+    min-height: 28rem;
+  }
+
+  .petra-panel {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .petra-app {
+    padding: 0.65rem;
+  }
+
+  .petra-topbar,
+  .timeline-shell {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .petra-topbar__actions,
+  .timeline-controls {
+    flex-wrap: wrap;
+  }
+
+  .dish-stage {
+    min-height: 23rem;
+  }
+}

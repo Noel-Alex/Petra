@@ -14,7 +14,14 @@ function satisfy(
   state: ReturnType<typeof initialDemoPresenterState>,
   gate: DemoEvidenceGate,
 ) {
-  return reduceDemoPresenter(state, { type: "evidence", gate });
+  if (state.runIdentity === null) {
+    throw new Error("test state requires a bound run");
+  }
+  return reduceDemoPresenter(state, {
+    type: "evidence",
+    gate,
+    runIdentity: state.runIdentity,
+  });
 }
 
 describe("expo demo presenter state", () => {
@@ -42,14 +49,14 @@ describe("expo demo presenter state", () => {
   });
 
   it("cannot advance a causal/demo beat until explicit evidence arrives", () => {
-    let state = initialDemoPresenterState();
+    let state = initialDemoPresenterState("90-second", "run-a");
     expect(currentDemoCue(state).id).toBe("world");
     expect(canAdvanceDemo(state)).toBe(false);
 
     state = reduceDemoPresenter(state, { type: "next" });
     expect(currentDemoCue(state).id).toBe("world");
 
-    state = satisfy(state, "runtime-ready");
+    state = satisfy(state, "flagship-runtime-ready");
     state = reduceDemoPresenter(state, { type: "next" });
     expect(currentDemoCue(state).id).toBe("growth");
     expect(canAdvanceDemo(state)).toBe(false);
@@ -60,18 +67,41 @@ describe("expo demo presenter state", () => {
   });
 
   it("never uses target wall time as an evidence gate", () => {
-    const state = initialDemoPresenterState();
+    const state = initialDemoPresenterState("90-second", "run-a");
     const presentation = resolveDemoPresenterPresentation(state, "full");
 
     expect(presentation.elapsedTargetSeconds).toBe(12);
     expect(presentation.timingMeaning).toBe("presenter-pacing-only");
-    expect(presentation.waitingFor).toBe("runtime-ready");
+    expect(presentation.waitingFor).toBe("flagship-runtime-ready");
     expect(presentation.canAdvance).toBe(false);
   });
 
-  it("preserves evidence when switching presenter profiles", () => {
-    let state = initialDemoPresenterState();
-    state = satisfy(state, "runtime-ready");
+  it("clears stale evidence when the authoritative run identity changes", () => {
+    let state = initialDemoPresenterState("90-second", "run-a");
+    state = satisfy(state, "flagship-runtime-ready");
+    expect(canAdvanceDemo(state)).toBe(true);
+
+    state = reduceDemoPresenter(state, {
+      type: "bind-run",
+      runIdentity: "run-b",
+    });
+
+    expect(state.runIdentity).toBe("run-b");
+    expect(state.cueIndex).toBe(0);
+    expect(state.satisfiedGates.size).toBe(0);
+    expect(canAdvanceDemo(state)).toBe(false);
+
+    const stale = reduceDemoPresenter(state, {
+      type: "evidence",
+      gate: "flagship-runtime-ready",
+      runIdentity: "run-a",
+    });
+    expect(stale).toBe(state);
+  });
+
+  it("preserves evidence when switching presenter profiles within one run", () => {
+    let state = initialDemoPresenterState("90-second", "run-a");
+    state = satisfy(state, "flagship-runtime-ready");
     state = reduceDemoPresenter(state, {
       type: "set-profile",
       profile: "3-minute",
@@ -79,13 +109,14 @@ describe("expo demo presenter state", () => {
 
     expect(state.cueIndex).toBe(0);
     expect(state.profile).toBe("3-minute");
-    expect(state.satisfiedGates.has("runtime-ready")).toBe(true);
+    expect(state.runIdentity).toBe("run-a");
+    expect(state.satisfiedGates.has("flagship-runtime-ready")).toBe(true);
     expect(canAdvanceDemo(state)).toBe(true);
   });
 
   it("degrades presenter motion without removing scientific boundaries", () => {
-    let state = initialDemoPresenterState();
-    state = satisfy(state, "runtime-ready");
+    let state = initialDemoPresenterState("90-second", "run-a");
+    state = satisfy(state, "flagship-runtime-ready");
     state = reduceDemoPresenter(state, { type: "next" });
 
     const reduced = resolveDemoPresenterPresentation(state, "reduced");

@@ -97,6 +97,18 @@ export function assessReplayCompatibility(args: {
       'Replay target is incompatible: the active run identity is malformed.',
     )
   }
+  if (target.engineVersion !== ENGINE_VERSION) {
+    return incompatible(
+      'unsupported-engine-version',
+      `Replay target is incompatible with this Petra build: active engine identity ${target.engineVersion} is unsupported; expected ${ENGINE_VERSION}.`,
+    )
+  }
+  if (target.protocolVersion !== PROTOCOL_VERSION) {
+    return incompatible(
+      'unsupported-protocol-version',
+      `Replay target is incompatible with this Petra build: active protocol identity ${target.protocolVersion} is unsupported; expected ${PROTOCOL_VERSION}.`,
+    )
+  }
 
   const comparisons: readonly [
     keyof Pick<

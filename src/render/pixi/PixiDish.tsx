@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { DishRenderSnapshot } from "../model";
+import type { CameraMotionSpec } from "./cameraMotion";
 import { createRendererDemoSnapshot } from "./demoSnapshot";
 import {
   createPixiDishRenderer,
@@ -10,6 +11,7 @@ import {
 export interface PixiDishProps {
   readonly snapshot?: DishRenderSnapshot | null;
   readonly motion?: RendererMotionMode;
+  readonly cameraMotion: CameraMotionSpec;
   readonly overlayId?: string | null;
   readonly className?: string;
   readonly ariaLabel?: string;
@@ -23,6 +25,7 @@ export interface PixiDishProps {
 export function PixiDish({
   snapshot,
   motion = "full",
+  cameraMotion,
   overlayId = null,
   className,
   ariaLabel,
@@ -50,7 +53,7 @@ export function PixiDish({
     let disposed = false;
     let instance: PixiDishRenderer | null = null;
 
-    void createPixiDishRenderer(host, { motion, overlayId }).then((renderer) => {
+    void createPixiDishRenderer(host, { motion, cameraMotion, overlayId }).then((renderer) => {
       if (disposed) {
         renderer.destroy();
         return;

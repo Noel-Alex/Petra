@@ -1,3 +1,5 @@
+import { assertLocalBiomassWithinCapacity } from './capacity'
+
 export interface GrowthParameters {
   /** Maximum division-biomass production rate (1 / time). Scenario-owned and provenance-required. */
   maxDivisionRate: number
@@ -151,9 +153,18 @@ function validate(
     }
 
     finiteNonNegative('resource concentration', resource)
+    let localBiomass = 0
     for (let lineageIndex = 0; lineageIndex < state.lineages.length; lineageIndex += 1) {
-      finiteNonNegative('lineage biomass', state.lineages[lineageIndex]![index]!)
+      const amount = state.lineages[lineageIndex]![index]!
+      finiteNonNegative('lineage biomass', amount)
+      localBiomass += amount
     }
+    assertLocalBiomassWithinCapacity(
+      localBiomass,
+      p.localCapacity,
+      state.lineages.length,
+      `ecology cell ${index}`,
+    )
   }
 }
 

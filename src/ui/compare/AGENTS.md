@@ -28,3 +28,11 @@ Presentation-only side-by-side and swipe comparison of already-authoritative bra
 ## Verification
 
 Pure presentation helpers require deterministic unit tests. Browser smoothness, touch behavior, screenshots, GPU/frame-time, and renderer correctness require browser-capable local evidence and must not be inferred from source review.
+
+## Export / replay metadata
+
+- `export.ts` may package **metadata about already-authoritative branches**; it never creates a fork, checkpoint, intervention, or replay.
+- Export metadata must preserve exact fork origin, branch identity, seed, ordered post-fork intervention command IDs, divergence classification, and caller-supplied engine/protocol/scenario/parameter versions.
+- Current compare export is intentionally **metadata-only**: checkpoint payloads and authoritative command payloads are not present, so `replayReady` must remain false. Do not market or label it as a complete replay bundle until runtime authority supplies those payloads.
+- Validation recomputes divergence identity from the exported branches so a stale/tampered label cannot disagree with branch metadata.
+- Deterministic serialization must not inject wall-clock timestamps into the canonical payload; callers may attach transport metadata outside the replay identity.

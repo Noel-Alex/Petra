@@ -32,6 +32,7 @@ import {
   createOnboardingRuntimeSession,
   projectOnboardingRuntime,
   reconcileOnboardingRuntimeSession,
+  type AuthoritativeOnboardingGateStream,
 } from "./onboardingRuntime";
 import {
   canDispatchAppShortcut,
@@ -83,6 +84,11 @@ export interface AppProps {
    * protocol is intentionally ineligible and therefore supplies no stream.
    */
   readonly causalEvents?: AuthoritativeCausalEventStream | null;
+  /**
+   * Explicit cumulative science-gate evidence for this exact run/branch.
+   * Generic protocol advance events are intentionally insufficient.
+   */
+  readonly onboardingGates?: AuthoritativeOnboardingGateStream | null;
 }
 
 const SOURCES_TRIGGER_ID = "petra-sources-trigger";
@@ -97,12 +103,13 @@ export function App({
   runtimeFactory,
   analysisRecords = null,
   causalEvents = null,
+  onboardingGates = null,
 }: AppProps) {
   const systemReduced = useSystemReducedMotion();
   const experiment = useExperimentRuntime(runtimeFactory);
   const onboardingProjection = useMemo(
-    () => projectOnboardingRuntime(experiment.state),
-    [experiment.state],
+    () => projectOnboardingRuntime(experiment.state, onboardingGates),
+    [experiment.state, onboardingGates],
   );
   const [onboardingSession, setOnboardingSession] = useState(() =>
     createOnboardingRuntimeSession(onboardingProjection),
@@ -349,6 +356,23 @@ export function App({
               <option value="off">Off</option>
             </select>
           </label>
+          {synchronizedOnboardingSession.state.completed ? (
+            <PetraCompactAction
+              motionPreference={motionPreference}
+              className="ghost-button"
+              onClick={() => {
+                setOnboardingSession((current) =>
+                  applyOnboardingUserAction(
+                    current,
+                    onboardingProjection,
+                    { type: "reset" },
+                  ),
+                );
+              }}
+            >
+              Replay guide
+            </PetraCompactAction>
+          ) : null}
           <PetraCompactAction
             id={SOURCES_TRIGGER_ID}
             motionPreference={motionPreference}

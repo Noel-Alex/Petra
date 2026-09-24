@@ -1,0 +1,69 @@
+.petra-biology-motif {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.petra-biology-motif__dish {
+  fill: var(--petra-calm-ink-raised);
+  stroke: color-mix(in srgb, var(--petra-calm-cream) 22%, transparent);
+  stroke-width: 2;
+}
+
+.petra-biology-motif__dish-inner {
+  fill: var(--petra-calm-ink-panel);
+  stroke: color-mix(in srgb, var(--petra-calm-cream) 9%, transparent);
+  stroke-width: 1;
+}
+
+.petra-biology-motif__field {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.petra-biology-motif__rod {
+  stroke: color-mix(in srgb, var(--petra-calm-ink) 42%, transparent);
+  stroke-width: 1.25;
+}
+
+.petra-biology-motif__branch {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.petra-biology-motif :where([data-tone="cream"]) {
+  fill: var(--petra-calm-cream);
+  stroke: var(--petra-calm-cream);
+}
+
+.petra-biology-motif :where([data-tone="mist"]) {
+  fill: var(--petra-calm-mist);
+  stroke: var(--petra-calm-mist);
+}
+
+.petra-biology-motif :where([data-tone="teal"]) {
+  fill: var(--petra-calm-teal);
+  stroke: var(--petra-calm-teal);
+}
+
+.petra-biology-motif :where([data-tone="mint"]) {
+  fill: var(--petra-calm-mint);
+  stroke: var(--petra-calm-mint);
+}
+
+.petra-biology-motif :where([data-tone="amber"]) {
+  fill: var(--petra-calm-amber);
+  stroke: var(--petra-calm-amber);
+}
+
+.petra-biology-motif :where([data-tone="coral"]) {
+  fill: var(--petra-calm-coral);
+  stroke: var(--petra-calm-coral);
+}
+
+.petra-biology-motif :where([data-tone="olive"]) {
+  fill: var(--petra-calm-olive);
+  stroke: var(--petra-calm-olive);
+}

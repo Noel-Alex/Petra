@@ -1,5 +1,5 @@
 import { SimulationEngine } from './engine'
-import type { SimulationCheckpoint, SimulationCommand, SimulationSnapshot } from './protocol'
+import type {\n  SimulationCommand,\n  SimulationSnapshot,\n  SyntheticSimulationCheckpoint,\n  SyntheticSimulationSnapshot,\n} from './protocol'
 
 export const COUNTERFACTUAL_FORK_SCHEMA_VERSION = 1 as const
 
@@ -16,7 +16,7 @@ export type CounterfactualBranchSide = 'left' | 'right'
 export interface CounterfactualForkOrigin {
   readonly sourceRunId: string
   readonly checkpointTraceHash: string
-  readonly checkpoint: SimulationCheckpoint
+  readonly checkpoint: SyntheticSimulationCheckpoint
 }
 
 export interface CounterfactualReplayBranch {
@@ -36,7 +36,7 @@ export interface CounterfactualForkReplayBundle {
 }
 
 export interface CounterfactualBranchSnapshot extends CounterfactualReplayBranch {
-  readonly snapshot: SimulationSnapshot
+  readonly snapshot: SyntheticSimulationSnapshot
 }
 
 export interface CounterfactualForkSnapshot {
@@ -90,7 +90,7 @@ export class CounterfactualForkController {
   execute(
     side: CounterfactualBranchSide,
     command: CounterfactualBranchCommand,
-  ): SimulationSnapshot {
+  ): SyntheticSimulationSnapshot {
     const branch = this.branches[side]
     validateBranchCommand(command)
     if (branch.commandIds.has(command.id)) {
@@ -132,7 +132,7 @@ export function replayCounterfactualFork(
 ): CounterfactualForkSnapshot {
   validateCounterfactualForkReplayBundle(bundle)
 
-  const parentSnapshot: SimulationSnapshot = {
+  const parentSnapshot: SyntheticSimulationSnapshot = {
     checkpoint: structuredClone(bundle.origin.checkpoint),
     events: [],
     traceHash: bundle.origin.checkpointTraceHash,
@@ -182,7 +182,7 @@ export function validateCounterfactualForkReplayBundle(
 
 function createBranchRuntime(
   descriptor: { readonly branchId: string; readonly label: string },
-  checkpoint: SimulationCheckpoint,
+  checkpoint: SyntheticSimulationCheckpoint,
 ): BranchRuntime {
   const engine = new SimulationEngine(checkpoint.identity)
   engine.execute({
@@ -231,7 +231,7 @@ function validateBranchCommand(command: CounterfactualBranchCommand): void {
   throw new Error('counterfactual branch commands cannot restore or snapshot')
 }
 
-function validateCheckpointForFork(checkpoint: SimulationCheckpoint): void {
+function validateCheckpointForFork(\n  checkpoint: SyntheticSimulationCheckpoint,\n): void {
   if (!Number.isSafeInteger(checkpoint.tick) || checkpoint.tick < 0) {
     throw new RangeError('fork checkpoint tick must be a non-negative safe integer')
   }
@@ -296,7 +296,7 @@ function cloneOrigin(origin: CounterfactualForkOrigin): CounterfactualForkOrigin
   }
 }
 
-function cloneSnapshot(snapshot: SimulationSnapshot): SimulationSnapshot {
+function cloneSnapshot(\n  snapshot: SyntheticSimulationSnapshot,\n): SyntheticSimulationSnapshot {
   return structuredClone(snapshot)
 }
 

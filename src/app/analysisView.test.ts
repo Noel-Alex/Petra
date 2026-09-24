@@ -62,31 +62,48 @@ describe("authoritative analysis app projection", () => {
 
     expect(ANALYSIS_MAX_POINTS_PER_SERIES).toBe(240);
     expect(view.identity.stateIdentity).toBe("snapshot-12");
-    expect(view.chart.unit).toBe("model-biomass");
-    expect(view.chart.interpolation).toBe("none");
-    expect(view.chart.series[0]?.sourcePointCount).toBe(3);
+    expect(view.charts).toHaveLength(1);\n    expect(view.charts[0]!.unit).toBe("model-biomass");
+    expect(view.charts[0]!.interpolation).toBe("none");
+    expect(view.charts[0]!.series[0]?.sourcePointCount).toBe(3);
     expect(view.lineageTree.nodes.map((node) => node.lineageId)).toEqual([
       "ancestor",
       "child",
     ]);
   });
 
-  it("refuses mixed units through the canonical chart contract", () => {
+  it("groups mixed scientific units into separate charts in source order", () => {
     const input = records();
-    expect(() =>
-      projectAuthoritativeAnalysis({
-        ...input,
-        series: [
-          input.series[0]!,
-          {
-            ...input.series[0]!,
-            id: "resource",
-            label: "Resource",
-            unit: "model-resource",
-          },
-        ],
-      }),
-    ).toThrow(/different units/);
+    const view = projectAuthoritativeAnalysis({
+      ...input,
+      series: [
+        input.series[0]!,
+        {
+          ...input.series[0]!,
+          id: "resource",
+          label: "Resource",
+          unit: "model-resource",
+        },
+        {
+          ...input.series[0]!,
+          id: "child-biomass",
+          label: "Child biomass",
+        },
+      ],
+    });
+
+    expect(view.status).toBe("available");
+    if (view.status !== "available") return;
+    expect(view.charts.map((chart) => chart.unit)).toEqual([
+      "model-biomass",
+      "model-resource",
+    ]);
+    expect(view.charts[0]!.series.map((series) => series.id)).toEqual([
+      "ancestor",
+      "child-biomass",
+    ]);
+    expect(view.charts[1]!.series.map((series) => series.id)).toEqual([
+      "resource",
+    ]);
   });
 
   it("refuses samples or ancestry records from the future of the bound state", () => {

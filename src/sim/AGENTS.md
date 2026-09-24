@@ -17,4 +17,5 @@ At minimum, test identical-seed/command replay, RNG state round-trip, checkpoint
 
 ## Child DOX index
 - `ecology/AGENTS.md` — resource-limited biomass flux, loss-hazard, and event-boundary contract.
+- `evolution/AGENTS.md` — discrete mutation-opportunity, lineage identity, RNG/replay, and evolution-authority contract.
 - `pharmacodynamics/AGENTS.md` — source-response, MIC-transfer, and resource×drug composition contract.

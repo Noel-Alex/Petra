@@ -198,8 +198,8 @@ describe('authoritative analysis metric series', () => {
 
     const mixedCadence = structuredClone(first)
     ;(mixedCadence.samplingPolicy as { everyTicks: number }).everyTicks = 10
-    mixedCadence.tick = 10
-    mixedCadence.simulationTimeHours = 1
+    ;(mixedCadence as { tick: number }).tick = 10
+    ;(mixedCadence as { simulationTimeHours: number }).simulationTimeHours = 1
 
     expect(() =>
       buildAuthoritativeMetricSeries([first, mixedCadence], config),

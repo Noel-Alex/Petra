@@ -570,3 +570,15 @@ button:hover {
     0 0 0 7px rgba(242, 217, 142, 0.58),
     inset 0 0 0 2px rgba(242, 217, 142, 0.28);
 }
+
+
+.dish-overview-button {
+  flex: 0 0 auto;
+  padding: 0.42rem 0.62rem;
+  border-radius: 999px;
+  background: rgba(143, 220, 255, 0.08);
+  color: #d9f1ff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.035em;
+}

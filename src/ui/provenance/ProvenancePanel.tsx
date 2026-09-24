@@ -1,9 +1,15 @@
-import { useId, type ReactElement } from "react";
+import { useId, useMemo, useState, type ReactElement } from "react";
 
 import {
   PROVENANCE_ICON_MAP,
 } from "../icons/spec";
 import { PetraIcon } from "../icons/PetraIcon";
+import {
+  filterProvenanceRecords,
+  parseProvenanceEvidenceFilter,
+  PROVENANCE_EVIDENCE_FILTERS,
+  type ProvenanceEvidenceFilter,
+} from "./filter";
 import type { ProvenancePresentation } from "./model";
 import type {
   ScenarioAssumptionsResolution,
@@ -25,8 +31,16 @@ export function ProvenancePanel({
   className,
 }: ProvenancePanelProps): ReactElement {
   const headingId = useId();
+  const [query, setQuery] = useState("");
+  const [evidence, setEvidence] =
+    useState<ProvenanceEvidenceFilter>("all");
+  const filtered = useMemo(
+    () => filterProvenanceRecords(records, { query, evidence }),
+    [records, query, evidence],
+  );
   const complete = records.filter((record) => record.status === "complete").length;
   const incomplete = records.length - complete;
+  const hasActiveFilter = query.trim().length > 0 || evidence !== "all";
 
   return (
     <aside
@@ -49,13 +63,81 @@ export function ProvenancePanel({
           No provenance records are available for the active selection.
         </p>
       ) : (
-        <ul className="provenance-panel__records">
-          {records.map((record) => (
-            <li key={record.id}>
-              <ProvenanceRecord resolution={record} />
-            </li>
-          ))}
-        </ul>
+        <>
+          <div
+            className="provenance-panel__filters"
+            role="search"
+            aria-label="Filter provenance records"
+          >
+            <label>
+              <span>Search provenance</span>
+              <input
+                type="search"
+                value={query}
+                placeholder="Label, source, context…"
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                }}
+              />
+            </label>
+            <label>
+              <span>Evidence type</span>
+              <select
+                value={evidence}
+                onChange={(event) => {
+                  setEvidence(
+                    parseProvenanceEvidenceFilter(event.target.value),
+                  );
+                }}
+              >
+                {PROVENANCE_EVIDENCE_FILTERS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              disabled={!hasActiveFilter}
+              onClick={() => {
+                setQuery("");
+                setEvidence("all");
+              }}
+            >
+              Clear
+            </button>
+          </div>
+
+          <div className="provenance-panel__filter-meta">
+            <p aria-live="polite" aria-atomic="true">
+              {filtered.records.length} of {records.length} records shown
+              {filtered.hiddenCompleteCount > 0
+                ? ` · ${filtered.hiddenCompleteCount} complete filtered out`
+                : ""}
+            </p>
+            <p className="provenance-panel__filter-note">
+              Needs-provenance records always remain visible
+              {filtered.pinnedNeedsProvenanceCount > 0
+                ? ` · ${filtered.pinnedNeedsProvenanceCount} pinned by safety rule`
+                : ""}.
+            </p>
+          </div>
+
+          {filtered.records.length === 0 ? (
+            <p className="provenance-panel__empty">
+              No complete provenance records match the current filters.
+            </p>
+          ) : (
+            <ul className="provenance-panel__records">
+              {filtered.records.map((record) => (
+                <li key={record.id}>
+                  <ProvenanceRecord resolution={record} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
 
       {assumptions !== undefined ? (

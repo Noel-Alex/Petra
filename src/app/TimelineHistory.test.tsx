@@ -4,8 +4,13 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { TimelineEntry } from "../ui/timeline";
 import {
   TimelineHistory,
+  keepTimelineHistorySpaceLocal,
   planTimelineHistory,
 } from "./TimelineHistory";
+
+// Vite resolves raw assets in Vitest; this project intentionally omits vite/client globals.
+// @ts-expect-error Vite raw asset import is runtime-supported but not declared in tsconfig types.
+import timelineHistorySource from "./TimelineHistory.tsx?raw";
 
 function event(sequence: number): TimelineEntry {
   return {
@@ -56,4 +61,52 @@ describe("authoritative timeline history", () => {
     expect(() => planTimelineHistory([event(0)], 0)).toThrow(RangeError);
     expect(() => planTimelineHistory([event(0)], 1.5)).toThrow(RangeError);
   });
+  it("keeps Space local without preventing the browser scrolling default", () => {
+    let stopped = 0;
+    let prevented = 0;
+    const spaceEvent = {
+      key: " ",
+      stopPropagation: () => {
+        stopped += 1;
+      },
+      preventDefault: () => {
+        prevented += 1;
+      },
+    };
+
+    keepTimelineHistorySpaceLocal(spaceEvent);
+    expect(stopped).toBe(1);
+    expect(prevented).toBe(0);
+
+    keepTimelineHistorySpaceLocal({
+      key: "Enter",
+      stopPropagation: () => {
+        stopped += 1;
+      },
+    });
+    expect(stopped).toBe(1);
+  });
+
+  it("accepts the legacy Spacebar key without broad region blocking", () => {
+    let stopped = false;
+    keepTimelineHistorySpaceLocal({
+      key: "Spacebar",
+      stopPropagation: () => {
+        stopped = true;
+      },
+    });
+    expect(stopped).toBe(true);
+  });
+
+  it("wires local Space ownership only onto the complete-history scroller", () => {
+    expect(timelineHistorySource).toContain(
+      'aria-label="Complete authoritative simulation event history"\n' +
+        "            tabIndex={0}\n" +
+        "            onKeyDown={keepTimelineHistorySpaceLocal}",
+    );
+    expect(
+      timelineHistorySource.match(/onKeyDown=\{keepTimelineHistorySpaceLocal\}/g),
+    ).toHaveLength(1);
+  });
+
 });

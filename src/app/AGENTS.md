@@ -62,6 +62,7 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Complete-history rows preserve sequence, tick, simulation time, and command identity supplied by `TimelineEntry`; opening history never creates scientific state.
 - New events must not auto-open history, steal focus, or force-scroll a user away from an older record they are inspecting.
 - Native details/scroll behavior deliberately keeps Full/Reduced/Off information-equivalent without introducing a second motion authority.
+- The focusable complete-history scroll region has local first refusal for Space: stop propagation before the App playback shortcut, but never prevent Space's native browser scrolling default. Do not generalize this into blocking every `role="region"`; the dish and other presentation regions retain their own input contracts.
 
 ## Dish camera motion adapter
 - `DishViewport.tsx` must project camera travel through `dishCameraMotion.ts`; it must not manufacture a Full-motion camera spec independently of the resolved user preference.

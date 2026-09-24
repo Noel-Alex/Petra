@@ -61,6 +61,7 @@ export type SimulationCheckpoint =
 export type SimulationCommand =
   | { id: string; type: 'advance'; ticks: number }
   | { id: string; type: 'synthetic-pulse'; magnitude: number }
+  | { id: string; type: 'apply-ciprofloxacin-uniform'; concentrationMgL: number }
   | { id: string; type: 'restore'; checkpoint: SimulationCheckpoint }
   | { id: string; type: 'snapshot' }
 
@@ -85,7 +86,7 @@ export interface SimulationEvent {
   sequence: number
   tick: number
   simulationTimeHours: number
-  type: 'initialized' | 'advanced' | 'synthetic-pulse' | 'restored'
+  type: 'initialized' | 'advanced' | 'synthetic-pulse' | 'ciprofloxacin-applied' | 'restored'
   commandId?: string
   value?: number
 }

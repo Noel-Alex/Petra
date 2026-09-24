@@ -494,6 +494,53 @@ export function buildFlagshipComposedRunPlan(
     ),
   )
 
+  const drug = requireRecord('flagship scenario drug', scenarioRecord.drug)
+  const referencePd = requireRecord(
+    'flagship scenario drug.referencePharmacodynamics',
+    drug.referencePharmacodynamics,
+  )
+  if (!Array.isArray(scenarioRecord.genotypes)) {
+    throw new Error('flagship scenario genotypes must be an array')
+  }
+  const genotypeMicMgL = Object.fromEntries(
+    scenarioRecord.genotypes.map((value, index) => {
+      const genotype = requireRecord(`flagship scenario genotypes[${index}]`, value)
+      return [
+        requireCanonicalText(`flagship scenario genotypes[${index}].id`, genotype.id),
+        requirePositiveFinite(`flagship scenario genotypes[${index}].mic_mg_L`, genotype.mic_mg_L),
+      ]
+    }),
+  )
+
+  const ciprofloxacin = {
+    reference: {
+      psiMaxLog10PerHour: requirePositiveFinite(
+        'drug.referencePharmacodynamics.psiMax_log10DensitySlope_per_h',
+        referencePd.psiMax_log10DensitySlope_per_h,
+      ),
+      psiMinLog10PerHour: (() => {
+        const value = referencePd.psiMin_log10DensitySlope_per_h
+        if (typeof value !== 'number' || !Number.isFinite(value) || value >= 0) {
+          throw new Error('drug.referencePharmacodynamics.psiMin_log10DensitySlope_per_h must be finite and negative')
+        }
+        return value
+      })(),
+      zMic: requirePositiveFinite(
+        'drug.referencePharmacodynamics.zMIC_mg_L',
+        referencePd.zMIC_mg_L,
+      ),
+      kappa: requirePositiveFinite(
+        'drug.referencePharmacodynamics.kappa',
+        referencePd.kappa,
+      ),
+    },
+    referenceMicMgL: requirePositiveFinite(
+      'drug.referencePharmacodynamics.conventionalMIC_mg_L',
+      referencePd.conventionalMIC_mg_L,
+    ),
+    genotypeMicMgL,
+  } as const
+
   const evolutionGraph = buildCuratedMutationGraph(scenario)
   const knownGenotypes = new Set(
     evolutionGraph.genotypes.map((genotype) => genotype.id),
@@ -527,7 +574,9 @@ export function buildFlagshipComposedRunPlan(
       scenarioId: evolutionGraph.scenarioId,
       scenarioVersion: evolutionGraph.scenarioVersion,
     },
+    samplingExecutionPolicy: null,
     hoursPerTick: executionProfile.hoursPerTick,
+    ciprofloxacin,
   }
 
   const parameterSetBinding: ComposedParameterSetBinding = {

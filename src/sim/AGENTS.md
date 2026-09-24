@@ -35,6 +35,12 @@
 ## Verification
 At minimum, test identical-seed/command replay, RNG state round-trip, checkpoint continuation, invalid cross-run restore, and validation of command bounds. Scientific mechanisms add their own invariants/fixtures.
 
+## Authoritative ciprofloxacin intervention boundary
+- Composed state owns ciprofloxacin concentration in mg/L when scenario configuration supplies it; the channel is checkpointed/replayed and zero outside the dish mask.
+- The flagship projects the scenario-owned Regoes fit, conventional reference MIC, and genotype MIC table into composed configuration. No simulator default may invent those values.
+- Ecology consumes the existing reference_pd_decrement_as_first_order_loss_v1 hazard from authoritative concentration state. Drug concentration never instructs mutation.
+- apply-ciprofloxacin-uniform is the first real typed intervention command. Unsupported configurations refuse it; synthetic-pulse remains forbidden in composed authority. Radial/stripe/paint commands require separate exact replay-safe geometry contracts.
+
 ## Child DOX index
 - `COUNTERFACTUAL.md` — deterministic fork ancestry, replay-payload, and branch-authority contract.
 - `PARAMETER_SET_BINDING.md` — parameter-set provenance/configuration binding and fixture namespace contract.

@@ -77,8 +77,12 @@ function stageRadial(
   mode: FieldBlendMode,
 ): void {
   const radiusSquared = radius * radius
-  for (let y = 0; y < field.height; y += 1) {
-    for (let x = 0; x < field.width; x += 1) {
+  const minX = Math.max(0, Math.ceil(centerX - radius))
+  const maxX = Math.min(field.width - 1, Math.floor(centerX + radius))
+  const minY = Math.max(0, Math.ceil(centerY - radius))
+  const maxY = Math.min(field.height - 1, Math.floor(centerY + radius))
+  for (let y = minY; y <= maxY; y += 1) {
+    for (let x = minX; x <= maxX; x += 1) {
       const dx = x - centerX
       const dy = y - centerY
       if (dx * dx + dy * dy <= radiusSquared) {

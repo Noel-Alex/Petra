@@ -49,6 +49,7 @@ export function PixiDish({
   const hostRef = useRef<HTMLDivElement | null>(null);
   const rendererRef = useRef<PixiDishRenderer | null>(null);
   const motionRef = useRef(motion);
+  const cameraMotionRef = useRef(cameraMotion);
   const overlayRef = useRef(overlayId);
   const demoSnapshotRef = useRef<DishRenderSnapshot | null>(null);
   const resetCameraSignalRef = useRef(resetCameraSignal);
@@ -70,6 +71,7 @@ export function PixiDish({
   const snapshotRef = useRef<DishRenderSnapshot | null>(renderSnapshot);
 
   motionRef.current = motion;
+  cameraMotionRef.current = cameraMotion;
   overlayRef.current = overlayId;
   snapshotRef.current = renderSnapshot;
 
@@ -92,6 +94,7 @@ export function PixiDish({
       {
         onReady(renderer) {
           rendererRef.current = renderer;
+          renderer.setCameraMotion(cameraMotionRef.current);
           renderer.setMotionMode(motionRef.current);
           const currentSnapshot = snapshotRef.current;
           if (currentSnapshot !== null) {
@@ -114,8 +117,11 @@ export function PixiDish({
   }, [renderEnabled, retryAttempt]);
 
   useEffect(() => {
-    rendererRef.current?.setMotionMode(motion);
-  }, [motion]);
+    const renderer = rendererRef.current;
+    if (renderer === null) return;
+    renderer.setCameraMotion(cameraMotion);
+    renderer.setMotionMode(motion);
+  }, [cameraMotion, motion]);
 
   useEffect(() => {
     if (resetCameraSignal === resetCameraSignalRef.current) return;

@@ -8,7 +8,7 @@ describe("flagship provenance presentation projection", () => {
 
     expect(view.scenario).toEqual({
       id: "ecoli-ciprofloxacin-spatial",
-      version: "1.3.0-research",
+      version: "1.4.0-research",
       title: "E. coli / ciprofloxacin spatial evolution",
     });
   });
@@ -19,6 +19,20 @@ describe("flagship provenance presentation projection", () => {
     expect(view.records.length).toBeGreaterThan(1);
     expect(view.records.every((record) => record.status === "complete")).toBe(true);
     expect(view.records.every((record) => record.rawClassification !== null)).toBe(true);
+  });
+
+  it("exposes the baseline composed parameter set as engineering authority", () => {
+    const view = buildFlagshipProvenanceView();
+    const parameterSet = view.records.find((record) =>
+      record.id.startsWith("composed-parameter-set:"),
+    );
+
+    expect(parameterSet?.status).toBe("complete");
+    expect(parameterSet?.rawClassification).toBe("engineering");
+    expect(parameterSet?.sourceKeys).toEqual([]);
+    expect(parameterSet?.presentation?.limitation).toContain(
+      "not a physical culture calibration",
+    );
   });
 
   it("exposes the runnable ecology profile as engineering rather than measured science", () => {

@@ -62,6 +62,12 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - The live semantic guide consumes only renderer-reported named levels. Exactly one entry is marked current; raw camera zoom never enters React state. Full motion may use shared semantic-transition emphasis, Reduced remains non-spatial, and Off is instant/static. The guide is not a live-region feed, so camera animation frames never become announcement spam.
 
 
+## Authoritative historical-state inspection
+- `historicalState.ts` owns the framework-neutral exact historical checkpoint index for replay/scrub. One history may contain only composed snapshots from one exact `RunIdentity` and one explicit `runBranchIdentity`, ordered by strictly increasing accepted `commandCount` with non-decreasing biological time.
+- Exact recorded positions return an authoritative checkpoint clone. Positions between recorded checkpoints return only authoritative lower/upper bounds plus a normalized presentation cursor; they are explicitly `presentation-only` and must never be relabelled as an interpolated biological state.
+- Historical inspection never mutates the live runtime. Resuming from a past checkpoint requires explicit replay/fork semantics; a scrub cursor is not a hidden worker restore.
+- Dish/charts/inspector adapters should key all historical projections from the same resolved authoritative checkpoint/bounds so a displayed time label cannot drift from the state being inspected.
+
 ## Timeline history presentation
 - The compact footer may emphasize recent authoritative events, but every event exposed by `ExperimentRuntime` must remain inspectable in original order.
 - `TimelineHistory.tsx` is presentation-only: it may reveal/hide history but must not reorder, summarize away, synthesize, pause, or mutate runtime events.

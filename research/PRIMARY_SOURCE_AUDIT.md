@@ -96,16 +96,25 @@ DOI: `10.1038/nrmicro2319`
 
 Resistance mechanisms often carry fitness costs, but magnitudes vary and compensatory evolution can reduce costs.
 
-## 7. Phage model form — VERIFIED; preset pending
+## 7. T4 / MG1655 phage life history — VERIFIED; transport calibration pending
 
-Adsorption, host density, latent period, burst size and phage decay are established modeling variables, but values differ strongly by host-phage pair.
+**Nabergoj, Modic & Podgornik (2018), MicrobiologyOpen**  
+DOI: `10.1002/mbo3.558`
 
-**Decision:** no generic “virus” slider with invented constants. Pick a named lytic phage/host pair before enabling a scientifically labeled phage scenario.
+The study used bacteriophage T4 DSM 4505 with *E. coli* K-12 MG1655 DSM 18039 in low-salt LB at pH 7 and 37 °C. It directly measured adsorption constant, latent period and burst size across eight chemostat growth rates from `0.06` to `0.98 h^-1`.
+
+Across that measured domain, latent period decreased from roughly 80 to 27 min and burst size increased from roughly 8 to 89 PFU/cell; adsorption also varied with host growth state.
+
+**Decision:** this exact pair is Petra's first phage life-history pack. The source table is the primary evidence object; interpolation is derived and application to local spatial growth state is a disclosed transfer.
+
+**Still unbound:** separate eclipse time, physical dish diffusion and a general free-phage loss constant. The paper's zero-loss term was a model assumption for its controlled context, not a universal measured constant.
 
 ## Audit status
 
 **Implementation-ready:** nutrient-limited growth, ciprofloxacin pharmacodynamics, MG1655 resistance phenotype table, mutation-supply framework, spatial selection.
 
-**Mechanism ready, calibration pending:** phage.
+**Named life-history pack ready with transfer caveat:** T4 DSM 4505 / MG1655 DSM 18039 phage adsorption + latent period + burst.
+
+**Calibration pending:** physical phage transport/loss and any eclipse-vs-latent subdivision.
 
 **Post-MVP:** HGT/plasmids, detailed fungi, quorum sensing, host immune system, cross-feeding networks.

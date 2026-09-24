@@ -179,20 +179,22 @@
     },
     {
       "id": "ml-aggregate-benchmark",
-      "description": "BLOCKED on #531: aggregate baseline/candidate training and held-out evaluation.",
+      "description": "BLOCKED on #544: aggregate baseline/candidate training and held-out evaluation after the first authoritative dataset exists.",
       "command": [
         "python",
         "experiments/blocked.py",
         "--experiment-id",
         "ml-aggregate-benchmark",
         "--blocked-on",
-        "531",
+        "544",
         "--reason",
-        "Issue #531 must land the mechanistic dataset/split/evaluation pipeline before aggregate model training can be compared reproducibly."
+        "Issue #544 must publish the first authoritative group-split mechanistic dataset evidence before #545 can run reproducible held-out aggregate model benchmarking."
       ],
       "issues": [
         13,
         531,
+        544,
+        545,
         542
       ],
       "timeout_seconds": 30

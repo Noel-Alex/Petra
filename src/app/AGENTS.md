@@ -39,6 +39,15 @@ Own React/browser orchestration around Petra's authoritative worker and presenta
 - The default app has no runtime factory and must remain visibly unavailable/disabled rather than silently instantiating the synthetic worker scaffold as product authority.
 - The React playback scheduler runs at 20 Hz wall-clock cadence as orchestration policy only; playback speed changes authoritative ticks requested per pulse, never the scientific meaning/duration of a tick.
 
+## Keyboard ownership
+- Global playback shortcuts are app-shell conveniences, not replacements for native control behavior. Only non-interactive surfaces may reach `actionForShortcut()`.
+- `appKeyboard.ts` owns app-level target shielding and Sources-vs-playback precedence. Inputs, textareas, selects, native buttons/summary, href anchors, contenteditable regions, and Petra-relevant ARIA widgets retain their native/local keys.
+- Already-default-prevented events are already owned by a child and must not be interpreted again by the app shell.
+- Sources may consume unclaimed Escape before global playback pause. Dish/tool surfaces that consume Escape must prevent/stop it before it reaches the app shell.
+- App integration may call `preventDefault()` only after a planned runtime shortcut is actually accepted; rejected/unavailable runtime actions leave normal browser behavior intact.
+- Playback shortcuts dispatch only through existing typed `ExperimentRuntime` / control-planner semantics. Keyboard handling never mutates simulation state directly.
+
+
 ## Verification
 Framework-neutral worker-session behavior requires deterministic tests with a fake port. Real browser Worker startup/responsiveness is a separate manual/local evidence gate; Petra has no hosted CI by project policy.
 

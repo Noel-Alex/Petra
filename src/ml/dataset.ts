@@ -2,6 +2,12 @@ import { assertSimulationSeed } from "../sim/seed";
 
 export type DatasetSplit = "train" | "validation" | "test";
 
+export interface MechanisticDatasetSchemaIdentity {
+  readonly schemaVersion: "mechanistic-dataset-schema-v1";
+  readonly inputSchemaVersion: string;
+  readonly targetSchemaVersion: string;
+}
+
 export interface DatasetGroupIdentity {
   readonly engineVersion: string;
   readonly parameterSetHash: string;
@@ -26,6 +32,7 @@ export interface MechanisticSample<TInput, TTarget> {
   readonly snapshotIndex: number;
   readonly simulationTimeHours: number;
   readonly normalizationProfileId: string;
+  readonly datasetSchema: MechanisticDatasetSchemaIdentity;
   readonly input: TInput;
   readonly target: TTarget;
   readonly terminationReason?: string;
@@ -56,6 +63,7 @@ export function validateMechanisticSample<TInput, TTarget>(
     sample.trajectory.interventionFingerprint,
   );
   requireNonEmpty("normalizationProfileId", sample.normalizationProfileId);
+  validateMechanisticDatasetSchemaIdentity(sample.datasetSchema);
 
   if (!Number.isInteger(sample.snapshotIndex) || sample.snapshotIndex < 0) {
     throw new RangeError("snapshotIndex must be a non-negative integer");
@@ -68,6 +76,40 @@ export function validateMechanisticSample<TInput, TTarget>(
       "simulationTimeHours must be finite and non-negative",
     );
   }
+}
+
+export function validateMechanisticDatasetSchemaIdentity(
+  identity: MechanisticDatasetSchemaIdentity,
+): void {
+  if (
+    identity === null ||
+    typeof identity !== "object" ||
+    Array.isArray(identity)
+  ) {
+    throw new TypeError("mechanistic dataset schema identity must be an object");
+  }
+  if (identity.schemaVersion !== "mechanistic-dataset-schema-v1") {
+    throw new RangeError("unsupported mechanistic dataset schema version");
+  }
+  if (typeof identity.inputSchemaVersion !== "string") {
+    throw new TypeError("inputSchemaVersion must be a string");
+  }
+  if (typeof identity.targetSchemaVersion !== "string") {
+    throw new TypeError("targetSchemaVersion must be a string");
+  }
+  requireNonEmpty("inputSchemaVersion", identity.inputSchemaVersion);
+  requireNonEmpty("targetSchemaVersion", identity.targetSchemaVersion);
+}
+
+export function mechanisticDatasetSchemaKey(
+  identity: MechanisticDatasetSchemaIdentity,
+): string {
+  validateMechanisticDatasetSchemaIdentity(identity);
+  return encodeParts([
+    identity.schemaVersion,
+    identity.inputSchemaVersion,
+    identity.targetSchemaVersion,
+  ]);
 }
 
 export function trajectoryKey(identity: TrajectoryIdentity): string {

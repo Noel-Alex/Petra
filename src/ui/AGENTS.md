@@ -81,3 +81,11 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - A valid preview yields an `apply-intervention` **UI intent**, not a worker command. Until the authoritative protocol exposes the corresponding intervention command, adapters must not substitute `synthetic-pulse` or any other fixture command.
 - The preview outline and numeric readout must survive reduced/off motion. Pointer movement itself is not announced through a live region; provide an explicit Apply control and stable text readout for keyboard/touch users.
 - While a tool is active, its Escape-to-cancel handler gets first refusal before global playback Escape semantics. Enter may commit only when focus is not editing a value.
+
+
+## Micro-interaction surfaces
+- Reusable DOM action controls should consume `src/ui/motion/microInteractions.ts` rather than inventing hover/press/focus transform timings.
+- `PetraAction.tsx` is a presentation-only adapter: it may render labels, Petra-owned icon geometry, focus, selection, hover and press feedback, but it cannot issue or imply scientific commands by itself.
+- Full motion may use small decorative lift/compression. Reduced and off modes remove spatial movement while retaining focus/selection through border/background/static emphasis.
+- Touch devices must not depend on hover state. Keyboard focus must remain visibly distinct, and disabled state must be static.
+- Micro-interaction duration is presentation wall time only and must come from named Petra motion tokens.

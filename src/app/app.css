@@ -236,7 +236,7 @@ button:hover {
 }
 
 .dish-stage__halo[data-ambient-motion="animate"]::before {
-  animation: petra-dish-halo-drift calc(var(--dish-ambient-ms) * 1.4)
+  animation: petra-dish-halo-drift var(--dish-ambient-ms)
     var(--dish-ambient-easing) infinite alternate;
   will-change: transform, opacity;
 }

@@ -44,9 +44,14 @@ export class CircularScalarField {
 
     const centerX = spec.centerX ?? (spec.width - 1) / 2
     const centerY = spec.centerY ?? (spec.height - 1) / 2
+    if (!Number.isFinite(centerX) || !Number.isFinite(centerY)) {
+      throw new Error('dish center coordinates must be finite')
+    }
+
     const radius = spec.radius ?? Math.min(spec.width, spec.height) / 2 - 0.5
     requirePositiveFinite('radius', radius)
     const radiusSquared = radius * radius
+    let inDomainCells = 0
 
     for (let y = 0; y < spec.height; y += 1) {
       for (let x = 0; x < spec.width; x += 1) {
@@ -56,8 +61,13 @@ export class CircularScalarField {
         if (dx * dx + dy * dy <= radiusSquared) {
           this.mask[index] = 1
           this.values[index] = initialValue
+          inDomainCells += 1
         }
       }
+    }
+
+    if (inDomainCells === 0) {
+      throw new Error('dish geometry must include at least one authoritative grid cell')
     }
   }
 

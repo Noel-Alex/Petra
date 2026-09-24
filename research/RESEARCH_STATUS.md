@@ -57,15 +57,15 @@ The measured table is ready to implement as a named life-history evidence object
 ### Spatial transport calibration
 Hu et al. 2010/2012 establish that T4 apparent diffusion is strongly matrix-dependent. Petra's selected physical transport baseline is now **0.5% agarose without embedded hosts**, using the measured Hu 2012 value `4.2e-12 m^2/s` as a **transferred** extracellular transport calibration. This does not cover living host-bearing regions; the dead-K-12 `2.4e-12 m^2/s` result is retained as adsorption-confounded evidence, not promoted as a living-host coefficient.
 
-### Still pending
-- a separately measured eclipse-time subdivision if Petra wants eclipse distinct from total latent delay;
-- a general free-phage decay/loss constant for the selected matrix/environment;
-- living-host transport calibration/composition once adsorption and proliferation are explicit;
-- an explicit concentration/population unit bridge before the measured mL/min adsorption constant is applied to authoritative spatial state.
+### Explicit boundary decisions and remaining research
+- a separately measured eclipse-time subdivision remains pending only if Petra wants eclipse distinct from total latent delay;
+- #139 has completed the explicit concentration/population unit bridge required before the measured mL/min adsorption constant can act on authoritative spatial state;
+- #750 found no compatible measured general free-phage environmental loss constant for the selected active Phase 10 context, so physical Science Mode keeps free-phage loss **UNBOUND** rather than treating Nabergoj's zero-loss model term or storage-stability data as a decay measurement;
+- #750 also keeps living-host physical transport **OUT OF DOMAIN**. Hu 2012 shows apparent transport is changed by adsorption and proliferation, and exact-pair MG1655/T4 biofilm/starvation studies (Lisac et al. 2022, DOI 10.1111/1751-7915.14079; Lisac & Podgornik 2025, DOI 10.1186/s12985-025-02934-0) couple propagation to host physiology rather than isolating a passive diffusion coefficient.
 
 Hadas et al. 1997 (T4 / E. coli B/r) and You et al. 2002 (T7 / BL21) remain corroborating host-physiology evidence, not sources of numeric values for the MG1655/T4 preset.
 
-Status: **named life-history pack ready with transfer label; host-free 0.5% agarose transport baseline ready as transferred calibration; loss/living-host transport still pending**.
+Status: **named life-history pack ready with transfer label; adsorption unit bridge complete; host-free 0.5% agarose transport baseline ready as transferred calibration; general loss remains unbound and living-host physical transport remains explicitly OOD by #750 decision**. Research on those two seams is OFF unless a later scenario requires a new physical claim.
 
 ## Temperature
 

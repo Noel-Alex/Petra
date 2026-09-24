@@ -175,3 +175,5 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Stable shell/source-badge chrome must not reintroduce blur-heavy `backdrop-filter` glass. Dish ambient `filter: blur(...)` is a separate decorative halo treatment governed by motion policy and is not this glass-material ban.
 - Runtime status color is reinforcement only: ready uses shared mint, pending/starting amber, error coral, while visible status text remains authoritative.
 - Theme cleanup must not change focus geometry, touch targets, dish-first focus-mode layout, intervention-placement semantics, semantic zoom, timeline ordering/content, or renderer scientific mapping.
+
+- `scenarioDiscovery.ts` must consume the shared `scienceModeAdmission.ts` result. Bundled/discoverable/runnable and grounded Science Mode are distinct product states; React/catalog code must not invent a second maturity label or promote an experimental scenario from display metadata.

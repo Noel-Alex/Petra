@@ -1,9 +1,51 @@
 import { describe, expect, it } from "vitest";
-import { applyKeyboardCameraKey } from "./keyboardCamera";
+import {
+  applyKeyboardCameraKey,
+  keyboardCameraModifiersAllowInput,
+} from "./keyboardCamera";
 
 const viewport = { width: 800, height: 600 } as const;
 
 describe("keyboard camera controls", () => {
+  it("leaves browser and OS modifier chords outside camera authority", () => {
+    expect(
+      keyboardCameraModifiersAllowInput({
+        altKey: false,
+        ctrlKey: false,
+        metaKey: false,
+      }),
+    ).toBe(true);
+    expect(
+      keyboardCameraModifiersAllowInput({
+        altKey: false,
+        ctrlKey: true,
+        metaKey: false,
+      }),
+    ).toBe(false);
+    expect(
+      keyboardCameraModifiersAllowInput({
+        altKey: false,
+        ctrlKey: false,
+        metaKey: true,
+      }),
+    ).toBe(false);
+    expect(
+      keyboardCameraModifiersAllowInput({
+        altKey: true,
+        ctrlKey: false,
+        metaKey: false,
+      }),
+    ).toBe(false);
+    expect(
+      keyboardCameraModifiersAllowInput({
+        altKey: true,
+        ctrlKey: true,
+        metaKey: false,
+      }),
+    ).toBe(false);
+  });
+
+
   it("pans only for supported arrow keys and preserves camera bounds", () => {
     const start = { centerX: 0.5, centerY: 0.5, zoom: 2 };
 

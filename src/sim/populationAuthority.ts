@@ -315,6 +315,18 @@ export function planDiscreteHostRemoval(
   }
 }
 
+/**
+ * Public fail-closed validation boundary for downstream mechanisms that consume
+ * discrete population authority without advancing or mutating it.
+ */
+export function validateDiscretePopulationAuthorityState(
+  state: DiscretePopulationAuthorityState,
+  config: DiscretePopulationAuthorityConfig,
+): void {
+  validateConfig(config)
+  validateStateAgainstConfig(state, config)
+}
+
 export function restoreDiscretePopulationAuthorityState(
   serialized: DiscretePopulationAuthorityState,
   config: DiscretePopulationAuthorityConfig,

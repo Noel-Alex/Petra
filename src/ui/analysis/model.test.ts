@@ -30,6 +30,114 @@ describe("scientific analysis projection", () => {
     }
   });
 
+  it("keeps a single sample at biological time zero on a non-negative axis", () => {
+    const chart = buildScientificChart(
+      [{
+        id: "zero-time",
+        label: "Zero time",
+        unit: "cells",
+        appearanceToken: "lineage-cyan",
+        patternToken: "solid",
+        points: [{ timeHours: 0, value: 5 }],
+      }],
+      { maxPointsPerSeries: 20 },
+    );
+
+    expect(chart.timeMinimumHours).toBe(0);
+    expect(chart.timeMaximumHours).toBe(1);
+    expect(chart.series[0]!.points[0]!.x).toBe(0);
+  });
+
+  it("uses one-sided time expansion near zero without changing the source timestamp", () => {
+    const chart = buildScientificChart(
+      [{
+        id: "early-time",
+        label: "Early time",
+        unit: "cells",
+        appearanceToken: "lineage-cyan",
+        patternToken: "solid",
+        points: [{ timeHours: 0.5, value: 5 }],
+      }],
+      { maxPointsPerSeries: 20 },
+    );
+
+    expect(chart.timeMinimumHours).toBe(0);
+    expect(chart.timeMaximumHours).toBe(1.5);
+    expect(chart.series[0]!.sourcePoints[0]!.timeHours).toBe(0.5);
+    expect(chart.series[0]!.points[0]!.x).toBeCloseTo(1 / 3);
+  });
+
+  it("expands later degenerate biological time symmetrically", () => {
+    const chart = buildScientificChart(
+      [{
+        id: "later-time",
+        label: "Later time",
+        unit: "cells",
+        appearanceToken: "lineage-cyan",
+        patternToken: "solid",
+        points: [{ timeHours: 20, value: 5 }],
+      }],
+      { maxPointsPerSeries: 20 },
+    );
+
+    expect(chart.timeMinimumHours).toBe(19);
+    expect(chart.timeMaximumHours).toBe(21);
+    expect(chart.series[0]!.points[0]!.x).toBe(0.5);
+  });
+
+  it("uses one shared non-negative time domain when several series share one time", () => {
+    const chart = buildScientificChart(
+      [
+        {
+          id: "a",
+          label: "A",
+          unit: "cells",
+          appearanceToken: "lineage-cyan",
+          patternToken: "solid",
+          points: [{ timeHours: 0.5, value: 1 }],
+        },
+        {
+          id: "b",
+          label: "B",
+          unit: "cells",
+          appearanceToken: "lineage-coral",
+          patternToken: "dash",
+          points: [{ timeHours: 0.5, value: 2 }],
+        },
+      ],
+      { maxPointsPerSeries: 20 },
+    );
+
+    expect(chart.timeMinimumHours).toBe(0);
+    expect(chart.timeMaximumHours).toBe(1.5);
+    expect(chart.series).toHaveLength(2);
+    for (const series of chart.series) {
+      expect(series.points[0]!.x).toBeCloseTo(1 / 3);
+    }
+  });
+
+  it("preserves ordinary time bounds exactly and leaves signed value domains unconstrained", () => {
+    const chart = buildScientificChart(
+      [{
+        id: "ordinary-time",
+        label: "Ordinary time",
+        unit: "net units",
+        appearanceToken: "lineage-cyan",
+        patternToken: "solid",
+        points: [
+          { timeHours: 0.5, value: -2 },
+          { timeHours: 2, value: 3 },
+        ],
+      }],
+      { maxPointsPerSeries: 20 },
+    );
+
+    expect(chart.timeMinimumHours).toBe(0.5);
+    expect(chart.timeMaximumHours).toBe(2);
+    expect(chart.valueMinimum).toBe(-2);
+    expect(chart.valueMaximum).toBe(3);
+  });
+
   it("computes domains from full source data rather than decimated output", () => {
     const chart = buildScientificChart(
       [{

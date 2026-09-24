@@ -15,8 +15,8 @@
     linear-gradient(155deg, var(--analysis-surface-strong), var(--analysis-surface));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 20px 54px rgba(0, 0, 0, 0.18);
   transition:
-    opacity var(--analysis-panel-ms) cubic-bezier(var(--analysis-ease)),
-    transform var(--analysis-panel-ms) cubic-bezier(var(--analysis-ease));
+    opacity var(--analysis-panel-ms) cubic-bezier(var(--analysis-panel-ease)),
+    transform var(--analysis-panel-ms) cubic-bezier(var(--analysis-panel-ease));
 }
 
 .analysis-panel[data-panel-treatment="instant"] {
@@ -115,7 +115,7 @@
 
 .analysis-series {
   color: var(--analysis-series, var(--analysis-accent));
-  transition: opacity var(--analysis-chart-ms) cubic-bezier(var(--analysis-ease));
+  transition: opacity var(--analysis-chart-ms) cubic-bezier(var(--analysis-chart-ease));
 }
 
 .analysis-panel[data-chart-treatment="static-emphasis"] .analysis-series,
@@ -200,6 +200,18 @@
 .analysis-lineage {
   overflow-x: auto;
   overflow-y: hidden;
+}
+
+.analysis-lineage__edges path,
+.analysis-lineage__node {
+  transition: opacity var(--analysis-branch-ms) cubic-bezier(var(--analysis-branch-ease));
+}
+
+.analysis-panel[data-lineage-treatment="static-emphasis"] .analysis-lineage__edges path,
+.analysis-panel[data-lineage-treatment="static-emphasis"] .analysis-lineage__node,
+.analysis-panel[data-lineage-treatment="instant"] .analysis-lineage__edges path,
+.analysis-panel[data-lineage-treatment="instant"] .analysis-lineage__node {
+  transition: none;
 }
 
 .analysis-lineage__edges path {

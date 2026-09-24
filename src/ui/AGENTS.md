@@ -25,3 +25,12 @@ Own Petra's accessible DOM/UI presentation language, motion policy, story transi
 
 ## Verification
 Pure motion-policy helpers must have deterministic unit tests. Browser animation quality, screenshot review, and measured frame-time/FPS require browser-capable verification and must not be inferred from source review alone.
+
+
+## Counterfactual compare semantics
+- Compare/fork presentation consumes authoritative fork metadata and command streams; it never performs simulation mutation itself.
+- Two branches may be described as a causal counterfactual pair only when their exact fork origin matches (run identity/checkpoint fingerprint/tick/time/command count).
+- UI must distinguish intervention divergence from stochastic seed divergence. If both differ, disclose both rather than attributing the difference to one cause.
+- Side-by-side/swipe views synchronize biological simulation time, not animation wall time, and visibly handle a branch that has not simulated as far as the other.
+- Trajectory differences default to shared authoritative sample times. Any later interpolation/smoothing is a chart-layer presentation choice and must be labelled.
+- Export/share adapters should preserve fork origin, seed, ordered post-fork command identity, and provenance needed to replay the comparison.

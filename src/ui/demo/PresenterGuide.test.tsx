@@ -18,7 +18,8 @@ describe("PresenterGuide", () => {
     );
 
     expect(html).toContain("Expo presenter mode");
-    expect(html).toContain("Waiting for authoritative runtime state.");
+    expect(html).toContain("Waiting for the authoritative flagship runtime.");
+    expect(html).toContain('data-run-identity="unbound"');
     expect(html).toContain("Scientific boundary");
     expect(html).toContain("presenter pacing only");
     expect(html).toContain("disabled");
@@ -26,10 +27,14 @@ describe("PresenterGuide", () => {
   });
 
   it("renders an enabled next action only after evidence is supplied", () => {
-    const state = reduceDemoPresenter(initialDemoPresenterState(), {
-      type: "evidence",
-      gate: "runtime-ready",
-    });
+    const state = reduceDemoPresenter(
+      initialDemoPresenterState("90-second", "run-a"),
+      {
+        type: "evidence",
+        gate: "flagship-runtime-ready",
+        runIdentity: "run-a",
+      },
+    );
     const html = renderToStaticMarkup(
       <PresenterGuide
         state={state}
@@ -40,14 +45,18 @@ describe("PresenterGuide", () => {
 
     expect(html).toContain("Required authoritative evidence is available.");
     expect(html).toContain('data-motion="off"');
+    expect(html).toContain('data-run-identity="run-a"');
     expect(html).toContain("Next cue");
   });
 
   it("renders all extended runbook cues without hiding them behind color", () => {
-    const state = reduceDemoPresenter(initialDemoPresenterState(), {
-      type: "set-profile",
-      profile: "3-minute",
-    });
+    const state = reduceDemoPresenter(
+      initialDemoPresenterState("90-second", "run-a"),
+      {
+        type: "set-profile",
+        profile: "3-minute",
+      },
+    );
     const html = renderToStaticMarkup(
       <PresenterGuide
         state={state}

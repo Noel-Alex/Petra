@@ -16,7 +16,7 @@ export type DemoSurface =
   | "compare";
 
 export type DemoEvidenceGate =
-  | "runtime-ready"
+  | "flagship-runtime-ready"
   | "growth-observed"
   | "intervention-recorded"
   | "selection-evidence-ready"
@@ -54,7 +54,7 @@ export const DEMO_CUES: readonly DemoCue[] = [
       "The simulator owns biology; the renderer is presentation.",
     scientificBoundary:
       "Do not show placeholder scientific values as if they came from the simulator.",
-    gate: "runtime-ready",
+    gate: "flagship-runtime-ready",
     causal: false,
   },
   {
@@ -205,6 +205,7 @@ export const DEMO_CUES: readonly DemoCue[] = [
 
 export interface DemoPresenterState {
   readonly profile: DemoProfile;
+  readonly runIdentity: string | null;
   readonly cueIndex: number;
   readonly completed: boolean;
   readonly satisfiedGates: ReadonlySet<DemoEvidenceGate>;
@@ -215,7 +216,12 @@ export type DemoPresenterEvent =
   | { readonly type: "back" }
   | { readonly type: "reset" }
   | { readonly type: "set-profile"; readonly profile: DemoProfile }
-  | { readonly type: "evidence"; readonly gate: DemoEvidenceGate };
+  | { readonly type: "bind-run"; readonly runIdentity: string }
+  | {
+      readonly type: "evidence";
+      readonly gate: DemoEvidenceGate;
+      readonly runIdentity: string;
+    };
 
 export interface DemoPresenterPresentation {
   readonly cue: DemoCue;
@@ -232,9 +238,15 @@ export interface DemoPresenterPresentation {
 
 export function initialDemoPresenterState(
   profile: DemoProfile = "90-second",
+  runIdentity: string | null = null,
 ): DemoPresenterState {
+  if (runIdentity !== null && runIdentity.trim().length === 0) {
+    throw new TypeError("runIdentity must be null or non-empty");
+  }
+
   return {
     profile,
+    runIdentity,
     cueIndex: 0,
     completed: false,
     satisfiedGates: new Set<DemoEvidenceGate>(),
@@ -261,19 +273,34 @@ export function reduceDemoPresenter(
   event: DemoPresenterEvent,
 ): DemoPresenterState {
   if (event.type === "reset") {
-    return initialDemoPresenterState(state.profile);
+    return initialDemoPresenterState(state.profile, state.runIdentity);
   }
 
   if (event.type === "set-profile") {
     return {
       profile: event.profile,
+      runIdentity: state.runIdentity,
       cueIndex: 0,
       completed: false,
       satisfiedGates: state.satisfiedGates,
     };
   }
 
+  if (event.type === "bind-run") {
+    if (event.runIdentity.trim().length === 0) {
+      throw new TypeError("runIdentity must be non-empty");
+    }
+    if (event.runIdentity === state.runIdentity) return state;
+    return initialDemoPresenterState(state.profile, event.runIdentity);
+  }
+
   if (event.type === "evidence") {
+    if (
+      state.runIdentity === null ||
+      event.runIdentity !== state.runIdentity
+    ) {
+      return state;
+    }
     const satisfiedGates = new Set(state.satisfiedGates);
     satisfiedGates.add(event.gate);
     return { ...state, satisfiedGates };

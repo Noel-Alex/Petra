@@ -9,6 +9,8 @@ Own Petra's optional presenter-facing cue deck for the expo runbook. This layer 
 - Presenter cues may focus attention on dish, controls, timeline, analysis, Sources/Assumptions, or compare surfaces.
 - A target second is **pacing metadata only**. It may not advance the simulator, synthesize an event, unlock a causal cue, or be presented as biological time.
 - Cues with scientific prerequisites remain locked until the caller supplies the explicit evidence gate from authoritative runtime/state.
+- Presenter state is bound to one explicit authoritative run identity. Evidence for a different run is ignored, and changing the bound run clears cue progress + satisfied gates.
+- Profile changes may preserve evidence only while the bound run identity remains unchanged.
 - If a selected run does not produce the intended selection evidence, Presenter Mode stays blocked. The presenter may switch to another pre-selected non-special-cased seed or a saved authoritative replay; the UI must not manufacture a lineage/result.
 - Presenter Mode never issues biological commands itself. Real interventions stay owned by the intervention/runtime path.
 - Surface focus hints are presentation metadata. They do not grant React authority over Pixi camera/scientific state.
@@ -29,7 +31,7 @@ Own Petra's optional presenter-facing cue deck for the expo runbook. This layer 
 
 ## Integration
 
-Mount Presenter Mode only after the relevant surface exists. The consumer owns evidence projection from the authoritative runtime and must map only real evidence to `DemoEvidenceGate` values. Do not infer gates from animation callbacks, renderer glyphs, CSS state, or wall-clock elapsed time.
+Mount Presenter Mode only after the relevant surface exists. The consumer owns evidence projection from the authoritative runtime and must bind the exact run identity before mapping only real evidence to `DemoEvidenceGate` values. Do not infer gates from animation callbacks, renderer glyphs, CSS state, or wall-clock elapsed time.
 
 ## Verification
 

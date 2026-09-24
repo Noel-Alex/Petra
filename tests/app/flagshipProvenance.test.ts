@@ -38,9 +38,11 @@ describe("flagship provenance presentation projection", () => {
     expect(parameterSet?.status).toBe("complete");
     expect(parameterSet?.rawClassification).toBe("engineering");
     expect(parameterSet?.sourceKeys).toEqual([]);
-    expect(parameterSet?.presentation?.limitation).toContain(
-      "not a physical culture calibration",
-    );
+    expect(
+      parameterSet?.presentation?.disclosures.some((text) =>
+        text.includes("not a physical culture calibration"),
+      ),
+    ).toBe(true);
   });
 
   it("exposes the unbound limiting-resource context as engineering model units", () => {
@@ -61,9 +63,11 @@ describe("flagship provenance presentation projection", () => {
       label: "Units",
       value: "model-resource",
     });
-    expect(resourceContext?.presentation?.limitation).toContain(
-      "must not be labelled glucose",
-    );
+    expect(
+      resourceContext?.presentation?.disclosures.some((text) =>
+        text.includes("must not be labelled glucose"),
+      ),
+    ).toBe(true);
   });
 
   it("shows the Regoes reference-PD values and source while refusing to guess their evidence class", () => {
@@ -93,9 +97,11 @@ describe("flagship provenance presentation projection", () => {
     expect(profile?.status).toBe("complete");
     expect(profile?.rawClassification).toBe("engineering");
     expect(profile?.sourceKeys).toEqual([]);
-    expect(profile?.presentation?.limitation).toContain(
-      "Science-Mode physical growth parameters remain UNBOUND",
-    );
+    expect(
+      profile?.presentation?.disclosures.some((text) =>
+        text.includes("Science-Mode physical growth parameters remain UNBOUND"),
+      ),
+    ).toBe(true);
   });
 
   it("keeps the cross-study drug composition explicitly transferred and mechanistic", () => {

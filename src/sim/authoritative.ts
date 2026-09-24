@@ -58,6 +58,48 @@ function positiveFinite(name: string, value: number): void {
   }
 }
 
+function validateMaskedDomain(
+  name: string,
+  mask: readonly number[],
+  resource: readonly number[],
+  lineageBiomass: readonly (readonly number[])[],
+): void {
+  for (let index = 0; index < mask.length; index += 1) {
+    if (mask[index] !== 0) continue
+
+    if (resource[index] !== 0) {
+      throw new Error(
+        name + ' resource must be zero outside composed mask at cell ' + index,
+      )
+    }
+
+    for (
+      let lineageIndex = 0;
+      lineageIndex < lineageBiomass.length;
+      lineageIndex += 1
+    ) {
+      if (lineageBiomass[lineageIndex]![index] !== 0) {
+        throw new Error(
+          name +
+            ' lineage biomass must be zero outside composed mask at cell ' +
+            index,
+        )
+      }
+    }
+  }
+}
+
+function sumInMask(
+  values: readonly number[],
+  mask: readonly number[],
+): number {
+  let total = 0
+  for (let index = 0; index < mask.length; index += 1) {
+    if (mask[index] === 1) total += values[index]!
+  }
+  return total
+}
+
 function validateConfig(config: ComposedSimulationConfig): void {
   if (
     !Number.isSafeInteger(config.width) ||
@@ -122,6 +164,12 @@ function validateConfig(config: ComposedSimulationConfig): void {
     channel.forEach((value) =>
       finiteNonNegative('initialLineageBiomass', value),
     ),
+  )
+  validateMaskedDomain(
+    'initial composed state',
+    config.mask,
+    config.initialResource,
+    config.initialLineageBiomass,
   )
   config.lineages.forEach((lineage) => {
     finiteNonNegative(
@@ -239,6 +287,12 @@ function validateStateAgainstConfig(
       finiteNonNegative('state.lineageBiomass', value),
     ),
   )
+  validateMaskedDomain(
+    'composed state',
+    state.mask,
+    state.resource,
+    state.lineageBiomass,
+  )
 }
 
 function asEcologyState(state: ComposedSimulationState): EcologyState {
@@ -277,15 +331,15 @@ export function stepComposedState(
 
   const lineageBiomass: Record<string, number> = {}
   config.lineages.forEach((lineage, index) => {
-    lineageBiomass[lineage.id] = state.lineageBiomass[index]!.reduce(
-      (sum, value) => sum + value,
-      0,
+    lineageBiomass[lineage.id] = sumInMask(
+      state.lineageBiomass[index]!,
+      state.mask,
     )
   })
 
   return {
     totalBiomass: result.metrics.totalBiomass,
-    totalResource: state.resource.reduce((sum, value) => sum + value, 0),
+    totalResource: sumInMask(state.resource, state.mask),
     occupiedCells: result.metrics.occupiedCells,
     lineageBiomass,
     divisionBiomass: result.metrics.divisionBiomass,

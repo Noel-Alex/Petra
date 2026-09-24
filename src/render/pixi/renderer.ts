@@ -8,6 +8,7 @@ import {
   projectComparableLineageDensity,
   resolveSharedLineageDensityMaximum,
 } from "../lineageDensityPresentation";
+import { extractLineageDensityContourSegments } from "../lineageDensityContours";
 import {
   overlayPatternMultiplier,
   projectOverlayScalar,
@@ -830,6 +831,58 @@ function drawLineageDensity(
   const cellWidth = dishSize * camera.zoom / snapshot.gridWidth;
   const cellHeight = dishSize * camera.zoom / snapshot.gridHeight;
   const radius = Math.max(1.1, Math.min(cellWidth, cellHeight) * (level === "dish" ? 0.62 : 0.44));
+
+  const contourSegments = extractLineageDensityContourSegments({
+    lineage,
+    dishMask: snapshot.dishMask,
+    gridWidth: snapshot.gridWidth,
+    gridHeight: snapshot.gridHeight,
+    sharedMaximum,
+  });
+  const contourBaseWidth = Math.max(
+    0.8,
+    Math.min(1.7, dishSize * 0.0016),
+  );
+  const contourPattern = resolveLineagePattern(lineage.patternToken);
+  for (const segment of contourSegments) {
+    const from = dishToScreen(
+      segment.from.x,
+      segment.from.y,
+      camera,
+      centerX,
+      centerY,
+      dishSize,
+    );
+    const to = dishToScreen(
+      segment.to.x,
+      segment.to.y,
+      camera,
+      centerX,
+      centerY,
+      dishSize,
+    );
+
+    for (let band = contourPattern.ringScales.length - 1; band >= 0; band -= 1) {
+      const scale = contourPattern.ringScales[band]!;
+      graphics
+        .moveTo(from.x, from.y)
+        .lineTo(to.x, to.y)
+        .stroke({
+          color: LINEAGE_PATTERN_COLOR,
+          alpha: 0.035 + segment.level * 0.055,
+          width: contourBaseWidth * (1.25 + scale * 0.7),
+        });
+    }
+
+    graphics
+      .moveTo(from.x, from.y)
+      .lineTo(to.x, to.y)
+      .stroke({
+        color,
+        alpha: 0.15 + segment.level * 0.32,
+        width: contourBaseWidth,
+      });
+  }
 
   for (let index = 0; index < lineage.density.length; index += 1) {
     if (snapshot.dishMask[index] !== 1) continue;

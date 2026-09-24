@@ -296,7 +296,7 @@ describe('worker protocol-v4 runtime validation', () => {
         ...structuredClone(composedSnapshot.checkpoint),
         metrics: {
           ...structuredClone(composedSnapshot.checkpoint.metrics),
-          totalBiomass: composedSnapshot.checkpoint.metrics.totalBiomass + 1,
+          totalBiomass: 'not-a-number',
         },
       },
     }
@@ -312,7 +312,7 @@ describe('worker protocol-v4 runtime validation', () => {
       commandId: null,
     })
     if (!parsed.ok) {
-      expect(parsed.error).toContain('aggregate values do not match')
+      expect(parsed.error).toContain('totalBiomass')
     }
   })
 

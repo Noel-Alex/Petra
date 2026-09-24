@@ -260,6 +260,7 @@ function validatePopulationOpportunityResult(
   )
 
   let computedDivisionTotal = 0
+  const seenLineageIds = new Set<string>()
   for (
     let lineageIndex = 0;
     lineageIndex < state.lineageIds.length;
@@ -276,10 +277,12 @@ function validatePopulationOpportunityResult(
       throw new Error('mutation lineage/opportunity arrays must be dense')
     }
 
-    canonicalIdentity(
-      'source lineage id',
-      state.lineageIds[lineageIndex]!,
-    )
+    const lineageId = state.lineageIds[lineageIndex]!
+    canonicalIdentity('source lineage id', lineageId)
+    if (seenLineageIds.has(lineageId)) {
+      throw new Error('source lineage ids must be unique')
+    }
+    seenLineageIds.add(lineageId)
     canonicalIdentity(
       'source genotype id',
       genotypeIds[lineageIndex]!,
@@ -298,7 +301,7 @@ function validatePopulationOpportunityResult(
     }
 
     for (let cellIndex = 0; cellIndex < cells; cellIndex += 1) {
-      const divisions = channel[cellIndex]
+      const divisions = channel[cellIndex]!
       nonNegativeSafeInteger('division opportunity count', divisions)
       computedDivisionTotal = safeIntegerAdd(
         'computed total division opportunities',

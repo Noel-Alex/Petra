@@ -1,97 +1,187 @@
 # PETRA Architecture
 
-## Recommended stack for the competition build
+This document separates **what is implemented on current `main`** from the **target competition architecture**. When they differ, the versioned source types and nearest `AGENTS.md` contracts are authoritative.
 
-- React + TypeScript + Vite.
-- Simulation kernel in a Web Worker.
-- Flat `Float32Array` / typed arrays for fields and lineage densities.
-- Seeded PRNG (PCG/xoshiro family implementation).
-- Canvas/WebGL renderer; PixiJS is acceptable if it accelerates implementation.
-- Lightweight charting for aggregate trajectories.
+## Competition stack
 
-Do not add Rust/WASM to the critical path unless profiling proves TypeScript insufficient.
+- React + TypeScript + Vite for the accessible application shell.
+- Authoritative simulation work in a dedicated Web Worker.
+- Flat typed arrays / data-oriented state for spatial numerical kernels.
+- Explicit serializable seeded PRNG for biological stochasticity.
+- PixiJS/WebGL for the live 2D/2.5D dish; DOM/SVG for accessible controls, text, charts, and provenance.
+- Rust/WASM only after profiling identifies a stable hot kernel where compute savings justify transfer/interop complexity.
 
-## Domain
+The frontend explains and controls the model. It does not become the model.
 
-Use an `N x N` square array with a circular dish mask.
+## Current implementation boundary
 
-Recommended default: `128 x 128`.
+Current `main` contains tested mechanism-level pieces—spatial fields, ecology, ciprofloxacin pharmacodynamic composition, mutation/lineage helpers, render contracts, UI planning, and worker/replay infrastructure—but the flagship mechanisms are **not yet one fully composed authoritative browser state**.
 
-Fields:
+Issue #37 owns that composition and the migration away from the synthetic worker scaffold. Until that lands:
 
-- nutrient;
-- drug;
-- optional future phage.
+- `src/sim/protocol.ts` protocol v1 is infrastructure/replay scaffolding, not the flagship biological protocol;
+- `syntheticPopulation` and `synthetic-pulse` are explicitly synthetic fixtures and must never be presented or adapted as real biology/interventions;
+- product UI must not invent scientific readouts when authoritative state is unavailable;
+- renderer demo fixtures remain presentation-only and visibly disclosed.
 
-Lineages:
+## Domain and state layout
 
-- small metadata objects;
-- one density typed array per active lineage.
+The target spatial model uses a square numerical grid with a circular dish mask.
 
-This avoids per-bacterium objects and keeps dozens of lineages practical.
+Grid resolution is **scenario/engineering configuration**, not a biological constant. Architecture code must not hard-code a universal `128×128` (or any other) scientific default. The active preset may choose a resolution for performance/visual calibration, and that choice must remain identifiable as engineering configuration unless separately physically calibrated.
+
+Target authoritative fields include:
+
+- limiting resource / nutrient;
+- ciprofloxacin concentration;
+- optional future mechanism fields such as phage.
+
+Lineages use compact metadata plus aggregate spatial biomass/density channels. Avoid one JavaScript object per bacterium. Representative rendered cells are visual proxies unless a future model explicitly establishes one-to-one simulated individuals.
 
 ## Worker protocol
 
-Main -> worker:
+### Implemented protocol v1 on current main
 
-- `INIT`
-- `INTERVENTION`
-- `SET_SPEED`
-- `PAUSE`
-- `RESUME`
-- `RESET_SEED`
-- `REQUEST_SNAPSHOT`
+The current versioned types in `src/sim/protocol.ts` define:
 
-Worker -> main:
+Main → worker:
 
-- `FRAME`
-- `METRICS`
-- `EVENTS`
-- `LINEAGE_CREATED`
-- `SNAPSHOT`
-- `ERROR`
+- `initialize` with a versioned `RunIdentity`;
+- `command` carrying one of:
+  - `advance`;
+  - `synthetic-pulse` (**infrastructure fixture only**);
+  - `restore`;
+  - `snapshot`.
 
-Rendering cadence is independent from biological update cadence.
+Worker → main:
 
-## Update loop
+- `ready`;
+- `snapshot`;
+- `error`.
 
-1. apply queued interventions;
-2. diffuse nutrient;
-3. diffuse drug;
-4. for each lineage:
-   - calculate resource/environment growth;
-   - calculate drug response;
-   - sample births/deaths;
-   - consume nutrient;
-   - sample mutations from births;
-5. disperse biomass spatially;
-6. enforce numerical invariants;
-7. prune extinct lineages;
-8. record metrics/events;
-9. publish a render frame at display cadence.
+The current checkpoint contains synthetic infrastructure state. Do not translate real inoculation, nutrient, or antibiotic interactions into `synthetic-pulse`.
+
+### Target flagship protocol
+
+#37 may evolve/version the protocol so the authoritative composed simulator can accept real typed scenario/intervention commands and publish scientific snapshots/events/metrics. The exact message names and payloads must come from the merged versioned source types, not from this planning document.
+
+Required target properties:
+
+- worker owns biological state;
+- commands are explicit, typed, replayable, and correlated by identity;
+- snapshots/events carry authoritative simulation time;
+- same scenario/parameter versions + engine version + seed + ordered commands reproduce the same trace under one model version;
+- React/Pixi never mutate biological arrays directly;
+- rendering cadence remains independent from biological update cadence.
+
+A protocol change is a replay/integration change and requires deterministic tests plus coordinated adapters.
+
+## Mechanism composition and update ordering
+
+The end-to-end flagship update loop is still being composed under #37. Treat the sequence below as the **target mechanism pipeline**, not evidence that current `main` already executes every step together:
+
+1. accept queued, typed authoritative interventions;
+2. update/diffuse active environmental fields under their numerical contracts;
+3. derive mechanism-owned effects such as genotype-specific ciprofloxacin loss hazards from authoritative field state;
+4. run resource-limited ecology with caller/scenario-owned parameters;
+5. bridge reviewed reproduction/event opportunities into evolution sampling;
+6. update lineage ancestry/extinction and spatial state;
+7. enforce numerical invariants;
+8. record authoritative metrics/events/checkpoint state;
+9. publish a render-oriented snapshot at presentation cadence.
+
+### Critical ecology → evolution boundary
+
+`src/sim/ecology/**` reports `divisionBiomass` as **continuous aggregate biomass flux**. It is not an integer birth/division count.
+
+`src/sim/evolution/sampleDivisionMutations(divisions, ...)` consumes a **non-negative safe-integer count of reviewed discrete division/event opportunities**.
+
+Therefore:
+
+- never round, scale, or pass `divisionBiomass` directly into the exact mutation sampler;
+- do not invent a convenience biomass→birth conversion inside composition code;
+- the reviewed continuous-biomass → discrete-event bridge remains owned by #5/#37;
+- antibiotic concentration does not directly instruct mutation probability in the current model;
+- any accelerated mutation sampler must be statistically validated against the exact bounded reference path.
+
+See `src/sim/ecology/AGENTS.md` and `src/sim/evolution/AGENTS.md` for the binding local contracts.
+
+## Checkpoint and replay authority
+
+A production checkpoint must preserve every replay-critical state component required to continue the trajectory exactly under the same version, including as applicable:
+
+- run/scenario/parameter identity;
+- simulation tick/time;
+- environmental fields;
+- lineage biomass/state;
+- biological RNG state;
+- lineage ancestry/extinction/event state;
+- next lineage-ID allocation state;
+- ordered accepted-command identity.
+
+Renderer objects, animation progress, camera position, decorative particles, and DOM state are not biological checkpoint authority.
+
+Changing numerical operator order, stochastic draw order, or checkpoint semantics is a model/replay change and must be version-reviewed.
 
 ## Performance rules
 
-- no allocations in inner loops;
-- double-buffer diffusion arrays;
-- transferable buffers or downsampled render state;
-- cap active phenotype states for the MVP;
-- lineage ancestry can persist after a density field is pruned;
-- profile before rewriting anything in WASM.
+- keep heavy simulation off the main UI thread;
+- avoid unnecessary allocation in hot numerical loops;
+- reuse field/scratch buffers where practical;
+- transfer or downsample render state when measurements show copy cost matters;
+- use explicit LOD rather than drawing one object per biological cell;
+- measure simulation ms/tick, payload cost, render frame time, and memory before changing architecture;
+- profile before rewriting anything in Rust/WASM, GPU compute, SharedArrayBuffer, or additional workers.
+
+Optimization must not silently alter scientific semantics.
 
 ## Visual model
 
-The density field is authoritative. The renderer can generate organic edges, cell glyphs, particles and pulses from the current density/growth fields, but those visuals do not alter simulation state.
+The renderer consumes immutable authoritative render snapshots or explicitly labelled visual-demo fixtures.
+
+It may generate:
+
+- organic colony edges;
+- representative cell glyphs;
+- field textures/contours;
+- glass/rim treatment;
+- causal emphasis;
+- semantic camera transitions.
+
+Those presentation products cannot feed back into biological outcomes. A rendered particle/glyph count is not a cell count unless a future feature explicitly proves one-to-one identity.
+
+Semantic zoom changes what information is revealed, not the underlying simulator.
+
+## UI and control authority
+
+React owns accessible product orchestration, not biological equations.
+
+- user actions become typed UI intents and then authoritative worker commands where the protocol supports them;
+- a command appears as accepted scientific history only after authoritative confirmation;
+- scientific inspector values stay blank/incomplete rather than being fabricated;
+- motion/onboarding may explain authoritative events but may not synthesize them;
+- active tool cancellation receives Escape priority before lower-priority global/camera behavior.
 
 ## Provenance architecture
 
-Scenario JSON should reference a parameter registry. Every parameter entry includes:
+Scenario/configuration data should expose stable source/provenance identities so simulator, UI, validation, and explanation surfaces resolve the same records.
 
-- value/range;
-- unit;
-- source ID;
-- exact context;
-- evidence tier;
-- transfer/approximation note.
+Biological or scientific-authority values need, where applicable:
 
-The same metadata powers the in-app Sources panel.
+- value/range and units;
+- source identity and experimental context;
+- explicit evidence/classification semantics;
+- derivation/transformation when derived;
+- transfer/calibration/approximation notes and limitations.
+
+Engineering and visual-only values must remain visibly distinct from biological measurements. The UI must not infer evidence class from DOI presence, source count, color, or confidence tier.
+
+## Deployment and offline expo behavior
+
+Core Petra should remain usable as a local/static browser application after its assets are installed/bundled:
+
+- simulation authority runs locally in-browser;
+- no LLM or hosted backend is required for the flagship mechanistic path;
+- optional future sharing, telemetry, model-training storage, or explanation services must not become prerequisites for the core demo.
+
+Current project policy also forbids hosted CI; verification is local/manual and browser/device acceptance flows through the registered laptop experiment pipeline.

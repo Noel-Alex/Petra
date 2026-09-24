@@ -26,6 +26,12 @@ const compatibility: SurrogateCompatibilityIdentity = {
   targetSchemaVersion: "aggregate-target-v1",
 };
 
+const datasetSchema = {
+  schemaVersion: "mechanistic-dataset-schema-v1" as const,
+  inputSchemaVersion: compatibility.inputSchemaVersion,
+  targetSchemaVersion: compatibility.targetSchemaVersion,
+};
+
 const activeSelection: ActiveSurrogateCompatibility = {
   schemaVersion: "surrogate-compatibility-v1",
   scenarioId: "selection-not-mutation",
@@ -63,12 +69,16 @@ const promotionBenchmark = computeStratifiedRegressionBenchmark({
 });
 
 const promotionEvidence: SurrogateBenchmarkEvidence = {
-  schemaVersion: "surrogate-benchmark-evidence-v4",
+  schemaVersion: "surrogate-benchmark-evidence-v5",
   modelId: "aggregate-baseline",
   modelVersion: "1",
   baselineId: "mean-by-scenario-v1",
   datasetVersion: "mechanistic-v1",
   engineVersion: "engine-a",
+  datasetScenarioId: "selection-not-mutation",
+  datasetScenarioVersion: "1",
+  datasetNormalizationProfileId: compatibility.normalizationProfileId,
+  datasetSchema,
   compatibility,
   splitPolicyVersion: "trajectory-group-v1",
   splitCoveragePolicyVersion: "held-out-group-coverage-v1",

@@ -77,7 +77,7 @@ export function ExperimentRunControls({
       aria-label="Run controls"
       data-run-controls-status={view.status}
     >
-      <div className="experiment-run-controls__primary">
+      <div className="experiment-run-controls__primary timeline-controls">
         <PetraCompactAction
           motionPreference={motion}
           disabled={!view.canTogglePlayback}

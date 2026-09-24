@@ -24,7 +24,7 @@ const baseline: FlagshipRunInitialization = {
 }
 
 describe('flagship composed run planning', () => {
-  it('projects bundled scenario authority into a provenance-bound protocol-v5 config', () => {
+  it('projects bundled scenario authority into a provenance-bound protocol-v6 config', () => {
     const plan = buildFlagshipComposedRunPlan(baseline)
     const center = 80 * plan.config.width + 80
 
@@ -72,6 +72,7 @@ describe('flagship composed run planning', () => {
       )?.micMgPerL,
     ).toBe(0.016)
     expect(plan.config.samplingExecutionPolicy).toBeNull()
+    expect(plan.config.populationAuthority).toBeNull()
     expect(plan.config.lineages).toEqual([
       {
         id: 'founder-wt',

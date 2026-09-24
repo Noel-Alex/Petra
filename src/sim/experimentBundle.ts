@@ -65,6 +65,80 @@ const SYNTHETIC_PULSE_COMMAND_KEYS = new Set([
   'type',
   'magnitude',
 ])
+const RUN_IDENTITY_KEYS = new Set([
+  'engineVersion',
+  'protocolVersion',
+  'scenarioId',
+  'scenarioVersion',
+  'parameterSetId',
+  'parameterSetVersion',
+  'parameterSetBinding',
+  'seed',
+])
+const PARAMETER_BINDING_KEYS = new Set([
+  'schemaVersion',
+  'authority',
+  'parameterSetId',
+  'parameterSetVersion',
+  'configurationFingerprint',
+])
+const SYNTHETIC_CHECKPOINT_KEYS = new Set([
+  'authority',
+  'identity',
+  'tick',
+  'simulationTimeHours',
+  'commandCount',
+  'syntheticPopulation',
+  'rngState',
+])
+const COMPOSED_CHECKPOINT_KEYS = new Set([
+  'authority',
+  'identity',
+  'tick',
+  'simulationTimeHours',
+  'commandCount',
+  'composedState',
+  'metrics',
+])
+const EVENT_KEYS = new Set([
+  'sequence',
+  'tick',
+  'simulationTimeHours',
+  'type',
+  'commandId',
+  'value',
+])
+const METRIC_SAMPLE_KEYS = new Set([
+  'schemaVersion',
+  'samplingPolicy',
+  'identity',
+  'tick',
+  'simulationTimeHours',
+  'totalBiomass',
+  'totalResource',
+  'occupiedCells',
+  'lineageShannonDiversity',
+  'resistantBiomass',
+  'resistantFraction',
+  'lineages',
+  'genotypes',
+])
+const METRIC_SAMPLING_POLICY_KEYS = new Set([
+  'version',
+  'everyTicks',
+  'offsetTicks',
+])
+const LINEAGE_METRIC_KEYS = new Set([
+  'lineageId',
+  'genotypeId',
+  'biomass',
+  'fraction',
+])
+const GENOTYPE_METRIC_KEYS = new Set([
+  'genotypeId',
+  'biomass',
+  'fraction',
+])
 
 type ReplayMutationCommand = Extract<
   SimulationCommand,
@@ -214,11 +288,13 @@ export function validateExperimentBundle(bundle: ExperimentBundle): void {
     )
   }
 
-  const identity = requireRecord(
+  const identityRecord = requireRecord(
     record.identity,
     'experiment bundle identity',
     'identity-mismatch',
-  ) as unknown as RunIdentity
+  )
+  validateRunIdentityWireShape(identityRecord)
+  const identity = identityRecord as unknown as RunIdentity
   try {
     assertReplayArtifactUsesCurrentRuntime(identity)
   } catch (error) {
@@ -236,12 +312,27 @@ export function validateExperimentBundle(bundle: ExperimentBundle): void {
     'experiment bundle replay payload',
     'unsupported-schema',
   )
-  const checkpoint = requireRecord(
+  const checkpointRecord = requireRecord(
     replay.originCheckpoint,
     'experiment bundle origin checkpoint',
     'checkpoint-invalid',
-  ) as unknown as SimulationCheckpoint
-  const observedAuthority = checkpointAuthority(checkpoint)
+  )
+  const checkpoint = checkpointRecord as unknown as SimulationCheckpoint
+  const observedAuthority = checkpointAuthority(checkpointRecord)
+  assertOnlyKeys(
+    checkpointRecord,
+    observedAuthority === 'composed'
+      ? COMPOSED_CHECKPOINT_KEYS
+      : SYNTHETIC_CHECKPOINT_KEYS,
+    'experiment bundle origin checkpoint',
+    'checkpoint-invalid',
+  )
+  const checkpointIdentity = requireRecord(
+    checkpointRecord.identity,
+    'experiment bundle checkpoint identity',
+    'checkpoint-invalid',
+  )
+  validateRunIdentityWireShape(checkpointIdentity)
   if (observedAuthority !== record.authority) {
     throw new ExperimentBundleError(
       'authority-mismatch',
@@ -584,7 +675,7 @@ function validateEvidence(
       'Experiment evidence events must be an array.',
     )
   }
-  validateEvents(evidence.events)
+  validateEvents(authority, evidence.events)
 
   if (!Array.isArray(evidence.metrics)) {
     throw new ExperimentBundleError(
@@ -620,7 +711,10 @@ function validateEvidence(
   }
 }
 
-function validateEvents(events: readonly SimulationEvent[]): void {
+function validateEvents(
+  authority: ReplayAuthority,
+  events: readonly SimulationEvent[],
+): void {
   let previousSequence = -1
   let previousTick = -1
   let previousTime = -1
@@ -638,11 +732,18 @@ function validateEvents(events: readonly SimulationEvent[]): void {
         'Experiment evidence events must be a dense array.',
       )
     }
-    const event = requireRecord(
+    const eventRecord = requireRecord(
       events[index],
       `experiment evidence event ${index}`,
       'evidence-invalid',
-    ) as unknown as SimulationEvent
+    )
+    assertOnlyKeys(
+      eventRecord,
+      EVENT_KEYS,
+      `experiment evidence event ${index}`,
+      'evidence-invalid',
+    )
+    const event = eventRecord as unknown as SimulationEvent
 
     if (
       !Number.isSafeInteger(event.sequence) ||
@@ -680,6 +781,12 @@ function validateEvents(events: readonly SimulationEvent[]): void {
         'Experiment evidence contains an unsupported event type.',
       )
     }
+    if (authority === 'composed' && event.type === 'synthetic-pulse') {
+      throw new ExperimentBundleError(
+        'evidence-invalid',
+        'Composed experiment evidence cannot contain synthetic-pulse events.',
+      )
+    }
     if (event.commandId !== undefined) {
       canonicalText(
         event.commandId,
@@ -713,11 +820,18 @@ function validateMetrics(
         'Experiment metric samples must be a dense array.',
       )
     }
-    const metric = requireRecord(
+    const metricRecord = requireRecord(
       metrics[index],
       `experiment metric sample ${index}`,
       'evidence-invalid',
-    ) as unknown as AuthoritativeMetricSample
+    )
+    assertOnlyKeys(
+      metricRecord,
+      METRIC_SAMPLE_KEYS,
+      `experiment metric sample ${index}`,
+      'evidence-invalid',
+    )
+    const metric = metricRecord as unknown as AuthoritativeMetricSample
 
     if (metric.schemaVersion !== AUTHORITATIVE_METRIC_SCHEMA_VERSION) {
       throw new ExperimentBundleError(
@@ -726,6 +840,23 @@ function validateMetrics(
       )
     }
     try {
+      const samplingPolicyRecord = requireRecord(
+        metric.samplingPolicy,
+        `experiment metric sampling policy ${index}`,
+        'evidence-invalid',
+      )
+      assertOnlyKeys(
+        samplingPolicyRecord,
+        METRIC_SAMPLING_POLICY_KEYS,
+        `experiment metric sampling policy ${index}`,
+        'evidence-invalid',
+      )
+      const metricIdentityRecord = requireRecord(
+        metric.identity,
+        `experiment metric identity ${index}`,
+        'evidence-invalid',
+      )
+      validateRunIdentityWireShape(metricIdentityRecord)
       validateMetricSamplingPolicy(
         metric.samplingPolicy as MetricSamplingPolicy,
       )
@@ -780,9 +911,132 @@ function validateMetrics(
         'Experiment metric lineage/genotype samples must be arrays.',
       )
     }
+    validateLineageMetricRows(metric.lineages, index)
+    validateGenotypeMetricRows(metric.genotypes, index)
 
     previousTick = metric.tick
     previousTime = metric.simulationTimeHours
+  }
+}
+
+function validateRunIdentityWireShape(
+  identity: Record<string, unknown>,
+): void {
+  assertOnlyKeys(
+    identity,
+    RUN_IDENTITY_KEYS,
+    'experiment run identity',
+    'identity-mismatch',
+  )
+  if (identity.parameterSetBinding !== undefined) {
+    const binding = requireRecord(
+      identity.parameterSetBinding,
+      'experiment parameter-set binding',
+      'identity-mismatch',
+    )
+    assertOnlyKeys(
+      binding,
+      PARAMETER_BINDING_KEYS,
+      'experiment parameter-set binding',
+      'identity-mismatch',
+    )
+  }
+}
+
+function validateLineageMetricRows(
+  rows: readonly AuthoritativeMetricSample['lineages'][number][],
+  sampleIndex: number,
+): void {
+  const lineageIds = new Set<string>()
+  for (let index = 0; index < rows.length; index += 1) {
+    if (!(index in rows)) {
+      throw new ExperimentBundleError(
+        'evidence-invalid',
+        'Experiment lineage metric rows must be dense.',
+      )
+    }
+    const record = requireRecord(
+      rows[index],
+      `experiment lineage metric ${sampleIndex}:${index}`,
+      'evidence-invalid',
+    )
+    assertOnlyKeys(
+      record,
+      LINEAGE_METRIC_KEYS,
+      `experiment lineage metric ${sampleIndex}:${index}`,
+      'evidence-invalid',
+    )
+    canonicalText(
+      record.lineageId,
+      'experiment lineage metric lineageId',
+      'evidence-invalid',
+    )
+    canonicalText(
+      record.genotypeId,
+      'experiment lineage metric genotypeId',
+      'evidence-invalid',
+    )
+    if (lineageIds.has(record.lineageId)) {
+      throw new ExperimentBundleError(
+        'evidence-invalid',
+        `Duplicate experiment lineage metric id: ${record.lineageId}.`,
+      )
+    }
+    lineageIds.add(record.lineageId)
+    finiteNonNegativeMetric(
+      record.biomass as number,
+      'lineage biomass',
+    )
+    fractionMetric(
+      record.fraction as number,
+      'lineage fraction',
+    )
+  }
+}
+
+function validateGenotypeMetricRows(
+  rows: readonly AuthoritativeMetricSample['genotypes'][number][],
+  sampleIndex: number,
+): void {
+  const genotypeIds = new Set<string>()
+  for (let index = 0; index < rows.length; index += 1) {
+    if (!(index in rows)) {
+      throw new ExperimentBundleError(
+        'evidence-invalid',
+        'Experiment genotype metric rows must be dense.',
+      )
+    }
+    const record = requireRecord(
+      rows[index],
+      `experiment genotype metric ${sampleIndex}:${index}`,
+      'evidence-invalid',
+    )
+    assertOnlyKeys(
+      record,
+      GENOTYPE_METRIC_KEYS,
+      `experiment genotype metric ${sampleIndex}:${index}`,
+      'evidence-invalid',
+    )
+    canonicalText(
+      record.genotypeId,
+      'experiment genotype metric genotypeId',
+      'evidence-invalid',
+    )
+    if (genotypeIds.has(record.genotypeId)) {
+      throw new ExperimentBundleError(
+        'evidence-invalid',
+        `Duplicate experiment genotype metric id: ${record.genotypeId}.`,
+      )
+    }
+    genotypeIds.add(record.genotypeId)
+    finiteNonNegativeMetric(
+      record.biomass as number,
+      'genotype biomass',
+    )
+    fractionMetric(
+      record.fraction as number,
+      'genotype fraction',
+    )
   }
 }
 

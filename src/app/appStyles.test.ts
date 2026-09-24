@@ -108,3 +108,24 @@ describe("app shell resolved motion attribute", () => {
     expect(appCss).not.toContain("@media (prefers-reduced-motion: reduce)");
   });
 });
+
+describe("dish-first focus geometry", () => {
+  it("reserves vertical chrome before sizing the focused dish", () => {
+    const stage = ruleBody('.petra-app[data-dish-focus="focused"] .dish-stage');
+    const shell = ruleBody(
+      '.petra-app[data-dish-focus="focused"] .dish-renderer-shell',
+    );
+
+    expect(stage).toContain("min-height: min(76vh, 52rem);");
+    expect(stage).toContain("min-height: min(76dvh, 52rem);");
+    expect(stage).toContain("overflow-x: hidden;");
+    expect(stage).toContain("overflow-y: auto;");
+    expect(stage).toContain("scrollbar-gutter: stable both-edges;");
+
+    expect(shell).toContain("calc(100vh - 24rem)");
+    expect(shell).toContain("calc(100dvh - 24rem)");
+    expect(shell).toContain("max(12rem");
+    expect(shell).not.toContain("78vh");
+  });
+});
+

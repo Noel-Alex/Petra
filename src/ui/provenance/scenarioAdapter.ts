@@ -39,6 +39,8 @@ export interface ResolveScenarioProvenanceArgs {
 }
 
 export interface ScenarioProvenanceResolution {
+  readonly id: string;
+  readonly label: string;
   readonly status: "complete" | "needs-provenance";
   readonly presentation: ProvenancePresentation | null;
   readonly rawClassification: string | null;
@@ -67,6 +69,8 @@ export function resolveScenarioProvenance(
 
   if (rawClassification === null || rawClassification.length === 0) {
     return {
+      id: args.id,
+      label: args.label,
       status: "needs-provenance",
       presentation: null,
       rawClassification,
@@ -83,6 +87,8 @@ export function resolveScenarioProvenance(
 
   if (evidenceClass === null) {
     return {
+      id: args.id,
+      label: args.label,
       status: "needs-provenance",
       presentation: null,
       rawClassification,
@@ -123,6 +129,8 @@ export function resolveScenarioProvenance(
       : "needs-provenance";
 
   return {
+    id: args.id,
+    label: args.label,
     status,
     presentation,
     rawClassification,

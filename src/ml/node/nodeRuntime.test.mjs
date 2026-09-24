@@ -143,6 +143,24 @@ describe("Node mechanistic sweep adapters", () => {
     );
   });
 
+  it("rejects waiting work when worker bootstrap fails instead of respawning forever", async () => {
+    const executor = new WorkerThreadMechanisticExecutor({
+      maxWorkers: 1,
+      executorModuleUrl: new URL(
+        "./workerThreadBootstrapFailureFixture.mjs",
+        import.meta.url,
+      ).href,
+    });
+
+    const first = executor.execute({ taskId: "bootstrap-failure-1" });
+    const second = executor.execute({ taskId: "bootstrap-failure-2" });
+
+    await expect(first).rejects.toThrow("fixture worker bootstrap refusal");
+    await expect(second).rejects.toThrow("fixture worker bootstrap refusal");
+
+    await executor.dispose();
+  });
+
   it("rejects an active task on clean worker exit and replenishes the pool", async () => {
     const executor = new WorkerThreadMechanisticExecutor({
       maxWorkers: 1,

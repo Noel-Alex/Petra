@@ -177,9 +177,16 @@ export function assessSurrogatePromotion(args: {
       message: "benchmark evidence engine version does not match the model card",
     });
   }
+  const evidenceCompatibilityKey = safeSurrogateCompatibilityKey(
+    evidence.compatibility,
+  );
+  const expectedCompatibilityKey = safeSurrogateCompatibilityKey(
+    args.expectedCompatibility,
+  );
   if (
-    surrogateCompatibilityKey(evidence.compatibility) !==
-    surrogateCompatibilityKey(args.expectedCompatibility)
+    evidenceCompatibilityKey === null ||
+    expectedCompatibilityKey === null ||
+    evidenceCompatibilityKey !== expectedCompatibilityKey
   ) {
     issues.push({
       kind: "compatibility-mismatch",
@@ -333,6 +340,16 @@ export function surrogateCompatibilityKey(
     identity.inputSchemaVersion,
     identity.targetSchemaVersion,
   ]);
+}
+
+function safeSurrogateCompatibilityKey(
+  identity: SurrogateCompatibilityIdentity,
+): string | null {
+  try {
+    return surrogateCompatibilityKey(identity);
+  } catch {
+    return null;
+  }
 }
 
 function requireCompatibilityText(name: string, value: string): void {

@@ -125,6 +125,10 @@ describe("provenance panel", () => {
       "Reference pharmacodynamics are transferred across experimental systems.",
     );
     expect(markup).toContain("No provenance records are available");
+    expect(markup.match(/aria-live="polite"/g)).toHaveLength(1);
+    expect(markup).toContain('class="provenance-panel__announcement"');
+    expect(markup).toContain('role="status"');
+    expect(markup).toContain('aria-atomic="true"');
   });
 
   it("renders accessible discovery controls with incomplete-record safety disclosure", () => {
@@ -148,6 +152,16 @@ describe("provenance panel", () => {
       "Needs-provenance records always remain visible",
     );
     expect(markup).toContain("1 of 1 records shown");
+    expect(markup.match(/aria-live="polite"/g)).toHaveLength(1);
+    expect(markup).toContain(
+      'class="provenance-panel__announcement" role="status" aria-live="polite" aria-atomic="true"',
+    );
+    expect(markup).toContain(
+      "0 complete · 1 need provenance. 1 of 1 records shown",
+    );
+    expect(markup).not.toMatch(
+      /class="provenance-panel__summary"[^>]*aria-live=/,
+    );
   });
 
   it.each(["full", "reduced", "off"] as const)(

@@ -61,6 +61,11 @@ import { updateCameraMotionRuntime } from "./cameraMotionLifecycle";
 import { resolveSnapshotOverlayUpdate } from "./snapshotOverlay";
 import { createSemanticZoomLevelObserver } from "../semanticZoomObserver";
 import { wheelZoomFactor } from "./wheelZoom";
+import {
+  onePointerPanOwnedAtGestureStart,
+  rendererOwnsGestureIntent,
+  rendererTouchActionForNextGesture,
+} from "./touchOwnership";
 
 export type RendererMotionMode = "full" | "reduced" | "off";
 
@@ -134,8 +139,18 @@ export async function createPixiDishRenderer(
   let cameraElapsedMs = cameraMotion.durationMs;
   let destroyed = false;
   let gestureState = createPointerGestureState();
+  let onePointerPanOwned = false;
+  const previousHostTouchAction = host.style.touchAction;
 
   const maxRepresentativeGlyphs = options.maxRepresentativeGlyphs ?? 180;
+  const syncTouchActionForNextGesture = () => {
+    const next = rendererTouchActionForNextGesture(camera);
+    if (host.style.touchAction !== next) {
+      host.style.touchAction = next;
+    }
+  };
+  syncTouchActionForNextGesture();
+
   const semanticZoomObserver = createSemanticZoomLevelObserver((level) => {
     options.onSemanticZoomLevelChange?.(level);
   });
@@ -143,6 +158,7 @@ export async function createPixiDishRenderer(
   const render = () => {
     if (snapshot === null || destroyed) return;
     semanticZoomObserver.update(semanticZoomLevel(camera.zoom));
+    syncTouchActionForNextGesture();
     drawScene({
       app,
       snapshot,
@@ -269,6 +285,7 @@ export async function createPixiDishRenderer(
     if (event.pointerType === "mouse" && event.button !== 0) return;
     const screen = localPointer(event);
     const viewport = { width: app.screen.width, height: app.screen.height };
+    const startingNewGesture = gestureState.active.length === 0;
     const started = beginPointerGestureInDishAperture(
       gestureState,
       event.pointerId,
@@ -277,12 +294,9 @@ export async function createPixiDishRenderer(
     );
     gestureState = started.state;
     if (!started.accepted) return;
-    writeCameraTransitionState(
-      completeCameraTransitionAtRendered(
-        readCameraTransitionState(),
-        cameraMotion.durationMs,
-      ),
-    );
+    if (startingNewGesture) {
+      onePointerPanOwned = onePointerPanOwnedAtGestureStart(camera);
+    }
     app.canvas.setPointerCapture(event.pointerId);
   };
 
@@ -294,12 +308,25 @@ export async function createPixiDishRenderer(
     );
     gestureState = moved.state;
     if (!moved.accepted || moved.intent.kind === "none") return;
+    if (
+      !rendererOwnsGestureIntent(
+        moved.intent.kind,
+        onePointerPanOwned,
+      )
+    ) {
+      return;
+    }
 
+    writeCameraTransitionState(
+      completeCameraTransitionAtRendered(
+        readCameraTransitionState(),
+        cameraMotion.durationMs,
+      ),
+    );
     event.preventDefault();
     const viewport = { width: app.screen.width, height: app.screen.height };
 
     if (moved.intent.kind === "pan") {
-      if (camera.zoom <= 1) return;
       applyDirectCamera(
         panCamera(camera, moved.intent.deltaScreen, viewport),
       );
@@ -325,6 +352,9 @@ export async function createPixiDishRenderer(
 
   const finishPointer = (event: PointerEvent) => {
     gestureState = endPointerGesture(gestureState, event.pointerId);
+    if (gestureState.active.length === 0) {
+      onePointerPanOwned = false;
+    }
     if (app.canvas.hasPointerCapture(event.pointerId)) {
       app.canvas.releasePointerCapture(event.pointerId);
     }
@@ -464,6 +494,7 @@ export async function createPixiDishRenderer(
       resizeObserver.disconnect();
       resolutionWatcher.dispose();
       semanticZoomObserver.dispose();
+      host.style.touchAction = previousHostTouchAction;
       resizeScheduler.cancel();
       app.canvas.removeEventListener("pointerdown", onPointerDown);
       app.canvas.removeEventListener("pointermove", onPointerMove);

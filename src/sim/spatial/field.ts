@@ -12,6 +12,8 @@ export interface DiffusionResult {
   dtPerSubstep: number
 }
 
+export const MAX_EXPLICIT_2D_DIFFUSION_ALPHA = 0.25 as const
+
 function requirePositiveFinite(name: string, value: number): void {
   if (!Number.isFinite(value) || value <= 0) throw new Error(`${name} must be a positive finite number`)
 }
@@ -134,10 +136,37 @@ export class CircularScalarField {
     if (!Number.isFinite(dt) || dt < 0) throw new Error('dt must be finite and non-negative')
     if (diffusivity === 0 || dt === 0) return { substeps: 0, dtPerSubstep: 0 }
 
-    const stableDt = (this.cellSize * this.cellSize) / (4 * diffusivity)
-    const substeps = Math.max(1, Math.ceil(dt / stableDt))
+    const stableDt =
+      (this.cellSize * this.cellSize) /
+      (diffusivity / MAX_EXPLICIT_2D_DIFFUSION_ALPHA)
+    if (Number.isNaN(stableDt) || stableDt <= 0) {
+      throw new Error(
+        'diffusion parameters require a non-representable stable substep interval',
+      )
+    }
+
+    const requestedSubsteps = Math.max(1, Math.ceil(dt / stableDt))
+    if (!Number.isSafeInteger(requestedSubsteps)) {
+      throw new Error(
+        'diffusion requires more substeps than can be represented as a safe integer',
+      )
+    }
+
+    const substeps = requestedSubsteps
     const dtPerSubstep = dt / substeps
-    const alpha = (diffusivity * dtPerSubstep) / (this.cellSize * this.cellSize)
+    // alpha = D*dt_sub/dx^2 = MAX_ALPHA * dt_sub/stableDt. Expressing it
+    // through the already-validated stability interval avoids intermediate
+    // overflow in D*dt for otherwise representable plans.
+    const alpha =
+      MAX_EXPLICIT_2D_DIFFUSION_ALPHA * (dtPerSubstep / stableDt)
+    if (
+      !Number.isFinite(alpha) ||
+      alpha < 0 ||
+      alpha >
+        MAX_EXPLICIT_2D_DIFFUSION_ALPHA * (1 + 8 * Number.EPSILON)
+    ) {
+      throw new Error('diffusion substep violates the explicit 2D stability bound')
+    }
 
     for (let step = 0; step < substeps; step += 1) {
       this.diffuseSubstep(alpha)

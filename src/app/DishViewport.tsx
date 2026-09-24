@@ -16,6 +16,10 @@ import {
   defaultDishOverlayId,
   resolveDishOverlay,
 } from "./dishPresentation";
+import {
+  INITIAL_DISH_RENDER_SOURCE_STATE,
+  resolveDishRenderSource,
+} from "./dishRenderSource";
 import { buildOverlayLegend } from "./overlayLegend";
 import { surfaceMotionCss } from "./motionAdapter";
 import { DishSemanticZoomGuide } from "./DishSemanticZoomGuide";
@@ -56,17 +60,33 @@ export function DishViewport({
 }: DishViewportProps) {
   const interactionHintId = useId();
   const authoritativeSnapshot = snapshot ?? null;
-  const usingAuthoritative = authoritativeSnapshot !== null;
-  const usingDemo = !usingAuthoritative && demoMode;
-  const demoSnapshot = useMemo(
-    () => (demoMode ? createRendererDemoSnapshot() : null),
-    [demoMode],
+  const [renderSourceState, setRenderSourceState] = useState(() =>
+    resolveDishRenderSource(
+      INITIAL_DISH_RENDER_SOURCE_STATE,
+      { authoritativeSnapshot, demoMode },
+      createRendererDemoSnapshot,
+    ).state,
   );
-  const activeSnapshot = usingAuthoritative
-    ? authoritativeSnapshot
-    : usingDemo
-      ? demoSnapshot
-      : null;
+  const renderSourceResolution = useMemo(
+    () =>
+      resolveDishRenderSource(
+        renderSourceState,
+        { authoritativeSnapshot, demoMode },
+        createRendererDemoSnapshot,
+      ),
+    [authoritativeSnapshot, demoMode, renderSourceState],
+  );
+
+  useEffect(() => {
+    if (renderSourceResolution.state === renderSourceState) return;
+    setRenderSourceState(renderSourceResolution.state);
+  }, [renderSourceResolution.state, renderSourceState]);
+
+  const renderSource = renderSourceResolution.source;
+  const activeSnapshot = renderSource.snapshot;
+  const usingAuthoritative =
+    renderSource.kind === "authoritative-snapshot";
+  const usingDemo = renderSource.kind === "visual-demo";
   const [requestedOverlayId, setRequestedOverlayId] = useState<string | null>(
     () => (activeSnapshot === null ? null : defaultDishOverlayId(activeSnapshot)),
   );
@@ -147,19 +167,13 @@ export function DishViewport({
   return (
     <div
       className="dish-renderer-shell"
-      data-render-source={
-        usingAuthoritative
-          ? "authoritative-snapshot"
-          : usingDemo
-            ? "visual-demo"
-            : "awaiting-authoritative-snapshot"
-      }
+      data-render-source={renderSource.kind}
       onKeyDown={handleDishKeyDown}
     >
       <div className="dish-renderer-frame">
         <PixiDish
-          snapshot={authoritativeSnapshot}
-          demoMode={usingDemo}
+          snapshot={activeSnapshot}
+          sourceKind={renderSource.kind}
           motion={cameraPlan.mode}
           cameraMotion={cameraPlan.cameraMotion}
           overlayId={resolvedOverlayId}

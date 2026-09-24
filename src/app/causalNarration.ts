@@ -110,24 +110,25 @@ export function causalRunIdentityKey(identity: RunIdentity): string {
 }
 
 /**
- * Dependency key for the React adapter. Authoritative event streams are
- * expected to be append-only within one runBranchIdentity; encoding the full
- * accepted identity list also makes accidental in-place array mutation visible
- * to the effect boundary.
+ * Dependency key for the React adapter.
+ *
+ * Streams are append-only within one runBranchIdentity, so the accepted
+ * frontier is enough to detect new authority without serializing the complete
+ * scientific history on every React render.
  */
 export function causalEventStreamRevisionKey(
   stream: AuthoritativeCausalEventStream | null | undefined,
 ): string {
   if (stream === null || stream === undefined) return "none";
 
+  const last = stream.events[stream.events.length - 1];
   return JSON.stringify([
     causalRunIdentityKey(stream.runIdentity),
     stream.runBranchIdentity,
-    stream.events.map((event) => [
-      event.sequence,
-      event.id,
-      event.eventKind,
-    ]),
+    stream.events.length,
+    last?.sequence ?? null,
+    last?.id ?? null,
+    last?.eventKind ?? null,
   ]);
 }
 

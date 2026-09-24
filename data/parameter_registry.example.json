@@ -1,5 +1,5 @@
 {
-  "registry_version": "0.1.0",
+  "registry_version": "0.1.1",
   "scenario_id": "ecoli_ciprofloxacin_flagship",
   "status": "DRAFT_TRANSFER_ASSUMPTIONS_DOCUMENTED",
   "parameters": [
@@ -78,7 +78,8 @@
     "The reference pharmacodynamic curve and the MG1655 genotype table come from different experimental systems.",
     "Before calling the combined scenario quantitatively calibrated, normalize/fit the PD response to the selected genotype MICs and verify rate conventions.",
     "Spatial diffusion and colony-dispersal coefficients remain scenario-calibration parameters until source-matched values are chosen.",
-    "The resource-by-drug policy maps the transferred PD decrement to a first-order loss channel; it is not source-matched stationary-phase calibration."
+    "The resource-by-drug policy maps the transferred PD decrement to a first-order loss channel; it is not source-matched stationary-phase calibration.",
+    "The flagship Monod resource seam has no source-matched numerical parameter pack yet because the limiting substrate/medium/resource units are not versioned in the preset; cross-study growth candidates remain transfer/calibration evidence, not measured flagship values."
   ],
   "unbound_requirements": [
     {
@@ -86,21 +87,21 @@
       "required_for": "flagship_authoritative_ecology",
       "status": "UNBOUND",
       "evidence_class_required": "measured_or_transparently_calibrated",
-      "notes": "Do not substitute the Regoes CAB1 drug-free log10 density slope without an explicit, unit-consistent composition decision."
+      "notes": "Still UNBOUND. MG1655 37 C glucose-minimal studies (e.g. LaCroix et al. 2015, DOI 10.1128/AEM.02246-14) provide growth-rate candidates, but the flagship has not selected that medium/resource context and these data do not provide the complete source-matched Monod package. Do not substitute Regoes psi_max."
     },
     {
       "key": "growth.monod_half_saturation",
       "required_for": "flagship_authoritative_ecology",
       "status": "UNBOUND",
       "evidence_class_required": "measured_or_transparently_calibrated",
-      "notes": "Must match the chosen limiting-resource definition and concentration units."
+      "notes": "Still UNBOUND. Nev et al. 2021 (DOI 10.1371/journal.pcbi.1008817) directly fits MG1655 glucose uptake/half-saturation across multiple concentrations, but in DM + 0.1% casamino acids at 30 C, not the flagship's current 37 C reference context. Must match a versioned limiting-resource definition, medium, temperature and concentration units."
     },
     {
       "key": "growth.biomass_yield",
       "required_for": "flagship_authoritative_ecology",
       "status": "UNBOUND",
       "evidence_class_required": "measured_or_transparently_calibrated",
-      "notes": "Required to connect resource consumption to biomass production."
+      "notes": "Still UNBOUND. Source values use assay-specific CFU or dry-weight biomass units and vary with nutrient condition; a flagship binding requires an explicit model-biomass conversion and compatible resource/medium context rather than mixing assays."
     },
     {
       "key": "space.local_capacity_and_spread",

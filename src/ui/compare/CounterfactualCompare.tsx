@@ -1,6 +1,7 @@
 import {
   useMemo,
   useState,
+  type ChangeEvent,
   type CSSProperties,
   type ReactNode,
 } from "react";
@@ -155,7 +156,7 @@ export function CounterfactualCompare({
                 max={100}
                 step={1}
                 value={swipePercent}
-                onChange={(event) =>
+                onChange={(event: ChangeEvent<HTMLInputElement>) =>
                   setSwipePercent(
                     normalizeSwipePercent(event.currentTarget.valueAsNumber),
                   )

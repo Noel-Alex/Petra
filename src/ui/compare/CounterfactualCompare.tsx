@@ -16,13 +16,18 @@ import {
   resolveComparePresentation,
   type CompareViewMode,
 } from "./presentation";
+import {
+  resolveTimeBoundCompareSurface,
+  type ResolvedTimeBoundCompareSurface,
+  type TimeBoundCompareSurface,
+} from "./timeBoundSurface";
 import "./CounterfactualCompare.css";
 
 export interface CounterfactualCompareProps {
   readonly left: CounterfactualBranch;
   readonly right: CounterfactualBranch;
-  readonly leftSurface: ReactNode;
-  readonly rightSurface: ReactNode;
+  readonly leftSurface: TimeBoundCompareSurface<ReactNode>;
+  readonly rightSurface: TimeBoundCompareSurface<ReactNode>;
   readonly requestedTimeHours: number;
   readonly leftAvailableThroughHours: number;
   readonly rightAvailableThroughHours: number;
@@ -34,8 +39,8 @@ export interface CounterfactualCompareProps {
 /**
  * Accessible presentation shell for already-authoritative counterfactual views.
  *
- * The supplied surfaces own no scientific truth here. This component only
- * arranges them, reveals them, and describes the existing branch identity.
+ * Supplied scientific surfaces must carry exact authoritative branch/time
+ * identity. The shell validates that identity before it renders their content.
  */
 export function CounterfactualCompare({
   left,
@@ -68,6 +73,29 @@ export function CounterfactualCompare({
       ),
     [requestedTimeHours, leftAvailableThroughHours, rightAvailableThroughHours],
   );
+
+  const boundLeft = useMemo(
+    () =>
+      resolveTimeBoundCompareSurface({
+        expectedBranchId: left.branchId,
+        expectedTimeHours: cursor.leftTimeHours,
+        surface: leftSurface,
+      }),
+    [cursor.leftTimeHours, left.branchId, leftSurface],
+  );
+
+  const boundRight = useMemo(
+    () =>
+      resolveTimeBoundCompareSurface({
+        expectedBranchId: right.branchId,
+        expectedTimeHours: cursor.rightTimeHours,
+        surface: rightSurface,
+      }),
+    [cursor.rightTimeHours, right.branchId, rightSurface],
+  );
+
+  const hasSurfaceMismatch =
+    boundLeft.status === "mismatch" || boundRight.status === "mismatch";
 
   const easing = `cubic-bezier(${presentation.easing.join(", ")})`;
   const style = {
@@ -127,21 +155,9 @@ export function CounterfactualCompare({
       </div>
 
       <div className="petra-compare__stage" data-mode={mode}>
-        <ComparePane
-          side="left"
-          branch={left}
-          simulationTimeHours={cursor.leftTimeHours}
-        >
-          {leftSurface}
-        </ComparePane>
+        <ComparePane side="left" branch={left} surface={boundLeft} />
 
-        <ComparePane
-          side="right"
-          branch={right}
-          simulationTimeHours={cursor.rightTimeHours}
-        >
-          {rightSurface}
-        </ComparePane>
+        <ComparePane side="right" branch={right} surface={boundRight} />
 
         {mode === "swipe" ? (
           <>
@@ -173,7 +189,12 @@ export function CounterfactualCompare({
           Requested biological time:{" "}
           <strong>{formatHours(cursor.requestedTimeHours)}</strong>
         </span>
-        {cursor.isClamped ? (
+        {hasSurfaceMismatch ? (
+          <span className="petra-compare__surface-mismatch">
+            A supplied scientific surface did not match its synchronized
+            branch/time identity and was withheld.
+          </span>
+        ) : cursor.isClamped ? (
           <span className="petra-compare__clamped">
             One branch has not simulated that far; each pane shows only
             authoritative state that exists.
@@ -189,16 +210,11 @@ export function CounterfactualCompare({
 interface ComparePaneProps {
   readonly side: "left" | "right";
   readonly branch: CounterfactualBranch;
-  readonly simulationTimeHours: number;
-  readonly children: ReactNode;
+  readonly surface: ResolvedTimeBoundCompareSurface<ReactNode>;
 }
 
-function ComparePane({
-  side,
-  branch,
-  simulationTimeHours,
-  children,
-}: ComparePaneProps) {
+function ComparePane({ side, branch, surface }: ComparePaneProps) {
+  const identity = surface.surface.identity;
   return (
     <article
       className={`petra-compare__pane petra-compare__pane--${side}`}
@@ -216,11 +232,34 @@ function ComparePane({
           </div>
           <div>
             <dt>Time</dt>
-            <dd>{formatHours(simulationTimeHours)}</dd>
+            <dd>
+              {surface.status === "ready"
+                ? formatHours(identity.simulationTimeHours)
+                : "Unavailable"}
+            </dd>
           </div>
         </dl>
       </header>
-      <div className="petra-compare__surface">{children}</div>
+      <div
+        className="petra-compare__surface"
+        data-surface-status={surface.status}
+        data-sample-id={identity.sampleId}
+        data-surface-time-hours={identity.simulationTimeHours}
+      >
+        {surface.status === "ready" ? (
+          surface.surface.content
+        ) : (
+          <div className="petra-compare__surface-warning" role="alert">
+            <strong>Scientific surface withheld</strong>
+            <span>{surface.warning}</span>
+            <small>
+              Expected {surface.expectedBranchId} at{" "}
+              {formatHours(surface.expectedTimeHours)}; supplied sample{" "}
+              {identity.sampleId} at {formatHours(identity.simulationTimeHours)}.
+            </small>
+          </div>
+        )}
+      </div>
     </article>
   );
 }

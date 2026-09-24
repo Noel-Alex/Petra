@@ -17,9 +17,9 @@ export interface SandboxScenarioRecord {
   readonly id: string
   readonly version: string
   readonly title: string
-  readonly status?: SandboxScenarioStatus
+  readonly status?: string
   readonly warning: string
-  readonly seedPolicy: 'user' | 'fixed-demo' | 'random-recorded'
+  readonly seedPolicy: string
   readonly executionProfile?: {
     readonly id: string
     readonly version: string
@@ -67,7 +67,7 @@ interface SandboxScenarioBase {
   readonly title: string
   readonly status: SandboxScenarioStatus
   readonly warning: string
-  readonly seedPolicy: SandboxScenarioRecord['seedPolicy']
+  readonly seedPolicy: 'user' | 'fixed-demo' | 'random-recorded'
   readonly executionProfileId: string | null
   readonly executionProfileVersion: string | null
   readonly parameterSetId: string | null
@@ -157,6 +157,19 @@ function scenarioStatus(value: unknown): SandboxScenarioStatus {
   throw new Error('sandbox scenario status must be explicit and schema-valid')
 }
 
+function seedPolicy(
+  value: unknown,
+): 'user' | 'fixed-demo' | 'random-recorded' {
+  if (
+    value === 'user' ||
+    value === 'fixed-demo' ||
+    value === 'random-recorded'
+  ) {
+    return value
+  }
+  throw new Error('sandbox scenario seed policy must be explicit and schema-valid')
+}
+
 function projectRegistration(
   registration: SandboxScenarioRegistration,
 ): SandboxScenario {
@@ -169,6 +182,7 @@ function projectRegistration(
   const title = canonicalText('sandbox scenario title', scenario.title)
   const warning = canonicalText('sandbox scenario warning', scenario.warning)
   const status = scenarioStatus(scenario.status)
+  const resolvedSeedPolicy = seedPolicy(scenario.seedPolicy)
 
   const parameterSet = scenario.composedParameterSet
   const executionProfile = scenario.executionProfile
@@ -181,7 +195,7 @@ function projectRegistration(
     title,
     status,
     warning,
-    seedPolicy: scenario.seedPolicy,
+    seedPolicy: resolvedSeedPolicy,
     executionProfileId:
       executionProfile === undefined
         ? null
@@ -281,7 +295,7 @@ function projectRegistration(
     )
   }
 
-  if (scenario.seedPolicy !== 'user') {
+  if (resolvedSeedPolicy !== 'user') {
     return Object.freeze({
       ...base,
       availability: 'unavailable',

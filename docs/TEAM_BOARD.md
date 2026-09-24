@@ -20,7 +20,7 @@ Deliver a reproducible spatial *E. coli + ciprofloxacin* vertical slice that is 
 
 Noel-Alex's current scheduling directive is to make the **working flagship simulation/runtime the number-one priority**. The repository has many strong isolated pieces, but current `main` is still not one complete authoritative browser experiment. Until that changes:
 
-1. prioritize #37 and every concrete prerequisite/blocker needed for a real composed worker-owned flagship loop;
+1. prioritize #37 and every concrete prerequisite/blocker needed to finish the product-facing protocol-v4 composed worker flagship loop;
 2. prioritize numerical/scientific validation, parameter binding, local experiments, data generation, and tooling when they unblock that loop;
 3. keep UI, visual-system, and motion work moving only on spare/non-conflicting capacity or when the functional path is blocked;
 4. keep learned-model work downstream of authoritative mechanistic trajectories and explicit promotion/validation gates.
@@ -41,7 +41,7 @@ These remain useful product/science umbrellas, but are usually too broad to clai
 
 This list is intentionally selective. Use the live issue search for the complete queue and re-check comments/branches immediately before editing.
 
-- **Authoritative runtime + UX integration:** #37 owns migration from the synthetic worker scaffold; #42 is the React/runtime umbrella consuming that authority. #158 needs the real intervention command schema, #159 owns authoritative local-region inspection, #274 owns causal narration once explicit causal-event identity exists, and #317 exposes the already-typed Step/Reset/Replay/Seed controls in the shell.
+- **Authoritative runtime + UX integration:** protocol v4 already supports explicit composed worker authority; #37 owns the remaining flagship activation/integration gates while the omitted-`composedConfig` synthetic engine remains infrastructure-only. #42 is the React/runtime umbrella consuming composed authority. #158 needs the real intervention command schema, #159 owns authoritative local-region inspection, #274 owns causal narration once explicit causal-event identity exists, and #317 exposes the already-typed Step/Reset/Replay/Seed controls in the shell.
 - **Browser/expo acceptance:** #59 owns real browser visual, motion, keyboard, touch, screen-reader, and frame-time evidence. Source-only work must not claim that evidence.
 - **Renderer/input + accessibility:** #241 owns the live semantic-zoom guide bridge; #253 owns one visual-demo snapshot transaction; #300 owns overview touch scroll chaining; #313 separates renderer-failure narration from retry control; #314 routes retry through shared Petra action motion. Coordinate these shared Pixi/DishViewport paths before editing.
 - **Shell keyboard/motion:** #276 owns conflict-safe playback shortcut wiring. Coordinate broader interaction/onboarding polish through #39 and the #10 umbrella rather than creating competing App-level keyboard or motion authority.

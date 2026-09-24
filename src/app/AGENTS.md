@@ -98,3 +98,10 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Demo snapshot factories used during candidate resolution must remain deterministic and side-effect free for the same explicit demo configuration. They are presentation factories, never a place for RNG progression, network work, persistent mutation, or scientific authority.
 - Source identity is explicit and separate from snapshot shape. Passing a demo-shaped `DishRenderSnapshot` through props must never cause it to be relabelled authoritative.
 - Authoritative state always takes precedence and must not invoke demo generation. Visual-demo state remains explicit opt-in, visibly disclosed, and presentation-only.
+
+## Authoritative dish replay keyframe bridge
+- `dishReplayKeyframe.ts` is the narrow app-layer bridge between worker/runtime authority and renderer replay history. It may bind an already-authoritative `DishRenderSnapshot` to runtime identity; it may not derive biology from renderer state.
+- Replay order is sourced from `SimulationCheckpoint.commandCount`, the existing protocol-v2 accepted mutating-command position. The bridge copies it into the versioned renderer replay-order contract and requires exact equality between runtime checkpoint `simulationTimeHours` and the dish projection's biological timestamp.
+- `runBranchIdentity` is explicit caller/runtime authority. A reset, replay, restore branch, or other history generation that can restart/regress accepted-command position must receive a fresh branch identity; React/Pixi must never infer branch ancestry from array order, snapshot IDs, arrival time, or presentation state.
+- Snapshot-only observations that do not advance `commandCount` are not distinct replay positions. If callers attempt to append two different keyframes with the same order identity, renderer replay validation must reject the history rather than inventing an ordering.
+

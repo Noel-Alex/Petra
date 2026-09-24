@@ -1,12 +1,12 @@
 import type { SimulationSnapshot } from './protocol'
 
-function stableStringify(value: unknown) {
+export function stableReplayStringify(value: unknown) {
   if (value === null || typeof value !== 'object') return JSON.stringify(value)
-  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`
+  if (Array.isArray(value)) return `[${value.map(stableReplayStringify).join(',')}]`
   const object = value as Record<string, unknown>
   return `{${Object.keys(object)
     .sort()
-    .map((key) => `${JSON.stringify(key)}:${stableStringify(object[key])}`)
+    .map((key) => `${JSON.stringify(key)}:${stableReplayStringify(object[key])}`)
     .join(',')}}`
 }
 
@@ -20,7 +20,7 @@ function stableStringify(value: unknown) {
 export function simulationSnapshotTraceHash(
   snapshot: Pick<SimulationSnapshot, 'checkpoint' | 'events'>,
 ): string {
-  const text = stableStringify({
+  const text = stableReplayStringify({
     checkpoint: snapshot.checkpoint,
     events: snapshot.events,
   })

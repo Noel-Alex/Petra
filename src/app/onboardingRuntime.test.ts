@@ -154,6 +154,37 @@ describe("onboarding runtime bridge", () => {
     expect(mismatched.gates).toEqual([]);
   });
 
+  it("resets scientific gates when the authoritative run branch changes", () => {
+    const runtime = runtimeState(7);
+    const firstProjection = projectOnboardingRuntime(runtime, {
+      runIdentity: runtime.controls.identity,
+      runBranchIdentity: "run-7/a",
+      gates: [
+        "inoculation-recorded",
+        "population-growth-observed",
+      ],
+    });
+    let session = createOnboardingRuntimeSession(firstProjection);
+    session = reconcileOnboardingRuntimeSession(session, firstProjection);
+    expect(session.state.satisfiedGates).toEqual(
+      new Set([
+        "inoculation-recorded",
+        "population-growth-observed",
+      ]),
+    );
+
+    const forkProjection = projectOnboardingRuntime(runtime, {
+      runIdentity: runtime.controls.identity,
+      runBranchIdentity: "run-7/b",
+      gates: [],
+    });
+    session = reconcileOnboardingRuntimeSession(session, forkProjection);
+
+    expect(currentStage(session.state).id).toBe("ecosystem");
+    expect(session.state.satisfiedGates.size).toBe(0);
+    expect(session.gateStreamIdentity).toContain("run-7/b");
+  });
+
   it("replays the guide without mutating simulation authority", () => {
     const projection: OnboardingRuntimeProjection = {
       ...projectOnboardingRuntime(runtimeState(7)),

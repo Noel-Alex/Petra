@@ -141,6 +141,31 @@ describe("app keyboard shortcut policy", () => {
   it("does not block a plain anchor without an href", () => {
     expect(isGlobalShortcutBlockedTarget(target("a"))).toBe(false);
   });
+
+  it("blocks recognized interactive roles inside fallback-token role lists", () => {
+    expect(
+      isGlobalShortcutBlockedTarget(target("div", { role: "unknown button" })),
+    ).toBe(true);
+    expect(
+      isGlobalShortcutBlockedTarget(target("div", { role: "switch checkbox" })),
+    ).toBe(true);
+    expect(
+      isGlobalShortcutBlockedTarget(
+        target("div", { role: "  TEXTBOX   unknown " }),
+      ),
+    ).toBe(true);
+  });
+
+  it("ignores empty and all-unknown ARIA role tokens", () => {
+    expect(
+      isGlobalShortcutBlockedTarget(
+        target("div", { role: "unknown future-role" }),
+      ),
+    ).toBe(false);
+    expect(isGlobalShortcutBlockedTarget(target("div", { role: "   " }))).toBe(
+      false,
+    );
+  });
 });
 
 

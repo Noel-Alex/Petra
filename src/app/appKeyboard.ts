@@ -138,6 +138,7 @@ export function isGlobalShortcutBlockedTarget(target: unknown): boolean {
     return true;
   }
 
-  const role = candidate.getAttribute?.("role")?.trim().toLowerCase() ?? "";
-  return BLOCKED_ROLES.has(role);
+  const roles =
+    candidate.getAttribute?.("role")?.trim().toLowerCase().split(/\s+/) ?? [];
+  return roles.some((role) => BLOCKED_ROLES.has(role));
 }

@@ -523,6 +523,13 @@ button:hover {
   overflow: hidden;
 }
 
+.dish-overlay-legend__visual {
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+  min-width: 0;
+}
+
 .dish-overlay-copy {
   display: grid;
   gap: 0.06rem;
@@ -669,7 +676,7 @@ button:hover {
   font-size: var(--petra-type-metadata);
 }
 
-.dish-overlay-legend[data-transition-treatment="animate"] {
+.dish-overlay-legend__visual[data-transition-treatment="animate"] {
   animation: dish-overlay-reveal var(--overlay-motion-ms)
     var(--overlay-motion-easing) both;
 }

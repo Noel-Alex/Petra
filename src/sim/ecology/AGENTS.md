@@ -11,6 +11,7 @@
 - Shared resource/capacity allocation must remain independent of lineage iteration order.
 - `stepEcology()` must preflight the entire scientific domain before its first mutation. The raw dish mask is authoritative and must contain only exact `0 | 1` bytes; resource and every lineage-biomass channel must be exactly zero where `mask === 0`. In-mask values remain finite/non-negative. Malformed caller state fails atomically: no partial resource consumption, hidden off-mask science, or lineage change is allowed on validation failure.
 - Growth and death fluxes are computed from the same pre-step biomass. Same-step deaths do not create new capacity until the next ecology step. Changing that operator order is a numerical/model change requiring tests and replay/version review.
+- `localCapacity` is a pre-step scientific-state invariant, not only a growth/spread limiter. In-mask total lineage biomass that is materially above capacity must fail before mutation; never clip or renormalize it. Because lineage channels are stored as `Float32Array`, the validator permits only the aggregate IEEE-754 binary32 round-to-nearest representation bound (unit roundoff `2^-24` plus half-min-subnormal per channel). That tolerance is numerical storage policy, not biological headroom.
 - Coarse spread is an effective colony-front approximation, not literal single-cell motility.
 - No renderer/UI state may feed back into ecology authority.
 

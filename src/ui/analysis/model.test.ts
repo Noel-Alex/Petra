@@ -398,6 +398,27 @@ describe("lineage ancestry layout", () => {
     expect(lineages[1]!.createdAtHours).toBe(2);
   });
 
+  it("uses the shared lineage identity in standard and high-contrast analysis", () => {
+    const standard = buildLineageTree(lineages);
+    const highContrast = buildLineageTree(lineages, {
+      contrastMode: "high-contrast",
+    });
+
+    for (const node of standard.nodes) {
+      const high = highContrast.nodes.find(
+        (candidate) => candidate.lineageId === node.lineageId,
+      )!;
+      expect(high.appearanceToken).toBe(node.appearanceToken);
+      expect(high.patternToken).toBe(node.patternToken);
+      expect(high.contrastMode).toBe("high-contrast");
+      expect(high.strokeWidthScale).toBeGreaterThan(node.strokeWidthScale);
+    }
+
+    expect(
+      new Set(standard.nodes.map((node) => node.patternToken)).size,
+    ).toBeGreaterThan(1);
+  });
+
   it("keeps a single lineage created at zero on a non-negative time axis", () => {
     const layout = buildLineageTree([{
       lineageId: "L0",

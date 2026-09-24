@@ -72,3 +72,12 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Provenance icon tokens map through `PROVENANCE_ICON_MAP`; do not create a second evidence-icon vocabulary in components.
 - Icon geometry is visual-only and must never encode hidden simulator state, numeric magnitude, or biological confidence.
 - Keep Petra iconography original; do not trace or reproduce another studio's recognizable symbols or branded asset language.
+
+
+## Intervention preview semantics
+- Spatial intervention previews live in `src/ui/interventionPreview.ts` and are presentation-only until an authoritative simulator command accepts them.
+- Preview geometry uses normalized dish coordinates; adapters convert pointer/touch positions into that coordinate space without embedding renderer pixels in UI intent.
+- Exact parameter label, value, unit, and any valid range come from scenario/runtime authority. The preview layer validates supplied bounds but must not invent biological defaults or silently clamp invalid values.
+- A valid preview yields an `apply-intervention` **UI intent**, not a worker command. Until the authoritative protocol exposes the corresponding intervention command, adapters must not substitute `synthetic-pulse` or any other fixture command.
+- The preview outline and numeric readout must survive reduced/off motion. Pointer movement itself is not announced through a live region; provide an explicit Apply control and stable text readout for keyboard/touch users.
+- While a tool is active, its Escape-to-cancel handler gets first refusal before global playback Escape semantics. Enter may commit only when focus is not editing a value.

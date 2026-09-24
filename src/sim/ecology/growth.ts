@@ -319,7 +319,7 @@ function spread(
         throw new Error('spread outgoing flux exceeds source biomass')
       }
       const next = source[index]! - sent + incoming[index]!
-      if (!Number.isFinite(next) || next < -capacityTolerance) {
+      if (!Number.isFinite(next) || next < 0) {
         throw new Error('spread produced invalid lineage biomass')
       }
       lineage[index] = next

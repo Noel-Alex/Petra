@@ -1,3 +1,4 @@
+import { assertEcologyLocalCapacity } from './ecology/capacity'
 import { stepEcology } from './ecology/growth'
 import type {
   EcologyState,
@@ -106,6 +107,36 @@ function validateMaskedDomain(
   }
 }
 
+function validateLocalCapacityDomain(
+  name: string,
+  mask: readonly number[],
+  lineageBiomass: readonly (readonly number[])[],
+  localCapacity: number,
+): void {
+  for (let index = 0; index < mask.length; index += 1) {
+    if (mask[index] !== 1) continue
+
+    let totalBiomass = 0
+    for (const channel of lineageBiomass) {
+      totalBiomass += channel[index]!
+    }
+
+    try {
+      assertEcologyLocalCapacity(
+        totalBiomass,
+        localCapacity,
+        lineageBiomass.length,
+        index,
+      )
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`${name}: ${error.message}`)
+      }
+      throw error
+    }
+  }
+}
+
 function sumInMask(
   values: readonly number[],
   mask: readonly number[],
@@ -209,6 +240,12 @@ function validateConfig(config: ComposedSimulationConfig): void {
     config.mask,
     config.initialResource,
     config.initialLineageBiomass,
+  )
+  validateLocalCapacityDomain(
+    'initial composed state',
+    config.mask,
+    config.initialLineageBiomass,
+    config.growth.localCapacity,
   )
   config.lineages.forEach((lineage) => {
     finiteNonNegative(
@@ -346,6 +383,12 @@ function validateStateAgainstConfig(
     state.mask,
     state.resource,
     state.lineageBiomass,
+  )
+  validateLocalCapacityDomain(
+    'composed state',
+    state.mask,
+    state.lineageBiomass,
+    config.growth.localCapacity,
   )
 }
 

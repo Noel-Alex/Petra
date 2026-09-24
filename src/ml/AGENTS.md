@@ -40,3 +40,12 @@ A surrogate is not product-eligible until it has a versioned dataset, leakage-sa
 ## Verification
 
 Pure dataset/split/OOD/mode-gate/benchmark helpers require deterministic unit tests. Training quality, held-out metrics, latency, and accelerator claims require actual measured evidence and may not be inferred from source structure.
+
+
+## Mechanistic sweep planning
+- `src/ml/sweep.ts` plans future authoritative trajectories only; it never fabricates samples, runs surrogate inference, or substitutes for the mechanistic engine.
+- Parameter-set hashes and intervention fingerprints are supplied by the authoritative scenario/runner layer. The ML planner treats them as identities and must not invent biological values.
+- The leakage boundary is the scenario + parameter-set hash + intervention fingerprint. Every seed replica in that group must remain in one split.
+- Equivalent parameter hashes or intervention fingerprints may not be duplicated under different display ids because that could let equivalent biological conditions cross split boundaries.
+- Sweep definitions require an explicit `maxTrajectories` budget. Refuse oversized Cartesian products before execution rather than silently launching an unbounded local/cloud workload.
+- Dataset-generation manifests record plan/dataset/engine/scenario/split-policy identity plus stable trajectory keys. They are execution provenance, not evidence that the trajectories were actually simulated.

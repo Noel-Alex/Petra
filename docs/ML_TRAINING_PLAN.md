@@ -77,7 +77,7 @@ Sampling strategy:
 
 Avoid leakage where snapshots from one trajectory land in both training and validation.
 
-Implementation contract: `src/ml/dataset.ts` assigns splits deterministically at the declared parameter/scenario **group** boundary, deliberately excluding snapshot time/index and seed from the split hash. `src/ml/runtime.ts` owns the optional Emulated-mode feature/promotion/OOD gate. These helpers are infrastructure only; they do not mean a surrogate has been trained or promoted.
+Implementation contract: `src/ml/dataset.ts` assigns splits deterministically at the declared parameter/scenario **group** boundary, deliberately excluding snapshot time/index and seed from the split hash. `src/ml/sweep.ts` expands caller-declared parameter points × intervention families × stochastic seeds into stable future mechanistic trajectory tasks, keeps every replica of an equivalent parameter/intervention group in one split, and emits a versioned generation manifest. An explicit trajectory cap is required before expansion. The sweep planner does not generate synthetic biology or imply the composed mechanistic engine is ready. `src/ml/runtime.ts` owns the optional Emulated-mode feature/promotion/OOD gate. These helpers are infrastructure only; they do not mean a surrogate has been trained or promoted.
 
 ## Targets and losses
 

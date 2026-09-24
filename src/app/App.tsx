@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { PLAYBACK_SPEEDS } from "../ui/experimentControls";
 import {
   loadMotionSetting,
   parseMotionSetting,
@@ -9,6 +10,10 @@ import {
 import { planSurfaceTransition } from "../ui/motion/semanticTransitions";
 import { surfaceMotionCss } from "./motionAdapter";
 import { DishViewport } from "./DishViewport";
+import {
+  useExperimentRuntime,
+  type ExperimentRuntimeFactory,
+} from "./useExperimentRuntime";
 
 function useSystemReducedMotion(): boolean {
   const [reduced, setReduced] = useState(() =>
@@ -30,8 +35,13 @@ function useSystemReducedMotion(): boolean {
   return reduced;
 }
 
-export function App() {
+export interface AppProps {
+  readonly runtimeFactory?: ExperimentRuntimeFactory;
+}
+
+export function App({ runtimeFactory }: AppProps) {
   const systemReduced = useSystemReducedMotion();
+  const experiment = useExperimentRuntime(runtimeFactory);
   const [motionSetting, setMotionSetting] = useState<MotionSetting>(() => {
     try {
       return loadMotionSetting(globalThis.localStorage);
@@ -146,15 +156,59 @@ export function App() {
       </section>
 
       <footer className="timeline-shell" aria-label="Simulation timeline">
-        <div>
-          <p className="petra-kicker">Timeline</p>
-          <strong>00:00 simulation time</strong>
+        <div className="timeline-summary">
+          <div>
+            <p className="petra-kicker">Timeline</p>
+            <strong>{experiment.view.simulationTimeLabel}</strong>
+          </div>
+          <span
+            className="runtime-status"
+            data-runtime-status={experiment.view.status}
+            role={experiment.view.statusRole}
+            aria-live="polite"
+          >
+            {experiment.view.statusText}
+          </span>
         </div>
+
+        {experiment.view.timeline.length > 0 ? (
+          <ol className="timeline-events" aria-label="Authoritative simulation events">
+            {experiment.view.timeline.slice(-4).map((entry) => (
+              <li key={entry.id}>
+                <span>{entry.label}</span>
+                <time>{entry.simulationTimeHours.toFixed(2)} h</time>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="timeline-empty">No authoritative events yet</p>
+        )}
+
         <div className="timeline-controls">
-          <button type="button">Pause</button>
-          <button type="button">1×</button>
-          <button type="button">4×</button>
-          <button type="button">16×</button>
+          <button
+            type="button"
+            disabled={!experiment.view.canTogglePlayback}
+            onClick={() => {
+              experiment.dispatch({
+                type: experiment.view.playing ? "pause" : "play",
+              });
+            }}
+          >
+            {experiment.view.playing ? "Pause" : "Play"}
+          </button>
+          {PLAYBACK_SPEEDS.map((speed) => (
+            <button
+              key={speed}
+              type="button"
+              aria-pressed={experiment.view.speed === speed}
+              disabled={!experiment.view.canChangeSpeed}
+              onClick={() => {
+                experiment.dispatch({ type: "set-speed", speed });
+              }}
+            >
+              {speed}×
+            </button>
+          ))}
         </div>
       </footer>
     </main>

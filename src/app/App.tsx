@@ -8,8 +8,10 @@ import {
   type MotionSetting,
 } from "../ui/motion/preference";
 import { planSurfaceTransition } from "../ui/motion/semanticTransitions";
-import { surfaceMotionCss } from "./motionAdapter";
+import { ProvenancePanel } from "../ui/provenance/ProvenancePanel";
 import { DishViewport } from "./DishViewport";
+import { buildFlagshipProvenanceView } from "./flagshipProvenance";
+import { surfaceMotionCss } from "./motionAdapter";
 import {
   useExperimentRuntime,
   type ExperimentRuntimeFactory,
@@ -22,9 +24,7 @@ function useSystemReducedMotion(): boolean {
 
   useEffect(() => {
     const query = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)");
-    if (query === undefined) {
-      return;
-    }
+    if (query === undefined) return;
 
     const update = () => setReduced(query.matches);
     update();
@@ -42,6 +42,7 @@ export interface AppProps {
 export function App({ runtimeFactory }: AppProps) {
   const systemReduced = useSystemReducedMotion();
   const experiment = useExperimentRuntime(runtimeFactory);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
   const [motionSetting, setMotionSetting] = useState<MotionSetting>(() => {
     try {
       return loadMotionSetting(globalThis.localStorage);
@@ -49,6 +50,7 @@ export function App({ runtimeFactory }: AppProps) {
       return "system";
     }
   });
+  const provenance = useMemo(() => buildFlagshipProvenanceView(), []);
 
   const motionPreference = resolveMotionSetting({
     setting: motionSetting,
@@ -105,11 +107,27 @@ export function App({ runtimeFactory }: AppProps) {
               <option value="off">Off</option>
             </select>
           </label>
-          <button type="button" className="ghost-button">
-            Sources
+          <button
+            type="button"
+            className="ghost-button"
+            aria-expanded={sourcesOpen}
+            aria-controls="petra-sources-panel"
+            onClick={() => setSourcesOpen((open) => !open)}
+          >
+            {sourcesOpen ? "Close sources" : "Sources"}
           </button>
         </div>
       </header>
+
+      {sourcesOpen ? (
+        <section id="petra-sources-panel" className="petra-sources-surface">
+          <ProvenancePanel
+            records={provenance.records}
+            assumptions={provenance.assumptions}
+            title="Flagship sources & assumptions"
+          />
+        </section>
+      ) : null}
 
       <section className="petra-workspace" aria-label="Experiment workspace">
         <aside className="petra-panel petra-panel--tools" aria-label="Interventions">

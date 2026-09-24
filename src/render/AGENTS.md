@@ -77,7 +77,7 @@ Pure render-model helpers get deterministic unit tests. Browser/GPU/FPS claims r
 
 
 ## Replay / scrub presentation
-- `src/render/replayPresentation.ts` projects an ordered history of authoritative `DishRenderSnapshot` keyframes into a deterministic dish presentation for a requested simulation-time position. It never creates simulator events, checkpoints, commands, or scientific readouts.
+- `src/render/replayPresentation.ts` projects an ordered history of authoritative `DishRenderSnapshot` keyframes into a deterministic dish presentation for a requested simulation-time position. Interactive adapters create one presenter per snapshot history so validation happens once and the active adjacent-keyframe transition reuses preallocated buffers. It never creates simulator events, checkpoints, commands, or scientific readouts.
 - Exact keyframes remain authoritative. Values between compatible keyframes are explicitly `presentation-only` and reuse `visualInterpolation.ts` through normalized progress so replay output is independent of frame cadence.
 - Snapshot history must have unique snapshot IDs and strictly increasing authoritative simulation times. Ambiguous same-time keyframes fail closed until runtime authority supplies a stronger ordering identity; adapters must not silently sort, deduplicate, or use array order as scientific authority.
 - When interpolation is disabled or the visual-compatibility planner rejects a pair, replay snaps to the previous authoritative keyframe rather than showing future state early or fabricating a morph.

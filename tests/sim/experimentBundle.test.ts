@@ -336,6 +336,57 @@ describe('experiment export bundle', () => {
     )
   })
 
+  it('rejects extra checkpoint fields and malformed nested biological metrics', () => {
+    const identity = createRunIdentity({
+      scenarioId: evolutionGraph.scenarioId,
+      scenarioVersion: evolutionGraph.scenarioVersion,
+      parameterSetId: binding.parameterSetId,
+      parameterSetVersion: binding.parameterSetVersion,
+      parameterSetBinding: binding,
+      seed: 23,
+    })
+    const origin = new ComposedSimulationEngine(identity, config).snapshot()
+    const metric = extractAuthoritativeMetricSample({
+      checkpoint: origin.checkpoint,
+      samplingPolicy: { version: 1, everyTicks: 1, offsetTicks: 0 },
+      resistantGenotypeIds: ['VAR'],
+    })
+    const bundle = createExperimentBundle({
+      originCheckpoint: origin.checkpoint,
+      composedConfig: config,
+      commands: [],
+      metrics: [metric],
+    })
+
+    const checkpointExtra = structuredClone(bundle) as unknown as {
+      replay: { originCheckpoint: Record<string, unknown> }
+    }
+    checkpointExtra.replay.originCheckpoint.rendererFrame = 7
+    expect(() =>
+      validateExperimentBundle(checkpointExtra as never),
+    ).toThrowError(
+      expect.objectContaining({
+        code: 'checkpoint-invalid',
+      }),
+    )
+
+    const badMetric = structuredClone(bundle) as unknown as {
+      evidence: {
+        metrics: Array<{
+          lineages: Array<{ biomass: number }>
+        }>
+      }
+    }
+    badMetric.evidence.metrics[0]!.lineages[0]!.biomass = -1
+    expect(() =>
+      validateExperimentBundle(badMetric as never),
+    ).toThrowError(
+      expect.objectContaining({
+        code: 'evidence-invalid',
+      }),
+    )
+  })
+
   it('returns explicit malformed-json errors on import', () => {
     expect(() => parseExperimentBundle('{not-json')).toThrowError(
       expect.objectContaining<Partial<ExperimentBundleError>>({

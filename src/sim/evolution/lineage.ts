@@ -38,6 +38,7 @@ export class LineageRegistry {
 
   create(origin: LineageOrigin): LineageRecord {
     assertOrigin(origin)
+    this.assertEventTimeOrder(origin.createdAtHours)
 
     if (origin.parentLineageId !== null) {
       const parent = this.records.get(origin.parentLineageId)
@@ -70,6 +71,7 @@ export class LineageRegistry {
       throw new Error('extinction time must be finite and no earlier than lineage creation')
     }
     if (record.extinctAtHours !== null) return
+    this.assertEventTimeOrder(timeHours)
     record.extinctAtHours = timeHours
     this.events.push({ kind: 'lineage-extinct', lineageId, timeHours })
   }
@@ -85,6 +87,13 @@ export class LineageRegistry {
 
   eventLog(): readonly LineageEvent[] {
     return this.events.map(cloneEvent)
+  }
+
+  private assertEventTimeOrder(timeHours: number): void {
+    const previous = this.events.at(-1)
+    if (previous !== undefined && timeHours < previous.timeHours) {
+      throw new Error('lineage event time cannot precede the previously emitted event')
+    }
   }
 
   /**
@@ -194,6 +203,7 @@ function validateCheckpoint(checkpoint: LineageRegistryCheckpoint): void {
   const created = new Set<string>()
   const extinct = new Set<string>()
 
+  let previousEventTime = -Infinity
   checkpoint.events.forEach((rawEvent, index) => {
     const event = decodeCheckpointEvent(rawEvent, index)
 
@@ -206,6 +216,10 @@ function validateCheckpoint(checkpoint: LineageRegistryCheckpoint): void {
     if (!Number.isFinite(event.timeHours) || event.timeHours < 0) {
       throw new Error(`lineage checkpoint event ${index} has invalid time`)
     }
+    if (event.timeHours < previousEventTime) {
+      throw new Error(`lineage checkpoint event ${index} backdates authoritative event order`)
+    }
+    previousEventTime = event.timeHours
 
     if (event.kind === 'lineage-created') {
       if (created.has(event.lineageId)) {

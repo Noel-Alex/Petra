@@ -1,0 +1,42 @@
+{
+  "command": [
+    "python",
+    "experiments/blocked.py",
+    "--experiment-id",
+    "ml-mechanistic-dataset",
+    "--blocked-on",
+    "37",
+    "--blocked-on",
+    "531",
+    "--reason",
+    "Issue #37 must provide authoritative trajectories and #531 must provide the durable dataset-generation contract before broad local generation starts."
+  ],
+  "compact_result": {
+    "blocked_on_issues": [
+      37,
+      531
+    ],
+    "experiment_id": "ml-mechanistic-dataset",
+    "next_action": "Land the listed prerequisite issue(s), then replace this gate command with the real experiment helper while preserving the stable experiment id.",
+    "reason": "Issue #37 must provide authoritative trajectories and #531 must provide the durable dataset-generation contract before broad local generation starts.",
+    "schema_version": 1,
+    "status": "blocked"
+  },
+  "cwd": ".",
+  "description": "BLOCKED on #37 and #531: broad authoritative mechanistic sweep generation; bulky datasets remain local.",
+  "duration_seconds": 0.075598,
+  "error": null,
+  "id": "ml-mechanistic-dataset",
+  "issues": [
+    13,
+    37,
+    442,
+    531,
+    542
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260924T185028185418Z\\ml-mechanistic-dataset\\artifacts",
+  "log_tail": "ml-mechanistic-dataset: BLOCKED on #37, #531\r\nIssue #37 must provide authoritative trajectories and #531 must provide the durable dataset-generation contract before broad local generation starts.\r\n",
+  "return_code": 2,
+  "status": "failed",
+  "timeout_seconds": 30
+}

@@ -1,0 +1,44 @@
+{
+  "command": [
+    "python",
+    "tools/expo_browser_acceptance.py"
+  ],
+  "compact_result": {
+    "browser_executable": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "checks": [
+      {
+        "detail": "FileNotFoundError(2, 'The system cannot find the file specified', None, 2, None)",
+        "name": "harness execution",
+        "status": "fail"
+      }
+    ],
+    "evidence_boundary": "Headless browser evidence checks layout, accessibility plumbing, motion modes, input smoke, screenshots, representative renderer frame/redraw time, WebGL draw-call counts from a separate profiled redraw workload, Chromium heap/DOM trends, and long-task/GC symptoms where exposed. The GPU record is explicitly a canvas/capability proxy, not measured VRAM. Human visible-browser review remains required for final aesthetic judgment; this run does not validate scientific correctness or simulator throughput.",
+    "kind": "petra-expo-browser-acceptance",
+    "schema_version": 1,
+    "summary": {
+      "blocked": 0,
+      "fail": 1,
+      "pass": 0
+    },
+    "target_url": "http://127.0.0.1:4173/"
+  },
+  "cwd": ".",
+  "description": "Headless Chrome/Chromium expo QA for layout, motion modes, keyboard/touch smoke, accessibility, screenshots, and frame timing.",
+  "duration_seconds": 0.181016,
+  "error": null,
+  "id": "expo-browser-acceptance",
+  "issues": [
+    6,
+    10,
+    59,
+    468,
+    500,
+    577,
+    642
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260924T185028185418Z\\expo-browser-acceptance\\artifacts",
+  "log_tail": "{\"blocked\": 0, \"fail\": 1, \"pass\": 0}\r\n",
+  "return_code": 1,
+  "status": "failed",
+  "timeout_seconds": 300
+}

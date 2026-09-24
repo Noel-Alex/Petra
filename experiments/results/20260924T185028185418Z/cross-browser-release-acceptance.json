@@ -1,0 +1,41 @@
+{
+  "command": [
+    "python",
+    "tools/cross_browser_acceptance.py"
+  ],
+  "compact_result": {
+    "browsers": [],
+    "build": {
+      "error": "[WinError 2] The system cannot find the file specified",
+      "log": "N:\\projects\\Petra\\.petra_local\\runs\\20260924T185028185418Z\\cross-browser-release-acceptance\\artifacts\\release-build.log",
+      "return_code": null,
+      "status": "fail"
+    },
+    "deep_chromium": null,
+    "evidence_boundary": "Release build failed; no browser compatibility claim is possible.",
+    "kind": "petra-cross-browser-release-acceptance",
+    "platform": "Windows-11-10.0.22631-SP0",
+    "schema_version": 1,
+    "summary": {
+      "blocked": 0,
+      "fail": 1,
+      "pass": 0,
+      "unavailable": 0
+    }
+  },
+  "cwd": ".",
+  "description": "Build-release compatibility matrix: deep Chromium acceptance plus Firefox and Safari/WebKit smoke when local automation is available.",
+  "duration_seconds": 0.159547,
+  "error": null,
+  "id": "cross-browser-release-acceptance",
+  "issues": [
+    59,
+    532,
+    643
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260924T185028185418Z\\cross-browser-release-acceptance\\artifacts",
+  "log_tail": "{\"blocked\": 0, \"fail\": 1, \"pass\": 0, \"unavailable\": 0}\r\n",
+  "return_code": 1,
+  "status": "failed",
+  "timeout_seconds": 900
+}

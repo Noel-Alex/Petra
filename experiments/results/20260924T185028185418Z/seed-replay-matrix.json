@@ -1,0 +1,28 @@
+{
+  "command": [
+    "npm",
+    "exec",
+    "--offline",
+    "--",
+    "vitest",
+    "run",
+    "--config",
+    "experiments/vitest.seed_replay_matrix.config.ts"
+  ],
+  "compact_result": null,
+  "cwd": ".",
+  "description": "Fixed-seed authoritative composed replay matrix covering genesis trace equality, checkpoint continuation, and cross-seed restore refusal.",
+  "duration_seconds": 0.00716,
+  "error": "[WinError 2] The system cannot find the file specified",
+  "id": "seed-replay-matrix",
+  "issues": [
+    5,
+    37,
+    542
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260924T185028185418Z\\seed-replay-matrix\\artifacts",
+  "log_tail": "",
+  "return_code": null,
+  "status": "error",
+  "timeout_seconds": 1800
+}

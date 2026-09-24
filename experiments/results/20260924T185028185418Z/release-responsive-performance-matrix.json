@@ -1,0 +1,37 @@
+{
+  "command": [
+    "python",
+    "experiments/blocked.py",
+    "--experiment-id",
+    "release-responsive-performance-matrix",
+    "--blocked-on",
+    "532",
+    "--reason",
+    "Issue #532 must establish the release candidate/build target before the final responsive performance matrix can measure the deliverable."
+  ],
+  "compact_result": {
+    "blocked_on_issues": [
+      532
+    ],
+    "experiment_id": "release-responsive-performance-matrix",
+    "next_action": "Land the listed prerequisite issue(s), then replace this gate command with the real experiment helper while preserving the stable experiment id.",
+    "reason": "Issue #532 must establish the release candidate/build target before the final responsive performance matrix can measure the deliverable.",
+    "schema_version": 1,
+    "status": "blocked"
+  },
+  "cwd": ".",
+  "description": "BLOCKED on #532: target/narrow viewports, motion modes, and representative redraw performance.",
+  "duration_seconds": 0.068415,
+  "error": null,
+  "id": "release-responsive-performance-matrix",
+  "issues": [
+    59,
+    532,
+    542
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260924T185028185418Z\\release-responsive-performance-matrix\\artifacts",
+  "log_tail": "release-responsive-performance-matrix: BLOCKED on #532\r\nIssue #532 must establish the release candidate/build target before the final responsive performance matrix can measure the deliverable.\r\n",
+  "return_code": 2,
+  "status": "failed",
+  "timeout_seconds": 30
+}

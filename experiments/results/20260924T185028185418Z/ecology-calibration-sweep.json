@@ -1,0 +1,30 @@
+{
+  "command": [
+    "npm",
+    "exec",
+    "--offline",
+    "--",
+    "vitest",
+    "run",
+    "--config",
+    "experiments/vitest.ecology_calibration_sweep.config.ts"
+  ],
+  "compact_result": null,
+  "cwd": ".",
+  "description": "Engineering-profile qualitative-identifiability and self-reference sensitivity sweep; explicitly non-promotable without independent targets.",
+  "duration_seconds": 0.006815,
+  "error": "[WinError 2] The system cannot find the file specified",
+  "id": "ecology-calibration-sweep",
+  "issues": [
+    3,
+    227,
+    494,
+    542,
+    657
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260924T185028185418Z\\ecology-calibration-sweep\\artifacts",
+  "log_tail": "",
+  "return_code": null,
+  "status": "error",
+  "timeout_seconds": 1800
+}

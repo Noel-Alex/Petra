@@ -1,0 +1,81 @@
+{
+  "command": [
+    "python",
+    "tools/offline_expo_acceptance.py"
+  ],
+  "compact_result": {
+    "browser_executable": null,
+    "browser_version": null,
+    "build": {
+      "error": "[WinError 2] The system cannot find the file specified",
+      "log": "N:\\projects\\Petra\\.petra_local\\runs\\20260924T185028185418Z\\offline-expo-rehearsal\\artifacts\\release-build.log",
+      "return_code": null,
+      "status": "fail"
+    },
+    "checks": [
+      {
+        "detail": {
+          "error": "[WinError 2] The system cannot find the file specified",
+          "log": "N:\\projects\\Petra\\.petra_local\\runs\\20260924T185028185418Z\\offline-expo-rehearsal\\artifacts\\release-build.log",
+          "return_code": null,
+          "status": "fail"
+        },
+        "name": "production build succeeds",
+        "status": "fail"
+      },
+      {
+        "detail": "N:\\projects\\Petra\\package-lock.json",
+        "name": "reproducible clean-install lockfile",
+        "status": "pass"
+      },
+      {
+        "detail": "Blocked until the authoritative flagship/intervention path and final release flow are frozen (#37/#580).",
+        "name": "final 90-second flagship flow offline",
+        "status": "blocked"
+      },
+      {
+        "detail": "No optional-online product surface is declared yet; re-evaluate before final #580 rehearsal.",
+        "name": "optional online features degrade explicitly",
+        "status": "blocked"
+      }
+    ],
+    "evidence_boundary": "This is a current-build offline preflight, not the final expo rehearsal. It proves the built SPA can start/reload/navigate from a loopback static server with external hostname resolution blocked; page HTTP(S) requests are intercepted so non-loopback attempts fail before loading, and observed runtime resources are also audited. It does not prove the unfinished 90-second authoritative intervention flow, user-triggered citation links, or future optional online features.",
+    "git_commit": "44db7344bfc8f5bc8e324d3c4e0dd0a4063c1f36",
+    "kind": "petra-offline-expo-acceptance",
+    "network_policy": {
+      "browser_background_networking": "disabled",
+      "external_hostname_resolution": "mapped to 0.0.0.0 in fresh Chromium profile",
+      "loopback_http_allowed": true,
+      "page_http_https": "CDP Fetch continues loopback and fails non-loopback with BlockedByClient"
+    },
+    "observed_network_attempts": [],
+    "observed_resources": [],
+    "package_version": "0.1.0",
+    "platform": "Windows-11-10.0.22631-SP0",
+    "schema_version": 1,
+    "static_dependency_audit": null,
+    "summary": {
+      "blocked": 2,
+      "fail": 1,
+      "pass": 1
+    }
+  },
+  "cwd": ".",
+  "description": "Current-build offline/no-external-network preflight; final frozen 90-second/3-minute rehearsal remains #580.",
+  "duration_seconds": 0.219475,
+  "error": null,
+  "id": "offline-expo-rehearsal",
+  "issues": [
+    11,
+    37,
+    532,
+    542,
+    557,
+    580
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260924T185028185418Z\\offline-expo-rehearsal\\artifacts",
+  "log_tail": "{\"blocked\": 2, \"fail\": 1, \"pass\": 1}\r\n",
+  "return_code": 1,
+  "status": "failed",
+  "timeout_seconds": 600
+}

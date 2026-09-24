@@ -1,0 +1,39 @@
+{
+  "command": [
+    "python",
+    "experiments/blocked.py",
+    "--experiment-id",
+    "ml-aggregate-benchmark",
+    "--blocked-on",
+    "544",
+    "--reason",
+    "Issue #544 must publish the first authoritative group-split mechanistic dataset evidence before #545 can run reproducible held-out aggregate model benchmarking."
+  ],
+  "compact_result": {
+    "blocked_on_issues": [
+      544
+    ],
+    "experiment_id": "ml-aggregate-benchmark",
+    "next_action": "Land the listed prerequisite issue(s), then replace this gate command with the real experiment helper while preserving the stable experiment id.",
+    "reason": "Issue #544 must publish the first authoritative group-split mechanistic dataset evidence before #545 can run reproducible held-out aggregate model benchmarking.",
+    "schema_version": 1,
+    "status": "blocked"
+  },
+  "cwd": ".",
+  "description": "BLOCKED on #544: aggregate baseline/candidate training and held-out evaluation after the first authoritative dataset exists.",
+  "duration_seconds": 0.069518,
+  "error": null,
+  "id": "ml-aggregate-benchmark",
+  "issues": [
+    13,
+    531,
+    544,
+    545,
+    542
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260924T185028185418Z\\ml-aggregate-benchmark\\artifacts",
+  "log_tail": "ml-aggregate-benchmark: BLOCKED on #544\r\nIssue #544 must publish the first authoritative group-split mechanistic dataset evidence before #545 can run reproducible held-out aggregate model benchmarking.\r\n",
+  "return_code": 2,
+  "status": "failed",
+  "timeout_seconds": 30
+}

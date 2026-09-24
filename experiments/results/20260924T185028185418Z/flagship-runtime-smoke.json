@@ -1,0 +1,37 @@
+{
+  "command": [
+    "python",
+    "experiments/blocked.py",
+    "--experiment-id",
+    "flagship-runtime-smoke",
+    "--blocked-on",
+    "37",
+    "--reason",
+    "Issue #37 must land the authoritative composed worker/runtime path before this smoke can exercise real authority."
+  ],
+  "compact_result": {
+    "blocked_on_issues": [
+      37
+    ],
+    "experiment_id": "flagship-runtime-smoke",
+    "next_action": "Land the listed prerequisite issue(s), then replace this gate command with the real experiment helper while preserving the stable experiment id.",
+    "reason": "Issue #37 must land the authoritative composed worker/runtime path before this smoke can exercise real authority.",
+    "schema_version": 1,
+    "status": "blocked"
+  },
+  "cwd": ".",
+  "description": "BLOCKED on #37: composed scenario init/advance/intervention/checkpoint/restore/replay smoke.",
+  "duration_seconds": 0.077081,
+  "error": null,
+  "id": "flagship-runtime-smoke",
+  "issues": [
+    37,
+    42,
+    542
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260924T185028185418Z\\flagship-runtime-smoke\\artifacts",
+  "log_tail": "flagship-runtime-smoke: BLOCKED on #37\r\nIssue #37 must land the authoritative composed worker/runtime path before this smoke can exercise real authority.\r\n",
+  "return_code": 2,
+  "status": "failed",
+  "timeout_seconds": 30
+}

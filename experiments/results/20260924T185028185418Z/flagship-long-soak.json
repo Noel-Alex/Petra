@@ -1,0 +1,30 @@
+{
+  "command": [
+    "npm",
+    "exec",
+    "--offline",
+    "--",
+    "vitest",
+    "run",
+    "--config",
+    "experiments/vitest.flagship_long_soak.config.ts"
+  ],
+  "compact_result": null,
+  "cwd": ".",
+  "description": "Multi-seed authoritative composed-engine soak with invariant, replay-continuation, memory, event-growth, and throughput evidence.",
+  "duration_seconds": 0.007833,
+  "error": "[WinError 2] The system cannot find the file specified",
+  "id": "flagship-long-soak",
+  "issues": [
+    3,
+    5,
+    37,
+    542,
+    558
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260924T185028185418Z\\flagship-long-soak\\artifacts",
+  "log_tail": "",
+  "return_code": null,
+  "status": "error",
+  "timeout_seconds": 3600
+}

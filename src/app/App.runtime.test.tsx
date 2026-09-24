@@ -13,6 +13,9 @@ describe("App authoritative runtime boundary", () => {
     expect(html).toContain('id="petra-sources-trigger"');
     expect(html).toContain('aria-controls="petra-sources-panel"');
     expect(html).toContain('aria-expanded="false"');
+    expect(html.match(/data-announcement-presentation="none"/g)).toHaveLength(1);
+    expect(html).toContain('aria-atomic="true"');
+    expect(html).not.toContain("Lineage change recorded");
     expect(html).toContain('data-intervention-capability="runtime-unavailable"');
     expect(html).toContain(
       "Authoritative simulation is not connected. Intervention tools remain unavailable.",

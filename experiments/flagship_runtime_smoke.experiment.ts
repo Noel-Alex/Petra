@@ -4,6 +4,10 @@ import { dirname } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import type { ComposedSimulationConfig } from '../src/sim/authoritative'
+import {
+  CIPROFLOXACIN_INTERVENTION_SCHEMA_VERSION,
+} from '../src/sim/ciprofloxacinIntervention'
 import { ComposedSimulationEngine } from '../src/sim/composedEngine'
 import {
   buildFlagshipComposedRunPlan,
@@ -16,7 +20,6 @@ import type {
 } from '../src/sim/protocol'
 
 const EXPERIMENT_ID = 'flagship-runtime-smoke'
-const REMAINING_BLOCKER_ISSUE = 626
 const SEED = 0x5eed717
 
 const ENGINEERING_INITIALIZATION = Object.freeze({
@@ -31,8 +34,11 @@ const ENGINEERING_INITIALIZATION = Object.freeze({
   ]),
 })
 
-const PREINTERVENTION_TRACE = Object.freeze([
+const PREFIX_TRACE = Object.freeze([
   Object.freeze({ id: 'runtime-smoke-advance-0', type: 'advance', ticks: 1 }),
+] satisfies readonly SimulationCommand[])
+
+const SUFFIX_TRACE = Object.freeze([
   Object.freeze({ id: 'runtime-smoke-advance-1', type: 'advance', ticks: 7 }),
 ] satisfies readonly SimulationCommand[])
 
@@ -84,28 +90,116 @@ function requireComposedSnapshot(
   )
 }
 
-describe.sequential('flagship runtime smoke preparation', () => {
-  it('proves composed init, advance, checkpoint restore, and exact replay before intervention activation', () => {
+function ciprofloxacinCommand(
+  config: ComposedSimulationConfig,
+): Extract<SimulationCommand, { type: 'apply-ciprofloxacin' }> {
+  const wtMic = config.ciprofloxacin?.genotypeMicMgPerL.find(
+    (entry) => entry.genotypeId === 'WT',
+  )?.micMgPerL
+
+  assert.ok(
+    wtMic !== undefined && Number.isFinite(wtMic) && wtMic > 0,
+    'flagship runtime smoke requires positive source-backed WT ciprofloxacin MIC authority',
+  )
+
+  return {
+    id: 'runtime-smoke-ciprofloxacin',
+    type: 'apply-ciprofloxacin',
+    intervention: {
+      schemaVersion: CIPROFLOXACIN_INTERVENTION_SCHEMA_VERSION,
+      concentrationMgPerL: wtMic,
+      concentrationUnit: 'mg/L',
+      blendMode: 'set',
+      geometry: { kind: 'global' },
+    },
+  }
+}
+
+function assertAcceptedIntervention(
+  before: ComposedSimulationSnapshot,
+  after: ComposedSimulationSnapshot,
+  command: Extract<SimulationCommand, { type: 'apply-ciprofloxacin' }>,
+  mask: readonly number[],
+): void {
+  assert.equal(after.checkpoint.tick, before.checkpoint.tick)
+  assert.equal(
+    after.checkpoint.simulationTimeHours,
+    before.checkpoint.simulationTimeHours,
+  )
+  assert.equal(
+    after.checkpoint.commandCount,
+    before.checkpoint.commandCount + 1,
+  )
+  assert.deepStrictEqual(after.events.at(-1), {
+    sequence: before.events.length,
+    tick: before.checkpoint.tick,
+    simulationTimeHours: before.checkpoint.simulationTimeHours,
+    type: 'ciprofloxacin-applied',
+    commandId: command.id,
+    intervention: command.intervention,
+  })
+
+  const concentration =
+    after.checkpoint.composedState.ciprofloxacinConcentrationMgPerL
+  let inMaskCells = 0
+  let exposedCells = 0
+  for (let index = 0; index < mask.length; index += 1) {
+    if (mask[index] === 1) {
+      inMaskCells += 1
+      if (concentration[index]! > 0) exposedCells += 1
+    } else {
+      assert.equal(
+        concentration[index],
+        0,
+        'accepted global ciprofloxacin command must not write outside authoritative mask',
+      )
+    }
+  }
+  assert.equal(
+    exposedCells,
+    inMaskCells,
+    'accepted global ciprofloxacin command must expose every authoritative in-mask cell',
+  )
+}
+
+describe.sequential('flagship runtime smoke', () => {
+  it('proves composed intervention, checkpoint restore, and exact replay', () => {
     const startedAt = new Date().toISOString()
     const plan = buildFlagshipComposedRunPlan(initialization())
+    const intervention = ciprofloxacinCommand(plan.config)
+    const commandTrace = Object.freeze([
+      ...PREFIX_TRACE,
+      intervention,
+      ...SUFFIX_TRACE,
+    ] satisfies readonly SimulationCommand[])
 
     try {
       const direct = new ComposedSimulationEngine(plan.identity, plan.config)
       const initial = direct.snapshot()
       requireComposedSnapshot('initial snapshot', initial)
 
-      const first = direct.execute(PREINTERVENTION_TRACE[0]!)
-      requireComposedSnapshot('first advance', first)
+      const preIntervention = direct.execute(PREFIX_TRACE[0]!)
+      requireComposedSnapshot('pre-intervention advance', preIntervention)
       const midpointCheckpoint: ComposedSimulationCheckpoint =
-        structuredClone(first.checkpoint)
+        structuredClone(preIntervention.checkpoint)
 
-      const final = direct.execute(PREINTERVENTION_TRACE[1]!)
-      requireComposedSnapshot('second advance', final)
+      const applied = direct.execute(intervention)
+      requireComposedSnapshot('accepted ciprofloxacin intervention', applied)
+      assertAcceptedIntervention(
+        preIntervention,
+        applied,
+        intervention,
+        plan.config.mask,
+      )
+
+      const final = direct.execute(SUFFIX_TRACE[0]!)
+      requireComposedSnapshot('post-intervention advance', final)
 
       const replay = new ComposedSimulationEngine(plan.identity, plan.config)
       const replayInitial = replay.snapshot()
-      const replayFirst = replay.execute(PREINTERVENTION_TRACE[0]!)
-      const replayFinal = replay.execute(PREINTERVENTION_TRACE[1]!)
+      const replayPreIntervention = replay.execute(PREFIX_TRACE[0]!)
+      const replayApplied = replay.execute(structuredClone(intervention))
+      const replayFinal = replay.execute(SUFFIX_TRACE[0]!)
 
       assert.deepStrictEqual(
         replayInitial,
@@ -113,14 +207,19 @@ describe.sequential('flagship runtime smoke preparation', () => {
         'same seed/config must reproduce the exact initial snapshot',
       )
       assert.deepStrictEqual(
-        replayFirst,
-        first,
-        'same seed/config + first command must replay exactly',
+        replayPreIntervention,
+        preIntervention,
+        'same seed/config + prefix must replay exactly',
+      )
+      assert.deepStrictEqual(
+        replayApplied,
+        applied,
+        'same authoritative intervention command must replay exactly',
       )
       assert.deepStrictEqual(
         replayFinal,
         final,
-        'same seed/config + ordered commands must replay exactly',
+        'same seed/config + ordered intervention trace must replay exactly',
       )
 
       const restored = new ComposedSimulationEngine(plan.identity, plan.config)
@@ -129,20 +228,31 @@ describe.sequential('flagship runtime smoke preparation', () => {
         type: 'restore',
         checkpoint: midpointCheckpoint,
       })
-      requireComposedSnapshot('restored checkpoint scope', restoredScope)
+      requireComposedSnapshot('restored pre-intervention scope', restoredScope)
 
-      const restoredFinal = restored.execute(PREINTERVENTION_TRACE[1]!)
+      const restoredApplied = restored.execute(structuredClone(intervention))
+      requireComposedSnapshot(
+        'restored accepted ciprofloxacin intervention',
+        restoredApplied,
+      )
+      assert.deepStrictEqual(
+        restoredApplied.checkpoint,
+        applied.checkpoint,
+        'checkpoint restore + identical intervention must reproduce the exact intervention checkpoint',
+      )
+
+      const restoredFinal = restored.execute(SUFFIX_TRACE[0]!)
       requireComposedSnapshot('restored continuation', restoredFinal)
       assert.deepStrictEqual(
         restoredFinal.checkpoint,
         final.checkpoint,
-        'checkpoint restore + identical suffix must reproduce the exact authoritative checkpoint',
+        'checkpoint restore + identical intervention/suffix must reproduce the exact final authoritative checkpoint',
       )
 
       const compactResult = {
-        schema_version: 1,
+        schema_version: 2,
         experiment_id: EXPERIMENT_ID,
-        status: 'prepared-core-passed',
+        status: 'passed',
         started_at_utc: startedAt,
         completed_at_utc: new Date().toISOString(),
         local_run_id: process.env.PETRA_LOCAL_RUN_ID ?? null,
@@ -164,28 +274,33 @@ describe.sequential('flagship runtime smoke preparation', () => {
           note:
             'These run-state values mirror existing flagship regression/soak fixtures and are not physical substrate, CFU, or measured biological constants.',
         },
-        prepared_acceptance: {
+        intervention: {
+          command: intervention,
+          concentration_basis:
+            'Exact active flagship WT ciprofloxacin MIC from the provenance-bound composed config; no new concentration parameter is introduced by this experiment.',
+          transport_non_claim:
+            'The command sets authoritative concentration state. This experiment does not validate diffusion, decay/clearance, physical delivery, or clinical dosing.',
+        },
+        acceptance: {
           authoritative_initialization: true,
-          ordered_advance: true,
+          intervention_accepted: true,
+          intervention_preserves_biological_time: true,
+          intervention_checkpoint_state_observed: true,
+          checkpoint_restore_intervention_exact: true,
           checkpoint_restore_continuation_exact: true,
           genesis_replay_exact: true,
         },
-        prepared_command_trace: PREINTERVENTION_TRACE,
+        command_trace: commandTrace,
         final_state: {
           tick: final.checkpoint.tick,
           command_count: final.checkpoint.commandCount,
           simulation_time_hours: final.checkpoint.simulationTimeHours,
           trace_hash: final.traceHash,
         },
-        remaining_completion_gate: {
-          issue: REMAINING_BLOCKER_ISSUE,
-          requirement:
-            'Append at least one accepted mutable authoritative ciprofloxacin intervention command plus replay assertion after #626 lands, then activate this stable experiment id in local_manifest.json.',
-        },
         limitations: [
-          'This prepared harness intentionally does not invent or emulate an intervention command before #626 defines authoritative mutable ciprofloxacin checkpoint/protocol semantics.',
           'This is direct composed-engine evidence; browser Worker transport remains covered separately by worker-transport-profile and browser acceptance experiments.',
-          'The registration remains blocked until the intervention step can be tested through real authority.',
+          'The intervention is a replayable concentration-field edit and does not establish calibrated ciprofloxacin transport or physical delivery equivalence.',
+          'The experiment uses engineering model-resource/model-biomass initialization and does not promote those values to physical calibration.',
         ],
       }
 
@@ -196,15 +311,12 @@ describe.sequential('flagship runtime smoke preparation', () => {
       expect(restoredFinal.checkpoint).toEqual(final.checkpoint)
     } catch (error) {
       writeCompactResult({
-        schema_version: 1,
+        schema_version: 2,
         experiment_id: EXPERIMENT_ID,
-        status: 'prepared-core-failed',
+        status: 'failed',
         started_at_utc: startedAt,
         completed_at_utc: new Date().toISOString(),
         local_run_id: process.env.PETRA_LOCAL_RUN_ID ?? null,
-        remaining_completion_gate: {
-          issue: REMAINING_BLOCKER_ISSUE,
-        },
         failure: {
           name: error instanceof Error ? error.name : 'UnknownError',
           message: error instanceof Error ? error.message : String(error),

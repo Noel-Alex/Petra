@@ -36,3 +36,12 @@ Own framework-neutral presentation of authoritative scientific/source provenance
 
 ## Verification
 Deterministic tests cover explicit-class normalization, missing/unknown classifications, citation resolution, missing citation records, duplicate collection-identity rejection, stable source order, incomplete-record safety pinning, and separation of scenario assumptions from field claims. Browser/focus/visual QA is a manual local evidence gate; Petra has no hosted CI.
+
+
+## Scenario validation evidence presentation
+- `validationStatus.ts` and `ValidationStatusPanel.tsx` consume only explicit caller-supplied validation evidence. They must not infer validation from citation count, provenance completeness, Science Mode maturity, neighboring evidence lanes, source-test presence, or UI appearance.
+- Numerical, component-science, composed-scenario, browser/product, and demonstration evidence remain separate lanes. Petra must never flatten them into one universal “validated” score, badge, or overall pass.
+- Evidence kind remains explicit: source tests, scientific comparisons, local experiments, browser rehearsals, manual review, and demonstration evidence are not interchangeable.
+- Passed/partial/failed claims require an explicit evidence locator. Blocked claims require an explicit blocker. Missing lanes remain visibly empty instead of being interpreted as passed or not applicable.
+- Validation-status color is reinforcement only. Visible status text, lane identity, evidence kind, locator/blocker text, and source ordering must preserve meaning without color.
+- This surface is presentation-only: it does not execute experiments, change scenario admission, promote evidence maturity, or alter simulation/renderer authority.

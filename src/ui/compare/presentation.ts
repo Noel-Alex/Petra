@@ -8,6 +8,10 @@ import {
   type MotionPreference,
   type ResolvedMotion,
 } from "../motion/policy";
+import {
+  planStoryMoment,
+  type StoryMomentPlan,
+} from "../motion/storyMoments";
 import { MOTION } from "../motion/tokens";
 
 export type CompareViewMode = "side-by-side" | "swipe";
@@ -29,6 +33,7 @@ export interface ComparePresentation {
   readonly layoutMotion: ResolvedMotion;
   readonly divergenceMotion: ResolvedMotion;
   readonly easing: readonly [number, number, number, number];
+  readonly storyMoment: StoryMomentPlan | null;
 }
 
 /**
@@ -77,7 +82,58 @@ export function resolveComparePresentation(
     layoutMotion,
     divergenceMotion,
     easing: MOTION.panel.easing,
+    storyMoment: resolveForkDivergenceStoryMoment(
+      left,
+      right,
+      identity,
+      motionPreference,
+    ),
   };
+}
+
+function resolveForkDivergenceStoryMoment(
+  left: CounterfactualBranch,
+  right: CounterfactualBranch,
+  identity: ComparisonIdentity,
+  motionPreference: MotionPreference,
+): StoryMomentPlan | null {
+  if (
+    !identity.hasSharedOrigin ||
+    identity.divergenceCause === "none" ||
+    identity.divergenceCause === "incompatible-origin"
+  ) {
+    return null;
+  }
+
+  const result = planStoryMoment({
+    kind: "fork-divergence",
+    preference: motionPreference,
+    evidence: {
+      source: "authoritative-compare",
+      storyKind: "fork-divergence",
+      comparisonId: JSON.stringify([
+        left.origin.sourceRunId,
+        left.origin.checkpointTraceHash,
+        left.origin.tick,
+        left.origin.simulationTimeHours,
+        left.origin.commandCount,
+        left.branchId,
+        right.branchId,
+        left.seed,
+        right.seed,
+        left.interventionCommandIds,
+        right.interventionCommandIds,
+      ]),
+    },
+  });
+
+  if (!result.eligible) {
+    throw new Error(
+      "shared-origin divergent comparison must produce an eligible fork-divergence story moment",
+    );
+  }
+
+  return result;
 }
 
 export function normalizeSwipePercent(value: number): number {

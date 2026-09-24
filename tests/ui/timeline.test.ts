@@ -18,7 +18,7 @@ describe('scientific timeline projection', () => {
         tick: 120,
         simulationTimeHours: 2,
         syntheticPopulation: 1_000,
-        rngState: { state: 1 },
+        rngState: [1, 2, 3, 4],
         commandCount: 2,
       },
       events: [

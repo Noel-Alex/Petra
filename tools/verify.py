@@ -11,6 +11,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / "tools" / "verification_registry.json"
 SCENARIO_SCHEMA = ROOT / "data" / "schemas" / "scenario.schema.json"
+RUN_PRESET_SCHEMA = ROOT / "data" / "schemas" / "run_preset.schema.json"
 
 PRESENTATION_EVIDENCE_CLASSES = {
     "measured",
@@ -719,6 +720,235 @@ def scenario_contracts() -> int:
     return 0
 
 
+def run_preset_contracts() -> int:
+    schema = load_json(RUN_PRESET_SCHEMA)
+    required = schema.get("required", [])
+    properties = schema.get("properties", {})
+    allow_extra = schema.get("additionalProperties", True) is not False
+    run_dir = ROOT / "data" / "run_presets"
+    run_paths = sorted(run_dir.glob("*.json")) if run_dir.exists() else []
+    scenario_dir = ROOT / "data" / "presets"
+    scenario_paths = sorted(scenario_dir.glob("*.json")) if scenario_dir.exists() else []
+    scenarios: dict[str, dict[str, Any]] = {}
+    errors: list[str] = []
+
+    for scenario_path in scenario_paths:
+        scenario = load_json(scenario_path)
+        if isinstance(scenario, dict) and _nonempty_string(scenario.get("id")):
+            scenario_id = scenario["id"]
+            if scenario_id in scenarios:
+                errors.append(f"duplicate scenario id {scenario_id!r}")
+            else:
+                scenarios[scenario_id] = scenario
+
+    if not run_paths:
+        errors.append("no run presets are registered under data/run_presets")
+
+    for path in run_paths:
+        obj = load_json(path)
+        prefix = path.name
+
+        if not isinstance(obj, dict):
+            errors.append(f"{prefix}: run preset root must be an object")
+            continue
+
+        if not allow_extra:
+            unknown = sorted(set(obj) - set(properties))
+            if unknown:
+                errors.append(f"{prefix}: unknown top-level field(s): {unknown!r}")
+
+        for key in required:
+            if key not in obj:
+                errors.append(f"{prefix}: missing schema-required field {key!r}")
+
+        for key, spec in properties.items():
+            if key not in obj or not isinstance(spec, dict):
+                continue
+            value = obj[key]
+            expected = spec.get("type")
+            allowed_types = (
+                expected
+                if isinstance(expected, list)
+                else [expected]
+                if isinstance(expected, str)
+                else []
+            )
+            if allowed_types and not any(
+                _matches_json_type(value, item) for item in allowed_types
+            ):
+                errors.append(
+                    f"{prefix}: field {key!r} does not match declared type {expected!r}"
+                )
+                continue
+            if "const" in spec and value != spec["const"]:
+                errors.append(
+                    f"{prefix}: field {key!r} must equal {spec['const']!r}"
+                )
+            if "enum" in spec and value not in spec["enum"]:
+                errors.append(
+                    f"{prefix}: field {key!r} must be one of {spec['enum']!r}"
+                )
+            if isinstance(value, str):
+                if "minLength" in spec and len(value) < int(spec["minLength"]):
+                    errors.append(
+                        f"{prefix}: field {key!r} is shorter than minLength={spec['minLength']}"
+                    )
+                if value != value.strip():
+                    errors.append(
+                        f"{prefix}: field {key!r} must have no surrounding whitespace"
+                    )
+            if (
+                isinstance(value, (int, float))
+                and not isinstance(value, bool)
+                and math.isfinite(value)
+            ):
+                if "minimum" in spec and value < spec["minimum"]:
+                    errors.append(
+                        f"{prefix}: field {key!r} is below minimum={spec['minimum']}"
+                    )
+                if "maximum" in spec and value > spec["maximum"]:
+                    errors.append(
+                        f"{prefix}: field {key!r} is above maximum={spec['maximum']}"
+                    )
+
+        if obj.get("classification") != "engineering":
+            errors.append(f"{prefix}: classification must be engineering")
+        for key in ("usageScope", "warning"):
+            if not _nonempty_string(obj.get(key)):
+                errors.append(f"{prefix}: {key} must be a non-empty string")
+
+        seed = obj.get("seed")
+        if (
+            not isinstance(seed, int)
+            or isinstance(seed, bool)
+            or seed < 0
+            or seed > 0xFFFFFFFF
+        ):
+            errors.append(f"{prefix}: seed must be an unsigned 32-bit integer")
+
+        initial_resource = obj.get("initialResourceLevel")
+        if (
+            not isinstance(initial_resource, (int, float))
+            or isinstance(initial_resource, bool)
+            or not math.isfinite(initial_resource)
+            or initial_resource < 0
+        ):
+            errors.append(
+                f"{prefix}: initialResourceLevel must be finite and non-negative"
+            )
+
+        inocula = obj.get("inocula")
+        if not isinstance(inocula, list) or not inocula:
+            errors.append(f"{prefix}: inocula must be a non-empty array")
+        else:
+            for index, inoculum in enumerate(inocula):
+                ipath = f"{prefix}: inocula[{index}]"
+                if not isinstance(inoculum, dict):
+                    errors.append(f"{ipath} must be an object")
+                    continue
+                if set(inoculum) != {"lineageId", "x", "y", "biomass"}:
+                    errors.append(
+                        f"{ipath} must contain exactly lineageId/x/y/biomass"
+                    )
+                if not _nonempty_string(inoculum.get("lineageId")):
+                    errors.append(f"{ipath}.lineageId must be a non-empty string")
+                for coordinate in ("x", "y"):
+                    value = inoculum.get(coordinate)
+                    if (
+                        not isinstance(value, int)
+                        or isinstance(value, bool)
+                        or value < 0
+                        or value > 9007199254740991
+                    ):
+                        errors.append(
+                            f"{ipath}.{coordinate} must be a non-negative safe integer"
+                        )
+                biomass = inoculum.get("biomass")
+                if (
+                    not isinstance(biomass, (int, float))
+                    or isinstance(biomass, bool)
+                    or not math.isfinite(biomass)
+                    or biomass <= 0
+                ):
+                    errors.append(f"{ipath}.biomass must be positive and finite")
+
+        provenance_record = obj.get("provenance")
+        if not isinstance(provenance_record, dict):
+            errors.append(f"{prefix}: provenance must be an object")
+        else:
+            if set(provenance_record) != {
+                "classification",
+                "context",
+                "limitation",
+            }:
+                errors.append(
+                    f"{prefix}: provenance must contain exactly classification/context/limitation"
+                )
+            if provenance_record.get("classification") != "engineering":
+                errors.append(
+                    f"{prefix}: provenance.classification must be engineering"
+                )
+            for key in ("context", "limitation"):
+                if not _nonempty_string(provenance_record.get(key)):
+                    errors.append(
+                        f"{prefix}: provenance.{key} must be a non-empty string"
+                    )
+
+        scenario_id = obj.get("scenarioId")
+        scenario = scenarios.get(scenario_id) if isinstance(scenario_id, str) else None
+        if scenario is None:
+            errors.append(
+                f"{prefix}: scenarioId {scenario_id!r} does not resolve to a scenario preset"
+            )
+            continue
+
+        if obj.get("scenarioVersion") != scenario.get("version"):
+            errors.append(
+                f"{prefix}: scenarioVersion must match the referenced scenario"
+            )
+
+        composed_set = scenario.get("composedParameterSet")
+        if not isinstance(composed_set, dict):
+            errors.append(
+                f"{prefix}: referenced scenario has no composedParameterSet authority"
+            )
+            continue
+
+        if obj.get("parameterSetId") != composed_set.get("id"):
+            errors.append(
+                f"{prefix}: parameterSetId must match the referenced scenario composedParameterSet"
+            )
+        if obj.get("parameterSetVersion") != composed_set.get("version"):
+            errors.append(
+                f"{prefix}: parameterSetVersion must match the referenced scenario composedParameterSet"
+            )
+
+        lineage_ids = {
+            lineage.get("id")
+            for lineage in composed_set.get("lineages", [])
+            if isinstance(lineage, dict) and _nonempty_string(lineage.get("id"))
+        }
+        if isinstance(inocula, list):
+            for index, inoculum in enumerate(inocula):
+                if (
+                    isinstance(inoculum, dict)
+                    and inoculum.get("lineageId") not in lineage_ids
+                ):
+                    errors.append(
+                        f"{prefix}: inocula[{index}].lineageId must reference a composed baseline lineage"
+                    )
+
+    if errors:
+        print("\n".join(errors))
+        return 1
+
+    print(
+        f"run preset contracts: validated {len(run_paths)} preset(s) "
+        "against engine/protocol identity and referenced scenario authority"
+    )
+    return 0
+
+
 def orchestrate(mode: str, list_only: bool = False) -> int:
     reg = load_json(REGISTRY)
     selected = [check for check in reg["checks"] if mode in check["modes"]]
@@ -749,6 +979,8 @@ def main() -> int:
         return provenance()
     if args == ["_scenario"]:
         return scenario_contracts()
+    if args == ["_run_preset"]:
+        return run_preset_contracts()
 
     list_only = False
     if args and args[0] == "--list":

@@ -1,9 +1,7 @@
 import type { DishRenderSnapshot } from "../render/model";
+import type { DishRenderSourceKind } from "../render/source";
 
-export type DishRenderSourceKind =
-  | "authoritative-snapshot"
-  | "visual-demo"
-  | "awaiting-authoritative-snapshot";
+export type { DishRenderSourceKind } from "../render/source";
 
 export interface DishRenderSourceState {
   /** Presentation-only fixture cached for this mounted source-state lifetime. */

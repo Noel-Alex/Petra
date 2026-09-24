@@ -253,11 +253,15 @@ export function buildMechanisticDatasetGenerationEvidence(
     }
 
     validateFinalizationAgainstPlan(args.plan, args.finalization, planDigest);
+    const scanned = scanFinalDataset(
+      args.plan,
+      args.finalization,
+      args.datasetLines(),
+    );
     verifyMechanisticDatasetFinalization(
       args.datasetLines(),
       args.finalization,
     );
-    const scanned = scanFinalDataset(args.plan, args.finalization, args.datasetLines());
     dataset = Object.freeze({
       datasetDigest: args.finalization.datasetDigest,
       sampleCount: args.finalization.summary.sampleCount,
@@ -417,6 +421,26 @@ function validateFinalizationAgainstPlan(
   if (finalization.trajectories.length !== plan.tasks.length) {
     throw new RangeError("dataset finalization trajectory count mismatch");
   }
+
+  for (let index = 0; index < plan.tasks.length; index += 1) {
+    const task = plan.tasks[index]!;
+    const record = finalization.trajectories[index]!;
+    if (
+      record.planDigest !== planDigest ||
+      record.taskId !== task.taskId ||
+      record.trajectoryKey !== task.trajectoryKey ||
+      record.split !== task.split
+    ) {
+      throw new TypeError(
+        `dataset finalization trajectory ${index} does not match canonical sweep task identity`,
+      );
+    }
+    if (!Number.isSafeInteger(record.rowCount) || record.rowCount < 1) {
+      throw new RangeError(
+        `dataset finalization trajectory ${task.taskId} has invalid rowCount`,
+      );
+    }
+  }
 }
 
 function scanFinalDataset(
@@ -462,6 +486,19 @@ function scanFinalDataset(
     }
     if (row.split !== task.split) {
       throw new TypeError(`dataset row for ${taskId} has the wrong split`);
+    }
+    const rowIdentity: ReadonlyArray<readonly [string, unknown, string]> = [
+      ["parameterPointId", row.parameterPointId, task.parameterPointId],
+      ["interventionFamilyId", row.interventionFamilyId, task.interventionFamilyId],
+      ["splitGroupKey", row.splitGroupKey, task.splitGroupKey],
+      ["trajectoryKey", row.trajectoryKey, task.trajectoryKey],
+    ];
+    for (const [name, observed, expected] of rowIdentity) {
+      if (observed !== expected) {
+        throw new TypeError(
+          `dataset row for ${taskId} has the wrong ${name}`,
+        );
+      }
     }
 
     observedRows.set(taskId, (observedRows.get(taskId) ?? 0) + 1);

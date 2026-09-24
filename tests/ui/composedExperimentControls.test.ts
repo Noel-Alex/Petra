@@ -40,6 +40,7 @@ const composedConfig: ComposedSimulationConfig = {
   lineages: [
     { id: 'ancestor', genotypeId: 'WT', deathHazardPerHour: 0 },
   ],
+  samplingExecutionPolicy: null,
   hoursPerTick: 0.02,
 }
 

@@ -9,6 +9,10 @@ import {
   bindLineageFitness,
   type EvolutionScenarioIdentity,
 } from './evolution/fitness'
+import {
+  samplingExecutionPolicyIdentity,
+  type SamplingExecutionPolicy,
+} from './samplingPolicy'
 
 /** Versioned serializable composition boundary. Biological values are caller supplied. */
 export const COMPOSED_STATE_VERSION = 2 as const
@@ -29,6 +33,7 @@ export interface ComposedSimulationConfig {
   readonly lineages: readonly ComposedLineageConfig[]
   readonly evolutionGraph: CuratedMutationGraph
   readonly evolutionScenario: EvolutionScenarioIdentity
+  readonly samplingExecutionPolicy: SamplingExecutionPolicy | null
   readonly hoursPerTick: number
 }
 
@@ -128,6 +133,17 @@ function lineageFitness(config: ComposedSimulationConfig) {
   )
 }
 
+function composedSamplingPolicyIdentity(
+  policy: SamplingExecutionPolicy | null | undefined,
+): string | null {
+  if (policy === undefined) {
+    throw new Error(
+      'sampling execution policy must be explicit null or a valid policy',
+    )
+  }
+  return policy === null ? null : samplingExecutionPolicyIdentity(policy)
+}
+
 function validateConfig(config: ComposedSimulationConfig): void {
   if (
     !Number.isSafeInteger(config.width) ||
@@ -180,6 +196,7 @@ function validateConfig(config: ComposedSimulationConfig): void {
   // Strict scenario/genotype validation boundary. Relative fitness is owned by
   // the curated evolution graph and cannot be re-entered by composition callers.
   lineageFitness(config)
+  composedSamplingPolicyIdentity(config.samplingExecutionPolicy)
 
   positiveFinite('hoursPerTick', config.hoursPerTick)
   finiteNonNegative('maxDivisionRate', config.growth.maxDivisionRate)
@@ -250,6 +267,9 @@ export function composedConfigurationFingerprint(
       scenarioId: config.evolutionScenario.scenarioId,
       scenarioVersion: config.evolutionScenario.scenarioVersion,
     },
+    samplingExecutionPolicy: composedSamplingPolicyIdentity(
+      config.samplingExecutionPolicy,
+    ),
     lineages: config.lineages.map((lineage, index) => ({
       id: lineage.id,
       genotypeId: lineage.genotypeId,

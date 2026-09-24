@@ -31,6 +31,7 @@ const config: ComposedSimulationConfig = {
   },
   evolutionGraph,
   evolutionScenario: { scenarioId: 'region-test', scenarioVersion: '1' },
+  samplingExecutionPolicy: null,
   lineages: [
     { id: 'ancestor', genotypeId: 'WT', deathHazardPerHour: 0 },
     { id: 'variant', genotypeId: 'VAR', deathHazardPerHour: 0 },

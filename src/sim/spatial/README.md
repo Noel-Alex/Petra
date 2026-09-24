@@ -2,6 +2,10 @@
 
 Petra's dense environmental fields use a regular Cartesian grid clipped by a circular dish mask.
 
+## Authoritative dish geometry
+
+The grid dimensions, cell size, circular center, and radius define the simulation domain. Custom center coordinates must be finite, and construction fails if the resulting circle contains zero authoritative grid cells. The spatial kernel never silently recenters, enlarges, or substitutes renderer/camera geometry for malformed simulation geometry. Finite off-center dishes remain valid when they actually intersect the grid.
+
 ## Boundary condition
 
 Diffusion uses a five-point Laplacian. A neighbour outside the circular mask contributes **zero flux**, not a zero concentration. This is the discrete no-flux/reflecting rim used by the first dish model.

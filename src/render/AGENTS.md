@@ -88,5 +88,6 @@ Pure render-model helpers get deterministic unit tests. Browser/GPU/FPS claims r
 
 ## Shared visual-token consumption
 - Pixi vessel chrome and stable lineage appearance colors consume `src/design/visualTokens.ts`; renderer code must not grow a parallel electric/neon palette.
+- `PixiDish.tsx` waiting/demo/failure/retry DOM chrome also consumes the shared Petra CSS variables through `PixiDish.css`. Keep source/failure meaning explicit in text/ARIA and class geometry; do not reintroduce inline numeric palette literals or make color the authority for demo-vs-science status.
 - Existing lineage `appearanceToken` IDs and schema identity remain stable across palette refinement. Color remains presentation reinforcement only and must continue to pair with lineage pattern geometry.
 - `src/design/vectorPrimitives.ts` provides renderer-neutral normalized geometry for future organism/field/interaction adapters. A renderer may associate rod/bud/hyphal silhouettes with biology only when authoritative organism-kind evidence exists; color, array order, density, or lineage ID must never be used to guess the organism shape.

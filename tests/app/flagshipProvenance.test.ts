@@ -13,20 +13,14 @@ describe("flagship provenance presentation projection", () => {
     });
   });
 
-  it("keeps missing presentation classification visible instead of inventing fallback evidence", () => {
+  it("resolves every flagship provenance record from an explicit science/data classification", () => {
     const view = buildFlagshipProvenanceView();
     const incomplete = view.records.filter(
       (record) => record.status === "needs-provenance",
     );
 
     expect(view.records.length).toBeGreaterThan(1);
-    expect(incomplete.map((record) => record.id)).toEqual([
-      "drug-reference-pd:regoes-cab1-ciprofloxacin",
-    ]);
-    expect(incomplete[0]?.rawClassification).toBeNull();
-    expect(incomplete[0]?.problems[0]).toContain(
-      "an explicit evidence classification is required",
-    );
+    expect(incomplete).toEqual([]);
   });
 
   it("exposes the baseline composed parameter set as engineering authority", () => {
@@ -70,21 +64,21 @@ describe("flagship provenance presentation projection", () => {
     ).toBe(true);
   });
 
-  it("shows the Regoes reference-PD values and source while refusing to guess their evidence class", () => {
+  it("shows the Regoes reference-PD fit as explicitly derived source-context evidence", () => {
     const view = buildFlagshipProvenanceView();
     const referencePd = view.records.find(
       (record) => record.id === "drug-reference-pd:regoes-cab1-ciprofloxacin",
     );
 
-    expect(referencePd?.status).toBe("needs-provenance");
-    expect(referencePd?.rawClassification).toBeNull();
+    expect(referencePd?.status).toBe("complete");
+    expect(referencePd?.rawClassification).toBe("derived");
     expect(referencePd?.sourceKeys).toEqual(["regoes_2004"]);
     expect(referencePd?.sources[0]).toMatchObject({
       id: "regoes_2004",
       href: "https://doi.org/10.1128/AAC.48.10.3670-3676.2004",
     });
-    expect(referencePd?.problems[0]).toContain(
-      "an explicit evidence classification is required",
+    expect(referencePd?.presentation?.disclosures).toContain(
+      "These are fitted source-context parameter estimates, not direct raw measurements and not an MG1655 or Petra resource-ecology calibration.",
     );
   });
 

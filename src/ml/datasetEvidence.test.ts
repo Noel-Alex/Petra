@@ -278,6 +278,51 @@ describe("first aggregate dataset evidence", () => {
     });
   });
 
+  it("rejects finalization metadata detached from canonical task identity", () => {
+    const currentPlan = plan();
+    const { finalization, lines } = completeDataset(currentPlan);
+    const first = finalization.trajectories[0]!;
+    const detached: MechanisticDatasetFinalization = {
+      ...finalization,
+      trajectories: [
+        { ...first, trajectoryKey: "foreign-trajectory" },
+        ...finalization.trajectories.slice(1),
+      ],
+    };
+
+    expect(() =>
+      buildMechanisticDatasetGenerationEvidence({
+        plan: currentPlan,
+        runReport: completedReport(currentPlan),
+        engineCommit: "0123456789abcdef0123456789abcdef01234567",
+        repositoryDirty: false,
+        finalization: detached,
+        datasetLines: () => lines,
+      }),
+    ).toThrow(/canonical sweep task identity/);
+  });
+
+  it("rejects finalized rows whose outer identity is detached from the planned task", () => {
+    const currentPlan = plan();
+    const { finalization, lines } = completeDataset(currentPlan);
+    const first = JSON.parse(lines[0]!) as Record<string, unknown>;
+    const tampered = [
+      JSON.stringify({ ...first, trajectoryKey: "foreign-trajectory" }),
+      ...lines.slice(1),
+    ];
+
+    expect(() =>
+      buildMechanisticDatasetGenerationEvidence({
+        plan: currentPlan,
+        runReport: completedReport(currentPlan),
+        engineCommit: "0123456789abcdef0123456789abcdef01234567",
+        repositoryDirty: false,
+        finalization,
+        datasetLines: () => tampered,
+      }),
+    ).toThrow(/wrong trajectoryKey/);
+  });
+
   it("keeps failed or unfinalized generation explicitly incomplete and integrity-unverified", () => {
     const currentPlan = plan();
     const collector = new IncrementalMechanisticDatasetCollector(

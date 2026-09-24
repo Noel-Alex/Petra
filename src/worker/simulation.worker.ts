@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
 
+import { AdvanceExecutionPolicyRefusalError } from '../sim/advanceExecutionPolicy'
 import { ComposedSimulationEngine } from '../sim/composedEngine'
 import { SimulationEngine } from '../sim/engine'
 import { PROTOCOL_VERSION } from '../sim/protocol'
@@ -104,6 +105,9 @@ self.onmessage = (event: MessageEvent<unknown>) => {
         type: 'error',
         ...(request.type === 'command'
           ? { commandId: request.command.id }
+          : {}),
+        ...(error instanceof AdvanceExecutionPolicyRefusalError
+          ? { code: error.code }
           : {}),
         message: error instanceof Error ? error.message : String(error),
       },

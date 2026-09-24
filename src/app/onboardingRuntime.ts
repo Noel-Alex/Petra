@@ -32,6 +32,7 @@ export interface AuthoritativeOnboardingGateStream {
 
 export interface OnboardingRuntimeProjection {
   readonly runIdentityKey: string | null;
+  readonly gateStreamIdentity: string | null;
   readonly hasAuthoritativeSnapshot: boolean;
   readonly gates: readonly ScientificGate[];
   readonly revisionKey: string;
@@ -39,6 +40,7 @@ export interface OnboardingRuntimeProjection {
 
 export interface OnboardingRuntimeSession {
   readonly runIdentityKey: string | null;
+  readonly gateStreamIdentity: string | null;
   readonly hasSeenAuthoritativeSnapshot: boolean;
   readonly state: OnboardingState;
 }
@@ -94,8 +96,14 @@ export function projectOnboardingRuntime(
     }
   }
 
+  const gateStreamIdentity =
+    authoritativeBranchIdentity === null || runIdentityKey === null
+      ? null
+      : runIdentityKey + "::" + authoritativeBranchIdentity;
+
   return {
     runIdentityKey,
+    gateStreamIdentity,
     hasAuthoritativeSnapshot,
     gates,
     revisionKey: JSON.stringify([
@@ -112,6 +120,7 @@ export function createOnboardingRuntimeSession(
 ): OnboardingRuntimeSession {
   return {
     runIdentityKey: projection.runIdentityKey,
+    gateStreamIdentity: projection.gateStreamIdentity,
     hasSeenAuthoritativeSnapshot: projection.hasAuthoritativeSnapshot,
     state: initialOnboardingState(),
   };
@@ -130,26 +139,44 @@ export function reconcileOnboardingRuntimeSession(
   projection: OnboardingRuntimeProjection,
 ): OnboardingRuntimeSession {
   let state = session.state;
+  let gateStreamIdentity = session.gateStreamIdentity;
   let hasSeenAuthoritativeSnapshot = session.hasSeenAuthoritativeSnapshot;
   let changed = false;
 
-  if (session.runIdentityKey !== projection.runIdentityKey) {
+  const runChanged = session.runIdentityKey !== projection.runIdentityKey;
+  const authoritativeBranchChanged =
+    projection.gateStreamIdentity !== null &&
+    session.gateStreamIdentity !== null &&
+    projection.gateStreamIdentity !== session.gateStreamIdentity;
+
+  if (runChanged || authoritativeBranchChanged) {
     state = initialOnboardingState();
+    gateStreamIdentity = projection.gateStreamIdentity;
     hasSeenAuthoritativeSnapshot = projection.hasAuthoritativeSnapshot;
     changed = true;
-  } else if (
-    session.hasSeenAuthoritativeSnapshot &&
-    !projection.hasAuthoritativeSnapshot
-  ) {
-    state = initialOnboardingState();
-    hasSeenAuthoritativeSnapshot = false;
-    changed = true;
-  } else if (
-    !session.hasSeenAuthoritativeSnapshot &&
-    projection.hasAuthoritativeSnapshot
-  ) {
-    hasSeenAuthoritativeSnapshot = true;
-    changed = true;
+  } else {
+    if (
+      gateStreamIdentity === null &&
+      projection.gateStreamIdentity !== null
+    ) {
+      gateStreamIdentity = projection.gateStreamIdentity;
+      changed = true;
+    }
+
+    if (
+      session.hasSeenAuthoritativeSnapshot &&
+      !projection.hasAuthoritativeSnapshot
+    ) {
+      state = initialOnboardingState();
+      hasSeenAuthoritativeSnapshot = false;
+      changed = true;
+    } else if (
+      !session.hasSeenAuthoritativeSnapshot &&
+      projection.hasAuthoritativeSnapshot
+    ) {
+      hasSeenAuthoritativeSnapshot = true;
+      changed = true;
+    }
   }
 
   for (const gate of projection.gates) {
@@ -162,6 +189,7 @@ export function reconcileOnboardingRuntimeSession(
 
   return {
     runIdentityKey: projection.runIdentityKey,
+    gateStreamIdentity,
     hasSeenAuthoritativeSnapshot,
     state,
   };
@@ -208,6 +236,7 @@ function serializeRunIdentity(identity: RunIdentity): string {
     identity.scenarioVersion,
     identity.parameterSetId,
     identity.parameterSetVersion,
+    identity.parameterSetBinding ?? null,
     identity.seed,
   ]);
 }

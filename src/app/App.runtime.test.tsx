@@ -43,6 +43,14 @@ describe("App authoritative runtime boundary", () => {
     expect(appSource).toContain('{ type: "reset" }');
   });
 
+  it("keeps visual contrast persisted and independent from motion", () => {
+    expect(appSource).toContain("loadVisualContrastSetting");
+    expect(appSource).toContain('aria-label="Visual contrast"');
+    expect(appSource).toContain('data-visual-contrast={visualContrast}');
+    expect(appSource).toContain('contrastMode={visualContrast}');
+    expect(appSource).toContain("saveVisualContrastSetting");
+  });
+
   it("checks runtime availability before dispatching global shortcuts", () => {
     const gateIndex = appSource.indexOf("canDispatchAppShortcut(plan.action");
     const dispatchIndex = appSource.indexOf("experiment.dispatch(plan.action)");

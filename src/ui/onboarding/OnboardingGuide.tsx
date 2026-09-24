@@ -5,9 +5,13 @@ import {
 } from "react";
 
 import { PetraCompactAction } from "../PetraCompactAction";
-import { PetraIcon } from "../icons/PetraIcon";
-import type { PetraIconName } from "../icons/spec";
 import type { MotionPreference } from "../motion/policy";
+import { CalmBiologyMotif } from "../visual/CalmBiologyMotif";
+import {
+  CALM_VECTOR_PALETTE,
+  calmVectorCssVariables,
+  type CalmVectorTone,
+} from "../visual/calmVector";
 import {
   ONBOARDING_STAGES,
   canContinue,
@@ -54,8 +58,11 @@ export function OnboardingGuide({
   const presentation = resolveOnboardingPresentation(state, motionPreference);
   const ready = canContinue(state);
   const progress = (state.index + 1) / ONBOARDING_STAGES.length;
+  const accentTone = focusAccentTone(stage);
 
   const style = {
+    ...calmVectorCssVariables(),
+    "--onboarding-accent": CALM_VECTOR_PALETTE[accentTone],
     "--onboarding-motion-ms": `${presentation.motion.durationMs}ms`,
     "--onboarding-easing": `cubic-bezier(${presentation.easing.join(", ")})`,
     "--onboarding-progress": progress,
@@ -147,10 +154,11 @@ export function OnboardingGuide({
         data-causal={stage.causal ? "true" : "false"}
       >
         <div className="petra-onboarding__focus" aria-hidden="true">
-          <span className="petra-onboarding__focus-orbit" />
-          <span className="petra-onboarding__focus-core">
-            <PetraIcon name={focusIcon(stage)} decorative size={28} />
-          </span>
+          <span className="petra-onboarding__focus-contour" />
+          <CalmBiologyMotif
+            variant={stage.focus}
+            className="petra-onboarding__motif"
+          />
         </div>
 
         <div className="petra-onboarding__copy">
@@ -207,18 +215,18 @@ export function OnboardingGuide({
   );
 }
 
-function focusIcon(stage: OnboardingStage): PetraIconName {
+function focusAccentTone(stage: OnboardingStage): CalmVectorTone {
   switch (stage.focus) {
     case "dish":
-      return "visual";
+      return "teal";
     case "population":
-      return "lineage";
+      return "mint";
     case "pressure":
-      return "intervention";
+      return "coral";
     case "lineage":
-      return "lineage";
+      return "amber";
     case "controls":
-      return "inspect";
+      return "olive";
   }
 }
 

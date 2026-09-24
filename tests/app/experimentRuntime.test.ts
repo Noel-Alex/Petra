@@ -168,6 +168,19 @@ describe("experiment runtime", () => {
     });
   });
 
+  it("clears stale snapshot and timeline while resetting the run", () => {
+    const { port, runtime } = readyRuntime();
+
+    expect(runtime.state.snapshot).not.toBeNull();
+    const result = runtime.dispatch({ type: "reset" });
+
+    expect(result).toEqual({ accepted: true, reason: null });
+    expect(runtime.state.snapshot).toBeNull();
+    expect(runtime.state.timeline).toEqual([]);
+    expect(runtime.state.worker.phase).toBe("initializing");
+    expect(port.posted.at(-1)).toMatchObject({ type: "initialize" });
+  });
+
   it("rejects manual worker effects before initialization is ready", () => {
     const port = new FakePort();
     const session = new WorkerSession(port);

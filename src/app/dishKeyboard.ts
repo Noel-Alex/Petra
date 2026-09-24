@@ -1,3 +1,8 @@
+export interface DishEscapeFirstRefusalContext {
+  readonly defaultPrevented: boolean;
+  readonly editableTarget: boolean;
+}
+
 export interface DishEscapeContext {
   readonly defaultPrevented: boolean;
   readonly editableTarget: boolean;
@@ -6,6 +11,23 @@ export interface DishEscapeContext {
 }
 
 export type DishEscapeAction = "reset-overview";
+
+/**
+ * Determines whether plain Escape may be offered to a higher-priority
+ * presentation owner before the dish camera fallback is considered.
+ *
+ * Renderer availability is deliberately not part of this decision: an active
+ * tool or shell disclosure may still own Escape while the dish is unavailable.
+ */
+export function dishEscapeAllowsFirstRefusal(
+  key: string,
+  context: DishEscapeFirstRefusalContext,
+): boolean {
+  if (key !== "Escape") return false;
+  if (context.defaultPrevented) return false;
+  if (context.editableTarget) return false;
+  return true;
+}
 
 /**
  * Resolve Escape only for the dish presentation layer.

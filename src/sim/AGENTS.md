@@ -9,6 +9,7 @@
 - A checkpoint must contain enough authoritative state to continue the trajectory exactly under the same engine version.
 - `scenario + parameter versions + engine version + seed + ordered commands` defines replay identity. Changing numerical update order or RNG consumption is a replay/model change.
 - Numeric run seeds are canonical replay identity only when they are unsigned 32-bit integers in `[0, 0xffffffff]`, matching the RNG's actual input width. Invalid aliases must be rejected before RNG initialization; never wrap/canonicalize a visibly different seed with JavaScript bitwise coercion. Seed `0` is valid.
+- Serialized RNG checkpoint state is exact replay authority: every state word must already be an integer in `[0, 0xffffffff]`, and the four-word state cannot be all zero. Restore paths reject malformed/fractional/out-of-range/non-finite words rather than canonicalizing them with bitwise coercion.
 - Renderer sampling must not consume the biological RNG stream.
 - Synthetic fixture state may exercise infrastructure but must be named as synthetic and removed/replaced as real mechanisms arrive; never present it as biology.
 - Protocol/state changes require deterministic tests and coordination because they are high-conflict integration surfaces.

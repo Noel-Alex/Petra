@@ -72,6 +72,14 @@ Petra should feel like a premium interactive science animation, not a dashboard 
 
 ## Verification and evidence
 
+### CI freeze — binding project policy
+- **Do not use GitHub Actions or any other hosted CI for Petra until Noel-Alex explicitly lifts this rule.**
+- Do not add, restore, enable, schedule, or depend on `.github/workflows/**`, required checks, hosted benchmark jobs, hosted GPU jobs, automated experiment jobs, or CI artifact uploads.
+- Pull requests must not be blocked on CI. Verification is local/manual for now.
+- Existing historical Actions results are evidence from past runs only; they do not authorize future CI use.
+- Lightweight deterministic checks should be run locally by capable agents/humans and recorded in Issues/PRs.
+- Hardware/browser/GPU/scientific experiments that cannot run in the agent environment must be registered for the single local laptop experiment pipeline and marked as waiting on local evidence.
+
 - Run the nearest deterministic checks available in the current environment and record what actually ran.
 - Never fabricate browser, GPU, device, performance, or scientific-validation evidence.
 - Source checks do not prove runtime behavior; screenshots do not prove scientific correctness.
@@ -82,6 +90,8 @@ Petra should feel like a premium interactive science animation, not a dashboard 
 Maintain `docs/ORCHESTRATOR_COMMUNICATION.md` as a dense asynchronous science/engineering log for substantial cross-agent discoveries and decisions. Issues/PRs remain the canonical work queue and review surface.
 
 A durable handoff includes: Issue/PR and branch, commit SHA/checkpoint, changed paths, completed work, verification actually run, scientific claims/parameters changed, limitations/capability gates, conflict risk, and next useful action.
+
+When work is blocked on Noel-Alex's local machine, the handoff must also name the local experiment id/registration, expected compact evidence, and the blocked Issue(s). Agents must not create ad-hoc "run these five scripts" instructions; use the repository's single local experiment entrypoint once available. Large models/checkpoints/raw datasets stay local unless explicitly approved; only compact results/metadata should be committed.
 
 ## DOX update rule
 

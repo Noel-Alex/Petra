@@ -913,10 +913,88 @@ function validateMetrics(
     }
     validateLineageMetricRows(metric.lineages, index)
     validateGenotypeMetricRows(metric.genotypes, index)
+    validateMetricConsistency(metric)
 
     previousTick = metric.tick
     previousTime = metric.simulationTimeHours
   }
+}
+
+function validateMetricConsistency(
+  metric: AuthoritativeMetricSample,
+): void {
+  const total = metric.totalBiomass
+  const lineageTotal = metric.lineages.reduce(
+    (sum, row) => sum + row.biomass,
+    0,
+  )
+  const genotypeTotal = metric.genotypes.reduce(
+    (sum, row) => sum + row.biomass,
+    0,
+  )
+  if (
+    !numbersAgree(lineageTotal, total) ||
+    !numbersAgree(genotypeTotal, total)
+  ) {
+    throw new ExperimentBundleError(
+      'evidence-invalid',
+      'Experiment metric lineage/genotype biomass must each sum to totalBiomass.',
+    )
+  }
+
+  let shannon = 0
+  for (const row of metric.lineages) {
+    const expectedFraction = total === 0 ? 0 : row.biomass / total
+    if (!numbersAgree(row.fraction, expectedFraction)) {
+      throw new ExperimentBundleError(
+        'evidence-invalid',
+        'Experiment lineage metric fraction does not match lineage biomass / totalBiomass.',
+      )
+    }
+    if (row.fraction > 0) {
+      shannon -= row.fraction * Math.log(row.fraction)
+    }
+  }
+  for (const row of metric.genotypes) {
+    const expectedFraction = total === 0 ? 0 : row.biomass / total
+    if (!numbersAgree(row.fraction, expectedFraction)) {
+      throw new ExperimentBundleError(
+        'evidence-invalid',
+        'Experiment genotype metric fraction does not match genotype biomass / totalBiomass.',
+      )
+    }
+  }
+  if (!numbersAgree(metric.lineageShannonDiversity, shannon)) {
+    throw new ExperimentBundleError(
+      'evidence-invalid',
+      'Experiment lineage Shannon diversity does not match lineage fractions.',
+    )
+  }
+
+  const biomassTolerance =
+    1e-12 * Math.max(1, Math.abs(total), Math.abs(metric.resistantBiomass))
+  if (metric.resistantBiomass > total + biomassTolerance) {
+    throw new ExperimentBundleError(
+      'evidence-invalid',
+      'Experiment resistant biomass cannot exceed totalBiomass.',
+    )
+  }
+  const expectedResistantFraction =
+    total === 0 ? 0 : metric.resistantBiomass / total
+  if (!numbersAgree(metric.resistantFraction, expectedResistantFraction)) {
+    throw new ExperimentBundleError(
+      'evidence-invalid',
+      'Experiment resistant fraction does not match resistantBiomass / totalBiomass.',
+    )
+  }
+}
+
+function numbersAgree(left: number, right: number): boolean {
+  if (Object.is(left, right)) return true
+  return (
+    Math.abs(left - right) <=
+    1e-12 * Math.max(1, Math.abs(left), Math.abs(right))
+  )
 }
 
 function validateRunIdentityWireShape(

@@ -2,6 +2,7 @@ import { sameComposedParameterSetBinding } from '../sim/parameterSetBinding'
 import {
   AUTHORITATIVE_METRIC_SCHEMA_VERSION,
   METRIC_SAMPLING_POLICY_VERSION,
+  shouldSampleAuthoritativeMetrics,
   validateMetricSamplingPolicy,
   type AuthoritativeMetricSample,
 } from '../sim/metrics'
@@ -321,6 +322,9 @@ export function buildAuthoritativeMetricSeries(
     }
     if (!Number.isSafeInteger(sample.tick) || sample.tick < 0) {
       throw new Error('metric sample tick must be a non-negative safe integer')
+    }
+    if (!shouldSampleAuthoritativeMetrics(sample.tick, first.samplingPolicy)) {
+      throw new Error('metric sample tick is off the declared sampling cadence')
     }
     if (!Number.isFinite(sample.simulationTimeHours) || sample.simulationTimeHours < 0) {
       throw new Error('metric sample biological time must be finite and non-negative')

@@ -44,6 +44,7 @@ Do not keep renewing a work lease while merely waiting for a human laptop run.
 - Bulky/transient output belongs under the runner-provided `PETRA_LOCAL_ARTIFACT_DIR` inside ignored `.petra_local/`.
 - Models, checkpoints, raw training datasets, browser traces, frame captures, large logs, caches, and profiling dumps stay local by default.
 - The runner stores only a capped log tail plus compact JSON metadata/results in Git.
+- Experiment helpers may write structured compact evidence to `PETRA_LOCAL_RESULT_JSON`; the runner embeds that JSON into the Git-tracked experiment result while bulky artifacts remain under `PETRA_LOCAL_ARTIFACT_DIR`.
 - The runner enforces a per-file Git evidence size limit and refuses unexpected large evidence.
 - If a large artifact is scientifically necessary to preserve, open/annotate an Issue describing it and obtain explicit human approval for external storage; do not silently commit it.
 

@@ -63,6 +63,5 @@ export function resolveMicroInteraction(
     translateYRem: state === "hover" || state === "focus" || state === "selected" ? -0.08 : 0,
     scale: state === "press" ? 0.975 : state === "selected" ? 1.015 : 1,
     emphasis: staticEmphasis,
-    showFocusRing: state === "focus",
   };
 }

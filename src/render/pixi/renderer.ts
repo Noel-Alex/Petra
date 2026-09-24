@@ -15,11 +15,17 @@ import {
   zoomAroundDishPoint,
   type ScreenPoint,
 } from "./camera";
+import {
+  cameraTransitionComplete,
+  interpolateCameraTransition,
+  type CameraMotionSpec,
+} from "./cameraMotion";
 
 export type RendererMotionMode = "full" | "reduced" | "off";
 
 export interface PixiDishOptions {
   readonly motion?: RendererMotionMode;
+  readonly cameraMotion: CameraMotionSpec;
   readonly overlayId?: string | null;
   readonly maxRepresentativeGlyphs?: number;
 }
@@ -66,7 +72,9 @@ export async function createPixiDishRenderer(
   let overlayId = options.overlayId ?? null;
   let motion: RendererMotionMode = options.motion ?? "full";
   let camera: CameraView = { centerX: 0.5, centerY: 0.5, zoom: 1 };
+  let transitionStartCamera = camera;
   let targetCamera = camera;
+  let cameraElapsedMs = options.cameraMotion.durationMs;
   let destroyed = false;
   let dragging = false;
   let lastPointer: ScreenPoint | null = null;
@@ -96,31 +104,37 @@ export async function createPixiDishRenderer(
   });
   resizeObserver.observe(host);
 
-  const ticker = () => {
-    if (destroyed) return;
-
-    if (motion !== "full") return;
-
-    const dx = Math.abs(camera.centerX - targetCamera.centerX);
-    const dy = Math.abs(camera.centerY - targetCamera.centerY);
-    const dz = Math.abs(camera.zoom - targetCamera.zoom);
-    if (dx < 0.0001 && dy < 0.0001 && dz < 0.0001) return;
-
-    const blend = 0.14;
-    camera = {
-      centerX: mix(camera.centerX, targetCamera.centerX, blend),
-      centerY: mix(camera.centerY, targetCamera.centerY, blend),
-      zoom: mix(camera.zoom, targetCamera.zoom, blend),
-    };
-
-    if (
-      Math.abs(camera.centerX - targetCamera.centerX) < 0.0001 &&
-      Math.abs(camera.centerY - targetCamera.centerY) < 0.0001 &&
-      Math.abs(camera.zoom - targetCamera.zoom) < 0.0001
-    ) {
+  const beginCameraTransition = (nextTarget: CameraView) => {
+    targetCamera = clampCamera(nextTarget);
+    if (motion !== "full" || options.cameraMotion.durationMs === 0) {
       camera = targetCamera;
+      transitionStartCamera = targetCamera;
+      cameraElapsedMs = options.cameraMotion.durationMs;
+      return;
     }
 
+    transitionStartCamera = camera;
+    cameraElapsedMs = 0;
+  };
+
+  const ticker = () => {
+    if (destroyed || motion !== "full") return;
+    if (
+      cameraTransitionComplete({
+        elapsedMs: cameraElapsedMs,
+        durationMs: options.cameraMotion.durationMs,
+      })
+    ) {
+      return;
+    }
+
+    cameraElapsedMs += app.ticker.deltaMS;
+    camera = interpolateCameraTransition({
+      from: transitionStartCamera,
+      to: targetCamera,
+      elapsedMs: cameraElapsedMs,
+      motion: options.cameraMotion,
+    });
     render();
   };
   app.ticker.add(ticker);
@@ -143,12 +157,13 @@ export async function createPixiDishRenderer(
   const onPointerMove = (event: PointerEvent) => {
     if (!dragging || lastPointer === null || targetCamera.zoom <= 1) return;
     const next = localPointer(event);
-    targetCamera = panCamera(
-      targetCamera,
-      { x: next.x - lastPointer.x, y: next.y - lastPointer.y },
-      { width: app.screen.width, height: app.screen.height },
+    beginCameraTransition(
+      panCamera(
+        targetCamera,
+        { x: next.x - lastPointer.x, y: next.y - lastPointer.y },
+        { width: app.screen.width, height: app.screen.height },
+      ),
     );
-    if (motion !== "full") camera = targetCamera;
     lastPointer = next;
     render();
   };
@@ -170,8 +185,7 @@ export async function createPixiDishRenderer(
       targetCamera,
     );
     const factor = Math.exp(-event.deltaY * 0.0015);
-    targetCamera = zoomAroundDishPoint(targetCamera, anchor, factor);
-    if (motion !== "full") camera = targetCamera;
+    beginCameraTransition(zoomAroundDishPoint(targetCamera, anchor, factor));
     render();
   };
 
@@ -182,8 +196,7 @@ export async function createPixiDishRenderer(
       { width: app.screen.width, height: app.screen.height },
       targetCamera,
     );
-    targetCamera = clampCamera({ centerX: anchor.x, centerY: anchor.y, zoom: 3.2 });
-    if (motion !== "full") camera = targetCamera;
+    beginCameraTransition({ centerX: anchor.x, centerY: anchor.y, zoom: 3.2 });
     render();
   };
 
@@ -221,25 +234,26 @@ export async function createPixiDishRenderer(
 
     setMotionMode(nextMode) {
       motion = nextMode;
-      if (motion !== "full") camera = targetCamera;
+      if (motion !== "full") {
+        camera = targetCamera;
+        transitionStartCamera = targetCamera;
+        cameraElapsedMs = options.cameraMotion.durationMs;
+      }
       render();
     },
 
     setCamera(nextCamera) {
-      targetCamera = clampCamera(nextCamera);
-      if (motion !== "full") camera = targetCamera;
+      beginCameraTransition(nextCamera);
       render();
     },
 
     focusDishPoint(point, zoom = 3.2) {
-      targetCamera = clampCamera({ centerX: point.x, centerY: point.y, zoom });
-      if (motion !== "full") camera = targetCamera;
+      beginCameraTransition({ centerX: point.x, centerY: point.y, zoom });
       render();
     },
 
     resetCamera() {
-      targetCamera = { centerX: 0.5, centerY: 0.5, zoom: 1 };
-      if (motion !== "full") camera = targetCamera;
+      beginCameraTransition({ centerX: 0.5, centerY: 0.5, zoom: 1 });
       render();
     },
 
@@ -481,8 +495,4 @@ function insideViewport(
   const dy = point.y - centerY;
   const radius = dishSize * 0.5;
   return dx * dx + dy * dy <= radius * radius;
-}
-
-function mix(current: number, target: number, amount: number): number {
-  return current + (target - current) * amount;
 }

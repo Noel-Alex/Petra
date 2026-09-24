@@ -123,3 +123,18 @@ Contributor: Noel-Alex
 - Local TypeScript/Vitest/premerge execution is still unavailable in this agent environment because a GitHub checkout cannot resolve the host; hosted CI remains frozen. Verification claims for this slice must therefore stay source/audit-only unless another environment executes the local gates.
 
 Contributor: Noel-Alex
+
+
+## 2026-09-25 — opt-in discrete population authority enters composed checkpoints
+
+- #562's shared `petra-population-authority/fractional-carry-v1` seam is integrated into composed execution under protocol v6 / composed-state v4.
+- `ComposedSimulationConfig.populationAuthority` is required to be either one explicit validated cell-equivalent calibration + numerical policy or explicit `null`. Omission fails closed; there is no default biomass↔cell conversion.
+- When enabled, the canonical population-authority configuration identity joins the composed fingerprint. Checkpoints carry standing-host counts, standing fractional residuals, and division-opportunity residuals; restore validates those values against the exact committed continuous lineage biomass.
+- `stepComposedStateDetailed(...)` advances standing state from committed post-ecology biomass and division opportunities only from the ecology kernel's per-lineage/per-cell division-flux ledger. Death/spread may change standing counts but cannot manufacture mutation opportunities.
+- Continuous ecology plus discrete authority are published together only after the population transition succeeds. A residual/count overflow or other population-authority refusal therefore leaves the composed state unchanged.
+- The existing `stepComposedState(...)` API remains the metrics-only compatibility wrapper. Downstream evolution/phage composition may consume only the detailed safe-integer opportunities/counts; it must not independently round biomass.
+- The bundled flagship remains `populationAuthority: null`: no scenario-owned `modelBiomassPerCellEquivalent` calibration exists, so this integration does not claim literal bacterial cell counts or mutation-event counts for the current flagship.
+- Experiment bundle v2 can carry state-v4 population residuals because it already serializes exact config/checkpoint/runtime identity; protocol-v6 exact-match compatibility rejects older artifacts and no migration is registered.
+- Hosted CI remains frozen. Deterministic regression coverage is authored, but this connector session has not executed the local TypeScript/Vitest/premerge gates.
+
+Contributor: Noel-Alex

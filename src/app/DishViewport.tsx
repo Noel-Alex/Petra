@@ -9,6 +9,7 @@ import type { DishRenderSnapshot } from "../render/model";
 import { PixiDish } from "../render/pixi/PixiDish";
 import { createRendererDemoSnapshot } from "../render/pixi/demoSnapshot";
 import type { RendererMotionMode } from "../render/pixi/renderer";
+import { PetraCompactAction } from "../ui/PetraCompactAction";
 import { resolveMotion } from "../ui/motion/policy";
 import { planSurfaceTransition } from "../ui/motion/semanticTransitions";
 import { MOTION } from "../ui/motion/tokens";
@@ -129,14 +130,14 @@ export function DishViewport({
       </div>
 
       <div className="dish-renderer-controls">
-        <button
-          type="button"
+        <PetraCompactAction
+          motionPreference={motion}
           className="ghost-button"
           onClick={requestOverview}
           aria-label="Return Petri dish camera to whole-dish overview"
         >
           Dish
-        </button>
+        </PetraCompactAction>
 
         <label className="dish-overlay-control">
           <span>Overlay</span>

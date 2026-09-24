@@ -44,6 +44,27 @@ describe("DishViewport render-source truth boundary", () => {
     );
   });
 
+  it("keeps authoritative region selection accessible while render data is still absent", () => {
+    const html = renderToStaticMarkup(
+      <DishViewport
+        motion="off"
+        snapshot={null}
+        onRegionPointActivate={() => {}}
+        regionSelectionActive
+        onClearRegionSelection={() => {}}
+      />,
+    );
+
+    expect(html).toContain('tabindex="0"');
+    expect(html).toContain("inspection ready · render waiting");
+    expect(html).toContain("Clear region");
+    expect(html).toContain("press Enter to inspect the viewport center");
+    expect(html).not.toContain("visual demo · not biology");
+    expect(dishViewportSource).toContain(
+      "onDishPointActivate={onRegionPointActivate}",
+    );
+  });
+
   it("keeps the renderer demo fixture behind explicit opt-in", () => {
     const html = renderToStaticMarkup(
       <DishViewport motion="off" snapshot={null} demoMode />,

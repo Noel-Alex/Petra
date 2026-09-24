@@ -111,9 +111,8 @@ export function assertComposedParameterSetBindingRecord(
   }
 }
 
-export function assertComposedParameterSetBinding(
+export function assertComposedParameterSetBindingIdentity(
   identity: ParameterSetBoundIdentity,
-  config: ComposedSimulationConfig,
 ): asserts identity is ParameterSetBoundIdentity & {
   readonly parameterSetBinding: ComposedParameterSetBinding
 } {
@@ -128,7 +127,16 @@ export function assertComposedParameterSetBinding(
   if (binding.parameterSetVersion !== identity.parameterSetVersion) {
     throw new Error('run parameter-set version does not match composed binding')
   }
+}
 
+export function assertComposedParameterSetBinding(
+  identity: ParameterSetBoundIdentity,
+  config: ComposedSimulationConfig,
+): asserts identity is ParameterSetBoundIdentity & {
+  readonly parameterSetBinding: ComposedParameterSetBinding
+} {
+  assertComposedParameterSetBindingIdentity(identity)
+  const binding = identity.parameterSetBinding
   const actualFingerprint = composedConfigurationFingerprint(config)
   if (binding.configurationFingerprint !== actualFingerprint) {
     throw new Error(

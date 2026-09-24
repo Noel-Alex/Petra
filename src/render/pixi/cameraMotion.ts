@@ -7,6 +7,35 @@ export interface CameraMotionSpec {
   readonly easing: MotionEasing;
 }
 
+export function copyCameraMotionSpec(
+  spec: CameraMotionSpec,
+): CameraMotionSpec {
+  const durationMs = validateDuration(spec.durationMs);
+  const [x1, y1, x2, y2] = spec.easing;
+  validateControlPoint(x1, "x1");
+  validateFiniteControlPoint(y1, "y1");
+  validateControlPoint(x2, "x2");
+  validateFiniteControlPoint(y2, "y2");
+
+  return Object.freeze({
+    durationMs,
+    easing: Object.freeze([x1, y1, x2, y2]) as MotionEasing,
+  });
+}
+
+export function cameraMotionSpecsEqual(
+  left: CameraMotionSpec,
+  right: CameraMotionSpec,
+): boolean {
+  return (
+    left.durationMs === right.durationMs &&
+    left.easing[0] === right.easing[0] &&
+    left.easing[1] === right.easing[1] &&
+    left.easing[2] === right.easing[2] &&
+    left.easing[3] === right.easing[3]
+  );
+}
+
 export function interpolateCameraTransition(args: {
   readonly from: CameraView;
   readonly to: CameraView;
@@ -124,6 +153,12 @@ function validateElapsed(elapsedMs: number): number {
 function validateControlPoint(value: number, label: string): void {
   if (!Number.isFinite(value) || value < 0 || value > 1) {
     throw new RangeError(`${label} must be within [0, 1]`);
+  }
+}
+
+function validateFiniteControlPoint(value: number, label: string): void {
+  if (!Number.isFinite(value)) {
+    throw new RangeError(`${label} must be finite`);
   }
 }
 

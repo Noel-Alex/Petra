@@ -7,6 +7,7 @@ import {
 
 describe("T4 matrix-specific transport calibration", () => {
   it("preserves the measured Hu transport anchors", () => {
+    expect(T4_TRANSPORT_EVIDENCE.schemaVersion).toBe(2);
     expect(
       T4_TRANSPORT_EVIDENCE.measurements.map((measurement) => [
         measurement.id,
@@ -36,6 +37,10 @@ describe("T4 matrix-specific transport calibration", () => {
       "hu2012-agarose-0.5-no-host",
     );
     expect(resolution.calibration.freePhageLoss.status).toBe("unbound");
+    expect(resolution.calibration.livingHostTransport).toMatchObject({
+      status: "out-of-domain",
+      evidenceClass: null,
+    });
   });
 
   it("refuses to reuse the baseline inside living host-bearing regions", () => {
@@ -50,6 +55,13 @@ describe("T4 matrix-specific transport calibration", () => {
       evidenceClass: null,
       reasons: ["embedded-host-condition"],
     });
+    expect(
+      resolution.calibration.livingHostTransport.basisSourceKeys,
+    ).toEqual([
+      "hu_2012_t4_biofilm_diffusion",
+      "lisac_2022_t4_mg1655_biofilm",
+      "lisac_podgornik_2025_t4_starvation",
+    ]);
   });
 
   it("refuses other agarose concentrations rather than extrapolating", () => {

@@ -41,10 +41,16 @@ export interface PetraPhageTransportCalibration {
     status: "unbound";
     limitation: string;
   }>;
+  readonly livingHostTransport: Readonly<{
+    status: "out-of-domain";
+    evidenceClass: null;
+    basisSourceKeys: readonly string[];
+    limitation: string;
+  }>;
 }
 
 export interface PhageTransportEvidence {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: 2;
   readonly id: string;
   readonly phage: Readonly<{ name: "T4" }>;
   readonly units: Readonly<{
@@ -144,7 +150,7 @@ function parseTransportEvidence(raw: unknown): PhageTransportEvidence {
   if (!isRecord(raw)) {
     throw new TypeError("phage transport evidence must be an object");
   }
-  if (raw.schemaVersion !== 1) {
+  if (raw.schemaVersion !== 2) {
     throw new TypeError("unsupported phage transport schema version");
   }
   requireNonEmptyString(raw.id, "id");
@@ -283,6 +289,46 @@ function parseTransportEvidence(raw: unknown): PhageTransportEvidence {
   requireNonEmptyString(
     freePhageLoss.limitation,
     "petraCalibration.freePhageLoss.limitation",
+  );
+
+  const livingHostTransport = requireRecord(
+    calibration.livingHostTransport,
+    "petraCalibration.livingHostTransport",
+  );
+  if (livingHostTransport.status !== "out-of-domain") {
+    throw new TypeError("living-host transport must remain out of domain");
+  }
+  if (livingHostTransport.evidenceClass !== null) {
+    throw new TypeError(
+      "living-host transport cannot carry an evidence class without a bound coefficient",
+    );
+  }
+  if (
+    !Array.isArray(livingHostTransport.basisSourceKeys) ||
+    livingHostTransport.basisSourceKeys.length === 0
+  ) {
+    throw new TypeError(
+      "living-host transport requires explicit boundary evidence sources",
+    );
+  }
+  for (
+    let index = 0;
+    index < livingHostTransport.basisSourceKeys.length;
+    index += 1
+  ) {
+    const sourceKey = requireNonEmptyString(
+      livingHostTransport.basisSourceKeys[index],
+      `petraCalibration.livingHostTransport.basisSourceKeys[${index}]`,
+    );
+    if (!sourceKeys.has(sourceKey)) {
+      throw new RangeError(
+        `living-host transport references unknown source ${sourceKey}`,
+      );
+    }
+  }
+  requireNonEmptyString(
+    livingHostTransport.limitation,
+    "petraCalibration.livingHostTransport.limitation",
   );
 
   return raw as unknown as PhageTransportEvidence;

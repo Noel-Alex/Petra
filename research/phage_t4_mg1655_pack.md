@@ -109,6 +109,25 @@ The `2.4e-12 m^2/s` measurement with dead *E. coli* K-12 embedded is retained as
 
 OOD rule: other agarose concentrations, liquid media, living/dead host-bearing regions, and other matrices must refuse this calibration until separately measured or explicitly calibrated. The `2.8e-11 m^2/s` water/filter-paper value remains a comparison anchor only.
 
+### Phase 10 transport/loss boundary decision (#750)
+
+A targeted follow-up review resolves the remaining implementation question without adding a new numeric parameter.
+
+Hu, Miyanaga & Tanji 2012 (DOI `10.1002/btpr.742`) is itself evidence against treating one host-bearing scalar as passive diffusion authority. Dead K-12 cells reduce the reported apparent T4 diffusion through 0.5% agarose by adsorption, while the paper reports that apparent transport in a growing-host biofilm model is greatly enhanced when phage proliferation occurs. That effective propagation behavior mixes extracellular movement with adsorption, infection and progeny production; it is not a clean living-host molecular diffusion coefficient.
+
+Two exact-pair studies reinforce the same separation for T4 DSM 4505 / MG1655 DSM 18039. Lisac, Birsa & Podgornik 2022 (DOI `10.1111/1751-7915.14079`) shows that T4 penetration/eradication in an MG1655 biofilm depends strongly on nutrient availability and ongoing phage propagation. Lisac & Podgornik 2025 (DOI `10.1186/s12985-025-02934-0`) shows that the same pair can continue adsorption under severe nutrient limitation while development, lysis and free-phage output change substantially with host physiological state. Neither study isolates a passive living-host diffusion coefficient suitable for direct binding into Petra.
+
+A targeted stability review also does not justify a Phase 10 environmental-loss constant. T4 preservation studies quantify viability under storage buffers/temperatures and are not compatible measurements of free-phage loss during an active 37 °C agarose/LB spatial experiment. Nabergoj's zero-loss term therefore remains a model assumption/control, not a measured decay parameter.
+
+**Decision — research flag OFF for #750:**
+
+- general free-phage environmental loss remains **UNBOUND** for physical Science Mode; an explicit zero-loss mechanism control may exist only if labelled as omitted/unmodelled loss rather than measured zero;
+- the transferred `4.2e-12 m^2/s` coefficient remains valid only for the exact 0.5% host-free agarose extracellular context;
+- living-host physical transport remains **OUT OF DOMAIN**. Petra must model adsorption, infection, latent progression, lysis and local progeny release through their separate authoritative mechanisms rather than replacing them with the dead-host `2.4e-12 m^2/s` value or a proliferation-enhanced apparent coefficient;
+- a future host-bearing transport model requires either a direct compatible measurement or a separately versioned reaction-diffusion/adsorption/proliferation composition with its own validation targets.
+
+This is a deliberate negative-evidence boundary, not an unfinished default. Broad transport/loss research should stay off unless a later scenario specifically requires a physical host-bearing transport or environmental-loss claim.
+
 ## Implementation handoff
 
 The life-history research gate is now sufficiently specific to implement a bounded T4/MG1655 module without generic phage constants.

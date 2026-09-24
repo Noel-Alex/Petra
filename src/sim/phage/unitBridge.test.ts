@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { SimulationRng } from "../rng";
+import {
+  BOUNDED_HYBRID_BINOMIAL_V1,
+  SAMPLING_EXECUTION_POLICY_SCHEMA_VERSION,
+  SamplingPolicyRefusal,
+  type SamplingExecutionPolicy,
+} from "../samplingPolicy";
 import { resolveT4Transport } from "./transport";
 import {
   PHAGE_SPATIAL_UNIT_BRIDGE_SCHEMA_VERSION,
@@ -13,11 +19,32 @@ import {
   modelBiomassToCellEquivalents,
   phageSpatialUnitBridgeIdentity,
   resolvePhageAdsorptionExposure,
+  sampleAdsorbedPfuWithPolicy,
   sampleExactAdsorbedPfu,
   validatePhageSpatialUnitBridge,
   type PhageSpatialUnitBridge,
   type PhysicalUnitParameter,
 } from "./unitBridge";
+
+const exactSamplingPolicy: SamplingExecutionPolicy = {
+  schemaVersion: SAMPLING_EXECUTION_POLICY_SCHEMA_VERSION,
+  id: "phage-reference-test",
+  exactTrialBudgets: {
+    bernoulli: 200_000,
+    categorical: 200_000,
+  },
+  acceleratedBinomial: BOUNDED_HYBRID_BINOMIAL_V1,
+};
+
+const acceleratedSamplingPolicy: SamplingExecutionPolicy = {
+  schemaVersion: SAMPLING_EXECUTION_POLICY_SCHEMA_VERSION,
+  id: "phage-accelerated-test",
+  exactTrialBudgets: {
+    bernoulli: 10,
+    categorical: 10,
+  },
+  acceleratedBinomial: BOUNDED_HYBRID_BINOMIAL_V1,
+};
 
 function parameter(
   value: number,
@@ -158,14 +185,86 @@ describe("phage spatial unit bridge", () => {
   });
 
   it("samples free-PFU adsorption deterministically and within bounds", () => {
-    const a = sampleExactAdsorbedPfu(100, 0.2, new SimulationRng(2026));
+    const a = sampleExactAdsorbedPfu(100, 0.2, new SimulationRng(2026), exactSamplingPolicy);
     const b = sampleExactAdsorbedPfu(100, 0.2, new SimulationRng(2026));
 
     expect(a).toBe(b);
     expect(a).toBeGreaterThanOrEqual(0);
     expect(a).toBeLessThanOrEqual(100);
-    expect(sampleExactAdsorbedPfu(7, 0, new SimulationRng(1))).toBe(0);
-    expect(sampleExactAdsorbedPfu(7, 1, new SimulationRng(1))).toBe(7);
+    expect(sampleExactAdsorbedPfu(7, 0, new SimulationRng(1), exactSamplingPolicy)).toBe(0);
+    expect(sampleExactAdsorbedPfu(7, 1, new SimulationRng(1), exactSamplingPolicy)).toBe(7);
+  });
+
+
+  it("refuses exact adsorption above the caller-owned trial budget", () => {
+    const disabled: SamplingExecutionPolicy = {
+      ...acceleratedSamplingPolicy,
+      acceleratedBinomial: "disabled",
+    };
+    expect(() =>
+      sampleExactAdsorbedPfu(11, 0.2, new SimulationRng(1), disabled),
+    ).toThrow(SamplingPolicyRefusal);
+  });
+
+  it("accelerates huge adsorption counts without leaving PFU bounds", () => {
+    const freePfu = 4_000_000_000;
+    const result = sampleAdsorbedPfuWithPolicy(
+      freePfu,
+      0.2,
+      new SimulationRng(2026),
+      acceleratedSamplingPolicy,
+    );
+
+    expect(result.execution).toBe("accelerated");
+    expect(result.algorithm).toBe(BOUNDED_HYBRID_BINOMIAL_V1);
+    expect(result.adsorbedPfu).toBeGreaterThanOrEqual(0);
+    expect(result.adsorbedPfu).toBeLessThanOrEqual(freePfu);
+  });
+
+  it("keeps accelerated adsorption probability limits exact", () => {
+    expect(
+      sampleAdsorbedPfuWithPolicy(
+        1_000_000,
+        0,
+        new SimulationRng(3),
+        acceleratedSamplingPolicy,
+      ).adsorbedPfu,
+    ).toBe(0);
+    expect(
+      sampleAdsorbedPfuWithPolicy(
+        1_000_000,
+        1,
+        new SimulationRng(3),
+        acceleratedSamplingPolicy,
+      ).adsorbedPfu,
+    ).toBe(1_000_000);
+  });
+
+  it("tracks exact adsorption means across many deterministic seeds", () => {
+    const freePfu = 1_000;
+    const probability = 0.25;
+    const seeds = 1_000;
+    let exactTotal = 0;
+    let acceleratedTotal = 0;
+
+    for (let seed = 1; seed <= seeds; seed += 1) {
+      exactTotal += sampleExactAdsorbedPfu(
+        freePfu,
+        probability,
+        new SimulationRng(seed),
+        exactSamplingPolicy,
+      );
+      acceleratedTotal += sampleAdsorbedPfuWithPolicy(
+        freePfu,
+        probability,
+        new SimulationRng(seed),
+        acceleratedSamplingPolicy,
+      ).adsorbedPfu;
+    }
+
+    expect(
+      Math.abs(acceleratedTotal / seeds - exactTotal / seeds),
+    ).toBeLessThan(3);
   });
 
   it("converts the curated host-free T4 transport coefficient through the same pitch", () => {
@@ -197,7 +296,7 @@ describe("phage spatial unit bridge", () => {
       /safe integer/,
     );
     expect(() =>
-      sampleExactAdsorbedPfu(1.5, 0.2, new SimulationRng(1)),
+      sampleExactAdsorbedPfu(1.5, 0.2, new SimulationRng(1), exactSamplingPolicy),
     ).toThrow(/safe integer/);
   });
 });

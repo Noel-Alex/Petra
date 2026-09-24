@@ -12,6 +12,7 @@ import {
   beginRebasedCameraTransition,
   completeCameraTransitionAtRendered,
   retargetWheelZoomFromRendered,
+  wheelZoomWouldChangePendingTarget,
   type CameraTransitionState,
 } from "./cameraInteraction";
 
@@ -86,6 +87,59 @@ describe("camera interruption policy", () => {
     );
     expect(projected.x).toBeCloseTo(screen.x, 8);
     expect(projected.y).toBeCloseTo(screen.y, 8);
+  });
+
+  it("chains saturated wheel intent to the page and immediately reclaims reversal", () => {
+    expect(
+      wheelZoomWouldChangePendingTarget(
+        { targetCamera: { centerX: 0.5, centerY: 0.5, zoom: 1 } },
+        0.8,
+      ),
+    ).toBe(false);
+    expect(
+      wheelZoomWouldChangePendingTarget(
+        { targetCamera: { centerX: 0.5, centerY: 0.5, zoom: 1 } },
+        1.2,
+      ),
+    ).toBe(true);
+
+    expect(
+      wheelZoomWouldChangePendingTarget(
+        { targetCamera: { centerX: 0.5, centerY: 0.5, zoom: 9 } },
+        1.2,
+      ),
+    ).toBe(false);
+    expect(
+      wheelZoomWouldChangePendingTarget(
+        { targetCamera: { centerX: 0.5, centerY: 0.5, zoom: 9 } },
+        0.8,
+      ),
+    ).toBe(true);
+  });
+
+  it("consumes meaningful interior wheel intent but not a unit factor", () => {
+    const pending = {
+      targetCamera: { centerX: 0.4, centerY: 0.55, zoom: 3 },
+    };
+
+    expect(wheelZoomWouldChangePendingTarget(pending, 1.2)).toBe(true);
+    expect(wheelZoomWouldChangePendingTarget(pending, 0.8)).toBe(true);
+    expect(wheelZoomWouldChangePendingTarget(pending, 1)).toBe(false);
+  });
+
+  it("clamps an out-of-bounds pending target before deciding ownership", () => {
+    expect(
+      wheelZoomWouldChangePendingTarget(
+        { targetCamera: { centerX: 2, centerY: -1, zoom: 99 } },
+        1.2,
+      ),
+    ).toBe(false);
+    expect(
+      wheelZoomWouldChangePendingTarget(
+        { targetCamera: { centerX: 2, centerY: -1, zoom: 99 } },
+        0.8,
+      ),
+    ).toBe(true);
   });
 
   it("starts focus transitions from the rendered camera", () => {

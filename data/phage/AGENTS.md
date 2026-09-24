@@ -8,7 +8,7 @@ This directory owns machine-readable published phage evidence used by Petra scie
 
 - `t4_mg1655_nabergoj_2018.json` is the canonical machine-readable copy of the measured Nabergoj et al. 2018 T4 DSM 4505 / *E. coli* K-12 MG1655 DSM 18039 life-history table.
 - Source rows are **measured** evidence and must preserve source units, context, uncertainty, DOI, host identity, phage identity, and measured growth-rate domain.
-- Do not duplicate or silently edit source rows in TypeScript. Simulation helpers import this canonical evidence object.
+- Production simulation helpers must not duplicate or silently edit source rows in TypeScript; they import this canonical evidence object. Deterministic tests may pin published row literals as an independent regression guard.
 - Interpolation is not stored as measurement data. It is a derived runtime projection owned by the pure resolver.
 - Do not add a generic phage constant by averaging these rows.
 

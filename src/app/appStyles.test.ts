@@ -46,6 +46,25 @@ describe("app shell keyboard focus styling", () => {
 });
 
 
+describe("app shell native select touch targets", () => {
+  it("keeps the persisted motion selector at Petra's 44px expo floor", () => {
+    const rule = ruleBody(".motion-control select");
+
+    expect(rule).toContain("min-height: 2.75rem;");
+    expect(rule).not.toContain("width:");
+    expect(rule).not.toContain("min-width:");
+  });
+
+  it("keeps the dish overlay selector touch-sized while preserving fluid width", () => {
+    const rule = ruleBody(".dish-overlay-control select");
+
+    expect(rule).toContain("min-height: 2.75rem;");
+    expect(rule).toContain("min-width: 0;");
+    expect(rule).not.toMatch(/(^|\n)\s*width\s*:/);
+  });
+});
+
+
 describe("app shell resolved motion attribute", () => {
   it("fails static when resolved panel motion is not projected", () => {
     const appRoot = ruleBody(".petra-app");

@@ -26,6 +26,7 @@ Own React/browser orchestration around Petra's authoritative worker and presenta
 ## Runtime rules
 - Do not emit the next queued request until the active request receives its expected authoritative response.
 - Correlate command snapshots/errors by command id; never accept a stale/mismatched snapshot as current state.
+- Treat browser Worker messages as untrusted runtime data even when TypeScript types say `WorkerResponse`: parse/validate the deserialized envelope before session correlation or snapshot state updates. Malformed envelopes are terminal outcomes for the active request, clear queued work through the normal failure path, and retain the active command id rather than trusting an id extracted from malformed payload data.
 - Initialization is complete only after a ready response.
 - Worker/runtime errors must become visible/recoverable UI state, not indefinite spinners.
 - Browser worker transport failures are terminal request outcomes: both `error` and `messageerror` must reach `WorkerSession`, clear active/queued work through the single failure path, retain the active command id when the failed request is a command, and leave initialization failures uncorrelated. `messageerror` uses a stable payload-free diagnostic, and every subscribed Worker event listener must be removed on teardown.

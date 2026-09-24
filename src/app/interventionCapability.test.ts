@@ -32,9 +32,10 @@ describe("projectInterventionCapability", () => {
     expect(view.tools.every((tool) => tool.available === false)).toBe(true);
   });
 
-  it("enables presentation-only placement only when runtime is ready", () => {
+  it("keeps presentation-only placement usable during ready and pending runtime states", () => {
     expect(projectInterventionCapability("ready").previewAvailable).toBe(true);
-    for (const status of ["unavailable", "starting", "pending", "error"] as const) {
+    expect(projectInterventionCapability("pending").previewAvailable).toBe(true);
+    for (const status of ["unavailable", "starting", "error"] as const) {
       expect(projectInterventionCapability(status).previewAvailable).toBe(false);
     }
   });

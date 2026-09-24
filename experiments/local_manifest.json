@@ -11,9 +11,237 @@
       "issues": [
         6,
         10,
-        59
+        59,
+        468,
+        500
       ],
       "timeout_seconds": 300
+    },
+    {
+      "id": "flagship-runtime-smoke",
+      "description": "BLOCKED on #37: composed scenario init/advance/intervention/checkpoint/restore/replay smoke.",
+      "command": [
+        "python",
+        "experiments/blocked.py",
+        "--experiment-id",
+        "flagship-runtime-smoke",
+        "--blocked-on",
+        "37",
+        "--reason",
+        "Issue #37 must land the authoritative composed worker/runtime path before this smoke can exercise real authority."
+      ],
+      "issues": [
+        37,
+        42,
+        542
+      ],
+      "timeout_seconds": 30
+    },
+    {
+      "id": "flagship-long-soak",
+      "description": "BLOCKED on #37: long accelerated mechanistic run with invariant and timing summary.",
+      "command": [
+        "python",
+        "experiments/blocked.py",
+        "--experiment-id",
+        "flagship-long-soak",
+        "--blocked-on",
+        "37",
+        "--reason",
+        "Issue #37 must land the composed authoritative flagship loop before a long soak can measure the integrated mechanism honestly."
+      ],
+      "issues": [
+        3,
+        5,
+        37,
+        542
+      ],
+      "timeout_seconds": 30
+    },
+    {
+      "id": "seed-replay-matrix",
+      "description": "BLOCKED on #37: fixed-seed command traces with checkpoint/event replay identity.",
+      "command": [
+        "python",
+        "experiments/blocked.py",
+        "--experiment-id",
+        "seed-replay-matrix",
+        "--blocked-on",
+        "37",
+        "--reason",
+        "Issue #37 must land authoritative composed checkpoint/restore/replay before the seed matrix can validate end-to-end identity."
+      ],
+      "issues": [
+        5,
+        37,
+        542
+      ],
+      "timeout_seconds": 30
+    },
+    {
+      "id": "ecology-calibration-sweep",
+      "description": "BLOCKED on #3: engineering-profile ecology target/sensitivity sweep.",
+      "command": [
+        "python",
+        "experiments/blocked.py",
+        "--experiment-id",
+        "ecology-calibration-sweep",
+        "--blocked-on",
+        "3",
+        "--reason",
+        "Issue #494 has landed the engineering execution profile; issue #3 must still land the executable flagship ecology path needed for an integrated calibration sweep."
+      ],
+      "issues": [
+        3,
+        494,
+        542
+      ],
+      "timeout_seconds": 30
+    },
+    {
+      "id": "evolution-replicate-statistics",
+      "description": "BLOCKED on #37: many-seed mutation/emergence distribution checks through composed authority.",
+      "command": [
+        "python",
+        "experiments/blocked.py",
+        "--experiment-id",
+        "evolution-replicate-statistics",
+        "--blocked-on",
+        "37",
+        "--reason",
+        "Issue #37 must expose the authoritative composed trajectory path before replicate statistics can represent the flagship experiment."
+      ],
+      "issues": [
+        5,
+        37,
+        542
+      ],
+      "timeout_seconds": 30
+    },
+    {
+      "id": "phage-mechanism-statistics",
+      "description": "BLOCKED on #283: adsorption/infection/lysis statistical controls after Phase 10 integration.",
+      "command": [
+        "python",
+        "experiments/blocked.py",
+        "--experiment-id",
+        "phage-mechanism-statistics",
+        "--blocked-on",
+        "283",
+        "--reason",
+        "Issue #491 has landed the infection multiplicity policy; issue #283 must still land discrete burst/lysis bookkeeping before statistical controls are meaningful."
+      ],
+      "issues": [
+        12,
+        283,
+        491,
+        542
+      ],
+      "timeout_seconds": 30
+    },
+    {
+      "id": "ml-mechanistic-dataset",
+      "description": "BLOCKED on #37 and #531: broad authoritative mechanistic sweep generation; bulky datasets remain local.",
+      "command": [
+        "python",
+        "experiments/blocked.py",
+        "--experiment-id",
+        "ml-mechanistic-dataset",
+        "--blocked-on",
+        "37",
+        "--blocked-on",
+        "531",
+        "--reason",
+        "Issue #37 must provide authoritative trajectories and #531 must provide the durable dataset-generation contract before broad local generation starts."
+      ],
+      "issues": [
+        13,
+        37,
+        442,
+        531,
+        542
+      ],
+      "timeout_seconds": 30
+    },
+    {
+      "id": "ml-aggregate-benchmark",
+      "description": "BLOCKED on #531: aggregate baseline/candidate training and held-out evaluation.",
+      "command": [
+        "python",
+        "experiments/blocked.py",
+        "--experiment-id",
+        "ml-aggregate-benchmark",
+        "--blocked-on",
+        "531",
+        "--reason",
+        "Issue #531 must land the mechanistic dataset/split/evaluation pipeline before aggregate model training can be compared reproducibly."
+      ],
+      "issues": [
+        13,
+        531,
+        542
+      ],
+      "timeout_seconds": 30
+    },
+    {
+      "id": "ml-spatial-benchmark",
+      "description": "BLOCKED on #531: spatial surrogate benchmark only after authoritative dataset scale is established.",
+      "command": [
+        "python",
+        "experiments/blocked.py",
+        "--experiment-id",
+        "ml-spatial-benchmark",
+        "--blocked-on",
+        "531",
+        "--reason",
+        "Issue #531 must first establish sufficient authoritative dataset scale and promotion gates; spatial modeling is intentionally not started earlier."
+      ],
+      "issues": [
+        13,
+        531,
+        542
+      ],
+      "timeout_seconds": 30
+    },
+    {
+      "id": "offline-expo-rehearsal",
+      "description": "BLOCKED on #532: production build no-network startup/demo rehearsal.",
+      "command": [
+        "python",
+        "experiments/blocked.py",
+        "--experiment-id",
+        "offline-expo-rehearsal",
+        "--blocked-on",
+        "532",
+        "--reason",
+        "Issue #532 must land the release/offline expo packaging prerequisites before a no-network rehearsal can validate the actual deliverable."
+      ],
+      "issues": [
+        11,
+        532,
+        542
+      ],
+      "timeout_seconds": 30
+    },
+    {
+      "id": "release-responsive-performance-matrix",
+      "description": "BLOCKED on #532: target/narrow viewports, motion modes, and representative redraw performance.",
+      "command": [
+        "python",
+        "experiments/blocked.py",
+        "--experiment-id",
+        "release-responsive-performance-matrix",
+        "--blocked-on",
+        "532",
+        "--reason",
+        "Issue #532 must establish the release candidate/build target before the final responsive performance matrix can measure the deliverable."
+      ],
+      "issues": [
+        59,
+        532,
+        542
+      ],
+      "timeout_seconds": 30
     }
   ]
 }

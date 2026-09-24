@@ -182,3 +182,12 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 
 - `sandboxScenarios.ts` is the framework-neutral Sandbox selection authority. It consumes shared scenario discovery/#650 maturity, registers only the real bundled flagship runtime, and can only plan a `fresh-run` selection with an explicit canonical seed. Starting Sandbox goes through `buildFlagshipComposedRunPlan()` with explicit resource/founder initialization; no hidden demo biology or in-place scenario mutation is allowed.
 - Active Sandbox labels (mode, scenario/version, seed, engine/protocol, parameter-set/config fingerprint, Science Mode maturity) are projected only after the returned provenance-bound run identity/config match the selection. React may render this record but must not reconstruct scientific identity from card labels.
+
+
+## Experiment bundle save/load handoff
+- `experimentBundleHandoff.ts` is the framework-neutral product boundary for local experiment file handoff. Export text must come only from `serializeExperimentBundle(...)`; import text must be promoted only through `parseExperimentBundle(...)`. App/UI code must not define a second replay/export schema or parse authoritative JSON directly.
+- Import inspection happens before any runtime replacement plan exists. The preview exposes exact scenario/version, seed, parameter-set identity/binding, authority, origin tick/time/command position, replay-command count, and current-runtime compatibility from the parsed bundle.
+- Typed `ExperimentBundleErrorCode` values map to bounded refusal categories/messages. User-facing refusal text must not echo raw payload contents, stacks, or arbitrary validator details.
+- Import is always an explicit fresh-run replacement/replay action. A matching presentation confirmation key is required before `replace-run` may be planned; stale/unconfirmed inspection remains `confirmation-required`.
+- The confirmation key is presentation-only stale-dialog protection, not cryptographic or scientific identity and must never enter replay/checkpoint authority.
+- Browser File/Blob/download/upload/Web Share adapters may wrap this policy later, but local file save/load must remain fully offline-capable. Renderer state, screenshots, raw ML datasets, and unsupported counterfactual ancestry remain outside bundle authority.

@@ -1,3 +1,4 @@
+import { gridCellCenter } from "./gridGeometry";
 import type { CameraView, DishRenderSnapshot, RenderLineage, SemanticZoomLevel } from "./model";
 
 export const GLYPH_SAMPLING_SCHEMA_VERSION = 1 as const;
@@ -58,8 +59,6 @@ function collectLineageCandidates(
   minimumDensity: number,
   output: Array<GlyphSample & { score: number }>,
 ): void {
-  const widthDenominator = Math.max(1, snapshot.gridWidth - 1);
-  const heightDenominator = Math.max(1, snapshot.gridHeight - 1);
   const visibleRadius = Math.min(0.75, 0.72 / Math.max(1, camera.zoom));
   const radiusSquared = visibleRadius * visibleRadius;
 
@@ -72,19 +71,20 @@ function collectLineageCandidates(
       continue;
     }
 
-    const column = cellIndex % snapshot.gridWidth;
-    const row = Math.floor(cellIndex / snapshot.gridWidth);
-    const x = column / widthDenominator;
-    const y = row / heightDenominator;
-    const dx = x - camera.centerX;
-    const dy = y - camera.centerY;
+    const center = gridCellCenter(
+      cellIndex,
+      snapshot.gridWidth,
+      snapshot.gridHeight,
+    );
+    const dx = center.x - camera.centerX;
+    const dy = center.y - camera.centerY;
     if (dx * dx + dy * dy > radiusSquared) continue;
 
     output.push({
       lineageId: lineage.id,
       cellIndex,
-      x,
-      y,
+      x: center.x,
+      y: center.y,
       weight,
       score: stableScore(snapshot, lineage.id, cellIndex, weight),
     });

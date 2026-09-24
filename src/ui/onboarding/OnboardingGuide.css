@@ -8,8 +8,9 @@
   --onboarding-ambient-secondary-easing: linear;
   --onboarding-focus-orbit-ms: 0ms;
   --onboarding-focus-orbit-easing: linear;
-  --onboarding-accent: #8fdcff;
-  --onboarding-accent-soft: rgba(143, 220, 255, 0.12);
+  --onboarding-accent: var(--petra-color-teal);
+  --onboarding-accent-rgb: var(--petra-rgb-teal);
+  --onboarding-accent-soft: rgb(var(--onboarding-accent-rgb) / 0.12);
   position: relative;
   width: min(34rem, 100%);
   overflow: hidden;
@@ -29,18 +30,21 @@
 }
 
 .petra-onboarding[data-focus="pressure"] {
-  --onboarding-accent: #b69bff;
-  --onboarding-accent-soft: rgba(182, 155, 255, 0.13);
+  --onboarding-accent: var(--petra-color-lavender);
+  --onboarding-accent-rgb: var(--petra-rgb-lavender);
+  --onboarding-accent-soft: rgb(var(--onboarding-accent-rgb) / 0.13);
 }
 
 .petra-onboarding[data-focus="lineage"] {
-  --onboarding-accent: #f5c968;
-  --onboarding-accent-soft: rgba(245, 201, 104, 0.12);
+  --onboarding-accent: var(--petra-color-amber);
+  --onboarding-accent-rgb: var(--petra-rgb-amber);
+  --onboarding-accent-soft: rgb(var(--onboarding-accent-rgb) / 0.12);
 }
 
 .petra-onboarding[data-focus="controls"] {
-  --onboarding-accent: #79e1b5;
-  --onboarding-accent-soft: rgba(121, 225, 181, 0.11);
+  --onboarding-accent: var(--petra-color-mint);
+  --onboarding-accent-rgb: var(--petra-rgb-mint);
+  --onboarding-accent-soft: rgb(var(--onboarding-accent-rgb) / 0.11);
 }
 
 .petra-onboarding__ambient {
@@ -192,7 +196,7 @@
 .petra-onboarding__rail::after {
   transform: scaleX(var(--onboarding-progress));
   transform-origin: left center;
-  background: linear-gradient(90deg, #6bcde8, var(--onboarding-accent));
+  background: linear-gradient(90deg, var(--petra-color-teal), var(--onboarding-accent));
   box-shadow: 0 0 16px color-mix(in srgb, var(--onboarding-accent) 28%, transparent);
   transition: transform var(--onboarding-motion-ms) var(--onboarding-easing);
 }
@@ -316,11 +320,31 @@
   border: 1px solid color-mix(in srgb, var(--onboarding-accent) 38%, transparent);
   color: var(--onboarding-accent);
   background:
-    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.16), transparent 30%),
-    color-mix(in srgb, var(--onboarding-accent) 12%, #0a1728);
+    radial-gradient(circle at 34% 28%, rgb(var(--petra-rgb-cream) / 0.12), transparent 30%),
+    color-mix(in srgb, var(--onboarding-accent) 12%, var(--petra-color-ink-deep));
   box-shadow:
-    0 10px 28px rgba(0, 0, 0, 0.24),
+    0 10px 28px rgb(0 0 0 / 0.24),
     inset 0 0 24px var(--onboarding-accent-soft);
+}
+
+.petra-onboarding__focus-motif {
+  width: 2.45rem;
+  height: 2.45rem;
+}
+
+.petra-onboarding__focus-icon {
+  position: absolute;
+  right: -0.08rem;
+  bottom: -0.08rem;
+  width: 1.42rem;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--onboarding-accent) 52%, var(--petra-color-ink));
+  border-radius: 50%;
+  color: var(--petra-color-cream);
+  background: var(--petra-color-ink);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.2);
 }
 
 .petra-onboarding__copy {

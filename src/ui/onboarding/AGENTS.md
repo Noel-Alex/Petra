@@ -13,6 +13,9 @@ Own the guided science-story choreography that introduces Petra without duplicat
 - Worker/runtime adapters such as #42 may satisfy `ScientificGate` events only from authoritative commands/snapshots/events; they must not advance causal stages by timer.
 - Narration must distinguish selection from mutation and wall-clock animation from biological time.
 - Renderer-specific camera/scene effects remain under `src/render/**`.
+- `OnboardingGuide.tsx` is a controlled presentation adapter over `OnboardingState`. It may emit only user-navigation actions (`continue`, `back`, `skip`); it must never manufacture `scientific-gate` events.
+- Runtime integration owns run identity and authoritative gate delivery. A run/branch change must reset/replace controlled onboarding state outside the presentation component.
+- React/CSS motion derives only from `resolveOnboardingPresentation`; do not add raw OS media-query motion authority or component-local stage timings.
 
 ## Verification
 Deterministic tests must prove gated progression, skip/reset behavior, and reduced/off presentation semantics. Browser polish and screenshot/FPS acceptance require browser-capable verification.

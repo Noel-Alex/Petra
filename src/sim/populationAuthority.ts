@@ -383,15 +383,10 @@ export function validateCellEquivalentCalibration(
     throw new Error('cell-equivalent calibration requires a limitation')
   }
   const sourceKeys = calibration.provenance.sourceKeys
-  if (
-    sourceKeys.some(
-      (key) => key.length === 0 || key !== key.trim(),
-    )
-  ) {
-    throw new Error(
-      'cell-equivalent calibration source keys must be canonical strings',
-    )
-  }
+  validateCanonicalStringArray(
+    'cell-equivalent calibration source keys',
+    sourceKeys,
+  )
   if (new Set(sourceKeys).size !== sourceKeys.length) {
     throw new Error(
       'cell-equivalent calibration source keys must be unique',
@@ -443,17 +438,26 @@ function validateConfig(config: DiscretePopulationAuthorityConfig): void {
   if (!Number.isSafeInteger(cells)) {
     throw new Error('population authority cell count must be a safe integer')
   }
-  if (config.mask.length !== cells) {
+  if (!Array.isArray(config.mask) || config.mask.length !== cells) {
     throw new Error('population authority mask must match dimensions')
   }
-  if (config.mask.some((value) => value !== 0 && value !== 1)) {
-    throw new Error('population authority mask values must be exactly 0 or 1')
+  for (let cell = 0; cell < cells; cell += 1) {
+    if (!Object.prototype.hasOwnProperty.call(config.mask, cell)) {
+      throw new Error('population authority mask must be dense')
+    }
+    const value = config.mask[cell]
+    if (value !== 0 && value !== 1) {
+      throw new Error(
+        'population authority mask values must be exactly 0 or 1',
+      )
+    }
   }
-  if (config.lineageIds.length === 0) {
+  if (!Array.isArray(config.lineageIds) || config.lineageIds.length === 0) {
     throw new Error('population authority requires at least one lineage')
   }
-  config.lineageIds.forEach((id, index) =>
-    canonicalIdentity('population lineage id at index ' + index, id),
+  validateCanonicalStringArray(
+    'population lineage ids',
+    config.lineageIds,
   )
   if (new Set(config.lineageIds).size !== config.lineageIds.length) {
     throw new Error('population authority lineage ids must be unique')
@@ -480,15 +484,20 @@ function validateStateAgainstConfig(
   if (
     state.width !== config.width ||
     state.height !== config.height ||
+    !Array.isArray(state.lineageIds) ||
     state.lineageIds.length !== config.lineageIds.length
   ) {
     throw new Error('discrete population state shape does not match config')
   }
-  state.lineageIds.forEach((id, index) => {
-    if (id !== config.lineageIds[index]) {
+  validateCanonicalStringArray(
+    'discrete population state lineage ids',
+    state.lineageIds,
+  )
+  for (let index = 0; index < state.lineageIds.length; index += 1) {
+    if (state.lineageIds[index] !== config.lineageIds[index]) {
       throw new Error('discrete population lineage order does not match config')
     }
-  })
+  }
   if (!Number.isSafeInteger(state.revision) || state.revision < 0) {
     throw new Error(
       'discrete population revision must be a non-negative safe integer',
@@ -609,16 +618,23 @@ function validateChannelShape(
   const cells = config.width * config.height
   if (
     !Array.isArray(channels) ||
-    channels.length !== config.lineageIds.length ||
-    channels.some(
-      (channel) =>
-        channel === null ||
-        typeof channel !== 'object' ||
-        !Number.isSafeInteger(channel.length) ||
-        channel.length !== cells,
-    )
+    channels.length !== config.lineageIds.length
   ) {
     throw new Error(name + ' channels must match lineage/grid dimensions')
+  }
+  for (let index = 0; index < channels.length; index += 1) {
+    if (!Object.prototype.hasOwnProperty.call(channels, index)) {
+      throw new Error(name + ' channels must be dense')
+    }
+    const channel = channels[index]
+    if (
+      channel === null ||
+      typeof channel !== 'object' ||
+      !Number.isSafeInteger(channel.length) ||
+      channel.length !== cells
+    ) {
+      throw new Error(name + ' channels must match lineage/grid dimensions')
+    }
   }
 }
 
@@ -710,8 +726,24 @@ function safeIntegerAdd(name: string, left: number, right: number): number {
   return value
 }
 
+function validateCanonicalStringArray(
+  name: string,
+  values: readonly string[],
+): void {
+  for (let index = 0; index < values.length; index += 1) {
+    if (!Object.prototype.hasOwnProperty.call(values, index)) {
+      throw new Error(name + ' must be dense')
+    }
+    canonicalIdentity(name + ' at index ' + index, values[index]!)
+  }
+}
+
 function canonicalIdentity(name: string, value: string): void {
-  if (value.length === 0 || value !== value.trim()) {
+  if (
+    typeof value !== 'string' ||
+    value.length === 0 ||
+    value !== value.trim()
+  ) {
     throw new Error(name + ' must be a canonical non-empty string')
   }
 }

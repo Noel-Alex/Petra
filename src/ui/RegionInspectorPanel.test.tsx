@@ -14,6 +14,27 @@ import {
   type RegionInspectorPresentationState,
 } from "./regionInspectorState";
 
+const runIdentityFixture = {
+  engineVersion: "petra-ts-core/0.1.0",
+  protocolVersion: 4,
+  scenarioId: "region-inspector-ui",
+  scenarioVersion: "1",
+  parameterSetId: "fixture:region-inspector-ui",
+  parameterSetVersion: "1",
+  parameterSetBinding: {
+    schemaVersion: 1,
+    authority: "fixture",
+    parameterSetId: "fixture:region-inspector-ui",
+    parameterSetVersion: "1",
+    configurationFingerprint: "config-fingerprint-v1",
+    runIdentity: runIdentityFixture,
+    tick: 3,
+    simulationTimeHours: 0.03,
+    commandCount: 2,
+  },
+  seed: 17,
+} as const;
+
 function readout(
   selectionId: string,
   overrides: Partial<MeasuredAuthoritativeRegionInspection> = {},
@@ -23,6 +44,10 @@ function readout(
     selectionId,
     stateVersion: 1,
     configurationFingerprint: "config-fingerprint-v1",
+    runIdentity: runIdentityFixture,
+    tick: 3,
+    simulationTimeHours: 0.03,
+    commandCount: 2,
     selectedCellCount: 3,
     totalBiomass: 4.25,
     totalResource: 7.5,
@@ -54,6 +79,10 @@ function noCoverage(
     selectionId,
     stateVersion: 1,
     configurationFingerprint: "config-fingerprint-v1",
+    runIdentity: runIdentityFixture,
+    tick: 3,
+    simulationTimeHours: 0.03,
+    commandCount: 2,
   };
 }
 
@@ -137,8 +166,13 @@ describe("RegionInspectorPanel", () => {
     expect(html).toContain(
       "Model units are not relabelled as physical cell counts",
     );
-    expect(html).not.toContain("Simulation time");
-    expect(html).not.toContain(" h");
+    expect(html).toContain("Simulation time");
+    expect(html).toContain("0.03 h");
+    expect(html).toContain("Authoritative tick");
+    expect(html).toContain("Accepted command position");
+    expect(html).toContain("region-inspector-ui@1");
+    expect(html).toContain("fixture:region-inspector-ui@1");
+    expect(html).toContain("petra-ts-core/0.1.0 / protocol 4");
   });
 
   it("renders explicit no-grid coverage without numeric scientific measurements", () => {
@@ -155,6 +189,9 @@ describe("RegionInspectorPanel", () => {
       "No biomass or resource measurement is reported.",
     );
     expect(html).toContain("config-fingerprint-v1");
+    expect(html).toContain("Simulation time");
+    expect(html).toContain("0.03 h");
+    expect(html).toContain("Authoritative tick");
     expect(html).not.toContain("Total biomass");
     expect(html).not.toContain("Total resource");
     expect(html).not.toContain("model-biomass");

@@ -21,6 +21,56 @@ describe('CircularScalarField', () => {
     expectFiniteNonNegative(field)
   })
 
+  it('rejects non-finite custom dish centers instead of creating an empty domain', () => {
+    for (const centerX of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+      expect(() =>
+        new CircularScalarField({
+          width: 9,
+          height: 9,
+          cellSize: 1,
+          centerX,
+        }),
+      ).toThrow(/center coordinates must be finite/)
+    }
+
+    expect(() =>
+      new CircularScalarField({
+        width: 9,
+        height: 9,
+        cellSize: 1,
+        centerY: Number.NaN,
+      }),
+    ).toThrow(/center coordinates must be finite/)
+  })
+
+  it('rejects finite geometry with no authoritative dish cells', () => {
+    expect(() =>
+      new CircularScalarField({
+        width: 9,
+        height: 9,
+        cellSize: 1,
+        centerX: 100,
+        centerY: 100,
+        radius: 0.25,
+      }),
+    ).toThrow(/at least one authoritative grid cell/)
+  })
+
+  it('preserves finite off-center dishes that genuinely intersect the grid', () => {
+    const field = new CircularScalarField({
+      width: 9,
+      height: 9,
+      cellSize: 1,
+      centerX: 1,
+      centerY: 1,
+      radius: 1.1,
+    }, 2)
+
+    expect(field.isInside(1, 1)).toBe(true)
+    expect(field.total()).toBeGreaterThan(0)
+    expectFiniteNonNegative(field)
+  })
+
   it('conserves total mass under no-flux diffusion', () => {
     const field = new CircularScalarField({ width: 33, height: 33, cellSize: 0.25 })
     field.set(16, 16, 100)

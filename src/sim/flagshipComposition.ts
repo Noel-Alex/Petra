@@ -368,11 +368,25 @@ function applyInocula(args: {
   )
 
   for (let index = 0; index < args.inocula.length; index += 1) {
-    const inoculum = args.inocula[index]!
-    const channelIndex = lineageIndex.get(inoculum.lineageId)
+    if (!(index in args.inocula)) {
+      throw new Error('flagship inocula must be a dense array')
+    }
+    const inoculum = args.inocula[index]
+    if (
+      inoculum === null ||
+      typeof inoculum !== 'object' ||
+      Array.isArray(inoculum)
+    ) {
+      throw new Error(`inocula[${index}] must be an object`)
+    }
+    const lineageId = requireCanonicalText(
+      `inocula[${index}].lineageId`,
+      inoculum.lineageId,
+    )
+    const channelIndex = lineageIndex.get(lineageId)
     if (channelIndex === undefined) {
       throw new Error(
-        `inocula[${index}] references unknown baseline lineage ${JSON.stringify(inoculum.lineageId)}`,
+        `inocula[${index}] references unknown baseline lineage ${JSON.stringify(lineageId)}`,
       )
     }
     if (

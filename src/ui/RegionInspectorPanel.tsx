@@ -73,8 +73,9 @@ export function RegionInspectorPanel({
       )}
 
       <p className="region-inspector-panel__truth-note">
-        Values come from authoritative simulation grid state. Model units are
-        not relabelled as physical cell counts, concentration, mass, or area
+        Any displayed scientific values come from authoritative simulation grid
+        state. Model units are not relabelled as physical cell counts,
+        concentration, mass, or area
         density, and no biological timestamp is shown until runtime authority
         supplies one.
       </p>
@@ -89,12 +90,66 @@ function RegionReadout({
   readonly readout: AuthoritativeRegionInspection;
   readonly stale: boolean;
 }): ReactElement {
+  if (readout.kind === "no-grid-coverage") {
+    return (
+      <section
+        className="region-inspector-readout"
+        aria-label={
+          stale
+            ? "Stale authoritative no-grid-coverage result"
+            : "Authoritative no-grid-coverage result"
+        }
+        data-readout-selection-id={readout.selectionId}
+        data-readout-stale={stale ? "true" : "false"}
+        data-readout-kind="no-grid-coverage"
+      >
+        <div className="region-inspector-readout__ownership">
+          <strong>{stale ? "Stale result" : "Current result"}</strong>
+          <span>
+            Selection <code>{readout.selectionId}</code>
+          </span>
+        </div>
+
+        <div
+          className="region-inspector-readout region-inspector-readout--empty"
+          data-readout-empty="true"
+        >
+          This selection covers no authoritative simulation grid cell centres
+          inside the dish mask. No biomass or resource measurement is reported.
+        </div>
+
+        <dl className="region-inspector-readout__metrics">
+          <Metric
+            label="Grid coverage"
+            value="No authoritative grid cells"
+          />
+          <Metric
+            label="Composed state schema version"
+            value={String(readout.stateVersion)}
+          />
+        </dl>
+
+        <div className="region-inspector-readout__identity">
+          <span>Configuration fingerprint</span>
+          <code title={readout.configurationFingerprint}>
+            {readout.configurationFingerprint}
+          </code>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section
       className="region-inspector-readout"
-      aria-label={stale ? "Stale authoritative region readout" : "Authoritative region readout"}
+      aria-label={
+        stale
+          ? "Stale authoritative region readout"
+          : "Authoritative region readout"
+      }
       data-readout-selection-id={readout.selectionId}
       data-readout-stale={stale ? "true" : "false"}
+      data-readout-kind="measured"
     >
       <div className="region-inspector-readout__ownership">
         <strong>{stale ? "Stale readout" : "Current readout"}</strong>
@@ -218,9 +273,11 @@ function statusLabel(state: RegionInspectorPresentationState): string {
     case "pending":
       return "Pending";
     case "stale":
-      return "Stale data";
+      return "Stale result";
     case "ready":
-      return "Current";
+      return state.readout.kind === "no-grid-coverage"
+        ? "No grid coverage"
+        : "Current";
     case "error":
       return "Query error";
   }
@@ -233,16 +290,18 @@ function statusCopy(state: RegionInspectorPresentationState): string {
     case "pending":
       return `Waiting for an authoritative readout for selection ${state.selectionId}.`;
     case "stale":
-      return `Selection ${state.requestedSelectionId} is pending. Values below still belong to earlier selection ${state.readout.selectionId}.`;
+      return `Selection ${state.requestedSelectionId} is pending. The result below still belongs to earlier selection ${state.readout.selectionId}.`;
     case "ready":
-      return `Showing authoritative values for selection ${state.selectionId}.`;
+      return state.readout.kind === "no-grid-coverage"
+        ? `Selection ${state.selectionId} covers no authoritative simulation grid cells. No biomass or resource measurement is reported.`
+        : `Showing authoritative values for selection ${state.selectionId}.`;
     case "error":
       if (state.staleReadout !== null) {
         const requested =
           state.selectionId === null
             ? "the current selection"
             : `selection ${state.selectionId}`;
-        return `${state.message} Query for ${requested} failed. Values below remain stale and belong to earlier selection ${state.staleReadout.selectionId}.`;
+        return `${state.message} Query for ${requested} failed. The result below remains stale and belongs to earlier selection ${state.staleReadout.selectionId}.`;
       }
       return `${state.message} No authoritative scientific readout is shown.`;
   }

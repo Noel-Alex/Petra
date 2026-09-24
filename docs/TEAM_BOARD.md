@@ -30,16 +30,17 @@ These remain useful product/science umbrellas, but are usually too broad to clai
 
 This list is intentionally selective. Use the live issue search for the complete queue and re-check comments/branches immediately before editing.
 
-- **Authoritative runtime + UX integration:** #37 composed authoritative snapshots → #42 React/runtime bridge; #158 intervention palette and #159 local-region inspector consume those authority seams.
-- **Browser/expo acceptance:** #59 owns local browser visual, motion, accessibility, touch, and frame-time evidence. Source-only work must not claim that evidence.
-- **Renderer/input + overlay polish:** #241 live semantic-zoom guidance; #253 one visual-demo snapshot transaction; #254 wheel scroll chaining at zoom limits; #262 explicit automatic/none/field overlay identity.
-- **Motion/accessibility/product shell:** #39 owns remaining onboarding/runtime shell integration; #252 owns Full-only ambient dish-hero motion. Coordinate other polish through the #10 umbrella and fresh focused issues rather than reviving closed slices.
-- **Analysis truth/accessibility:** #240 exposes complete authoritative chart/lineage records outside decimated SVG; #246 enforces the scientific SVG typography floor; #249 rejects duplicate per-series biological timestamps; #257 keeps degenerate biological-time axes non-negative.
-- **Counterfactual truth:** #264 preserves judge-facing biological-time precision while #9 remains the fork/compare umbrella.
-- **Science/integration correctness:** #222 composed genotype identity, #224 bounded exact-sampler execution policy, #227 flagship resource identity, and #235 dish-mask state invariants remain focused science/runtime seams.
-- **ML:** #13 remains the mechanistic-dataset/surrogate umbrella; real training/evidence stays blocked until authoritative mechanistic trajectories are available from #37 rather than reopening completed #172/#174 safety work.
-- **Phage:** #12 remains the named T4/MG1655 implementation umbrella; the adsorption concentration bridge formerly tracked in #139 is complete.
-- **Build/reproducibility:** #30 owns the canonical JavaScript lockfile/local-install reproducibility task and remains dependent on real npm-registry access.
+- **Authoritative runtime + UX integration:** #37 owns migration from the synthetic worker scaffold; #42 is the React/runtime umbrella consuming that authority. #158 needs the real intervention command schema, #159 owns authoritative local-region inspection, #274 owns causal narration once explicit causal-event identity exists, and #317 exposes the already-typed Step/Reset/Replay/Seed controls in the shell.
+- **Browser/expo acceptance:** #59 owns real browser visual, motion, keyboard, touch, screen-reader, and frame-time evidence. Source-only work must not claim that evidence.
+- **Renderer/input + accessibility:** #241 owns the live semantic-zoom guide bridge; #253 owns one visual-demo snapshot transaction; #300 owns overview touch scroll chaining; #313 separates renderer-failure narration from retry control; #314 routes retry through shared Petra action motion. Coordinate these shared Pixi/DishViewport paths before editing.
+- **Shell keyboard/motion:** #276 owns conflict-safe playback shortcut wiring. Coordinate broader interaction/onboarding polish through #39 and the #10 umbrella rather than creating competing App-level keyboard or motion authority.
+- **Provenance + judge drill-down:** #278 makes only explicitly supplied DOI/URL locators actionable. #11 remains the integrated demo/judge-defense completion gate; do not turn presentation cues into scientific authority.
+- **Replay + scientific identity:** #222 binds composed lineage channels to genotype identity; #302 makes run-seed identity injective with the uint32 RNG stream; #227 owns the flagship limiting-resource identity gate.
+- **Numerical/runtime safety:** #224 remains open for the authoritative sampling-policy fingerprint hook after its bounded accelerated-sampling core landed. Preserve exact-reference paths and replay-critical sampler identity.
+- **Phage:** #12 remains the named T4/MG1655 implementation umbrella; #283 owns discrete burst-count/lysis bookkeeping. Unbound phage loss/other calibration gaps stay visibly unbound.
+- **ML:** #13 remains the mechanistic-dataset/surrogate umbrella. Real model training/evidence stays downstream of authoritative mechanistic trajectories from #37; do not reopen completed safety-policy work merely to make an ML demo.
+- **Build/reproducibility:** #30 owns the canonical JavaScript lockfile/local-install reproducibility task and requires real npm-registry access; do not hand-write lockfile integrity metadata.
+
 
 ## Work selection
 

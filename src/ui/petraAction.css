@@ -1,6 +1,6 @@
 .petra-action {
-  --petra-action-duration: 160ms;
-  --petra-action-easing: ease;
+  --petra-action-duration: 0ms;
+  --petra-action-easing: linear;
   --petra-action-y: 0rem;
   --petra-action-scale: 1;
   width: 100%;

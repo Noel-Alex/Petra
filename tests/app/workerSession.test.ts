@@ -68,6 +68,8 @@ describe("worker session", () => {
   it("serializes initialization and commands with explicit pending state", () => {
     const port = new FakePort();
     const session = new WorkerSession(port);
+    const phases: string[] = [];
+    session.subscribe((state) => phases.push(state.phase));
 
     session.enqueue([
       { protocolVersion: PROTOCOL_VERSION, type: "initialize", identity },
@@ -111,6 +113,7 @@ describe("worker session", () => {
     });
 
     expect(session.state.phase).toBe("ready");
+    expect(phases).toEqual(["idle", "initializing", "pending", "ready"]);
     expect(session.state.latestSnapshot?.checkpoint.tick).toBe(4);
     expect(session.state.pendingCommandId).toBeNull();
   });

@@ -12,6 +12,7 @@ Own React/browser orchestration around Petra's authoritative worker and presenta
 - Scientific timeline presentation stays in src/ui/timeline.ts.
 - Renderer/Pixi scene authority stays under src/render/**.
 - `DishViewport.tsx` may choose/display source-provided render overlays and units, but it must not derive scientific units or fabricate authoritative snapshots. Until #42/#37 supplies a valid `DishRenderSnapshot`, the renderer demo fixture must remain visibly labelled visual-only.
+- Dish Escape handling is scoped to the focused dish surface. Active intervention cancellation gets first refusal, editable controls are exempt, then Escape may request presentation-only whole-dish overview. It must not replace global playback shortcuts outside the dish.
 
 ## Runtime rules
 - Do not emit the next queued request until the active request receives its expected authoritative response.

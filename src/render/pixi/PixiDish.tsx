@@ -207,7 +207,6 @@ export function PixiDish({
           inset: 0,
           display: "grid",
           placeItems: "center",
-          touchAction: rendererInteractive ? "none" : "auto",
         }}
       >
         {!renderEnabled ? (

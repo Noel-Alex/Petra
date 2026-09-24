@@ -6,6 +6,7 @@ Own React/browser orchestration around Petra's authoritative worker and presenta
 ## Authority boundary
 - React never mutates biological state directly. It issues typed worker requests and renders immutable snapshots/events.
 - workerSession.ts owns browser Worker lifecycle, serialized request delivery, command correlation, pending/error state, and disposal; it does not own simulation equations or scientific interpretation.
+- Browser Worker messages enter `workerSession.ts` as `unknown` and are parsed by the simulation protocol before command correlation or snapshot acceptance. Malformed deserialized responses terminate the active request with bounded diagnostics, clear queued work through the normal failure path, and retain the locally authoritative active command id when one exists; TypeScript event annotations are never runtime validation.
 - Keep src/sim/** and src/worker/** independent from React. Active simulation-composition work belongs to #37.
 - UI control planning stays in src/ui/experimentControls.ts; app adapters execute its ControlEffect rather than duplicating replay/reset/seed semantics.
 - experimentRuntime.ts composes control intent, WorkerSession state, authoritative command confirmation, and timeline projection. Commands become replay history only after a returned authoritative event confirms their command id.

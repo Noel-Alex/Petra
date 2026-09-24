@@ -30,7 +30,7 @@ describe("provenance panel", () => {
     });
 
     const markup = renderToStaticMarkup(
-      <ProvenancePanel records={[record]} />,
+      <ProvenancePanel records={[record]} motionPreference="full" />,
     );
 
     expect(markup).toContain("Ciprofloxacin MIC");
@@ -64,7 +64,7 @@ describe("provenance panel", () => {
     });
 
     const markup = renderToStaticMarkup(
-      <ProvenancePanel records={[record]} />,
+      <ProvenancePanel records={[record]} motionPreference="full" />,
     );
 
     expect(markup).toContain("Needs provenance");
@@ -99,7 +99,7 @@ describe("provenance panel", () => {
     });
 
     const markup = renderToStaticMarkup(
-      <ProvenancePanel records={[record]} />,
+      <ProvenancePanel records={[record]} motionPreference="full" />,
     );
 
     expect(markup).toContain("Unsupported source locator");
@@ -117,7 +117,7 @@ describe("provenance panel", () => {
     });
 
     const markup = renderToStaticMarkup(
-      <ProvenancePanel records={[]} assumptions={assumptions} />,
+      <ProvenancePanel records={[]} assumptions={assumptions} motionPreference="full" />,
     );
 
     expect(markup).toContain("Scenario assumptions");
@@ -136,7 +136,7 @@ describe("provenance panel", () => {
     });
 
     const markup = renderToStaticMarkup(
-      <ProvenancePanel records={[record]} />,
+      <ProvenancePanel records={[record]} motionPreference="full" />,
     );
 
     expect(markup).toContain('role="search"');
@@ -149,6 +149,33 @@ describe("provenance panel", () => {
     );
     expect(markup).toContain("1 of 1 records shown");
   });
+
+  it.each(["full", "reduced", "off"] as const)(
+    "projects %s motion into the shared Clear action",
+    (motionPreference) => {
+      const record = resolveScenarioProvenance({
+        id: "motion-record",
+        label: "Motion projection record",
+        record: { classification: "measured" },
+        scenario: {},
+      });
+
+      const markup = renderToStaticMarkup(
+        <ProvenancePanel
+          records={[record]}
+          motionPreference={motionPreference}
+        />,
+      );
+
+      expect(markup).toContain(
+        'class="petra-compact-action provenance-panel__clear-action"',
+      );
+      expect(markup).toContain(`data-motion="${motionPreference}"`);
+      expect(markup).toContain('data-emphasis="disabled"');
+      expect(markup).toContain("disabled");
+      expect(markup).toContain(">Clear</button>");
+    },
+  );
 
   it("renders transferred mechanistic meaning as two distinct patterned badges", () => {
     const record = resolveScenarioProvenance({
@@ -169,7 +196,7 @@ describe("provenance panel", () => {
     });
 
     const markup = renderToStaticMarkup(
-      <ProvenancePanel records={[record]} />,
+      <ProvenancePanel records={[record]} motionPreference="full" />,
     );
 
     expect(markup).toContain("Transferred");

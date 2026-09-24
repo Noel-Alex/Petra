@@ -16,7 +16,7 @@ Own the guided science-story choreography that introduces Petra without duplicat
 - `OnboardingGuide.tsx` is a controlled presentation adapter over `OnboardingState`. It may emit only user-navigation actions (`continue`, `back`, `skip`); it must never manufacture `scientific-gate` events.
 - Runtime integration owns run identity and authoritative gate delivery. A run/branch change must reset/replace controlled onboarding state outside the presentation component.
 - React/CSS motion derives only from `resolveOnboardingPresentation`; do not add raw OS media-query motion authority or component-local stage timings.
-- Guide navigation actions (`Skip`, `Back`, `Continue` / `Start experimenting`) consume the shared `PetraCompactAction` interaction adapter. Onboarding CSS may own layout, tone, and focus-ring color, but must not reimplement hover/press state or timing.
+- Guide navigation actions (`Skip`, `Back`, `Continue` / `Start experimenting`) consume the shared `PetraCompactAction` interaction adapter. Onboarding CSS may own layout, tone, and focus-ring color, but must not reimplement hover/press state or timing.\n- Guide navigation CSS must not undercut `PetraCompactAction`'s shared `2.75rem` minimum touch height. Onboarding may add padding or deliberate width for composition, but the shared repeated-action block target remains the accessibility floor.
 - Decorative onboarding loops also resolve through shared `src/ui/motion/decorativeLoops.ts` authority and are projected as CSS variables. CSS may not reintroduce local loop cadence/easing or re-enable loops in Reduced/Off.
 
 ## Verification

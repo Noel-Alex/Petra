@@ -4,6 +4,8 @@ import {
   PROVENANCE_ICON_MAP,
 } from "../icons/spec";
 import { PetraIcon } from "../icons/PetraIcon";
+import { PetraCompactAction } from "../PetraCompactAction";
+import type { MotionPreference } from "../motion/policy";
 import {
   filterProvenanceRecords,
   parseProvenanceEvidenceFilter,
@@ -22,6 +24,7 @@ export interface ProvenancePanelProps {
   readonly assumptions?: ScenarioAssumptionsResolution;
   readonly title?: string;
   readonly className?: string;
+  readonly motionPreference: MotionPreference;
 }
 
 export function ProvenancePanel({
@@ -29,6 +32,7 @@ export function ProvenancePanel({
   assumptions,
   title = "Sources & assumptions",
   className,
+  motionPreference,
 }: ProvenancePanelProps): ReactElement {
   const headingId = useId();
   const [query, setQuery] = useState("");
@@ -97,8 +101,9 @@ export function ProvenancePanel({
                 ))}
               </select>
             </label>
-            <button
-              type="button"
+            <PetraCompactAction
+              motionPreference={motionPreference}
+              className="provenance-panel__clear-action"
               disabled={!hasActiveFilter}
               onClick={() => {
                 setQuery("");
@@ -106,7 +111,7 @@ export function ProvenancePanel({
               }}
             >
               Clear
-            </button>
+            </PetraCompactAction>
           </div>
 
           <div className="provenance-panel__filter-meta">

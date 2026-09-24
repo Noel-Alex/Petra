@@ -24,6 +24,7 @@ Own Petra's optional presenter-facing cue deck for the expo runbook. This layer 
 ## Motion
 
 - Motion uses shared Petra policy/tokens only.
+- Presenter navigation actions consume `PetraCompactAction`; Presenter styling may own tone/geometry/focus color but must not shrink the shared compact touch target or define parallel hover/press timing.
 - `PresenterGuide.tsx` projects the already-resolved duration/easing into CSS. Presenter CSS fallbacks must remain static, and the component stylesheet must not re-query `prefers-reduced-motion`; `system` vs explicit preference is resolved upstream.
 - Full mode may use a short cue-card entrance.
 - Reduced mode uses bounded crossfade without spatial travel.

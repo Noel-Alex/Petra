@@ -1,8 +1,12 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 // Vite resolves raw assets in the Vitest runtime; this project intentionally omits vite/client globals.
 // @ts-expect-error Vite raw asset import is runtime-supported but not declared in tsconfig types.
 import appCss from "./app.css?raw";
+
+const appSource = readFileSync(fileURLToPath(new URL("./App.tsx", import.meta.url)), "utf8");
 
 function ruleBody(selector: string): string {
   const start = appCss.indexOf(`${selector} {`);
@@ -43,6 +47,15 @@ describe("app shell keyboard focus styling", () => {
 
 
 describe("app shell resolved motion attribute", () => {
+  it("fails static when resolved panel motion is not projected", () => {
+    const appRoot = ruleBody(".petra-app");
+
+    expect(appRoot).toContain("--panel-motion-ms: 0ms;");
+    expect(appRoot).toContain("--panel-motion-easing: linear;");
+    expect(appSource).toContain('"--panel-motion-ms": panelMotion.duration');
+    expect(appSource).toContain('"--panel-motion-easing": panelMotion.easing');
+  });
+
   it("animates dish ambience only when the motion adapter admits a loop", () => {
     const animated = ruleBody(
       '.dish-stage__halo[data-ambient-motion="animate"]',

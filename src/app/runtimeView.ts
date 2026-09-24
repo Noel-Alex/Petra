@@ -13,7 +13,9 @@ export type RuntimeUiStatus =
   | "error";
 
 export interface ExperimentRuntimeView {
+  /** Visible request/transport phase used by data attributes and CSS treatment. */
   readonly status: RuntimeUiStatus;
+  /** Stable semantic copy suitable for the general runtime live region. */
   readonly statusText: string;
   readonly statusRole: "status" | "alert";
   readonly workerPhase: WorkerSessionPhase | null;
@@ -104,7 +106,7 @@ export function projectExperimentRuntimeView(
     return {
       status: "pending",
       statusText: state.controls.playing
-        ? "Simulation advancing"
+        ? "Simulation running"
         : "Simulation request pending",
       statusRole: "status",
       workerPhase: state.worker.phase,

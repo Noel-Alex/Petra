@@ -27,6 +27,7 @@ Own React/browser orchestration around Petra's authoritative worker and presenta
 - Correlate command snapshots/errors by command id; never accept a stale/mismatched snapshot as current state.
 - Initialization is complete only after a ready response.
 - Worker/runtime errors must become visible/recoverable UI state, not indefinite spinners.
+- Runtime request phase and spoken product status are separate presentation channels: `runtimeView.status` / `workerPhase` may change for visible ready/pending treatment, while `statusText` in the polite runtime live region must stay stable across ordinary continuous-playback ready ↔ pending churn. Errors retain alert semantics and their explicit error text.
 - A snapshot whose run identity does not match active controls is foreign state: do not render/advance it, pause playback, and require an explicit reset/reinitialization path.
 - Dispose workers/listeners when the owning app/runtime is torn down.
 
@@ -48,6 +49,7 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 ## Semantic motion adapters
 - React shell panels and dish overlay chrome consume `src/ui/motion/semanticTransitions.ts`; do not derive competing durations/easings directly in components.
 - `src/app/motionAdapter.ts` is the thin CSS projection layer for framework-neutral surface plans.
+- App-shell panel motion custom properties fail static (`0ms` + non-semantic easing) when React projection is absent; only the resolved adapter may opt panels/drawers into active transition timing/easing.
 - Representative-cell semantic zoom must remain visibly labelled illustrative/explanatory and never be described as literal microscopy or a finer simulation scale.
 - Dish-hero ambient motion is decorative presentation only. The shell consumes `resolveDishAmbient()`: Full may loop subtle transform/opacity ambience from the named `MOTION.dishAmbient` token; Reduced/Off retain static halo depth with no loop. Ambient rhythm must never imply growth, diffusion, biological pulse rate, or simulation speed.
 - Semantic zoom guidance may explain renderer meaning, but it must not infer current scientific state from camera position unless the renderer explicitly reports a presentation-only semantic level.
@@ -81,3 +83,9 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Narration stores the planner's returned sequence + event-id cursor per active stream identity. React rerenders may clear the live-region text but must not replay already accepted events.
 - #37/#42 should eventually supply this stream from the composed authoritative runtime. Until that capability exists, the default product remains correctly silent rather than adapting timeline labels, Pixi state, animation cues, or wall-clock timing.
 
+
+## Dish render-source transaction
+- `DishViewport.tsx` owns one `DishRenderSourceState` per mounted dish surface and resolves authoritative / visual-demo / awaiting presentation through `dishRenderSource.ts`.
+- The resolved `DishRenderSource.snapshot` object is the single transaction consumed by DOM overlay controls/legend and `PixiDish`; adapters must not call the demo fixture factory independently.
+- Source identity is explicit and separate from snapshot shape. Passing a demo-shaped `DishRenderSnapshot` through props must never cause it to be relabelled authoritative.
+- Authoritative state always takes precedence and must not invoke demo generation. Visual-demo state remains explicit opt-in, visibly disclosed, and presentation-only.

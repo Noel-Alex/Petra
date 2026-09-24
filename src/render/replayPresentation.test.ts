@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import type { DishRenderSnapshot } from "./model";
-import { resolveDishReplayPresentation } from "./replayPresentation";
+import {
+  createDishReplayPresenter,
+  resolveDishReplayPresentation,
+} from "./replayPresentation";
 
 function snapshot(
   id: string,
@@ -62,6 +65,26 @@ describe("dish replay presentation", () => {
     expect(first?.progress).toBe(0.5);
     expect(Array.from(first!.state.biomass)).toEqual([5, 6]);
     expect(Array.from(second!.state.biomass)).toEqual([5, 6]);
+  });
+
+  it("reuses the active interval presentation buffers during interactive scrubbing", () => {
+    const a = snapshot("a", 0, [0, 0]);
+    const b = snapshot("b", 2, [10, 20]);
+    const c = snapshot("c", 4, [20, 40]);
+    const presenter = createDishReplayPresenter([a, b, c]);
+
+    const first = presenter.evaluate(0.5);
+    if (first === null) throw new Error("expected replay presentation");
+    const reusedFrame = first.state;
+    expect(Array.from(reusedFrame.biomass)).toEqual([2.5, 5]);
+
+    const second = presenter.evaluate(1.5);
+    expect(second?.state).toBe(reusedFrame);
+    expect(Array.from(second!.state.biomass)).toEqual([7.5, 15]);
+
+    const nextInterval = presenter.evaluate(3);
+    expect(nextInterval?.state).not.toBe(reusedFrame);
+    expect(Array.from(nextInterval!.state.biomass)).toEqual([15, 30]);
   });
 
   it("returns exact authoritative endpoints outside the recorded range", () => {

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "ecoli-ciprofloxacin-baseline-run",
+  "version": "1.0.0",
+  "scenarioId": "ecoli-ciprofloxacin-spatial",
+  "scenarioVersion": "1.4.0-research",
+  "parameterSetId": "ecoli-ciprofloxacin-baseline-composed",
+  "parameterSetVersion": "1.0.0",
+  "classification": "engineering",
+  "seed": 20260924,
+  "initialResourceLevel": 8,
+  "inocula": [
+    {
+      "lineageId": "founder-wt",
+      "x": 80,
+      "y": 80,
+      "biomass": 1
+    }
+  ],
+  "provenance": {
+    "classification": "engineering",
+    "context": "Default offline/expo research-run initialization for Petra's provenance-bound composed flagship. Values initialize run state and do not redefine the biological mechanism parameter set.",
+    "limitation": "The seed, model-resource level, founder position, and founder model-biomass are deterministic engineering run-state choices for a reproducible starting view. They are not measured MG1655 culture conditions, physical concentrations, CFU counts, or outcome-forcing values."
+  }
+}

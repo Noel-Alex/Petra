@@ -154,3 +154,9 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - `InterventionTool` may include presentation vocabulary before a mechanism is promoted (currently inoculate, fungi, antibiotic, nutrient), but availability to preview must not be presented as scientific support to apply.
 - Keyboard-equivalent target movement is exposed through explicit horizontal/vertical controls; direct dish pointer/touch targeting is an additional input path, not the only path.
 - Escape and the explicit Cancel action end placement without emitting a command. Apply remains disabled until authoritative scenario metadata supplies the real typed command, labels, units, bounds, and parameter semantics.
+
+
+## Region Inspector visual-theme ownership
+- `regionInspectorPanel.css` consumes Petra's shared `--petra-color-*` / `--petra-rgb-*` variables for stable chrome and status reinforcement; it must not introduce a second numeric hex/RGB/RGBA palette.
+- Region Inspector status remains redundant in visible labels, lifecycle state, border treatment, and semantic structure. Mint/amber/coral are presentation reinforcement only and never scientific authority.
+- Theme work must not alter authoritative selection ownership, stale-result semantics, exact values/units, lineage/genotype identity, focus behavior, or high-contrast behavior.

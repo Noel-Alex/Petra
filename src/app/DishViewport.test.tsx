@@ -1,8 +1,15 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { createRendererDemoSnapshot } from "../render/pixi/demoSnapshot";
 import { DishViewport } from "./DishViewport";
+
+const dishViewportSource = readFileSync(
+  fileURLToPath(new URL("./DishViewport.tsx", import.meta.url)),
+  "utf8",
+);
 
 describe("DishViewport render-source truth boundary", () => {
   it("waits for authority by default instead of substituting demo biology", () => {
@@ -19,6 +26,22 @@ describe("DishViewport render-source truth boundary", () => {
     expect(html).toContain("No authoritative field overlay");
     expect(html).not.toContain("visual demo · not biology");
     expect(html).not.toContain("visual-only renderer fixture");
+  });
+
+  it("commits render-source cache transitions outside the render body", () => {
+    expect(dishViewportSource).not.toContain(
+      "useRef(INITIAL_DISH_RENDER_SOURCE_STATE)",
+    );
+    expect(dishViewportSource).not.toContain("renderSourceStateRef.current");
+    expect(dishViewportSource).toContain(
+      "const [renderSourceState, setRenderSourceState] = useState(",
+    );
+    expect(dishViewportSource).toContain(
+      "if (renderSourceResolution.state === renderSourceState) return;",
+    );
+    expect(dishViewportSource).toContain(
+      "setRenderSourceState(renderSourceResolution.state);",
+    );
   });
 
   it("keeps the renderer demo fixture behind explicit opt-in", () => {

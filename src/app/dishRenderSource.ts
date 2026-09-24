@@ -25,6 +25,15 @@ export interface DishRenderSourceInput {
   readonly demoMode: boolean;
 }
 
+/**
+ * Presentation-only candidate factory.
+ *
+ * React may invoke a render resolver speculatively or more than once before a
+ * candidate is committed. Production factories therefore must be deterministic
+ * and side-effect free for the same explicit demo configuration. Never put
+ * simulation authority, RNG progression, network work, or persistent mutation
+ * behind this callback.
+ */
 export type DemoSnapshotFactory = () => DishRenderSnapshot;
 
 export const INITIAL_DISH_RENDER_SOURCE_STATE: DishRenderSourceState =
@@ -38,6 +47,12 @@ export const INITIAL_DISH_RENDER_SOURCE_STATE: DishRenderSourceState =
  * renderer. Source identity is explicit and independent from snapshot object
  * presence, so demo data never becomes authoritative merely because it is
  * passed through a snapshot-shaped boundary.
+ *
+ * This resolver is pure with respect to the supplied state: it returns a
+ * candidate next state but never mutates the committed state object. React
+ * callers may therefore resolve during speculative renders, then commit only
+ * the accepted candidate after render. An abandoned render must not advance
+ * mounted cache identity.
  */
 export function resolveDishRenderSource(
   state: DishRenderSourceState,

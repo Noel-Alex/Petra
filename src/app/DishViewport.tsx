@@ -2,7 +2,6 @@ import {
   useEffect,
   useId,
   useMemo,
-  useRef,
   useState,
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -61,13 +60,19 @@ export function DishViewport({
 }: DishViewportProps) {
   const interactionHintId = useId();
   const authoritativeSnapshot = snapshot ?? null;
-  const renderSourceStateRef = useRef(INITIAL_DISH_RENDER_SOURCE_STATE);
+  const [renderSourceState, setRenderSourceState] = useState(
+    INITIAL_DISH_RENDER_SOURCE_STATE,
+  );
   const renderSourceResolution = resolveDishRenderSource(
-    renderSourceStateRef.current,
+    renderSourceState,
     { authoritativeSnapshot, demoMode },
     createRendererDemoSnapshot,
   );
-  renderSourceStateRef.current = renderSourceResolution.state;
+
+  useEffect(() => {
+    if (renderSourceResolution.state === renderSourceState) return;
+    setRenderSourceState(renderSourceResolution.state);
+  }, [renderSourceResolution.state, renderSourceState]);
 
   const renderSource = renderSourceResolution.source;
   const activeSnapshot = renderSource.snapshot;

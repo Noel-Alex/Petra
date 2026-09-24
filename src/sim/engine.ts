@@ -1,4 +1,5 @@
 import { SimulationRng } from './rng'
+import { assertReplayCompatibility } from './replayCompatibility'
 import type {
   RunIdentity,
   SimulationCommand,
@@ -183,9 +184,12 @@ export class SimulationEngine {
   }
 
   private restore(checkpoint: SyntheticSimulationCheckpoint): void {
-    if (stableStringify(checkpoint.identity) !== stableStringify(this.identity)) {
-      throw new Error('Cannot restore a checkpoint from a different run identity')
-    }
+    assertReplayCompatibility({
+      artifactIdentity: checkpoint.identity,
+      targetIdentity: this.identity,
+      artifactAuthority: 'synthetic',
+      targetAuthority: 'synthetic',
+    })
 
     assertCheckpointScalarInvariants(checkpoint)
     const restoredRng = new SimulationRng(checkpoint.rngState)

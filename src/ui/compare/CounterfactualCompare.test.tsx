@@ -169,4 +169,69 @@ describe("CounterfactualCompare time-bound surfaces", () => {
     expect(html).not.toContain("WRONG RIGHT SWIPE");
     expect(html).toContain("Scientific surface withheld");
   });
+
+  it("routes layout toggles through shared Full-motion action semantics", () => {
+    const html = renderToStaticMarkup(
+      <CounterfactualCompare
+        left={left}
+        right={right}
+        leftSurface={surface("left", 4, "left exact")}
+        rightSurface={surface("right", 4, "right exact")}
+        requestedTimeHours={4}
+        leftAvailableThroughHours={8}
+        rightAvailableThroughHours={8}
+        motionPreference="full"
+      />,
+    );
+
+    expect((html.match(/petra-compact-action/g) ?? []).length).toBe(2);
+    expect((html.match(/aria-pressed="true"/g) ?? []).length).toBe(1);
+    expect((html.match(/aria-pressed="false"/g) ?? []).length).toBe(1);
+    expect((html.match(/data-motion="full"/g) ?? []).length).toBe(2);
+    expect(html).toContain("petra-compare__mode-action");
+    expect(html).toContain("Side by side");
+    expect(html).toContain("Swipe");
+  });
+
+  it("keeps reduced compare toggles selected but spatially static", () => {
+    const html = renderToStaticMarkup(
+      <CounterfactualCompare
+        left={left}
+        right={right}
+        leftSurface={surface("left", 4, "left exact")}
+        rightSurface={surface("right", 4, "right exact")}
+        requestedTimeHours={4}
+        leftAvailableThroughHours={8}
+        rightAvailableThroughHours={8}
+        motionPreference="reduced"
+        initialMode="swipe"
+      />,
+    );
+
+    expect((html.match(/data-motion="reduced"/g) ?? []).length).toBe(2);
+    expect((html.match(/--petra-compact-action-duration:0ms/g) ?? []).length).toBe(2);
+    expect((html.match(/--petra-compact-action-y:0rem/g) ?? []).length).toBe(2);
+    expect((html.match(/aria-pressed="true"/g) ?? []).length).toBe(1);
+    expect(html).toContain('data-mode="swipe"');
+  });
+
+  it("keeps motion-off compare toggles static without losing toggle identity", () => {
+    const html = renderToStaticMarkup(
+      <CounterfactualCompare
+        left={left}
+        right={right}
+        leftSurface={surface("left", 4, "left exact")}
+        rightSurface={surface("right", 4, "right exact")}
+        requestedTimeHours={4}
+        leftAvailableThroughHours={8}
+        rightAvailableThroughHours={8}
+        motionPreference="off"
+      />,
+    );
+
+    expect((html.match(/data-motion="off"/g) ?? []).length).toBe(2);
+    expect((html.match(/--petra-compact-action-duration:0ms/g) ?? []).length).toBe(2);
+    expect((html.match(/aria-pressed="true"/g) ?? []).length).toBe(1);
+    expect((html.match(/aria-pressed="false"/g) ?? []).length).toBe(1);
+  });
 });

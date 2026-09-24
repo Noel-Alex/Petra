@@ -374,16 +374,20 @@ export function buildLineageTree(
       : {
           scientificDetail: {
             ...lineage.scientificDetail,
-            ciprofloxacin:
-              lineage.scientificDetail.ciprofloxacin == null
-                ? lineage.scientificDetail.ciprofloxacin
-                : {
-                    micMgPerL: lineage.scientificDetail.ciprofloxacin.micMgPerL,
-                    responseShift:
-                      lineage.scientificDetail.ciprofloxacin.responseShift === null
-                        ? null
-                        : { ...lineage.scientificDetail.ciprofloxacin.responseShift },
-                  },
+            ...(lineage.scientificDetail.ciprofloxacin === undefined
+              ? {}
+              : {
+                  ciprofloxacin:
+                    lineage.scientificDetail.ciprofloxacin === null
+                      ? null
+                      : {
+                          micMgPerL: lineage.scientificDetail.ciprofloxacin.micMgPerL,
+                          responseShift:
+                            lineage.scientificDetail.ciprofloxacin.responseShift === null
+                              ? null
+                              : { ...lineage.scientificDetail.ciprofloxacin.responseShift },
+                        },
+                }),
             sourceKeys: [...lineage.scientificDetail.sourceKeys],
             assumptionKeys: [...lineage.scientificDetail.assumptionKeys],
           },

@@ -10,8 +10,8 @@ describe("bundled scenario discovery", () => {
     expect(scenarios[0]).toMatchObject({
       id: "ecoli-ciprofloxacin-spatial",
       version: "1.4.0-research",
-      scienceModeSelectable: true,
-      referenceScienceMode: false,
+      educationalScienceSelectable: true,
+      referenceScienceModeSelectable: false,
       scienceAdmission: {
         maturity: "validated-educational",
         availability: "educational-only",

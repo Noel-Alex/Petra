@@ -16,6 +16,13 @@ import type { AuthoritativeAnalysisRecords } from "./analysisView";
 import { buildFlagshipProvenanceView } from "./flagshipProvenance";
 import { surfaceMotionCss } from "./motionAdapter";
 import { shouldCloseSourcesOnEscape } from "./sourcesKeyboard";
+import {
+  closeSourcesSurface,
+  completeSourcesExit,
+  createSourcesSurfaceLifecycle,
+  openSourcesSurface,
+  sourcesExitDelayMs,
+} from "./sourcesLifecycle";
 import "./sourcesDrawer.css";
 import { TimelineHistory } from "./TimelineHistory";
 import {
@@ -71,7 +78,9 @@ function focusSourcesTrigger(): void {
 export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
   const systemReduced = useSystemReducedMotion();
   const experiment = useExperimentRuntime(runtimeFactory);
-  const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [sourcesLifecycle, setSourcesLifecycle] = useState(
+    createSourcesSurfaceLifecycle,
+  );
   const [motionSetting, setMotionSetting] = useState<MotionSetting>(() => {
     try {
       return loadMotionSetting(globalThis.localStorage);
@@ -87,21 +96,63 @@ export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
     prefersReducedMotion: systemReduced,
   });
 
+  const showSourcesPlan = useMemo(
+    () =>
+      planSurfaceTransition({
+        surface: "panel",
+        action: "show",
+        preference: motionPreference,
+      }),
+    [motionPreference],
+  );
+  const hideSourcesPlan = useMemo(
+    () =>
+      planSurfaceTransition({
+        surface: "panel",
+        action: "hide",
+        preference: motionPreference,
+      }),
+    [motionPreference],
+  );
+
   const closeSources = () => {
-    setSourcesOpen(false);
+    setSourcesLifecycle((current) =>
+      closeSourcesSurface(current, hideSourcesPlan),
+    );
     focusSourcesTrigger();
   };
 
+  useEffect(() => {
+    const delayMs = sourcesExitDelayMs(sourcesLifecycle, hideSourcesPlan);
+    if (delayMs === null) return;
+
+    const generation = sourcesLifecycle.generation;
+    if (delayMs === 0) {
+      setSourcesLifecycle((current) =>
+        completeSourcesExit(current, generation),
+      );
+      return;
+    }
+
+    const timer = globalThis.setTimeout(() => {
+      setSourcesLifecycle((current) =>
+        completeSourcesExit(current, generation),
+      );
+    }, delayMs);
+
+    return () => globalThis.clearTimeout(timer);
+  }, [
+    sourcesLifecycle.phase,
+    sourcesLifecycle.generation,
+    hideSourcesPlan.keepMountedDuringExit,
+    hideSourcesPlan.durationMs,
+  ]);
+
+  const activeSourcesPlan =
+    sourcesLifecycle.phase === "exiting" ? hideSourcesPlan : showSourcesPlan;
   const panelMotion = useMemo(
-    () =>
-      surfaceMotionCss(
-        planSurfaceTransition({
-          surface: "panel",
-          action: "show",
-          preference: motionPreference,
-        }),
-      ),
-    [motionPreference],
+    () => surfaceMotionCss(activeSourcesPlan),
+    [activeSourcesPlan],
   );
 
   return (
@@ -111,7 +162,7 @@ export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
       onKeyDown={(event) => {
         if (
           !shouldCloseSourcesOnEscape({
-            open: sourcesOpen,
+            open: sourcesLifecycle.requestedOpen,
             key: event.key,
             defaultPrevented: event.defaultPrevented,
             target: event.target,
@@ -161,27 +212,32 @@ export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
             id={SOURCES_TRIGGER_ID}
             motionPreference={motionPreference}
             className="ghost-button"
-            aria-expanded={sourcesOpen}
+            aria-expanded={sourcesLifecycle.requestedOpen}
             aria-controls="petra-sources-panel"
             onClick={() => {
-              if (sourcesOpen) {
+              if (sourcesLifecycle.requestedOpen) {
                 closeSources();
               } else {
-                setSourcesOpen(true);
+                setSourcesLifecycle(openSourcesSurface);
               }
             }}
           >
-            {sourcesOpen ? "Close sources" : "Sources"}
+            {sourcesLifecycle.requestedOpen ? "Close sources" : "Sources"}
           </PetraCompactAction>
         </div>
       </header>
 
-      {sourcesOpen ? (
+      {sourcesLifecycle.mounted ? (
         <section
           id="petra-sources-panel"
           className="sources-drawer"
           aria-label="Flagship scientific sources and assumptions"
           data-transition-treatment={panelMotion.treatment}
+          data-surface-phase={sourcesLifecycle.phase}
+          aria-hidden={
+            sourcesLifecycle.phase === "exiting" ? true : undefined
+          }
+          inert={sourcesLifecycle.phase === "exiting"}
           style={SOURCES_SURFACE_STYLE}
         >
           <div className="sources-drawer__chrome">

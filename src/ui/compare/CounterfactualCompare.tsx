@@ -99,9 +99,16 @@ export function CounterfactualCompare({
     boundLeft.status === "mismatch" || boundRight.status === "mismatch";
 
   const easing = `cubic-bezier(${presentation.easing.join(", ")})`;
+  const storyCue = presentation.storyMoment?.cues.find((cue) => cue.essential);
+  const storyEasing =
+    storyCue === undefined
+      ? "linear"
+      : `cubic-bezier(${storyCue.easing.join(", ")})`;
   const style = {
     "--compare-motion-ms": `${presentation.layoutMotion.durationMs}ms`,
     "--compare-easing": easing,
+    "--compare-story-motion-ms": `${storyCue?.durationMs ?? 0}ms`,
+    "--compare-story-easing": storyEasing,
     "--compare-swipe": `${swipePercent}%`,
   } as CSSProperties;
 
@@ -111,6 +118,8 @@ export function CounterfactualCompare({
       data-mode={mode}
       data-motion-treatment={presentation.layoutMotion.treatment}
       data-tone={presentation.tone}
+      data-story-moment={presentation.storyMoment?.kind ?? "none"}
+      data-story-treatment={storyCue?.treatment ?? "instant"}
       style={style}
       aria-label="Counterfactual branch comparison"
     >
@@ -150,7 +159,11 @@ export function CounterfactualCompare({
         aria-live="polite"
         data-tone={presentation.tone}
       >
-        <span className="petra-compare__meaning-mark" aria-hidden="true" />
+        <span
+          className="petra-compare__meaning-mark"
+          data-story-visual={storyCue?.visual ?? "none"}
+          aria-hidden="true"
+        />
         <div>
           <strong>{presentation.headline}</strong>
           <p>{presentation.detail}</p>

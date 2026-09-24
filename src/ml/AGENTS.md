@@ -9,7 +9,7 @@ Own Petra's optional learned-surrogate infrastructure without granting ML author
 - The mechanistic simulator remains authoritative and must always remain available.
 - ML may accelerate or preview validated mechanistic behavior; it may not invent mutations, MICs, biological parameters, intervention outcomes, or lineage events.
 - Product modes are explicit: `mechanistic` or `emulated`. Never present an emulated result as mechanistic.
-- Emulated mode is feature-gated, promotion-gated, and domain-gated. A failed gate falls back to mechanistic execution with an explicit refusal reason for the UI.
+- Emulated mode is feature-gated, promotion-gated, engine-version-gated, and domain-gated. A failed gate falls back to mechanistic execution with an explicit refusal reason for the UI. A model validated against an older/different engine may not silently remain active.
 - Model/runtime code consumes declared inputs and metadata. It does not mutate simulator state.
 
 ## Dataset integrity

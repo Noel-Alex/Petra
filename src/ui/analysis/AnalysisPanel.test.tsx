@@ -4,6 +4,10 @@ import { describe, expect, it } from "vitest";
 import { AnalysisPanel } from "./AnalysisPanel";
 import { buildLineageTree, buildScientificChart } from "./model";
 
+// Vite resolves raw assets in Vitest; this project intentionally omits vite/client globals.
+// @ts-expect-error Vite raw asset import is runtime-supported but not declared in tsconfig types.
+import analysisCss from "./analysisPanel.css?raw";
+
 const chart = buildScientificChart(
   [
     {
@@ -195,4 +199,11 @@ describe("AnalysisPanel", () => {
     expect(html).toContain("No authoritative lineage ancestry records yet.");
     expect(html).not.toContain('data-lineage-id="');
   });
+  it("keeps authoritative data disclosures on Petra's expo touch-target contract", () => {
+    expect(analysisCss).toContain(
+      ".analysis-data > summary {\n  display: flex;\n  min-height: 2.75rem;",
+    );
+    expect(analysisCss).not.toContain("min-width: 2.75rem");
+  });
+
 });

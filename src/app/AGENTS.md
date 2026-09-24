@@ -96,3 +96,10 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Demo snapshot factories used during candidate resolution must remain deterministic and side-effect free for the same explicit demo configuration. They are presentation factories, never a place for RNG progression, network work, persistent mutation, or scientific authority.
 - Source identity is explicit and separate from snapshot shape. Passing a demo-shaped `DishRenderSnapshot` through props must never cause it to be relabelled authoritative.
 - Authoritative state always takes precedence and must not invoke demo generation. Visual-demo state remains explicit opt-in, visibly disclosed, and presentation-only.
+
+## Localized placement integration
+- `App.tsx` owns the active intervention-placement presentation state. It may keep previews alive through a transient `pending` runtime request, but it clears them when runtime authority is unavailable, starting, or failed.
+- Active placement gets first refusal on Escape, including while a range input is focused; cancellation precedes dish-camera reset and never sends worker traffic.
+- `DishViewport.tsx` recenters to whole-dish overview when a placement tool becomes active so the DOM/SVG target and Pixi viewport share a stable coordinate projection during targeting.
+- `InterventionPlacementOverlay.tsx` must consume `src/render/pixi/camera.ts` aperture geometry rather than repeat dish diameter assumptions. Pointer/touch outside the circular aperture is ignored.
+- Tool buttons may enable **placement preview** in ready/pending runtime states even while `InterventionCapabilityView.available` remains false. A visible disabled Apply gate and explanatory copy must preserve that distinction until #37/#158 provides authoritative intervention schema/metadata.

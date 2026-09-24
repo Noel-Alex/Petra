@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { PetraCompactAction } from "../ui/PetraCompactAction";
 import {
+  loadVisualContrastSetting,
+  parseVisualContrastSetting,
+  saveVisualContrastSetting,
+  type VisualContrastSetting,
+} from "../ui/contrastPreference";
+import {
   loadMotionSetting,
   parseMotionSetting,
   resolveMotionSetting,
@@ -135,6 +141,14 @@ export function App({
       return "system";
     }
   });
+  const [visualContrast, setVisualContrast] =
+    useState<VisualContrastSetting>(() => {
+      try {
+        return loadVisualContrastSetting(globalThis.localStorage);
+      } catch {
+        return "standard";
+      }
+    });
 
   const provenance = useMemo(() => buildFlagshipProvenanceView(), []);
 
@@ -233,6 +247,7 @@ export function App({
     <main
       className="petra-app"
       data-motion={motionPreference}
+      data-visual-contrast={visualContrast}
       onKeyDown={(event) => {
         if (
           interventionPlacement.phase === "placing" &&
@@ -354,6 +369,25 @@ export function App({
               <option value="full">Full</option>
               <option value="reduced">Reduced</option>
               <option value="off">Off</option>
+            </select>
+          </label>
+          <label className="motion-control contrast-control">
+            <span>Contrast</span>
+            <select
+              aria-label="Visual contrast"
+              value={visualContrast}
+              onChange={(event) => {
+                const setting = parseVisualContrastSetting(event.target.value);
+                setVisualContrast(setting);
+                try {
+                  saveVisualContrastSetting(globalThis.localStorage, setting);
+                } catch {
+                  // Keep the explicit in-memory preference when storage is unavailable.
+                }
+              }}
+            >
+              <option value="standard">Standard</option>
+              <option value="high-contrast">High contrast</option>
             </select>
           </label>
           {synchronizedOnboardingSession.state.completed ? (
@@ -539,6 +573,7 @@ export function App({
       <AnalysisSurface
         records={analysisRecords}
         motion={motionPreference}
+        contrastMode={visualContrast}
       />
 
       <footer className="timeline-shell" aria-label="Simulation timeline">

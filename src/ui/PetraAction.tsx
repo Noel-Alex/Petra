@@ -55,6 +55,7 @@ export function PetraAction({
   const presentation = resolveMicroInteraction(semanticState, motionPreference);
   const style = {
     "--petra-action-duration": `${presentation.durationMs}ms`,
+    "--petra-action-easing": `cubic-bezier(${presentation.easing.join(", ")})`,
     "--petra-action-y": `${presentation.translateYRem}rem`,
     "--petra-action-scale": presentation.scale,
   } as CSSProperties;

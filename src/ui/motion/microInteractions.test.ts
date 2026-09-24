@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { resolveMicroInteraction } from "./microInteractions";
+import { MOTION } from "./tokens";
 
 describe("resolveMicroInteraction", () => {
   it("uses named full-motion spatial emphasis", () => {
@@ -10,6 +11,9 @@ describe("resolveMicroInteraction", () => {
       emphasis: "hover",
     });
     expect(resolveMicroInteraction("press", "full").scale).toBeLessThan(1);
+    expect(resolveMicroInteraction("hover", "full").easing).toBe(
+      MOTION.toolPreview.easing,
+    );
   });
 
   it("removes spatial motion while preserving focus semantics in reduced mode", () => {
@@ -34,6 +38,7 @@ describe("resolveMicroInteraction", () => {
       expect(resolveMicroInteraction("disabled", preference)).toEqual({
         state: "disabled",
         durationMs: 0,
+        easing: MOTION.toolPreview.easing,
         translateYRem: 0,
         scale: 1,
         emphasis: "disabled",

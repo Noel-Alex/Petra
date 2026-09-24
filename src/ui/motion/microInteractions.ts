@@ -12,6 +12,7 @@ export type MicroInteractionState =
 export interface MicroInteractionPresentation {
   readonly state: MicroInteractionState;
   readonly durationMs: number;
+  readonly easing: readonly [number, number, number, number];
   readonly translateYRem: number;
   readonly scale: number;
   readonly emphasis: "rest" | "hover" | "focus" | "press" | "selected" | "disabled";
@@ -31,6 +32,7 @@ export function resolveMicroInteraction(
     return {
       state,
       durationMs: 0,
+      easing: MOTION.toolPreview.easing,
       translateYRem: 0,
       scale: 1,
       emphasis: "disabled",
@@ -49,6 +51,7 @@ export function resolveMicroInteraction(
     return {
       state,
       durationMs: spatial.durationMs,
+      easing: MOTION.toolPreview.easing,
       translateYRem: 0,
       scale: 1,
       emphasis: staticEmphasis,
@@ -59,6 +62,7 @@ export function resolveMicroInteraction(
   return {
     state,
     durationMs: spatial.durationMs,
+    easing: MOTION.toolPreview.easing,
     translateYRem: state === "hover" || state === "focus" || state === "selected" ? -0.08 : 0,
     scale: state === "press" ? 0.975 : state === "selected" ? 1.015 : 1,
     emphasis: staticEmphasis,

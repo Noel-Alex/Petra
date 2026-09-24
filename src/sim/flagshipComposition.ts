@@ -1,6 +1,7 @@
 import flagshipScenario from '../../data/presets/ecoli_ciprofloxacin_v1.json'
 import {
   composedConfigurationFingerprint,
+  type ComposedCiprofloxacinConfig,
   type ComposedSimulationConfig,
 } from './authoritative'
 import {
@@ -12,6 +13,7 @@ import {
   COMPOSED_PARAMETER_SET_BINDING_SCHEMA_VERSION,
   type ComposedParameterSetBinding,
 } from './parameterSetBinding'
+import { CIPROFLOXACIN_RESOURCE_COMPOSITION_POLICY } from './pharmacodynamics/composition'
 import {
   assertSimulationSeed,
   createRunIdentity,
@@ -140,6 +142,13 @@ function requirePositiveFinite(name: string, value: unknown): number {
 function requireFiniteNonNegative(name: string, value: unknown): number {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
     throw new Error(`${name} must be finite and non-negative`)
+  }
+  return value
+}
+
+function requireNegativeFinite(name: string, value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value >= 0) {
+    throw new Error(`${name} must be negative and finite`)
   }
   return value
 }
@@ -279,6 +288,94 @@ function parseEngineeringGeometry(
       'environment.engineeringDefaults.cellSize',
       record.cellSize,
     ),
+  })
+}
+
+function projectFlagshipCiprofloxacinAuthority(
+  scenario: UnknownRecord,
+): ComposedCiprofloxacinConfig {
+  const drug = requireRecord('scenario.drug', scenario.drug)
+  if (requireCanonicalText('scenario.drug.name', drug.name) !== 'ciprofloxacin') {
+    throw new Error('flagship composed authority requires ciprofloxacin')
+  }
+  if (drug.genotypeCompositionPolicy !== 'mic_ratio_shift_reference_curve') {
+    throw new Error(
+      'flagship ciprofloxacin authority requires mic_ratio_shift_reference_curve',
+    )
+  }
+
+  const policy = requireRecord(
+    'scenario.drug.resourceDrugCompositionPolicy',
+    drug.resourceDrugCompositionPolicy,
+  )
+  if (
+    requireCanonicalText(
+      'scenario.drug.resourceDrugCompositionPolicy.id',
+      policy.id,
+    ) !== CIPROFLOXACIN_RESOURCE_COMPOSITION_POLICY.id
+  ) {
+    throw new Error('unsupported flagship resource-drug composition policy')
+  }
+
+  const reference = requireRecord(
+    'scenario.drug.referencePharmacodynamics',
+    drug.referencePharmacodynamics,
+  )
+  if (reference.citation !== 'regoes_2004') {
+    throw new Error(
+      'flagship ciprofloxacin reference pharmacodynamics must cite regoes_2004',
+    )
+  }
+
+  if (!Array.isArray(scenario.genotypes) || scenario.genotypes.length === 0) {
+    throw new Error('flagship scenario genotypes must be a non-empty array')
+  }
+  const genotypeIds = new Set<string>()
+  const genotypeMicMgPerL = scenario.genotypes.map((value, index) => {
+    const genotype = requireRecord(`scenario.genotypes[${index}]`, value)
+    const genotypeId = requireCanonicalText(
+      `scenario.genotypes[${index}].id`,
+      genotype.id,
+    )
+    if (genotypeIds.has(genotypeId)) {
+      throw new Error('flagship genotype MIC ids must be unique')
+    }
+    genotypeIds.add(genotypeId)
+    return Object.freeze({
+      genotypeId,
+      micMgPerL: requirePositiveFinite(
+        `scenario.genotypes[${index}].mic_mg_L`,
+        genotype.mic_mg_L,
+      ),
+    })
+  })
+
+  return Object.freeze({
+    policyId: CIPROFLOXACIN_RESOURCE_COMPOSITION_POLICY.id,
+    concentrationUnit: 'mg/L',
+    referencePharmacodynamics: Object.freeze({
+      psiMaxLog10PerHour: requirePositiveFinite(
+        'scenario.drug.referencePharmacodynamics.psiMax_log10DensitySlope_per_h',
+        reference.psiMax_log10DensitySlope_per_h,
+      ),
+      psiMinLog10PerHour: requireNegativeFinite(
+        'scenario.drug.referencePharmacodynamics.psiMin_log10DensitySlope_per_h',
+        reference.psiMin_log10DensitySlope_per_h,
+      ),
+      zMic: requirePositiveFinite(
+        'scenario.drug.referencePharmacodynamics.zMIC_mg_L',
+        reference.zMIC_mg_L,
+      ),
+      kappa: requirePositiveFinite(
+        'scenario.drug.referencePharmacodynamics.kappa',
+        reference.kappa,
+      ),
+    }),
+    referenceMicMgPerL: requirePositiveFinite(
+      'scenario.drug.referencePharmacodynamics.conventionalMIC_mg_L',
+      reference.conventionalMIC_mg_L,
+    ),
+    genotypeMicMgPerL: Object.freeze(genotypeMicMgPerL),
   })
 }
 
@@ -473,6 +570,7 @@ export function buildFlagshipComposedRunPlan(
   const parameterSet = parseBaselineParameterSet(
     scenarioRecord.composedParameterSet,
   )
+  const ciprofloxacin = projectFlagshipCiprofloxacinAuthority(scenarioRecord)
   assertFlagshipReferences({
     scenario: scenarioRecord,
     resourceContext,
@@ -519,6 +617,9 @@ export function buildFlagshipComposedRunPlan(
     height: resourceField.height,
     mask: Array.from(resourceField.mask),
     initialResource: Array.from(resourceField.values),
+    ciprofloxacinConcentrationMgPerL: new Array<number>(
+      resourceField.values.length,
+    ).fill(0),
     initialLineageBiomass,
     growth: { ...executionProfile.growth },
     lineages: parameterSet.lineages.map((lineage) => ({ ...lineage })),
@@ -527,6 +628,7 @@ export function buildFlagshipComposedRunPlan(
       scenarioId: evolutionGraph.scenarioId,
       scenarioVersion: evolutionGraph.scenarioVersion,
     },
+    ciprofloxacin,
     samplingExecutionPolicy: null,
     hoursPerTick: executionProfile.hoursPerTick,
   }

@@ -27,6 +27,7 @@ Start the authoritative core in TypeScript inside a Web Worker so the scientific
 Unit/determinism tests for the core, reference-vs-accelerated numerical comparisons, browser interaction tests, and measured performance budgets. Never claim device/browser acceptance without running it.
 
 ## Child DOX index
+- [`design/AGENTS.md`](design/AGENTS.md) — shared domain-neutral visual token authority for CSS and renderer presentation.
 - [`sim/AGENTS.md`](sim/AGENTS.md) — authoritative simulation state, deterministic RNG, replay/checkpoint, and mechanism-core contracts.
 - [`ui/AGENTS.md`](ui/AGENTS.md) — accessible motion, experiment controls, keyboard semantics, replay planning, and scientific timeline presentation.
 - [`app/AGENTS.md`](app/AGENTS.md) — React/browser orchestration, worker-session lifecycle, request correlation, and runtime integration boundaries.

@@ -69,3 +69,11 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Analysis records carry explicit run/state identity + simulation time. No source sample or lineage lifecycle record may claim a biological time later than its bound authoritative state.
 - When #37/#42 exposes real composed analysis records, the runtime composition layer must supply this contract from the same active run/branch rather than teaching React how to infer scientific data.
 
+## Authoritative causal narration bridge
+- `CausalNarrationMount.tsx` keeps exactly one stable `CausalAnnouncementRegion` mounted in the product shell. Missing authority clears/keeps that region silent; it must never unmount/remount per event.
+- `causalNarration.ts` is the app trust boundary for already-authoritative `CausalEventKind` streams. The current synthetic protocol events (`initialized | advanced | synthetic-pulse | restored`) are not eligible and must never be relabeled into causal scientific meaning.
+- A supplied causal stream carries exact `RunIdentity` plus an explicit `runBranchIdentity`. The run identity must match the active runtime before any event is narrated; stale/foreign streams are ignored without advancing the cursor.
+- The caller/runtime authority must change `runBranchIdentity` for a fresh run/branch generation (including a reset that restarts event sequence under otherwise identical run fields). That change explicitly resets the narration cursor.
+- Narration stores the planner's returned sequence + event-id cursor per active stream identity. React rerenders may clear the live-region text but must not replay already accepted events.
+- #37/#42 should eventually supply this stream from the composed authoritative runtime. Until that capability exists, the default product remains correctly silent rather than adapting timeline labels, Pixi state, animation cues, or wall-clock timing.
+

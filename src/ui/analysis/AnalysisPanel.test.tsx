@@ -100,6 +100,43 @@ describe("AnalysisPanel", () => {
   });
 
 
+  it("renders shared non-color lineage identity and independent high-contrast emphasis", () => {
+    const highContrastTree = buildLineageTree(
+      [
+        {
+          lineageId: "L1",
+          parentLineageId: null,
+          genotypeId: "WT",
+          createdAtHours: 0,
+          extinctAtHours: null,
+        },
+        {
+          lineageId: "L2",
+          parentLineageId: "L1",
+          genotypeId: "mutant",
+          createdAtHours: 1,
+          extinctAtHours: null,
+        },
+      ],
+      { contrastMode: "high-contrast" },
+    );
+
+    const html = renderToStaticMarkup(
+      <AnalysisPanel
+        chart={chart}
+        lineageTree={highContrastTree}
+        motion="off"
+      />,
+    );
+
+    expect(html).toContain('data-lineage-appearance=');
+    expect(html).toContain('data-lineage-pattern=');
+    expect(html).toContain('data-contrast-mode="high-contrast"');
+    expect(html).toContain("--analysis-lineage-stroke-scale:1.6");
+    expect(html).toContain("L1");
+    expect(html).toContain("L2");
+  });
+
   it("renders complete semantic records even when SVG geometry is decimated", () => {
     const denseChart = buildScientificChart(
       [{

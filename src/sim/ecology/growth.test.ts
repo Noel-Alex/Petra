@@ -180,6 +180,38 @@ describe('resource-limited ecology step', () => {
     expect(s.lineages[0]![1]).toBeCloseTo(5, 6)
   })
 
+  it('rejects malformed later resource atomically before earlier resource can be consumed', () => {
+    const s: EcologyState = {
+      width: 2,
+      height: 1,
+      mask: new Uint8Array([1, 1]),
+      resource: new Float32Array([10, Number.NaN]),
+      lineages: [new Float32Array([1, 1])],
+    }
+    const beforeResource = s.resource.slice()
+    const beforeLineage = s.lineages[0]!.slice()
+
+    expect(() => stepEcology(s, params, neutral(1), 1)).toThrow(/resource concentration/)
+    expect(s.resource).toEqual(beforeResource)
+    expect(s.lineages[0]).toEqual(beforeLineage)
+  })
+
+  it('rejects malformed later lineage biomass atomically before earlier resource can be consumed', () => {
+    const s: EcologyState = {
+      width: 2,
+      height: 1,
+      mask: new Uint8Array([1, 1]),
+      resource: new Float32Array([10, 10]),
+      lineages: [new Float32Array([1, -1])],
+    }
+    const beforeResource = s.resource.slice()
+    const beforeLineage = s.lineages[0]!.slice()
+
+    expect(() => stepEcology(s, params, neutral(1), 1)).toThrow(/lineage biomass/)
+    expect(s.resource).toEqual(beforeResource)
+    expect(s.lineages[0]).toEqual(beforeLineage)
+  })
+
   it('rejects invalid lineage kinetics and death fields', () => {
     const s = state(1, [1])
     expect(() => stepEcology(s, params, [], 1)).toThrow(/one entry per lineage/)

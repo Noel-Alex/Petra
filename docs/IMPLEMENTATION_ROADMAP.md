@@ -2,6 +2,20 @@
 
 This roadmap describes the **best version of Petra**, then sequences it so the project can ship useful vertical slices continuously. The competition deadline affects order, not the long-term design ceiling.
 
+## Immediate execution order — make the flagship work first
+
+The phase list below describes capability sequencing, **not a claim that earlier phases are fully integrated on current `main`**. The immediate project priority is the authoritative functional vertical slice: a real scenario must initialize, advance, accept supported interventions, checkpoint/restore/replay deterministically, and emit real snapshots/events/metrics through the worker/runtime into the product.
+
+Until that end-to-end path is working:
+
+- treat #37 and its concrete prerequisites as the highest-priority implementation work;
+- treat missing parameter binding, science contracts, numerical validation, local experiments, reproducibility tooling, and mechanistic dataset generation as first-class functional work when they block integration;
+- do not jump ahead to model training merely because ML is visible at an expo—learned surrogates remain downstream of authoritative mechanistic trajectories and validation;
+- continue renderer/UI/motion/design work in parallel only when it does not displace available functional work, or when functional work is blocked on another owner/evidence source;
+- do not introduce WASM, hosted compute, or extra services unless measured workload or experiment needs justify them.
+
+The near-term completion gate is therefore **working authority before presentation completeness**. Visual excellence remains required for showcase readiness, but it is not a substitute for a real simulation loop.
+
 ## Phase 0 — repository contracts and scientific foundation
 
 Status: substantially prepared.
@@ -209,6 +223,8 @@ Structured event log + repository evidence, never free-form biological authority
 - export/share.
 
 ## Parallelization strategy
+
+Parallelism is encouraged, but allocate scarce ownership in this order while the flagship runtime is incomplete: functional integration/science-validation first, then UI/visual polish on spare or blocked capacity. Frontend work should consume stable contracts and must not become the reason an available runtime blocker waits.
 
 Workstreams can proceed in parallel once protocol contracts land:
 

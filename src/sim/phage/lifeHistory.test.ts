@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   T4_MG1655_LIFE_HISTORY,
+  createPhageLifeHistoryIdentity,
+  phageLifeHistoryIdentitiesEqual,
   resolvePhageLifeHistory,
+  validatePhageLifeHistoryIdentity,
 } from "./lifeHistory";
 
 describe("T4 / MG1655 life-history evidence", () => {
@@ -61,6 +64,48 @@ describe("T4 / MG1655 life-history evidence", () => {
         burstSizeSdPfuPerCell: row.burstSizeSdPfuPerCell,
       });
     }
+  });
+
+  it("captures distinct replay identities for equal-latency measured states", () => {
+    const lower = resolvePhageLifeHistory(T4_MG1655_LIFE_HISTORY, 0.82);
+    const upper = resolvePhageLifeHistory(T4_MG1655_LIFE_HISTORY, 0.98);
+    if (lower.status !== "exact" || upper.status !== "exact") {
+      throw new Error("expected exact equal-latency rows");
+    }
+
+    const lowerIdentity = createPhageLifeHistoryIdentity(lower);
+    const upperIdentity = createPhageLifeHistoryIdentity(upper);
+
+    expect(lowerIdentity.latentPeriodMinutes).toBe(27);
+    expect(upperIdentity.latentPeriodMinutes).toBe(27);
+    expect(lowerIdentity.burstSizePfuPerCell).toBe(75);
+    expect(upperIdentity.burstSizePfuPerCell).toBe(89);
+    expect(
+      phageLifeHistoryIdentitiesEqual(lowerIdentity, upperIdentity),
+    ).toBe(false);
+
+    const restored = JSON.parse(JSON.stringify(lowerIdentity));
+    expect(() => validatePhageLifeHistoryIdentity(restored)).not.toThrow();
+    expect(
+      phageLifeHistoryIdentitiesEqual(lowerIdentity, restored),
+    ).toBe(true);
+  });
+
+  it("refuses out-of-domain or non-canonical replay identity", () => {
+    const outOfDomain = resolvePhageLifeHistory(T4_MG1655_LIFE_HISTORY, 1.5);
+    expect(() => createPhageLifeHistoryIdentity(outOfDomain)).toThrow(
+      /in-domain/,
+    );
+
+    const exact = resolvePhageLifeHistory(T4_MG1655_LIFE_HISTORY, 0.82);
+    if (exact.status !== "exact") throw new Error("expected exact row");
+    const malformed = {
+      ...createPhageLifeHistoryIdentity(exact),
+      sourceDoi: " 10.1002/mbo3.558",
+    };
+    expect(() => validatePhageLifeHistoryIdentity(malformed)).toThrow(
+      /trimmed non-empty string/,
+    );
   });
 
   it("labels in-domain interpolation derived and retains measured brackets", () => {

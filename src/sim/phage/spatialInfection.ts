@@ -9,6 +9,7 @@ import {
 import {
   SINGLE_HIT_UNIQUE_HOST_POLICY,
   phageProductiveInfectionPolicyIdentity,
+  resolveProductiveInfections,
   type PhageProductiveInfectionPolicy,
 } from "./infectionPolicy";
 import {
@@ -311,6 +312,9 @@ export function commitPopulationBackedInfections(
   const cohortTargets = [...state.cohortTargets];
   let latentQueue = lysisTransactionState.latentQueue;
   const scheduledCohortSequences: number[] = [];
+  let totalAdsorbedPfu = 0;
+  let totalProductiveInfections = 0;
+  let totalNonProductiveAdsorptions = 0;
 
   for (let index = 0; index < plan.targets.length; index += 1) {
     if (!Object.prototype.hasOwnProperty.call(plan.targets, index)) {
@@ -357,6 +361,41 @@ export function commitPopulationBackedInfections(
       throw new RangeError("infection plan cannot exceed standing host authority");
     }
 
+    const expectedSusceptible = currentStanding - currentInfected;
+    if (target.susceptibleHostOpportunities !== expectedSusceptible) {
+      throw new Error("infection plan susceptible-host count is stale");
+    }
+    const expectedInfection = resolveProductiveInfections(
+      {
+        adsorbedPfu: target.adsorbedPfu,
+        susceptibleHostOpportunities: expectedSusceptible,
+      },
+      infectionPolicy,
+    );
+    if (
+      target.productiveInfections !== expectedInfection.productiveInfections ||
+      target.nonProductiveAdsorptions !==
+        expectedInfection.nonProductiveAdsorptions
+    ) {
+      throw new Error("infection plan productive-infection resolution mismatch");
+    }
+
+    totalAdsorbedPfu = safeCountAdd(
+      "infection plan total adsorbed PFU",
+      totalAdsorbedPfu,
+      target.adsorbedPfu,
+    );
+    totalProductiveInfections = safeCountAdd(
+      "infection plan total productive infections",
+      totalProductiveInfections,
+      target.productiveInfections,
+    );
+    totalNonProductiveAdsorptions = safeCountAdd(
+      "infection plan total non-productive adsorptions",
+      totalNonProductiveAdsorptions,
+      target.nonProductiveAdsorptions,
+    );
+
     infectedHostCounts[target.lineageIndex]![target.cellIndex] =
       target.infectedHostsAfter;
 
@@ -376,6 +415,14 @@ export function commitPopulationBackedInfections(
       infectionCount: target.productiveInfections,
     });
     scheduledCohortSequences.push(sequence);
+  }
+
+  if (
+    plan.totalAdsorbedPfu !== totalAdsorbedPfu ||
+    plan.totalProductiveInfections !== totalProductiveInfections ||
+    plan.totalNonProductiveAdsorptions !== totalNonProductiveAdsorptions
+  ) {
+    throw new Error("population-backed infection plan aggregate totals mismatch");
   }
 
   const nextState: PhageSpatialInfectionState = {

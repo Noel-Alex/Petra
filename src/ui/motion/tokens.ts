@@ -16,6 +16,10 @@ export const MOTION = {
     durationMs: 520,
     easing: [0.16, 1, 0.3, 1],
   },
+  dishAmbient: {
+    durationMs: 7800,
+    easing: [0.37, 0, 0.2, 1],
+  },
   interventionPulse: {
     durationMs: 420,
     easing: [0.22, 0.78, 0.28, 1],

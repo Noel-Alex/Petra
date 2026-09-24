@@ -138,7 +138,7 @@ export const PETRA_VECTOR_PRIMITIVES = Object.freeze({
       "opacity",
       "path-length",
       "contour-morph",
-    ]),
+    ] as const),
     semanticBoundary: "presentation-only",
     requires: "authoritative-organism-kind",
   }),

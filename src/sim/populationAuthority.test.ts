@@ -115,6 +115,20 @@ describe('shared discrete population authority', () => {
     expect(result.state.standingHostCounts).toEqual([[2]])
   })
 
+  it('moves standing authority with committed spatial biomass without inventing divisions', () => {
+    const cfg = config()
+    const initial = createDiscretePopulationAuthorityState(cfg, [[4, 0]])
+    const moved = advanceDiscretePopulationAuthority(initial, cfg, {
+      currentLineageBiomass: [[2, 2]],
+      divisionBiomass: [new Float64Array([0, 0])],
+    })
+
+    expect(initial.standingHostCounts).toEqual([[2, 0]])
+    expect(moved.state.standingHostCounts).toEqual([[1, 1]])
+    expect(moved.totalStandingHosts).toBe(2)
+    expect(moved.totalDivisionOpportunities).toBe(0)
+  })
+
   it('plans whole-host removal atomically and cannot remove one host twice', () => {
     const cfg = config({ width: 1, mask: [1] })
     const initial = createDiscretePopulationAuthorityState(cfg, [[5]])

@@ -14,6 +14,7 @@ import base64
 import hashlib
 import json
 import os
+import re
 import shutil
 import socket
 import struct
@@ -31,6 +32,20 @@ HOST = "127.0.0.1"
 VITE_PORT = 4173
 CDP_PORT = 9223
 TARGET_URL = f"http://{HOST}:{VITE_PORT}/"
+MOTION_PREFERENCE_SOURCE = ROOT / "src" / "ui" / "motion" / "preference.ts"
+
+
+def canonical_motion_storage_key() -> str:
+    source = MOTION_PREFERENCE_SOURCE.read_text(encoding="utf-8")
+    match = re.search(
+        r'MOTION_SETTING_STORAGE_KEY\s*=\s*["\']([^"\']+)["\']',
+        source,
+    )
+    if match is None:
+        raise RuntimeError(
+            "Could not resolve MOTION_SETTING_STORAGE_KEY from the canonical motion preference source."
+        )
+    return match.group(1)
 
 
 def wait_http(url: str, timeout: float = 30.0) -> None:
@@ -241,47 +256,164 @@ def viewport_pass(cdp: CDP, label: str, width: int, height: int) -> list[dict[st
     ]
 
 
-def motion_pass(cdp: CDP) -> list[dict[str, Any]]:
-    checks: list[dict[str, Any]] = []
-    for setting, expected in (("full", "full"), ("reduced", "reduced"), ("off", "off")):
-        value = cdp.eval(
-            f"""(() => {{
+def browser_motion_state(cdp: CDP, storage_key: str) -> dict[str, Any] | None:
+    expression = """(() => {
+      const root = document.querySelector('.petra-app');
+      const panel = document.querySelector('.petra-panel');
+      const select = document.querySelector('select[aria-label="Motion preference"]');
+      return root && panel && select ? {
+        motion: root.dataset.motion,
+        transition: getComputedStyle(panel).transitionDuration,
+        selected: select.value,
+        stored: localStorage.getItem(__STORAGE_KEY__)
+      } : null;
+    })()""".replace("__STORAGE_KEY__", json.dumps(storage_key))
+    return cdp.eval(expression)
+
+
+def set_motion_setting(cdp: CDP, setting: str) -> bool:
+    return (
+        cdp.eval(
+            """(() => {
               const select = document.querySelector('select[aria-label="Motion preference"]');
               if (!select) return null;
-              select.value = {json.dumps(setting)};
-              select.dispatchEvent(new Event('change', {{bubbles:true}}));
+              select.value = __SETTING__;
+              select.dispatchEvent(new Event('change', {bubbles:true}));
               return true;
-            }})()"""
+            })()""".replace("__SETTING__", json.dumps(setting))
         )
-        time.sleep(0.1)
-        state = cdp.eval(
-            """(() => {
-              const root = document.querySelector('.petra-app');
-              const panel = document.querySelector('.petra-panel');
-              return root && panel ? {
-                motion: root.dataset.motion,
-                transition: getComputedStyle(panel).transitionDuration,
-                stored: localStorage.getItem('petra.motion.preference')
-              } : null;
-            })()"""
-        )
-        checks.append(check(f"motion {setting}: control available", value is True, state))
-        checks.append(check(f"motion {setting}: resolved mode", bool(state) and state["motion"] == expected, state))
-        if setting == "off":
-            checks.append(check("motion off: CSS transitions disabled", bool(state) and all(part.strip() in {"0s", "0ms"} for part in state["transition"].split(",")), state))
-    cdp.call("Emulation.setEmulatedMedia", {"features": [{"name": "prefers-reduced-motion", "value": "reduce"}]})
-    system_state = cdp.eval(
-        """(() => {
-          const select = document.querySelector('select[aria-label="Motion preference"]');
-          if (!select) return null;
-          select.value = 'system';
-          select.dispatchEvent(new Event('change', {bubbles:true}));
-          return true;
-        })()"""
+        is True
     )
+
+
+def wait_for_app(
+    cdp: CDP,
+    timeout: float = 10.0,
+    expected_url: str | None = None,
+) -> None:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        ready_expression = """document.readyState === 'complete' &&
+          document.querySelector('.petra-app') !== null"""
+        if expected_url is not None:
+            ready_expression = (
+                "(" + ready_expression + ") && location.href === "
+                + json.dumps(expected_url)
+            )
+        ready = cdp.eval(ready_expression)
+        if ready is True:
+            return
+        time.sleep(0.05)
+    raise RuntimeError("Timed out waiting for Petra app after navigation/reload.")
+
+
+def motion_pass(cdp: CDP) -> list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    storage_key = canonical_motion_storage_key()
+
+    # Explicit product preferences must both resolve and persist under the
+    # canonical key owned by src/ui/motion/preference.ts.
+    for setting, expected in (("full", "full"), ("reduced", "reduced"), ("off", "off")):
+        control_available = set_motion_setting(cdp, setting)
+        time.sleep(0.1)
+        state = browser_motion_state(cdp, storage_key)
+        checks.append(
+            check(
+                f"motion {setting}: control available",
+                control_available,
+                state,
+            )
+        )
+        checks.append(
+            check(
+                f"motion {setting}: resolved mode",
+                bool(state) and state["motion"] == expected,
+                state,
+            )
+        )
+        checks.append(
+            check(
+                f"motion {setting}: canonical preference persisted",
+                bool(state) and state["stored"] == setting,
+                {"storageKey": storage_key, "state": state},
+            )
+        )
+        if setting == "off":
+            checks.append(
+                check(
+                    "motion off: CSS transitions disabled",
+                    bool(state)
+                    and all(
+                        part.strip() in {"0s", "0ms"}
+                        for part in state["transition"].split(",")
+                    ),
+                    state,
+                )
+            )
+
+    # Verify a persisted explicit setting survives a real page reload and is
+    # restored into both the selector and the resolved data-motion contract.
+    set_motion_setting(cdp, "reduced")
+    time.sleep(0.1)
+    before_reload = browser_motion_state(cdp, storage_key)
+    reload_url = f"{TARGET_URL}?qa-motion-reload=1"
+    cdp.call("Page.navigate", {"url": reload_url})
+    wait_for_app(cdp, expected_url=reload_url)
     time.sleep(0.15)
-    resolved = cdp.eval("document.querySelector('.petra-app')?.dataset.motion")
-    checks.append(check("system reduced-motion preference resolves to reduced", system_state is True and resolved == "reduced", resolved))
+    after_reload = browser_motion_state(cdp, storage_key)
+    checks.append(
+        check(
+            "motion reduced: preference survives page reload",
+            bool(before_reload)
+            and before_reload["stored"] == "reduced"
+            and bool(after_reload)
+            and after_reload["stored"] == "reduced"
+            and after_reload["selected"] == "reduced"
+            and after_reload["motion"] == "reduced",
+            {
+                "storageKey": storage_key,
+                "beforeReload": before_reload,
+                "afterReload": after_reload,
+            },
+        )
+    )
+
+    # System follows OS preference.
+    cdp.call(
+        "Emulation.setEmulatedMedia",
+        {"features": [{"name": "prefers-reduced-motion", "value": "reduce"}]},
+    )
+    system_available = set_motion_setting(cdp, "system")
+    time.sleep(0.15)
+    system_state = browser_motion_state(cdp, storage_key)
+    checks.append(
+        check(
+            "system + OS reduced resolves to reduced",
+            system_available
+            and bool(system_state)
+            and system_state["stored"] == "system"
+            and system_state["selected"] == "system"
+            and system_state["motion"] == "reduced",
+            {"storageKey": storage_key, "state": system_state},
+        )
+    )
+
+    # Explicit product preference remains authoritative over OS reduced motion.
+    full_available = set_motion_setting(cdp, "full")
+    time.sleep(0.15)
+    explicit_full_state = browser_motion_state(cdp, storage_key)
+    checks.append(
+        check(
+            "explicit full overrides OS reduced motion",
+            full_available
+            and bool(explicit_full_state)
+            and explicit_full_state["stored"] == "full"
+            and explicit_full_state["selected"] == "full"
+            and explicit_full_state["motion"] == "full",
+            {"storageKey": storage_key, "state": explicit_full_state},
+        )
+    )
+
     cdp.call("Emulation.setEmulatedMedia", {"features": []})
     return checks
 

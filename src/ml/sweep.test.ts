@@ -170,6 +170,15 @@ describe("mechanistic ML sweep planner", () => {
         }),
       ).toThrow(/simulation seed/);
     }
+
+    for (const alias of ["1", "01", "4294967295"]) {
+      expect(() =>
+        planMechanisticSweep({
+          ...definition(),
+          seeds: [alias as unknown as number],
+        }),
+      ).toThrow(/simulation seed/);
+    }
   });
 
   it("rejects duplicate biological grouping identities that could split equivalent data", () => {

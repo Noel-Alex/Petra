@@ -8,6 +8,7 @@
 
 - A fork begins from one parent `SimulationSnapshot`. The checkpoint is deep-cloned once and restored into both branch engines.
 - Branch identity (`branchId`, label, source run ID, parent trace hash) is metadata around simulation state; it never changes RNG state or biology.
+- Parent trace identity is accepted only after `snapshotTrace.ts` recomputes the exact checkpoint + event trace. A swapped/forged trace is a distinct provenance failure and is rejected before branch construction.
 - Both branches use the exact same checkpoint, RNG state, command count, and internal restore command. With the same ordered post-fork commands they must remain replay-identical.
 - Branch command history stores authoritative command payloads, not only IDs. The current bounded contract permits mutating `advance` and `synthetic-pulse` commands; caller-controlled `restore` and `snapshot` commands are forbidden inside a branch history because they would make ancestry ambiguous.
 - Command IDs must be non-empty and unique within each branch. Failed commands are not appended to branch history.
@@ -16,14 +17,15 @@
 
 ## Replay bundle
 
-`CounterfactualForkReplayBundle` is versioned and replay-ready for the current engine substrate because it contains:
+`CounterfactualForkReplayBundle` schema v2 is replay-ready and independently ancestry-verifiable because it contains:
 
 - the exact fork checkpoint payload;
+- the exact parent event payload used by Petra's snapshot trace contract;
 - source-run and parent-trace ancestry identity;
 - branch IDs and labels;
 - ordered post-fork command payloads for both branches.
 
-`replayCounterfactualFork(...)` reconstructs both branches from that payload and must reproduce the same branch snapshots and histories. Before reconstruction, validation calls the shared `replayCompatibility.ts` current-runtime gate so an older bundle cannot instantiate an engine from its own old identity and accidentally self-validate.
+`replayCounterfactualFork(...)` first recomputes the parent trace from the bundled checkpoint + parent events, then validates current-runtime compatibility/checkpoint canonicality, reconstructs both branches, and must reproduce the same branch snapshots and histories. A bundle cannot preserve ancestry by carrying an unverifiable trace string alone. The shared `snapshotTrace.ts` helper owns the stable serialization + FNV regression identity for both synthetic and composed engine snapshots.
 
 This is separate from `src/ui/compare/export.ts`, whose existing manifest remains intentionally metadata-only. Presentation code may adapt the authoritative fork state later, but must not become the fork authority.
 
@@ -42,6 +44,8 @@ Required deterministic coverage:
 - parent/returned-object mutation cannot alter internal branch state;
 - duplicate branch IDs/command IDs and restore/snapshot branch commands fail closed;
 - engine-inconsistent checkpoint payloads are rejected;
-- stale engine/protocol replay identities are rejected before branch engines are constructed.
+- stale engine/protocol replay identities are rejected before branch engines are constructed;
+- swapped parent trace hashes and modified bundled parent events are rejected as provenance failures;
+- malformed checkpoints whose trace has been recomputed still fail through checkpoint validation, distinct from provenance mismatch.
 
 Contributor: Noel-Alex

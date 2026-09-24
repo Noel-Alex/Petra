@@ -1,52 +1,26 @@
-import { petraVisualColor } from "../design/visualTokens";
+import {
+  LINEAGE_APPEARANCE_TOKENS,
+  colorTokenForLineageAppearance,
+  type LineageAppearanceToken,
+} from '../design/lineageIdentity'
+import { petraVisualColor } from '../design/visualTokens'
 
-export const LINEAGE_APPEARANCE_SCHEMA_VERSION = 1 as const;
+export {
+  LINEAGE_APPEARANCE_TOKENS,
+  type LineageAppearanceToken,
+} from '../design/lineageIdentity'
 
-export const LINEAGE_APPEARANCE_TOKENS = [
-  "lineage-cyan",
-  "lineage-coral",
-  "lineage-gold",
-  "lineage-mint",
-  "lineage-violet",
-] as const;
-
-export type LineageAppearanceToken =
-  (typeof LINEAGE_APPEARANCE_TOKENS)[number];
+export const LINEAGE_APPEARANCE_SCHEMA_VERSION = 1 as const
 
 export interface LineageAppearanceStyle {
-  readonly token: LineageAppearanceToken;
-  readonly color: number;
+  readonly token: LineageAppearanceToken
+  readonly color: number
 }
-
-const STYLES: Readonly<
-  Record<LineageAppearanceToken, LineageAppearanceStyle>
-> = Object.freeze({
-  "lineage-cyan": Object.freeze({
-    token: "lineage-cyan",
-    color: petraVisualColor("teal"),
-  }),
-  "lineage-coral": Object.freeze({
-    token: "lineage-coral",
-    color: petraVisualColor("coral"),
-  }),
-  "lineage-gold": Object.freeze({
-    token: "lineage-gold",
-    color: petraVisualColor("amber"),
-  }),
-  "lineage-mint": Object.freeze({
-    token: "lineage-mint",
-    color: petraVisualColor("mint"),
-  }),
-  "lineage-violet": Object.freeze({
-    token: "lineage-violet",
-    color: petraVisualColor("lavender"),
-  }),
-});
 
 export function isLineageAppearanceToken(
   value: string,
 ): value is LineageAppearanceToken {
-  return (LINEAGE_APPEARANCE_TOKENS as readonly string[]).includes(value);
+  return (LINEAGE_APPEARANCE_TOKENS as readonly string[]).includes(value)
 }
 
 /**
@@ -59,8 +33,11 @@ export function resolveLineageAppearance(
   token: string,
 ): LineageAppearanceStyle {
   if (!isLineageAppearanceToken(token)) {
-    throw new RangeError(`unsupported lineage appearance token: ${token}`);
+    throw new RangeError(`unsupported lineage appearance token: ${token}`)
   }
 
-  return STYLES[token];
+  return Object.freeze({
+    token,
+    color: petraVisualColor(colorTokenForLineageAppearance(token)),
+  })
 }

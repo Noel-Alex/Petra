@@ -42,9 +42,11 @@ import {
 } from "./rendererResolution";
 import {
   cameraTransitionComplete,
+  copyCameraMotionSpec,
   interpolateCameraTransition,
   type CameraMotionSpec,
 } from "./cameraMotion";
+import { updateCameraMotionRuntime } from "./cameraMotionLifecycle";
 import { resolveSnapshotOverlayUpdate } from "./snapshotOverlay";
 import { wheelZoomFactor } from "./wheelZoom";
 
@@ -64,6 +66,7 @@ export interface PixiDishRenderer {
     overlayId: string | null,
   ): void;
   setOverlay(overlayId: string | null): void;
+  setCameraMotion(spec: CameraMotionSpec): void;
   setMotionMode(mode: RendererMotionMode): void;
   setCamera(camera: CameraView): void;
   focusDishPoint(point: ScreenPoint, zoom?: number): void;
@@ -106,10 +109,11 @@ export async function createPixiDishRenderer(
   let snapshot: DishRenderSnapshot | null = null;
   let overlayId = options.overlayId ?? null;
   let motion: RendererMotionMode = options.motion ?? "full";
+  let cameraMotion = copyCameraMotionSpec(options.cameraMotion);
   let camera: CameraView = { centerX: 0.5, centerY: 0.5, zoom: 1 };
   let transitionStartCamera = camera;
   let targetCamera = camera;
-  let cameraElapsedMs = options.cameraMotion.durationMs;
+  let cameraElapsedMs = cameraMotion.durationMs;
   let destroyed = false;
   let gestureState = createPointerGestureState();
 
@@ -192,7 +196,7 @@ export async function createPixiDishRenderer(
         nextTarget,
         {
           animate: motion === "full",
-          durationMs: options.cameraMotion.durationMs,
+          durationMs: cameraMotion.durationMs,
         },
       ),
     );
@@ -203,7 +207,7 @@ export async function createPixiDishRenderer(
       applyDirectCameraState(
         readCameraTransitionState(),
         nextTarget,
-        options.cameraMotion.durationMs,
+        cameraMotion.durationMs,
       ),
     );
   };
@@ -213,7 +217,7 @@ export async function createPixiDishRenderer(
     if (
       cameraTransitionComplete({
         elapsedMs: cameraElapsedMs,
-        durationMs: options.cameraMotion.durationMs,
+        durationMs: cameraMotion.durationMs,
       })
     ) {
       return;
@@ -224,7 +228,7 @@ export async function createPixiDishRenderer(
       from: transitionStartCamera,
       to: targetCamera,
       elapsedMs: cameraElapsedMs,
-      motion: options.cameraMotion,
+      motion: cameraMotion,
     });
     render();
   };
@@ -250,7 +254,7 @@ export async function createPixiDishRenderer(
     writeCameraTransitionState(
       completeCameraTransitionAtRendered(
         readCameraTransitionState(),
-        options.cameraMotion.durationMs,
+        cameraMotion.durationMs,
       ),
     );
     app.canvas.setPointerCapture(event.pointerId);
@@ -316,7 +320,7 @@ export async function createPixiDishRenderer(
         factor,
         policy: {
           animate: motion === "full",
-          durationMs: options.cameraMotion.durationMs,
+          durationMs: cameraMotion.durationMs,
         },
       }),
     );
@@ -376,12 +380,28 @@ export async function createPixiDishRenderer(
       render();
     },
 
+    setCameraMotion(nextSpec) {
+      const update = updateCameraMotionRuntime(
+        {
+          transition: readCameraTransitionState(),
+          spec: cameraMotion,
+        },
+        nextSpec,
+        motion === "full",
+      );
+      if (!update.changed) return;
+
+      cameraMotion = update.state.spec;
+      writeCameraTransitionState(update.state.transition);
+      render();
+    },
+
     setMotionMode(nextMode) {
       motion = nextMode;
       if (motion !== "full") {
         camera = targetCamera;
         transitionStartCamera = targetCamera;
-        cameraElapsedMs = options.cameraMotion.durationMs;
+        cameraElapsedMs = cameraMotion.durationMs;
       }
       render();
     },

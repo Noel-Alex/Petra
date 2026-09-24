@@ -50,3 +50,8 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Side-by-side/swipe views synchronize biological simulation time, not animation wall time, and visibly handle a branch that has not simulated as far as the other.
 - Trajectory differences default to shared authoritative sample times. Any later interpolation/smoothing is a chart-layer presentation choice and must be labelled.
 - Export/share adapters should preserve fork origin, seed, ordered post-fork command identity, and provenance needed to replay the comparison.
+
+
+## Child DOX index
+- [`onboarding/AGENTS.md`](onboarding/AGENTS.md) — canonical science-gated onboarding/story semantics and presentation metadata.
+- [`compare/AGENTS.md`](compare/AGENTS.md) — accessible counterfactual side-by-side/swipe presentation over authoritative branch state.

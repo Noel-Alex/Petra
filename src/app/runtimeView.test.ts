@@ -26,6 +26,7 @@ function runtimeState(
     readonly playing?: boolean;
     readonly simulationTimeHours?: number;
     readonly integrationError?: string | null;
+    readonly acceptedCommandCount?: number;
   } = {},
 ): ExperimentRuntimeState {
   const snapshot: SimulationSnapshot | null =
@@ -49,7 +50,14 @@ function runtimeState(
       identity,
       playing: options.playing ?? false,
       speed: 4,
-      acceptedCommands: [],
+      acceptedCommands: Array.from(
+        { length: options.acceptedCommandCount ?? 0 },
+        (_, index) => ({
+          id: `accepted-${index + 1}`,
+          type: "advance" as const,
+          ticks: 1,
+        }),
+      ),
     },
     worker: {
       phase,
@@ -111,6 +119,84 @@ describe("experiment runtime view", () => {
     expect(ready.statusText).toBe("Simulation running");
     expect(pending.statusText).toBe(ready.statusText);
     expect(pending.statusRole).toBe("status");
+  });
+
+  it("projects one run-control authority across unavailable, busy, and ready states", () => {
+    const unavailable = projectExperimentRuntimeView(null);
+    expect(unavailable.runControls).toEqual({
+      seed: null,
+      acceptedCommandCount: 0,
+      canStep: false,
+      canReset: false,
+      canReplay: false,
+      canSetSeed: false,
+    });
+
+    const initializing = projectExperimentRuntimeView(runtimeState("initializing"));
+    expect(initializing.runControls.seed).toBe(identity.seed);
+    expect(initializing.runControls.canStep).toBe(false);
+    expect(initializing.runControls.canReset).toBe(false);
+    expect(initializing.runControls.canSetSeed).toBe(false);
+
+    const pending = projectExperimentRuntimeView(runtimeState("pending"));
+    expect(pending.runControls.canStep).toBe(false);
+    expect(pending.runControls.canReset).toBe(false);
+    expect(pending.runControls.canReplay).toBe(false);
+    expect(pending.runControls.canSetSeed).toBe(false);
+
+    const ready = projectExperimentRuntimeView(runtimeState("ready"));
+    expect(ready.runControls).toMatchObject({
+      seed: identity.seed,
+      acceptedCommandCount: 0,
+      canStep: true,
+      canReset: true,
+      canReplay: false,
+      canSetSeed: true,
+    });
+  });
+
+  it("enables replay only from accepted runtime history and disables Step during playback", () => {
+    const withHistory = projectExperimentRuntimeView(
+      runtimeState("ready", { acceptedCommandCount: 2 }),
+    );
+    expect(withHistory.runControls.acceptedCommandCount).toBe(2);
+    expect(withHistory.runControls.canReplay).toBe(true);
+
+    const playing = projectExperimentRuntimeView(
+      runtimeState("ready", {
+        playing: true,
+        acceptedCommandCount: 2,
+      }),
+    );
+    expect(playing.runControls.canStep).toBe(false);
+    expect(playing.runControls.canReset).toBe(true);
+    expect(playing.runControls.canReplay).toBe(true);
+    expect(playing.runControls.canSetSeed).toBe(true);
+  });
+
+  it("keeps reinitialization controls available for recoverable runtime errors without enabling Step", () => {
+    const integrationError = projectExperimentRuntimeView(
+      runtimeState("ready", {
+        integrationError: "foreign snapshot",
+        acceptedCommandCount: 1,
+      }),
+    );
+    expect(integrationError.status).toBe("error");
+    expect(integrationError.runControls).toMatchObject({
+      seed: identity.seed,
+      canStep: false,
+      canReset: true,
+      canReplay: true,
+      canSetSeed: true,
+    });
+
+    const workerError = projectExperimentRuntimeView(
+      runtimeState("error", { acceptedCommandCount: 1 }),
+    );
+    expect(workerError.runControls.canStep).toBe(false);
+    expect(workerError.runControls.canReset).toBe(true);
+    expect(workerError.runControls.canReplay).toBe(true);
+    expect(workerError.runControls.canSetSeed).toBe(true);
   });
 
   it("quarantines runtime and setup errors", () => {

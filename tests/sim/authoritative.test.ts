@@ -441,6 +441,7 @@ describe('authoritative composed state', () => {
       height: 1,
       mask: [1],
       initialResource: [0],
+      ciprofloxacinConcentrationMgPerL: [0],
       initialLineageBiomass: [
         [Math.fround(0.1)],
         [Math.fround(0.2)],

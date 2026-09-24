@@ -60,7 +60,7 @@ describe("CounterfactualCompare time-bound surfaces", () => {
     expect(html).toContain("right exact");
     expect(html).toContain('data-surface-status="ready"');
     expect(html).toContain('data-sample-id="left-sample-4"');
-    expect(html).toContain("4.0 h");
+    expect(html).toContain("4.00 h");
     expect(html).toContain(
       "Both panes are synchronized to the same biological time.",
     );
@@ -107,8 +107,46 @@ describe("CounterfactualCompare time-bound surfaces", () => {
     expect(html).toContain("left at eight");
     expect(html).toContain("right at six");
     expect(html).toContain('data-sample-id="right-sample-6"');
-    expect(html).toContain("6.0 h");
+    expect(html).toContain("6.00 h");
     expect(html).toContain("One branch has not simulated that far");
+  });
+
+  it("preserves fractional biological time at ten hours and beyond", () => {
+    const html = renderToStaticMarkup(
+      <CounterfactualCompare
+        left={left}
+        right={right}
+        leftSurface={surface("left", 10.4, "left precise")}
+        rightSurface={surface("right", 10.4, "right precise")}
+        requestedTimeHours={10.4}
+        leftAvailableThroughHours={12}
+        rightAvailableThroughHours={12}
+        motionPreference="off"
+      />,
+    );
+
+    expect(html).toContain("10.40 h");
+    expect(html).not.toContain(">10 h<");
+  });
+
+  it("does not collapse a positive sub-minute sample to zero minutes", () => {
+    const subMinuteHours = 0.008;
+
+    const html = renderToStaticMarkup(
+      <CounterfactualCompare
+        left={left}
+        right={right}
+        leftSurface={surface("left", subMinuteHours, "left early")}
+        rightSurface={surface("right", subMinuteHours, "right early")}
+        requestedTimeHours={subMinuteHours}
+        leftAvailableThroughHours={1}
+        rightAvailableThroughHours={1}
+        motionPreference="off"
+      />,
+    );
+
+    expect(html).toContain("0.01 h");
+    expect(html).not.toContain("0 min");
   });
 
   it("enforces the same surface identity contract in swipe mode", () => {

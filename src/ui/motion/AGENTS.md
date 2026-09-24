@@ -7,6 +7,7 @@ This directory owns **presentation motion policy only**. It may decide how an al
 - Simulation time, population state, lineage state, concentrations, mutation events, intervention acceptance, and causal ordering come from simulator/runtime authority.
 - Motion wall time is not biological time. Never label a token duration as a growth, mutation, drug-response, infection, or selection duration.
 - React/Pixi adapters consume these framework-neutral planners. They should not introduce competing durations/easings for the same semantic transition.
+- Persistent decorative loops use named `decorativeLoops.ts` presentation tokens and the same Full/Reduced/Off policy. Full may preserve intentionally asynchronous ambience; Reduced/Off disable the loops. Loop cadence is wall-clock visual policy only and never gates story or scientific progression.
 - Animation callbacks and completion events may update presentation state only. They must not synthesize simulator commands or scientific events.
 
 ## Semantic zoom

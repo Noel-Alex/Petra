@@ -139,6 +139,60 @@ describe('SimulationEngine replay substrate', () => {
     expect(() => other.execute({ id: 'restore', type: 'restore', checkpoint })).toThrow(/different run identity/)
   })
 
+  it('rejects malformed checkpoint scalars without mutating live state', () => {
+    const engine = new SimulationEngine(identity)
+    engine.execute({ id: 'advance-before-invalid-restore', type: 'advance', ticks: 12 })
+    engine.execute({ id: 'pulse-before-invalid-restore', type: 'synthetic-pulse', magnitude: 3 })
+    const before = engine.snapshot()
+    const checkpoint = before.checkpoint
+
+    const malformedCheckpoints = [
+      { ...checkpoint, tick: -1 },
+      { ...checkpoint, tick: 0.5 },
+      { ...checkpoint, tick: Number.MAX_SAFE_INTEGER + 1 },
+      { ...checkpoint, simulationTimeHours: -1 },
+      { ...checkpoint, simulationTimeHours: Number.NaN },
+      { ...checkpoint, simulationTimeHours: Number.POSITIVE_INFINITY },
+      { ...checkpoint, simulationTimeHours: checkpoint.simulationTimeHours + 1 },
+      { ...checkpoint, syntheticPopulation: -1 },
+      { ...checkpoint, syntheticPopulation: Number.NaN },
+      { ...checkpoint, syntheticPopulation: Number.POSITIVE_INFINITY },
+      { ...checkpoint, commandCount: -1 },
+      { ...checkpoint, commandCount: 0.5 },
+      { ...checkpoint, commandCount: Number.MAX_SAFE_INTEGER + 1 },
+    ]
+
+    for (const malformedCheckpoint of malformedCheckpoints) {
+      expect(() =>
+        engine.execute({ id: 'invalid-scalar-restore', type: 'restore', checkpoint: malformedCheckpoint }),
+      ).toThrow()
+      expect(engine.snapshot()).toEqual(before)
+    }
+  })
+
+  it('validates replacement RNG before committing any checkpoint state', () => {
+    const engine = new SimulationEngine(identity)
+    engine.execute({ id: 'advance-before-invalid-rng', type: 'advance', ticks: 9 })
+    engine.execute({ id: 'pulse-before-invalid-rng', type: 'synthetic-pulse', magnitude: 5 })
+    const before = engine.snapshot()
+    const checkpoint = before.checkpoint
+    const candidateTick = checkpoint.tick + 60
+
+    const invalidRngCheckpoint = {
+      ...checkpoint,
+      tick: candidateTick,
+      simulationTimeHours: candidateTick / 60,
+      syntheticPopulation: checkpoint.syntheticPopulation + 100,
+      commandCount: checkpoint.commandCount + 10,
+      rngState: [0, 0, 0, 0] as const,
+    }
+
+    expect(() =>
+      engine.execute({ id: 'invalid-rng-restore', type: 'restore', checkpoint: invalidRngCheckpoint }),
+    ).toThrow(/cannot be all zero/)
+    expect(engine.snapshot()).toEqual(before)
+  })
+
   it('remains finite, non-negative, and replay-identical through a long synthetic soak', () => {
     const first = new SimulationEngine(identity)
     const second = new SimulationEngine(identity)

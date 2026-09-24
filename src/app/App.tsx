@@ -11,6 +11,8 @@ import {
 import { planSurfaceTransition } from "../ui/motion/semanticTransitions";
 import { ProvenancePanel } from "../ui/provenance/ProvenancePanel";
 import { DishViewport } from "./DishViewport";
+import { AnalysisSurface } from "./AnalysisSurface";
+import type { AuthoritativeAnalysisRecords } from "./analysisView";
 import { buildFlagshipProvenanceView } from "./flagshipProvenance";
 import { surfaceMotionCss } from "./motionAdapter";
 import "./sourcesDrawer.css";
@@ -42,6 +44,11 @@ function useSystemReducedMotion(): boolean {
 
 export interface AppProps {
   readonly runtimeFactory?: ExperimentRuntimeFactory;
+  /**
+   * Explicit authoritative analysis records. The current synthetic worker
+   * snapshot is intentionally not adapted into this contract.
+   */
+  readonly analysisRecords?: AuthoritativeAnalysisRecords | null;
 }
 
 const SOURCES_SURFACE_STYLE: CSSProperties = {
@@ -53,7 +60,7 @@ const SOURCES_SURFACE_STYLE: CSSProperties = {
   zIndex: 30,
 };
 
-export function App({ runtimeFactory }: AppProps) {
+export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
   const systemReduced = useSystemReducedMotion();
   const experiment = useExperimentRuntime(runtimeFactory);
   const [sourcesOpen, setSourcesOpen] = useState(false);
@@ -219,6 +226,11 @@ export function App({ runtimeFactory }: AppProps) {
           </p>
         </aside>
       </section>
+
+      <AnalysisSurface
+        records={analysisRecords}
+        motion={motionPreference}
+      />
 
       <footer className="timeline-shell" aria-label="Simulation timeline">
         <div className="timeline-summary">

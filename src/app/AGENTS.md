@@ -53,3 +53,11 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - `DishViewport.tsx` must project camera travel through `dishCameraMotion.ts`; it must not manufacture a Full-motion camera spec independently of the resolved user preference.
 - `CameraMotionSpec` describes spatial interpolation only: Full may use the named `MOTION.cameraFocus` travel token, while Reduced/Off request zero camera travel and keep their distinct semantics through the renderer motion mode / surrounding presentation.
 - Generic camera travel policy is not semantic-view identity. Do not pretend every pan, focus, or overview reset is a dish→colony transition just to reuse semantic-zoom labels.
+
+## Authoritative analysis injection
+- `analysisView.ts` is the app-facing trust boundary for chart/ancestry records. It accepts explicit unit-bearing `ScientificSeriesInput` + `LineageAncestryInput` records and projects them only through the existing analysis helpers.
+- The current synthetic worker protocol is **not** eligible analysis authority. Do not adapt `syntheticPopulation`, renderer density/glyphs, demo snapshots, or visual interpolation into this contract to make the panel look populated.
+- `AnalysisSurface.tsx` remains secondary/collapsed when data is available so the living dish stays the primary world; absent records render a visible unavailable state rather than fixture data.
+- Analysis records carry explicit run/state identity + simulation time. No source sample or lineage lifecycle record may claim a biological time later than its bound authoritative state.
+- When #37/#42 exposes real composed analysis records, the runtime composition layer must supply this contract from the same active run/branch rather than teaching React how to infer scientific data.
+

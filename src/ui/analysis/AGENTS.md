@@ -5,6 +5,7 @@
 
 ## Authority boundary
 - Charts and lineage trees consume already-authoritative samples/records. They do not mutate simulation state or manufacture scientific events.
+- App-shell consumers receive authoritative analysis records through the explicit `src/app/analysisView.ts` boundary. Missing authority is an unavailable state; current synthetic worker fields, Pixi snapshots, and visual demo fixtures are not valid substitutes.
 - Decimation may **select existing source points only**. Do not interpolate, smooth, average into new displayed measurements, or silently resample values.
 - Chart domains are computed from the full source dataset, not only retained display points.
 - Series with different units require separate charts. Never normalize unlike scientific units onto one unlabeled axis.

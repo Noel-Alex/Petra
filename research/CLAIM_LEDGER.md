@@ -5,6 +5,9 @@ This is the compact contract between Petra's interface, simulator, and evidence 
 | Petra behavior/statement | Class | Basis | Limit / transfer note |
 |---|---|---|---|
 | Growth slows when a limiting resource is depleted | mechanistic approximation, strongly grounded | Monod/consumer-resource literature; spatial colony work | one/few resources, not full metabolism |
+| Genotype relative fitness can be composed as a multiplier on local resource-limited division demand | transferred mechanistic approximation | Marcusson 2009 fitness measurements + Petra growth composition | assay/background specific; multiplier composition is not a direct time-course measurement |
+| Continuous aggregate division biomass is automatically an integer count of mutation opportunities | **false** | aggregate ecology/event boundary | requires an explicitly defined and validated population-unit/event bridge before integer mutation sampling |
+| A generic first-order death hazard is itself a measured ciprofloxacin killing law | **false** | model-composition boundary | hazard is an input mechanism; #4 must derive/provenance drug-associated loss from the named PD policy |
 | Spatial colonies can become diffusion-limited | measured/model-validated mechanism | Shao et al. 2017, DOI 10.1371/journal.pcbi.1005679 | Petra begins in 2-D |
 | Ciprofloxacin effect changes continuously with concentration | measured model form | Regoes et al. 2004, DOI 10.1128/AAC.48.10.3670-3676.2004 | CAB1/LB parameters are context-specific |
 | MG1655 resistance genotypes differ in MIC and fitness | measured | Marcusson et al. 2009, DOI 10.1371/journal.ppat.1000541 | assay/background specific |

@@ -1,6 +1,8 @@
 .petra-compare {
   --compare-motion-ms: 0ms;
   --compare-easing: linear;
+  --compare-story-motion-ms: 0ms;
+  --compare-story-easing: linear;
   --compare-swipe: 50%;
   display: grid;
   gap: 0.9rem;
@@ -90,6 +92,50 @@
   margin-top: 0.2rem;
   border: 2px solid currentColor;
   border-radius: 50%;
+}
+
+.petra-compare[data-story-moment="fork-divergence"] .petra-compare__meaning-mark {
+  position: relative;
+  width: 1rem;
+  height: 1rem;
+  border: 0;
+  border-radius: 0;
+}
+
+.petra-compare[data-story-moment="fork-divergence"] .petra-compare__meaning-mark::before,
+.petra-compare[data-story-moment="fork-divergence"] .petra-compare__meaning-mark::after {
+  content: "";
+  position: absolute;
+  top: 0.08rem;
+  left: 50%;
+  width: 0.13rem;
+  height: 0.86rem;
+  border-radius: 999px;
+  background: currentColor;
+  transform-origin: 50% 12%;
+}
+
+.petra-compare[data-story-moment="fork-divergence"] .petra-compare__meaning-mark::before {
+  transform: translateX(-50%) rotate(28deg);
+}
+
+.petra-compare[data-story-moment="fork-divergence"] .petra-compare__meaning-mark::after {
+  transform: translateX(-50%) rotate(-28deg);
+}
+
+.petra-compare[data-story-moment="fork-divergence"][data-story-treatment="animate"] .petra-compare__meaning-mark::before {
+  animation: petra-compare-fork-left var(--compare-story-motion-ms)
+    var(--compare-story-easing) both;
+}
+
+.petra-compare[data-story-moment="fork-divergence"][data-story-treatment="animate"] .petra-compare__meaning-mark::after {
+  animation: petra-compare-fork-right var(--compare-story-motion-ms)
+    var(--compare-story-easing) both;
+}
+
+.petra-compare[data-story-moment="fork-divergence"][data-story-treatment="crossfade"] .petra-compare__meaning-mark {
+  animation: petra-compare-story-crossfade var(--compare-story-motion-ms)
+    var(--compare-story-easing) both;
 }
 
 .petra-compare__meaning strong {
@@ -350,6 +396,37 @@
 .petra-compare[data-motion-treatment="static-emphasis"] * {
   transition-duration: 0ms !important;
   animation: none !important;
+}
+
+@keyframes petra-compare-fork-left {
+  from {
+    opacity: 0.32;
+    transform: translateX(-50%) rotate(0deg) scaleY(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) rotate(28deg) scaleY(1);
+  }
+}
+
+@keyframes petra-compare-fork-right {
+  from {
+    opacity: 0.32;
+    transform: translateX(-50%) rotate(0deg) scaleY(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) rotate(-28deg) scaleY(1);
+  }
+}
+
+@keyframes petra-compare-story-crossfade {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @media (max-width: 760px) {

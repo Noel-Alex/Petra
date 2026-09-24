@@ -41,7 +41,7 @@
 .analysis-panel__kicker,
 .analysis-card__eyebrow {
   margin-bottom: 0.25rem !important;
-  font-size: 0.72rem;
+  font-size: var(--petra-type-caption);
   font-weight: 750;
   letter-spacing: 0.11em;
   text-transform: uppercase;
@@ -76,13 +76,13 @@
   padding: 0.28rem 0.55rem;
   border: 1px solid var(--analysis-border);
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: var(--petra-type-caption);
   color: var(--analysis-muted);
 }
 
 .analysis-card__note {
   margin: 0.7rem 0 0;
-  font-size: 0.72rem;
+  font-size: var(--petra-type-caption);
   line-height: 1.45;
   color: var(--analysis-muted);
 }
@@ -193,7 +193,7 @@
   place-items: center;
   border: 1px solid currentColor;
   border-radius: 50%;
-  font-size: 0.72rem;
+  font-size: var(--petra-type-caption);
   font-weight: 800;
 }
 
@@ -247,7 +247,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.55rem;
-  font-size: 0.7rem;
+  font-size: var(--petra-type-caption);
   color: var(--analysis-muted);
 }
 

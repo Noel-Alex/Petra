@@ -159,11 +159,6 @@
   font-size: var(--petra-type-caption);
 }
 
-.petra-onboarding__skip:hover {
-  color: #e3e9f2;
-  background: rgba(255, 255, 255, 0.04);
-}
-
 .petra-onboarding button:focus-visible {
   outline: 2px solid var(--onboarding-accent);
   outline-offset: 3px;

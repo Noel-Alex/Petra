@@ -73,6 +73,36 @@ describe("DishViewport render-source truth boundary", () => {
   });
 
 
+  it("renders explicit Automatic and None overlay identities from one selection authority", () => {
+    const authoritative = {
+      ...createRendererDemoSnapshot(12),
+      snapshotId: "authoritative-overlay-options",
+      samplingIdentity: "authoritative-overlay-options",
+    };
+
+    const html = renderToStaticMarkup(
+      <DishViewport motion="off" snapshot={authoritative} />,
+    );
+
+    expect(html).toContain('data-overlay-selection-mode="automatic"');
+    expect(html).toContain('data-overlay-resolved-id="demo-antibiotic"');
+    expect(html).toContain('value="automatic"');
+    expect(html).toContain(">Automatic</option>");
+    expect(html).toContain('value="none"');
+    expect(html).toContain(">None</option>");
+    expect(html).toContain('value="field:demo-antibiotic"');
+    expect(html).toContain('value="field:demo-nutrient"');
+
+    expect(dishViewportSource).toContain(
+      "useState<DishOverlaySelection>(AUTOMATIC_DISH_OVERLAY)",
+    );
+    expect(dishViewportSource).toContain("reconcileDishOverlaySelection(");
+    expect(dishViewportSource).toContain(
+      "dishOverlaySelectionFromControlValue(event.target.value)",
+    );
+    expect(dishViewportSource).not.toContain("requestedOverlayId");
+  });
+
   it("keeps overlay status in one polite atomic live region", () => {
     const html = renderToStaticMarkup(
       <DishViewport motion="full" snapshot={null} />,

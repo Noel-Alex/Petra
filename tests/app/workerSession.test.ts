@@ -404,7 +404,7 @@ describe("worker session", () => {
       roundTripMs: 6,
       workerExecutionMs: 2,
       nonWorkerRoundTripMs: 4,
-      authoritativeEventQueueLength: 0,
+      authoritativeEventArrayLength: 0,
       outcome: "success",
     });
     expect(samples[1]).toMatchObject({
@@ -417,7 +417,7 @@ describe("worker session", () => {
       workerExecutionMs: 3,
       workerExecutionMsPerTick: 0.75,
       nonWorkerRoundTripMs: 1,
-      authoritativeEventQueueLength: 2,
+      authoritativeEventArrayLength: 2,
       outcome: "success",
     });
     expect(samples[0]?.requestPayloadBytes).toBeGreaterThan(0);

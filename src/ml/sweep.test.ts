@@ -26,7 +26,7 @@ function definition(): MechanisticSweepDefinition {
       { id: "untreated", fingerprint: "none" },
       { id: "pulse", fingerprint: "dose-family-v1" },
     ],
-    seeds: ["1", "2", "3"],
+    seeds: [1, 2, 3],
     maxTrajectories: 24,
   };
 }
@@ -111,7 +111,7 @@ describe("mechanistic ML sweep planner", () => {
       manifest.splitGroupCounts.validation +
       manifest.splitGroupCounts.test;
 
-    expect(manifest.schemaVersion).toBe("petra-ml-sweep-manifest-v2");
+    expect(manifest.schemaVersion).toBe("petra-ml-sweep-manifest-v3");
     expect(manifest.engineVersion).toBe("engine-v3");
     expect(manifest.splitPolicyVersion).toBe(plan.splitPolicy.version);
     expect(manifest.splitCoveragePolicyVersion).toBe(
@@ -150,6 +150,28 @@ describe("mechanistic ML sweep planner", () => {
     ).toThrow(/above maxTrajectories=17/);
   });
 
+  it("uses the authoritative uint32 seed domain without string aliases", () => {
+    const plan = planMechanisticSweep({
+      ...definition(),
+      seeds: [0, 1, 0xffff_ffff],
+    });
+
+    expect(plan.tasks.slice(0, 3).map((task) => task.trajectory.seed)).toEqual([
+      0,
+      1,
+      0xffff_ffff,
+    ]);
+
+    for (const invalid of [-1, 0x1_0000_0000, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(() =>
+        planMechanisticSweep({
+          ...definition(),
+          seeds: [invalid],
+        }),
+      ).toThrow(/simulation seed/);
+    }
+  });
+
   it("rejects duplicate biological grouping identities that could split equivalent data", () => {
     expect(() =>
       planMechanisticSweep({
@@ -174,7 +196,7 @@ describe("mechanistic ML sweep planner", () => {
     expect(() =>
       planMechanisticSweep({
         ...definition(),
-        seeds: ["1", "1"],
+        seeds: [1, 1],
       }),
     ).toThrow(/duplicate seed/);
   });

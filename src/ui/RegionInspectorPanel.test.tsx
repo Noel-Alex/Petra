@@ -1,7 +1,10 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import type { AuthoritativeRegionInspection } from "../sim/regionInspector";
+import type {
+  AuthoritativeRegionInspection,
+  AuthoritativeRegionReadout,
+} from "../sim/regionInspector";
 import { RegionInspectorPanel } from "./RegionInspectorPanel";
 import {
   acceptRegionInspection,
@@ -13,9 +16,10 @@ import {
 
 function readout(
   selectionId: string,
-  overrides: Partial<AuthoritativeRegionInspection> = {},
-): AuthoritativeRegionInspection {
+  overrides: Partial<AuthoritativeRegionReadout> = {},
+): AuthoritativeRegionReadout {
   return {
+    coverage: "covered",
     selectionId,
     stateVersion: 1,
     configurationFingerprint: "config-fingerprint-v1",
@@ -40,13 +44,36 @@ function readout(
   };
 }
 
-function readyState(selectionId: string): RegionInspectorPresentationState {
+function readyState(
+  selectionId: string,
+  overrides: Partial<AuthoritativeRegionReadout> = {},
+): RegionInspectorPresentationState {
   return acceptRegionInspection(
     beginRegionInspection(
       unavailableRegionInspector("No region selected."),
       selectionId,
     ),
-    readout(selectionId),
+    readout(selectionId, overrides),
+  ).state;
+}
+
+function noCoverageState(
+  selectionId: string,
+): RegionInspectorPresentationState {
+  const outcome: AuthoritativeRegionInspection = {
+    coverage: "no-grid-coverage",
+    selectionId,
+    stateVersion: 1,
+    configurationFingerprint: "config-fingerprint-v1",
+    selectedCellCount: 0,
+  };
+
+  return acceptRegionInspection(
+    beginRegionInspection(
+      unavailableRegionInspector("No region selected."),
+      selectionId,
+    ),
+    outcome,
   ).state;
 }
 
@@ -83,6 +110,53 @@ describe("RegionInspectorPanel", () => {
       "No prior authoritative readout is being reused",
     );
     expect(html).not.toContain("model-resource");
+  });
+
+  it("renders no-grid coverage without presenting biomass/resource as measured zero", () => {
+    const html = renderToStaticMarkup(
+      <RegionInspectorPanel state={noCoverageState("region-empty")} />,
+    );
+
+    expect(html).toContain(
+      'data-region-inspector-status="no-grid-coverage"',
+    );
+    expect(html).toContain('data-active-selection-id="region-empty"');
+    expect(html).toContain("No grid coverage");
+    expect(html).toContain(
+      "Biomass and resource are not reported as measured zero.",
+    );
+    expect(html).toContain(
+      "Petra has not snapped or enlarged the scientific region to force a measurement.",
+    );
+    expect(html).toContain('data-readout-empty="true"');
+    expect(html).not.toContain("Total biomass");
+    expect(html).not.toContain("Total resource");
+    expect(html).not.toContain("model-biomass");
+    expect(html).not.toContain("model-resource");
+  });
+
+  it("renders genuine covered zero values as authoritative measurements", () => {
+    const html = renderToStaticMarkup(
+      <RegionInspectorPanel
+        state={readyState("region-zero", {
+          selectedCellCount: 1,
+          totalBiomass: 0,
+          totalResource: 0,
+          lineageBiomass: [
+            {
+              lineageId: "ancestor",
+              biomass: 0,
+              fractionOfRegionBiomass: 0,
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(html).toContain('data-region-inspector-status="ready"');
+    expect(html).toContain("0 model-biomass");
+    expect(html).toContain("0 model-resource");
+    expect(html).toContain("0%");
   });
 
   it("renders ready authoritative model-unit values and lineage composition", () => {

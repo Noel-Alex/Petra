@@ -17,7 +17,7 @@ import {
 } from "./latentQueue";
 
 function testLifeHistoryIdentity(
-  lifeHistoryIdentity: testLifeHistoryIdentity(number),
+  latentPeriodMinutes: number,
 ): PhageLifeHistoryIdentity {
   const row = T4_MG1655_LIFE_HISTORY.rows[0]!;
   const resolved = resolvePhageLifeHistory(
@@ -102,7 +102,7 @@ describe("phage latent infection queue", () => {
     const scheduled = scheduleLatentInfections(createLatentInfectionQueue(), {
       infectionCount: 2,
       infectedAtMinutes: 4,
-      lifeHistoryIdentity: testLifeHistoryIdentity(resolved.values.latentPeriodMinutes),
+      lifeHistoryIdentity: createPhageLifeHistoryIdentity(resolved),
     });
     const cohort = scheduled.cohorts[0]!;
 

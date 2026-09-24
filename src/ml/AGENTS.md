@@ -17,7 +17,8 @@ Own Petra's optional learned-surrogate infrastructure without granting ML author
 - Every sample carries dataset version, engine version, parameter-set hash, scenario/version, seed, intervention fingerprint, normalization profile, snapshot index, and simulation time.
 - Split assignment happens at a declared parameter/scenario **group** level. All trajectories and frames in one group stay in exactly one of train/validation/test.
 - Never randomly split adjacent snapshots from the same trajectory.
-- Split policy is versioned and deterministic.
+- Split assignment policy is versioned and deterministic.
+- Split **coverage** policy is separately versioned. A generation plan intended for held-out evaluation must satisfy its required group coverage before trajectory tasks are accepted; Petra never moves individual seeds/frames between splits to fill a quota.
 
 ## OOD policy
 
@@ -31,7 +32,7 @@ Own Petra's optional learned-surrogate infrastructure without granting ML author
 A surrogate is not product-eligible until it has a versioned dataset, leakage-safe held-out evaluation, a simple baseline comparison, declared domain envelope, visible error metrics, and a mechanistic spot-check path.
 
 - Held-out regression evidence uses complete rows and declared targets; missing/extra targets, non-finite values, row-count mismatch, or metric overflow are invalid evidence.
-- Benchmark evidence binds model id/version, dataset version, engine version, split-policy version, held-out split, baseline id, and per-target MAE/RMSE/count.
+- Benchmark evidence binds model id/version, dataset version, engine version, split-assignment policy version, split-coverage policy version, held-out split, baseline id, and per-target MAE/RMSE/count.
 - A `validated` model card must carry its promotion evidence and requirements. Emulated admission re-checks that evidence rather than trusting the status label alone.
 - Candidate and baseline must cover exactly the declared targets and use equal evaluation counts for each target.
 - The current default promotion rule requires strict improvement in both MAE and RMSE on every declared target. Petra does not invent a percentage margin; any future margin must be separately versioned and justified.
@@ -48,4 +49,6 @@ Pure dataset/split/OOD/mode-gate/benchmark helpers require deterministic unit te
 - The leakage boundary is the scenario + parameter-set hash + intervention fingerprint. Every seed replica in that group must remain in one split.
 - Equivalent parameter hashes or intervention fingerprints may not be duplicated under different display ids because that could let equivalent biological conditions cross split boundaries.
 - Sweep definitions require an explicit `maxTrajectories` budget. Refuse oversized Cartesian products before execution rather than silently launching an unbounded local/cloud workload.
-- Dataset-generation manifests record plan/dataset/engine/scenario/split-policy identity plus stable trajectory keys. They are execution provenance, not evidence that the trajectories were actually simulated.
+- The default held-out coverage gate requires at least one group in train, validation, and test. A failed gate must report observed per-split group/trajectory counts and instruct the caller to enlarge/change the declared sweep or adopt a separately versioned policy; it must never rebalance individual replicas.
+- Dataset-generation manifest v2 records plan/dataset/engine/scenario identity, split-assignment policy, split-coverage policy, per-split group/trajectory counts, and stable trajectory keys. These are execution provenance, not evidence that trajectories were actually simulated.
+- Surrogate benchmark evidence v2 and promotion requirements carry the same split-coverage-policy version so evidence produced under an older coverage contract cannot be silently reinterpreted.

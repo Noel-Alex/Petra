@@ -5,18 +5,20 @@ import { describe, expect, it } from "vitest";
 // Vite resolves raw assets in the Vitest runtime; this project intentionally omits vite/client globals.
 // @ts-expect-error Vite raw asset import is runtime-supported but not declared in tsconfig types.
 import appCss from "./app.css?raw";
+// @ts-expect-error Vite raw asset import is runtime-supported but not declared in tsconfig types.
+import timelineHistoryCss from "./timelineHistory.css?raw";
 
 const appSource = readFileSync(fileURLToPath(new URL("./App.tsx", import.meta.url)), "utf8");
 
-function ruleBody(selector: string): string {
-  const start = appCss.indexOf(`${selector} {`);
+function ruleBody(selector: string, css = appCss): string {
+  const start = css.indexOf(`${selector} {`);
   expect(start).toBeGreaterThanOrEqual(0);
 
-  const bodyStart = appCss.indexOf("{", start) + 1;
-  const end = appCss.indexOf("}", bodyStart);
+  const bodyStart = css.indexOf("{", start) + 1;
+  const end = css.indexOf("}", bodyStart);
   expect(end).toBeGreaterThan(bodyStart);
 
-  return appCss.slice(bodyStart, end);
+  return css.slice(bodyStart, end);
 }
 
 describe("app shell keyboard focus styling", () => {
@@ -64,6 +66,16 @@ describe("app shell native select touch targets", () => {
   });
 });
 
+
+describe("timeline history touch target", () => {
+  it("keeps the native Full history disclosure at Petra's 44px floor without constraining inline width", () => {
+    const rule = ruleBody(".timeline-history > summary", timelineHistoryCss);
+
+    expect(rule).toContain("min-height: 2.75rem;");
+    expect(rule).not.toMatch(/(^|\n)\s*width\s*:/);
+    expect(rule).not.toMatch(/(^|\n)\s*min-width\s*:/);
+  });
+});
 
 describe("app shell resolved motion attribute", () => {
   it("fails static when resolved panel motion is not projected", () => {

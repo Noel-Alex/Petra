@@ -51,6 +51,9 @@ If enabled:
 - zero drug produces zero incremental PD-derived loss;
 - at the reference zMIC, the incremental loss equals the converted reference drug-free PD rate while the transferred PD response itself crosses zero;
 - the spatial loss field follows the authoritative drug mask/concentration state and remains finite/non-negative;
+- composed protocol-v4 configuration refuses non-zero ciprofloxacin exposure without explicit supported PD/MIC authority, refuses missing active-genotype MICs, and refuses off-mask concentration;
+- changing the static ciprofloxacin landscape or its PD/MIC authority changes the composed configuration fingerprint, while the bundled all-zero baseline preserves untreated behavior;
+- a non-zero configured landscape produces additional authoritative ecology death flux through the existing genotype-specific spatial PD composition; this is tested separately from future mutable intervention commands;
 - zero-resource + drug behavior is tested as a declared composition policy, not reported as stationary-phase calibration;
 - the whole-model zero-growth concentration is not assumed to equal Regoes zMIC until the independent ecology baseline is calibrated.
 

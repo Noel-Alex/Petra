@@ -6,6 +6,11 @@ import {
   projectComparableLineageDensity,
   resolveSharedLineageDensityMaximum,
 } from "../lineageDensityPresentation";
+import {
+  overlayPatternMultiplier,
+  projectOverlayScalar,
+  resolveOverlayPresentation,
+} from "../overlayPresentation";
 import { resolveLineagePattern, type LineagePatternToken } from "../lineagePatterns";
 import {
   semanticZoomLevel,
@@ -572,15 +577,21 @@ function drawField(
 ): void {
   const cellWidth = dishSize * camera.zoom / snapshot.gridWidth;
   const cellHeight = dishSize * camera.zoom / snapshot.gridHeight;
-  const range = Math.max(1e-9, field.maximum - field.minimum);
-  const color = field.kind === "nutrient" ? 0xf0bd4e : 0x8b6cf6;
+  const presentation = resolveOverlayPresentation(field.kind);
 
   for (let index = 0; index < field.values.length; index += 1) {
     if (snapshot.dishMask[index] !== 1) continue;
     const value = field.values[index] ?? field.minimum;
-    const normalized = Math.max(0, Math.min(1, (value - field.minimum) / range));
-    if (normalized < 0.025) continue;
+    const projected = projectOverlayScalar(
+      presentation,
+      value,
+      field.minimum,
+      field.maximum,
+    );
+    if (!projected.visible) continue;
 
+    const row = Math.floor(index / snapshot.gridWidth);
+    const column = index % snapshot.gridWidth;
     const center = gridCellCenter(
       index,
       snapshot.gridWidth,
@@ -596,6 +607,11 @@ function drawField(
     );
 
     if (!insideViewport(point, centerX, centerY, dishSize)) continue;
+    const textureAlpha = overlayPatternMultiplier(
+      projected.patternToken,
+      row,
+      column,
+    );
     graphics
       .rect(
         point.x - cellWidth / 2,
@@ -603,7 +619,10 @@ function drawField(
         cellWidth + 0.5,
         cellHeight + 0.5,
       )
-      .fill({ color, alpha: normalized * 0.18 });
+      .fill({
+        color: projected.color,
+        alpha: projected.alpha * textureAlpha,
+      });
   }
 }
 

@@ -35,6 +35,7 @@
 - Lineage creation/extinction is simulation authority. React, Pixi, renderer samples, animation callbacks, story beats, and UI events may display authoritative lineage events but cannot create or delete biological lineages.
 - Parent lineage identity, genotype, origin time/location, mutation class, and extinction time are authoritative lineage metadata.
 - Current lineage IDs are deterministic from creation order. Creation order therefore affects replay identity.
+- Authoritative lineage event sequence is chronological: `timeHours` must be non-decreasing in insertion/serialized order. Equal timestamps are valid and retain deterministic insertion order; live calls and restore both reject backdating.
 - `LineageRegistry.checkpoint()` / `LineageRegistry.restore()` own the versioned serializable ancestry/extinction/event + next-ID allocator boundary. Serialized `records` and `events` must be dense arrays with every index explicitly present; sparse holes are corrupt authority and must fail before restore. Restoring only visible records while resetting the allocator would corrupt future identity.
 - Public lineage reads (`create`, `get`, `list`, and `eventLog`) return isolated projections. Consumer mutation must never alter registry authority; extinction mutation is owned by `markExtinct()`.
 - Presentation layers may aggregate or sample lineages visually, but must not imply decorative glyph count equals simulated cell count.

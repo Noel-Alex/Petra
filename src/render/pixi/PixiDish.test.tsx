@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import pixiDishCss from "./PixiDish.css?raw";
 import type { CameraMotionSpec } from "./cameraMotion";
 import {
   PixiDish,
@@ -51,6 +52,7 @@ describe("PixiDish render-source boundary", () => {
       <RendererFailureFallback
         errorMessage="webgl unavailable"
         descriptionId="renderer-failure-description"
+        motionPreference="full"
         onRetry={() => undefined}
       />,
     );
@@ -67,6 +69,33 @@ describe("PixiDish render-source boundary", () => {
     );
     expect(html).not.toContain('role="status"');
     expect(html).not.toContain("aria-live=");
+  });
+
+  it.each(["full", "reduced", "off"] as const)(
+    "projects %s motion into the shared renderer retry action",
+    (motionPreference) => {
+      const html = renderToStaticMarkup(
+        <RendererFailureFallback
+          errorMessage="webgl unavailable"
+          descriptionId="renderer-failure-description"
+          motionPreference={motionPreference}
+          onRetry={() => undefined}
+        />,
+      );
+
+      expect(html).toContain('class="petra-compact-action pixi-dish__retry-action"');
+      expect(html).toContain(`data-motion="${motionPreference}"`);
+      expect(html).toContain('aria-describedby="renderer-failure-description"');
+      expect(html).toContain("Retry renderer");
+      expect(html).not.toContain('role="status"');
+      expect(html).not.toContain("aria-live=");
+    },
+  );
+
+  it("keeps retry chrome free of renderer-local motion timing authority", () => {
+    expect(pixiDishCss).toContain(".pixi-dish__retry-action");
+    expect(pixiDishCss).not.toMatch(/\\b(?:transition|animation)(?:-duration)?\\s*:/);
+    expect(pixiDishCss).not.toContain("prefers-reduced-motion");
   });
 
   it("announces renderer startup/failure state without interactive copy", () => {

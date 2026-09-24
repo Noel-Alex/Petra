@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { PLAYBACK_SPEEDS } from "../ui/experimentControls";
+import { PetraCompactAction } from "../ui/PetraCompactAction";
 import {
   loadMotionSetting,
   parseMotionSetting,
@@ -105,9 +106,12 @@ export function App({ runtimeFactory }: AppProps) {
               <option value="off">Off</option>
             </select>
           </label>
-          <button type="button" className="ghost-button">
+          <PetraCompactAction
+            motionPreference={motionPreference}
+            className="ghost-button"
+          >
             Sources
-          </button>
+          </PetraCompactAction>
         </div>
       </header>
 
@@ -185,8 +189,8 @@ export function App({ runtimeFactory }: AppProps) {
         )}
 
         <div className="timeline-controls">
-          <button
-            type="button"
+          <PetraCompactAction
+            motionPreference={motionPreference}
             disabled={!experiment.view.canTogglePlayback}
             onClick={() => {
               experiment.dispatch({
@@ -195,19 +199,19 @@ export function App({ runtimeFactory }: AppProps) {
             }}
           >
             {experiment.view.playing ? "Pause" : "Play"}
-          </button>
+          </PetraCompactAction>
           {PLAYBACK_SPEEDS.map((speed) => (
-            <button
+            <PetraCompactAction
               key={speed}
-              type="button"
-              aria-pressed={experiment.view.speed === speed}
+              motionPreference={motionPreference}
+              selected={experiment.view.speed === speed}
               disabled={!experiment.view.canChangeSpeed}
               onClick={() => {
                 experiment.dispatch({ type: "set-speed", speed });
               }}
             >
               {speed}×
-            </button>
+            </PetraCompactAction>
           ))}
         </div>
       </footer>

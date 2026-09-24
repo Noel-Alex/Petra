@@ -220,6 +220,233 @@ def check(name: str, passed: bool, detail: Any = None, status: str | None = None
     return {"name": name, "status": status or ("pass" if passed else "fail"), "detail": detail}
 
 
+def install_browser_performance_probes(cdp: CDP) -> None:
+    """Install local-only renderer/jank probes before Petra page scripts execute."""
+    source = r"""
+(() => {
+  const state = {
+    drawCalls: 0,
+    drawCallsByMethod: {},
+    longTasks: [],
+    gcEvents: [],
+    longTaskSupported: false,
+    gcSupported: false,
+    wrappedMethods: [],
+    observers: []
+  };
+
+  const wrap = (ctor, method) => {
+    if (!ctor || !ctor.prototype) return;
+    const original = ctor.prototype[method];
+    if (typeof original !== 'function' || original.__petraPerformanceWrapped === true) return;
+    const wrapped = function(...args) {
+      state.drawCalls += 1;
+      state.drawCallsByMethod[method] = (state.drawCallsByMethod[method] ?? 0) + 1;
+      return original.apply(this, args);
+    };
+    Object.defineProperty(wrapped, '__petraPerformanceWrapped', { value: true });
+    try {
+      ctor.prototype[method] = wrapped;
+      state.wrappedMethods.push(method);
+    } catch {
+      // A browser may expose a non-writable prototype. The compact result will
+      // show that draw-call instrumentation was unavailable rather than infer it.
+    }
+  };
+
+  const drawMethods = [
+    'drawArrays',
+    'drawElements',
+    'drawArraysInstanced',
+    'drawElementsInstanced'
+  ];
+  for (const method of drawMethods) {
+    wrap(globalThis.WebGLRenderingContext, method);
+    wrap(globalThis.WebGL2RenderingContext, method);
+  }
+
+  if ('PerformanceObserver' in globalThis) {
+    const supported = PerformanceObserver.supportedEntryTypes ?? [];
+    if (supported.includes('longtask')) {
+      state.longTaskSupported = true;
+      const observer = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          state.longTasks.push({ startTime: entry.startTime, duration: entry.duration });
+        }
+      });
+      observer.observe({ type: 'longtask', buffered: true });
+      state.observers.push(observer);
+    }
+    if (supported.includes('gc')) {
+      state.gcSupported = true;
+      const observer = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          state.gcEvents.push({
+            startTime: entry.startTime,
+            duration: entry.duration,
+            kind: entry.kind ?? null
+          });
+        }
+      });
+      observer.observe({ type: 'gc', buffered: true });
+      state.observers.push(observer);
+    }
+  }
+
+  Object.defineProperty(globalThis, '__petraPerformanceProbe', {
+    configurable: false,
+    enumerable: false,
+    value: state
+  });
+})();
+"""
+    cdp.call("Page.addScriptToEvaluateOnNewDocument", {"source": source})
+
+
+def reset_browser_performance_probe(cdp: CDP) -> None:
+    cdp.eval(
+        """(() => {
+          const probe = globalThis.__petraPerformanceProbe;
+          if (!probe) return false;
+          probe.drawCalls = 0;
+          probe.drawCallsByMethod = {};
+          probe.longTasks = [];
+          probe.gcEvents = [];
+          return true;
+        })()"""
+    )
+
+
+def browser_performance_probe_snapshot(cdp: CDP) -> dict[str, Any] | None:
+    snapshot = cdp.eval(
+        """(() => {
+          const probe = globalThis.__petraPerformanceProbe;
+          if (!probe) return null;
+          const longTaskDurations = probe.longTasks.map((entry) => entry.duration);
+          const gcDurations = probe.gcEvents.map((entry) => entry.duration);
+          return {
+            drawCalls: probe.drawCalls,
+            drawCallsByMethod: { ...probe.drawCallsByMethod },
+            wrappedMethods: [...probe.wrappedMethods],
+            longTaskSupported: probe.longTaskSupported,
+            longTaskCount: probe.longTasks.length,
+            longTaskTotalMs: longTaskDurations.reduce((sum, value) => sum + value, 0),
+            longTaskMaxMs: longTaskDurations.length ? Math.max(...longTaskDurations) : 0,
+            gcSupported: probe.gcSupported,
+            gcEventCount: probe.gcEvents.length,
+            gcTotalMs: gcDurations.reduce((sum, value) => sum + value, 0)
+          };
+        })()"""
+    )
+    return snapshot if isinstance(snapshot, dict) else None
+
+
+def chromium_runtime_metrics(cdp: CDP) -> dict[str, Any]:
+    raw = cdp.call("Performance.getMetrics").get("metrics", [])
+    values = {
+        item.get("name"): item.get("value")
+        for item in raw
+        if isinstance(item, dict) and isinstance(item.get("name"), str)
+    }
+    wanted = (
+        "Timestamp",
+        "JSHeapUsedSize",
+        "JSHeapTotalSize",
+        "Nodes",
+        "LayoutCount",
+        "RecalcStyleCount",
+        "ScriptDuration",
+        "TaskDuration",
+    )
+    metrics = {name: values.get(name) for name in wanted}
+
+    try:
+        dom = cdp.call("Memory.getDOMCounters")
+    except RuntimeError as exc:
+        metrics["domCounters"] = {"unavailable": str(exc)}
+    else:
+        metrics["domCounters"] = {
+            "documents": dom.get("documents"),
+            "nodes": dom.get("nodes"),
+            "jsEventListeners": dom.get("jsEventListeners"),
+        }
+    return metrics
+
+
+def numeric_metric_delta(
+    before: dict[str, Any],
+    after: dict[str, Any],
+) -> dict[str, float | int | None]:
+    keys = (
+        "JSHeapUsedSize",
+        "JSHeapTotalSize",
+        "Nodes",
+        "LayoutCount",
+        "RecalcStyleCount",
+        "ScriptDuration",
+        "TaskDuration",
+    )
+    result: dict[str, float | int | None] = {}
+    for key in keys:
+        left = before.get(key)
+        right = after.get(key)
+        result[key] = (
+            right - left
+            if isinstance(left, (int, float)) and isinstance(right, (int, float))
+            else None
+        )
+    return result
+
+
+def renderer_gpu_proxy(cdp: CDP) -> dict[str, Any] | None:
+    proxy = cdp.eval(
+        """(() => {
+          const canvas = document.querySelector(
+            '.dish-renderer-canvas[data-render-status="ready"] canvas'
+          );
+          if (!(canvas instanceof HTMLCanvasElement)) return null;
+
+          const gl2 = canvas.getContext('webgl2');
+          const gl = gl2 ?? canvas.getContext('webgl') ?? canvas.getContext('experimental-webgl');
+          if (!gl) {
+            return {
+              contextKind: 'non-webgl-or-unavailable',
+              canvasCssWidth: canvas.clientWidth,
+              canvasCssHeight: canvas.clientHeight,
+              canvasBackingWidth: canvas.width,
+              canvasBackingHeight: canvas.height,
+              devicePixelRatio: globalThis.devicePixelRatio ?? 1,
+              singleRgba8ColorBufferBytes: canvas.width * canvas.height * 4
+            };
+          }
+
+          const debug = gl.getExtension('WEBGL_debug_renderer_info');
+          const renderer = debug
+            ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)
+            : gl.getParameter(gl.RENDERER);
+          const vendor = debug
+            ? gl.getParameter(debug.UNMASKED_VENDOR_WEBGL)
+            : gl.getParameter(gl.VENDOR);
+          return {
+            contextKind: gl2 ? 'webgl2' : 'webgl',
+            renderer,
+            vendor,
+            canvasCssWidth: canvas.clientWidth,
+            canvasCssHeight: canvas.clientHeight,
+            canvasBackingWidth: canvas.width,
+            canvasBackingHeight: canvas.height,
+            devicePixelRatio: globalThis.devicePixelRatio ?? 1,
+            singleRgba8ColorBufferBytes: canvas.width * canvas.height * 4,
+            maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE),
+            maxRenderbufferSize: gl.getParameter(gl.MAX_RENDERBUFFER_SIZE),
+            maxTextureImageUnits: gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS),
+            maxCombinedTextureImageUnits: gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS)
+          };
+        })()"""
+    )
+    return proxy if isinstance(proxy, dict) else None
+
+
 def renderer_state(cdp: CDP) -> dict[str, Any]:
     state = cdp.eval(
         """(() => {
@@ -792,20 +1019,45 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
     if not ready:
         return checks
 
+    gpu_proxy = renderer_gpu_proxy(cdp)
+
     reset_ok = click_overview_reset(cdp)
     time.sleep(0.1)
     whole_png = capture_browser_png(cdp, "performance-whole-dish.png")
+    reset_browser_performance_probe(cdp)
+    whole_runtime_before = chromium_runtime_metrics(cdp)
     whole_samples = renderer_frame_samples(cdp)
-    whole = frame_metrics(whole_samples, "whole-dish")
+    whole_runtime_after = chromium_runtime_metrics(cdp)
+    whole_probe = browser_performance_probe_snapshot(cdp)
+    whole = {
+        **frame_metrics(whole_samples, "whole-dish"),
+        "browserProbe": whole_probe,
+        "runtimeBefore": whole_runtime_before,
+        "runtimeAfter": whole_runtime_after,
+        "runtimeDelta": numeric_metric_delta(whole_runtime_before, whole_runtime_after),
+    }
 
     zoom_ok = dispatch_renderer_wheel(cdp, -650)
     time.sleep(0.1)
     zoom_png = capture_browser_png(cdp, "performance-colony-zoom.png")
+    reset_browser_performance_probe(cdp)
+    zoom_runtime_before = chromium_runtime_metrics(cdp)
     zoom_samples = renderer_frame_samples(cdp)
-    zoomed = frame_metrics(zoom_samples, "colony-camera-zoom")
+    zoom_runtime_after = chromium_runtime_metrics(cdp)
+    zoom_probe = browser_performance_probe_snapshot(cdp)
+    zoomed = {
+        **frame_metrics(zoom_samples, "colony-camera-zoom"),
+        "browserProbe": zoom_probe,
+        "runtimeBefore": zoom_runtime_before,
+        "runtimeAfter": zoom_runtime_after,
+        "runtimeDelta": numeric_metric_delta(zoom_runtime_before, zoom_runtime_after),
+    }
 
     whole_p95 = whole.get("p95FrameMs")
     zoom_p95 = zoomed.get("p95FrameMs")
+    whole_draw_calls = whole_probe.get("drawCalls") if whole_probe else None
+    zoom_draw_calls = zoom_probe.get("drawCalls") if zoom_probe else None
+    gpu_context = gpu_proxy.get("contextKind") if gpu_proxy else None
     checks.extend(
         [
             check(
@@ -824,6 +1076,41 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
                 "performance whole-dish: p95 under 33.4ms",
                 isinstance(whole_p95, (int, float)) and whole_p95 < 33.4,
                 whole,
+            ),
+            check(
+                "performance whole-dish: WebGL draw calls observed",
+                isinstance(whole_draw_calls, (int, float)) and whole_draw_calls > 0,
+                {
+                    "drawCalls": whole_draw_calls,
+                    "drawCallsByMethod": whole_probe.get("drawCallsByMethod") if whole_probe else None,
+                    "wrappedMethods": whole_probe.get("wrappedMethods") if whole_probe else None,
+                    "ownedRedraws": whole.get("rendererOwnedRedraws"),
+                    "drawCallsPerOwnedRedraw": (
+                        round(whole_draw_calls / whole["rendererOwnedRedraws"], 3)
+                        if isinstance(whole_draw_calls, (int, float))
+                        and whole.get("rendererOwnedRedraws", 0) > 0
+                        else None
+                    ),
+                },
+                "blocked"
+                if gpu_context == "non-webgl-or-unavailable"
+                else None,
+            ),
+            check(
+                "performance whole-dish: heap and jank metrics captured",
+                isinstance(whole_runtime_after.get("JSHeapUsedSize"), (int, float)),
+                {
+                    "runtimeBefore": whole_runtime_before,
+                    "runtimeAfter": whole_runtime_after,
+                    "runtimeDelta": whole.get("runtimeDelta"),
+                    "longTaskSupported": whole_probe.get("longTaskSupported") if whole_probe else False,
+                    "longTaskCount": whole_probe.get("longTaskCount") if whole_probe else None,
+                    "longTaskTotalMs": whole_probe.get("longTaskTotalMs") if whole_probe else None,
+                    "longTaskMaxMs": whole_probe.get("longTaskMaxMs") if whole_probe else None,
+                    "gcSupported": whole_probe.get("gcSupported") if whole_probe else False,
+                    "gcEventCount": whole_probe.get("gcEventCount") if whole_probe else None,
+                    "gcTotalMs": whole_probe.get("gcTotalMs") if whole_probe else None,
+                },
             ),
             check(
                 "performance colony zoom: presentation zoom applied",
@@ -851,6 +1138,54 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
                 "performance colony zoom: p95 under 33.4ms",
                 isinstance(zoom_p95, (int, float)) and zoom_p95 < 33.4,
                 zoomed,
+            ),
+            check(
+                "performance colony zoom: WebGL draw calls observed",
+                isinstance(zoom_draw_calls, (int, float)) and zoom_draw_calls > 0,
+                {
+                    "drawCalls": zoom_draw_calls,
+                    "drawCallsByMethod": zoom_probe.get("drawCallsByMethod") if zoom_probe else None,
+                    "wrappedMethods": zoom_probe.get("wrappedMethods") if zoom_probe else None,
+                    "ownedRedraws": zoomed.get("rendererOwnedRedraws"),
+                    "drawCallsPerOwnedRedraw": (
+                        round(zoom_draw_calls / zoomed["rendererOwnedRedraws"], 3)
+                        if isinstance(zoom_draw_calls, (int, float))
+                        and zoomed.get("rendererOwnedRedraws", 0) > 0
+                        else None
+                    ),
+                },
+                "blocked"
+                if gpu_context == "non-webgl-or-unavailable"
+                else None,
+            ),
+            check(
+                "performance colony zoom: heap and jank metrics captured",
+                isinstance(zoom_runtime_after.get("JSHeapUsedSize"), (int, float)),
+                {
+                    "runtimeBefore": zoom_runtime_before,
+                    "runtimeAfter": zoom_runtime_after,
+                    "runtimeDelta": zoomed.get("runtimeDelta"),
+                    "longTaskSupported": zoom_probe.get("longTaskSupported") if zoom_probe else False,
+                    "longTaskCount": zoom_probe.get("longTaskCount") if zoom_probe else None,
+                    "longTaskTotalMs": zoom_probe.get("longTaskTotalMs") if zoom_probe else None,
+                    "longTaskMaxMs": zoom_probe.get("longTaskMaxMs") if zoom_probe else None,
+                    "gcSupported": zoom_probe.get("gcSupported") if zoom_probe else False,
+                    "gcEventCount": zoom_probe.get("gcEventCount") if zoom_probe else None,
+                    "gcTotalMs": zoom_probe.get("gcTotalMs") if zoom_probe else None,
+                },
+            ),
+            check(
+                "performance: GPU capability/framebuffer proxy captured",
+                gpu_proxy is not None,
+                {
+                    "proxy": gpu_proxy,
+                    "limitation": (
+                        "singleRgba8ColorBufferBytes is one canvas-backing RGBA8 buffer size; "
+                        "it is a workload/capability proxy, not measured VRAM and excludes "
+                        "swapchain multiplicity, textures, geometry, driver allocations, and caches."
+                    ),
+                },
+                "blocked" if gpu_proxy is None else None,
             ),
         ]
     )
@@ -902,7 +1237,9 @@ def main() -> int:
         cdp = new_page()
         cdp.call("Page.enable")
         cdp.call("Runtime.enable")
+        cdp.call("Performance.enable")
         cdp.call("Accessibility.enable")
+        install_browser_performance_probes(cdp)
         cdp.call("Page.navigate", {"url": TARGET_URL})
         time.sleep(1.2)
 
@@ -944,8 +1281,11 @@ def main() -> int:
         "summary": {"pass": passed, "fail": failed, "blocked": blocked},
         "evidence_boundary": (
             "Headless browser evidence checks layout, accessibility plumbing, motion modes, "
-            "input smoke, screenshots, and frame timing. Human visible-browser review remains "
-            "required for final aesthetic judgment; this run does not validate scientific correctness."
+            "input smoke, screenshots, representative renderer frame/redraw time, WebGL draw-call "
+            "counts, Chromium heap/DOM trends, and long-task/GC symptoms where exposed. The GPU "
+            "record is explicitly a canvas/capability proxy, not measured VRAM. Human visible-browser "
+            "review remains required for final aesthetic judgment; this run does not validate "
+            "scientific correctness or simulator throughput."
         ),
     }
     RESULT_JSON.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")

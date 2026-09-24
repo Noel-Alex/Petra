@@ -44,3 +44,11 @@ Pure presentation helpers require deterministic unit tests. Browser smoothness, 
 - Current compare export is intentionally **metadata-only**: checkpoint payloads and authoritative command payloads are not present, so `replayReady` must remain false. Do not market or label it as a complete replay bundle until runtime authority supplies those payloads.
 - Validation recomputes divergence identity from the exported branches so a stale/tampered label cannot disagree with branch metadata.
 - Deterministic serialization must not inject wall-clock timestamps into the canonical payload; callers may attach transport metadata outside the replay identity.
+
+
+## Shared visual-theme ownership
+
+- `CounterfactualCompare.css` consumes Petra's shared visual CSS variables for stable chrome; it must not own an independent numeric hex/RGB/RGBA palette or restore blur-heavy glass treatment.
+- Divergence colors are presentation reinforcement only and follow the shared vocabulary: intervention → coral, stochastic → teal, mixed → lavender, warning/clamped → amber, matched → mint. Text labels, geometric marks, branch identity, and synchronized biological time remain the semantic authority.
+- Compare theme work must preserve Side-by-side/Swipe behavior, native range keyboard/touch operation, the 2.75rem swipe touch floor, mismatch quarantine, Full/Reduced/Off motion treatment, and export/replay metadata semantics.
+- The swipe divider may use restrained shared-token depth but must not regain a neon/cyan glow that competes with the scientific surfaces.

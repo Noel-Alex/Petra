@@ -42,8 +42,14 @@ export function resolveMotionSetting(args: {
   readonly setting: MotionSetting;
   readonly prefersReducedMotion: boolean;
 }): MotionPreference {
+  if (args.setting === "system") {
+    return resolveMotionPreference({
+      prefersReducedMotion: args.prefersReducedMotion,
+    });
+  }
+
   return resolveMotionPreference({
-    explicit: args.setting === "system" ? undefined : args.setting,
+    explicit: args.setting,
     prefersReducedMotion: args.prefersReducedMotion,
   });
 }

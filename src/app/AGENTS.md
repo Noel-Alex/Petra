@@ -9,6 +9,7 @@ Own React/browser orchestration around Petra's authoritative worker and presenta
 - Keep src/sim/** and src/worker/** independent from React. Active simulation-composition work belongs to #37.
 - UI control planning stays in src/ui/experimentControls.ts; app adapters execute its ControlEffect rather than duplicating replay/reset/seed semantics.
 - experimentRuntime.ts composes control intent, WorkerSession state, authoritative command confirmation, and timeline projection. Commands become replay history only after a returned authoritative event confirms their command id.
+- `ExperimentRuntime` may own one immutable caller-supplied `ComposedSimulationConfig` for the run. Start/reset/reseed/replay must clone and resend that same configuration so lifecycle actions cannot demote a biological run to the synthetic fixture path. React does not derive or edit the config.
 - Intervention tooling fails closed unless the active protocol exposes a real typed intervention schema plus authoritative parameter metadata. The current `synthetic-pulse` command is never an inoculate/antibiotic/nutrient substitute. Labels, units, ranges, defaults, and command conversion must come from authoritative scenario/runtime contracts; presentation previews never imply command acceptance, and timeline success remains authoritative-event-driven. Region inspection is a separate #159 authority path and must not be hidden inside the intervention palette.
 - Scientific timeline presentation stays in src/ui/timeline.ts.
 - Renderer/Pixi scene authority stays under src/render/**.

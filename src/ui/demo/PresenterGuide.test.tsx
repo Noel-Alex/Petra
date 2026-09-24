@@ -64,6 +64,44 @@ describe("PresenterGuide", () => {
     }
   });
 
+  it("projects cue identity onto an inner visual layer while keeping the live region stable", () => {
+    const initial = initialDemoPresenterState("90-second", "run-a");
+    const ready = reduceDemoPresenter(initial, {
+      type: "evidence",
+      gate: "flagship-runtime-ready",
+      runIdentity: "run-a",
+    });
+    const next = reduceDemoPresenter(ready, { type: "next" });
+
+    const initialHtml = renderToStaticMarkup(
+      <PresenterGuide
+        state={initial}
+        motionPreference="full"
+        onEvent={() => undefined}
+      />,
+    );
+    const nextHtml = renderToStaticMarkup(
+      <PresenterGuide
+        state={next}
+        motionPreference="full"
+        onEvent={() => undefined}
+      />,
+    );
+
+    expect(initialHtml).toContain(
+      'class="presenter-guide__card" aria-live="polite"',
+    );
+    expect(nextHtml).toContain(
+      'class="presenter-guide__card" aria-live="polite"',
+    );
+    expect(initialHtml).toContain(
+      'class="presenter-guide__card-content" data-cue-id="world"',
+    );
+    expect(nextHtml).toContain(
+      'class="presenter-guide__card-content" data-cue-id="growth"',
+    );
+  });
+
   it("routes both navigation controls through shared motion semantics", () => {
     const state = initialDemoPresenterState();
 

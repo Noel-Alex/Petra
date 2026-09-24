@@ -12,6 +12,10 @@ export const MOTION = {
     durationMs: 220,
     easing: [0.2, 0.8, 0.2, 1],
   },
+  controlInteraction: {
+    durationMs: 120,
+    easing: [0.2, 0.8, 0.2, 1],
+  },
   cameraFocus: {
     durationMs: 520,
     easing: [0.16, 1, 0.3, 1],

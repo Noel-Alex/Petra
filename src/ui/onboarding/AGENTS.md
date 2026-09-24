@@ -17,7 +17,7 @@ Own the guided science-story choreography that introduces Petra without duplicat
 - Runtime integration owns run identity and authoritative gate delivery. A run/branch change must reset/replace controlled onboarding state outside the presentation component.
 - React/CSS motion derives only from `resolveOnboardingPresentation`; do not add raw OS media-query motion authority or component-local stage timings.
 - Semantic onboarding CSS variables must fail static (`0ms` + `linear`) when React projection is absent. Full/Reduced/Off timing/easing becomes active only through `OnboardingGuide.tsx` projecting `resolveOnboardingPresentation(...)`; CSS never supplies a backup semantic animation policy.
-- Guide navigation actions (`Skip`, `Back`, `Continue` / `Start experimenting`) consume the shared `PetraCompactAction` interaction adapter. Onboarding CSS may own layout, tone, and focus-ring color, but must not reimplement hover/press state or timing.
+- Guide navigation actions (`Skip`, `Back`, `Continue` / `Start experimenting`) consume the shared `PetraCompactAction` interaction adapter. Onboarding CSS may own layout, tone, static shadow, and focus-ring color, but must not declare navigation-specific hover/press transforms, filters, transitions, state timing, or easing.
 - Guide navigation CSS must not undercut `PetraCompactAction`'s shared `2.75rem` minimum touch height. Onboarding may add padding or deliberate width for composition, but the shared repeated-action block target remains the accessibility floor.
 - Decorative onboarding loops also resolve through shared `src/ui/motion/decorativeLoops.ts` authority and are projected as CSS variables. CSS may not reintroduce local loop cadence/easing or re-enable loops in Reduced/Off.
 

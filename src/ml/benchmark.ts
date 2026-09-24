@@ -1,0 +1,254 @@
+import type { DatasetSplit } from "./dataset";
+
+export interface RegressionTargetMetrics {
+  readonly mae: number;
+  readonly rmse: number;
+  readonly count: number;
+}
+
+export type RegressionMetrics = Readonly<Record<string, RegressionTargetMetrics>>;
+
+export interface SurrogateBenchmarkEvidence {
+  readonly schemaVersion: "surrogate-benchmark-evidence-v1";
+  readonly modelId: string;
+  readonly modelVersion: string;
+  readonly baselineId: string;
+  readonly datasetVersion: string;
+  readonly engineVersion: string;
+  readonly splitPolicyVersion: string;
+  readonly heldOutSplit: Exclude<DatasetSplit, "train">;
+  readonly candidate: RegressionMetrics;
+  readonly baseline: RegressionMetrics;
+}
+
+export interface SurrogatePromotionRequirements {
+  readonly splitPolicyVersion: string;
+  readonly heldOutSplit: Exclude<DatasetSplit, "train">;
+  readonly targetIds: readonly string[];
+}
+
+export type PromotionIssueKind =
+  | "identity-mismatch"
+  | "dataset-version-mismatch"
+  | "engine-version-mismatch"
+  | "split-policy-mismatch"
+  | "held-out-split-mismatch"
+  | "target-coverage-mismatch"
+  | "invalid-metrics"
+  | "evaluation-count-mismatch"
+  | "baseline-not-beaten";
+
+export interface PromotionIssue {
+  readonly kind: PromotionIssueKind;
+  readonly message: string;
+  readonly targetId?: string;
+}
+
+export interface SurrogatePromotionAssessment {
+  readonly eligible: boolean;
+  readonly issues: readonly PromotionIssue[];
+}
+
+/**
+ * Computes deterministic complete-row MAE/RMSE metrics for declared targets.
+ * Missing/extra targets, non-finite values, row-count mismatch and overflow
+ * are rejected rather than silently dropping samples.
+ */
+export function computeRegressionMetrics(args: {
+  readonly targetIds: readonly string[];
+  readonly actual: readonly Readonly<Record<string, number>>[];
+  readonly predicted: readonly Readonly<Record<string, number>>[];
+}): RegressionMetrics {
+  const targetIds = validateTargetIds(args.targetIds);
+  if (args.actual.length !== args.predicted.length) {
+    throw new RangeError("actual and predicted row counts must match");
+  }
+  if (args.actual.length === 0) {
+    throw new RangeError("at least one evaluation row is required");
+  }
+
+  const sums = new Map<string, { absolute: number; squared: number }>();
+  for (const targetId of targetIds) {
+    sums.set(targetId, { absolute: 0, squared: 0 });
+  }
+
+  for (let rowIndex = 0; rowIndex < args.actual.length; rowIndex += 1) {
+    const actualRow = args.actual[rowIndex];
+    const predictedRow = args.predicted[rowIndex];
+    if (actualRow === undefined || predictedRow === undefined) {
+      throw new RangeError("evaluation rows must be complete");
+    }
+    assertExactTargets(actualRow, targetIds, `actual row ${rowIndex}`);
+    assertExactTargets(predictedRow, targetIds, `predicted row ${rowIndex}`);
+
+    for (const targetId of targetIds) {
+      const actual = actualRow[targetId];
+      const predicted = predictedRow[targetId];
+      if (actual === undefined || predicted === undefined) {
+        throw new TypeError(`target ${targetId} is missing`);
+      }
+      if (!Number.isFinite(actual) || !Number.isFinite(predicted)) {
+        throw new RangeError(`target ${targetId} values must be finite`);
+      }
+      const error = predicted - actual;
+      const absolute = Math.abs(error);
+      const squared = error * error;
+      if (!Number.isFinite(absolute) || !Number.isFinite(squared)) {
+        throw new RangeError(`target ${targetId} metric accumulation overflowed`);
+      }
+      const sum = sums.get(targetId);
+      if (sum === undefined) throw new Error("unreachable target accumulator");
+      sum.absolute += absolute;
+      sum.squared += squared;
+      if (!Number.isFinite(sum.absolute) || !Number.isFinite(sum.squared)) {
+        throw new RangeError(`target ${targetId} metric accumulation overflowed`);
+      }
+    }
+  }
+
+  const result: Record<string, RegressionTargetMetrics> = {};
+  for (const targetId of targetIds) {
+    const sum = sums.get(targetId);
+    if (sum === undefined) throw new Error("unreachable target accumulator");
+    const count = args.actual.length;
+    result[targetId] = {
+      mae: sum.absolute / count,
+      rmse: Math.sqrt(sum.squared / count),
+      count,
+    };
+  }
+  return result;
+}
+
+/**
+ * Promotion is intentionally conservative: every declared held-out target must
+ * have matching evaluation counts and the candidate must strictly improve both
+ * MAE and RMSE over the simple baseline. No percentage margin is invented here.
+ */
+export function assessSurrogatePromotion(args: {
+  readonly evidence: SurrogateBenchmarkEvidence;
+  readonly requirements: SurrogatePromotionRequirements;
+  readonly expectedModelId: string;
+  readonly expectedModelVersion: string;
+  readonly expectedDatasetVersion: string;
+  readonly expectedEngineVersion: string;
+}): SurrogatePromotionAssessment {
+  const issues: PromotionIssue[] = [];
+  const { evidence, requirements } = args;
+  const targetIds = validateTargetIds(requirements.targetIds);
+
+  if (
+    evidence.modelId !== args.expectedModelId ||
+    evidence.modelVersion !== args.expectedModelVersion
+  ) {
+    issues.push({
+      kind: "identity-mismatch",
+      message: "benchmark evidence model identity does not match the model card",
+    });
+  }
+  if (evidence.datasetVersion !== args.expectedDatasetVersion) {
+    issues.push({
+      kind: "dataset-version-mismatch",
+      message: "benchmark evidence dataset version does not match the model card",
+    });
+  }
+  if (evidence.engineVersion !== args.expectedEngineVersion) {
+    issues.push({
+      kind: "engine-version-mismatch",
+      message: "benchmark evidence engine version does not match the model card",
+    });
+  }
+  if (evidence.splitPolicyVersion !== requirements.splitPolicyVersion) {
+    issues.push({
+      kind: "split-policy-mismatch",
+      message: "benchmark evidence split policy does not match promotion requirements",
+    });
+  }
+  if (evidence.heldOutSplit !== requirements.heldOutSplit) {
+    issues.push({
+      kind: "held-out-split-mismatch",
+      message: "benchmark evidence held-out split does not match promotion requirements",
+    });
+  }
+
+  const candidateTargets = Object.keys(evidence.candidate).sort();
+  const baselineTargets = Object.keys(evidence.baseline).sort();
+  const expectedTargets = [...targetIds].sort();
+  if (
+    candidateTargets.join("\u0000") !== expectedTargets.join("\u0000") ||
+    baselineTargets.join("\u0000") !== expectedTargets.join("\u0000")
+  ) {
+    issues.push({
+      kind: "target-coverage-mismatch",
+      message: "candidate and baseline metrics must exactly cover declared promotion targets",
+    });
+  }
+
+  for (const targetId of targetIds) {
+    const candidate = evidence.candidate[targetId];
+    const baseline = evidence.baseline[targetId];
+    if (candidate === undefined || baseline === undefined) continue;
+
+    if (!validMetrics(candidate) || !validMetrics(baseline)) {
+      issues.push({
+        kind: "invalid-metrics",
+        targetId,
+        message: `metrics for ${targetId} must be finite, non-negative and have a positive integer count`,
+      });
+      continue;
+    }
+    if (candidate.count !== baseline.count) {
+      issues.push({
+        kind: "evaluation-count-mismatch",
+        targetId,
+        message: `candidate and baseline counts differ for ${targetId}`,
+      });
+      continue;
+    }
+    if (!(candidate.mae < baseline.mae && candidate.rmse < baseline.rmse)) {
+      issues.push({
+        kind: "baseline-not-beaten",
+        targetId,
+        message: `candidate must strictly improve both MAE and RMSE for ${targetId}`,
+      });
+    }
+  }
+
+  return { eligible: issues.length === 0, issues };
+}
+
+function validateTargetIds(targetIds: readonly string[]): readonly string[] {
+  if (targetIds.length === 0) {
+    throw new RangeError("at least one target id is required");
+  }
+  const seen = new Set<string>();
+  for (const targetId of targetIds) {
+    if (targetId.trim().length === 0) throw new TypeError("target ids must be non-empty");
+    if (seen.has(targetId)) throw new TypeError(`duplicate target id: ${targetId}`);
+    seen.add(targetId);
+  }
+  return targetIds;
+}
+
+function assertExactTargets(
+  row: Readonly<Record<string, number>>,
+  targetIds: readonly string[],
+  label: string,
+): void {
+  const rowKeys = Object.keys(row).sort();
+  const expected = [...targetIds].sort();
+  if (rowKeys.join("\u0000") !== expected.join("\u0000")) {
+    throw new TypeError(`${label} must exactly match declared target ids`);
+  }
+}
+
+function validMetrics(metrics: RegressionTargetMetrics): boolean {
+  return (
+    Number.isFinite(metrics.mae) &&
+    metrics.mae >= 0 &&
+    Number.isFinite(metrics.rmse) &&
+    metrics.rmse >= 0 &&
+    Number.isSafeInteger(metrics.count) &&
+    metrics.count > 0
+  );
+}

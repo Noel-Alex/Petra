@@ -121,11 +121,12 @@ export class ExperimentRuntime {
         return { accepted: false, reason: blocked };
       }
 
-      if (
+      const reinitializesRun =
         action.type === "reset" ||
         action.type === "set-seed" ||
-        action.type === "replay"
-      ) {
+        action.type === "replay";
+
+      if (reinitializesRun) {
         this.pendingAcceptance.clear();
       }
 
@@ -136,6 +137,7 @@ export class ExperimentRuntime {
       this.current = {
         ...this.current,
         controls: planned.state,
+        ...(reinitializesRun ? { snapshot: null, timeline: [] } : {}),
         integrationError: null,
       };
       this.publish();

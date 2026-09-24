@@ -116,7 +116,9 @@ Across that measured domain, latent period decreased from roughly 80 to 27 min a
 
 **Decision:** Petra uses `4.2e-12 m^2/s` only as a **transferred 0.5% host-free agarose extracellular baseline**. Other matrix concentrations/materials and host-bearing regions are OOD. The dead-host coefficient is not a living-host constant.
 
-**Still unbound:** separate eclipse time, living-host transport behavior and a general free-phage loss constant. Nabergoj's zero-loss term was a model assumption for its controlled context, not a universal measured constant.
+**#750 targeted boundary audit:** Hu 2012 also reports that apparent transport changes when phage proliferation occurs, so a host-bearing apparent coefficient conflates movement with reaction/propagation. Exact-pair MG1655/T4 biofilm work (Lisac, Birsa & Podgornik 2022, DOI `10.1111/1751-7915.14079`) and severe-substrate-limitation work (Lisac & Podgornik 2025, DOI `10.1186/s12985-025-02934-0`) further show that adsorption, lysis and free-phage output depend on host physiological state; neither isolates a passive living-host diffusion coefficient.
+
+**Decision:** physical living-host transport remains explicitly **OUT OF DOMAIN**, and general free-phage environmental loss remains **UNBOUND**. Nabergoj's zero-loss term is retained only as a model/control assumption, not a universal decay measurement. Storage-stability measurements are not transferred into an active 37 °C agarose/LB loss constant. Research on these two seams is OFF unless a future scenario requires a new physical claim. Separate eclipse time remains a distinct optional research gap.
 
 ## Audit status
 
@@ -124,6 +126,6 @@ Across that measured domain, latent period decreased from roughly 80 to 27 min a
 
 **Named life-history pack ready with transfer caveat:** T4 DSM 4505 / MG1655 DSM 18039 phage adsorption + latent period + burst.
 
-**Calibration pending:** general free-phage loss, living-host transport/composition and any eclipse-vs-latent subdivision. Host-free 0.5% agarose transport is selected with an explicit transfer caveat.
+**Explicitly unbound/OOD:** general free-phage environmental loss and living-host physical transport are deliberately not parameterized after #750's targeted evidence audit. Host-free 0.5% agarose transport is selected with an explicit transfer caveat. Only an optional eclipse-vs-latent subdivision remains an open phage timing research gap.
 
 **Post-MVP:** HGT/plasmids, detailed fungi, quorum sensing, host immune system, cross-feeding networks.

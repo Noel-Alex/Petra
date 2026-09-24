@@ -50,7 +50,7 @@ function batch(): SpatialMutationBatchResult {
             count: 1,
           },
         ],
-        sampling: { mode: "exact", rngDraws: 5 },
+        sampling: { mode: "exact-reference", rngDraws: 5 },
       },
       {
         sourceLineageId: "L2",
@@ -65,7 +65,7 @@ function batch(): SpatialMutationBatchResult {
             count: 1,
           },
         ],
-        sampling: { mode: "exact", rngDraws: 3 },
+        sampling: { mode: "exact-reference", rngDraws: 3 },
       },
     ],
     totalDivisionOpportunities: 8,

@@ -6,6 +6,7 @@ import {
 import { PetraIcon } from "../icons/PetraIcon";
 import {
   filterProvenanceRecords,
+  parseProvenanceEvidenceFilter,
   PROVENANCE_EVIDENCE_FILTERS,
   type ProvenanceEvidenceFilter,
 } from "./filter";
@@ -85,7 +86,7 @@ export function ProvenancePanel({
                 value={evidence}
                 onChange={(event) => {
                   setEvidence(
-                    event.target.value as ProvenanceEvidenceFilter,
+                    parseProvenanceEvidenceFilter(event.target.value),
                   );
                 }}
               >

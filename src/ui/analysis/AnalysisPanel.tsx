@@ -18,7 +18,7 @@ import {
 import "./analysisPanel.css";
 
 export interface AnalysisPanelProps {
-  readonly chart: ScientificChartProjection;
+  readonly charts: readonly ScientificChartProjection[];
   readonly lineageTree: LineageTreeLayout;
   readonly motion: MotionPreference;
   readonly title?: string;
@@ -51,14 +51,13 @@ const TREE = {
  * as biological time.
  */
 export function AnalysisPanel({
-  chart,
+  charts,
   lineageTree,
   motion,
   title = "Live analysis",
   className,
 }: AnalysisPanelProps): ReactElement {
   const titleId = useId();
-  const chartTitleId = useId();
   const treeTitleId = useId();
   const motionPlan = resolveAnalysisMotion(motion);
   const style = {
@@ -91,27 +90,9 @@ export function AnalysisPanel({
       </header>
 
       <div className="analysis-panel__grid">
-        <section
-          className="analysis-card analysis-card--chart"
-          aria-labelledby={chartTitleId}
-        >
-          <header className="analysis-card__header">
-            <div>
-              <p className="analysis-card__eyebrow">Population trajectory</p>
-              <h3 id={chartTitleId}>Scientific time series</h3>
-            </div>
-            <span className="analysis-card__unit">{chart.unit}</span>
-          </header>
-
-          <ScientificChart chart={chart} />
-
-          <p className="analysis-card__note">
-            Markers are authoritative samples. Connecting segments are visual
-            guides only; Petra does not create interpolated scientific samples.
-          </p>
-
-          <ScientificSourceData chart={chart} />
-        </section>
+        {charts.map((chart) => (
+          <ScientificChartCard key={chart.unit} chart={chart} />
+        ))}
 
         <section
           className="analysis-card analysis-card--lineage"
@@ -135,6 +116,39 @@ export function AnalysisPanel({
           <LineageSourceData tree={lineageTree} />
         </section>
       </div>
+    </section>
+  );
+}
+
+function ScientificChartCard({
+  chart,
+}: {
+  readonly chart: ScientificChartProjection;
+}): ReactElement {
+  const titleId = useId();
+
+  return (
+    <section
+      className="analysis-card analysis-card--chart"
+      aria-labelledby={titleId}
+      data-chart-unit={chart.unit}
+    >
+      <header className="analysis-card__header">
+        <div>
+          <p className="analysis-card__eyebrow">Authoritative trajectory</p>
+          <h3 id={titleId}>Scientific time series</h3>
+        </div>
+        <span className="analysis-card__unit">{chart.unit}</span>
+      </header>
+
+      <ScientificChart chart={chart} />
+
+      <p className="analysis-card__note">
+        Markers are authoritative samples. Connecting segments are visual
+        guides only; Petra does not create interpolated scientific samples.
+      </p>
+
+      <ScientificSourceData chart={chart} />
     </section>
   );
 }

@@ -134,16 +134,16 @@
     },
     {
       "id": "evolution-replicate-statistics",
-      "description": "BLOCKED on #37: many-seed mutation/emergence distribution checks through composed authority.",
+      "description": "BLOCKED on #562: many-seed mutation/emergence distribution checks require the shared discrete mutation-opportunity authority before composed execution is scientifically valid.",
       "command": [
         "python",
         "experiments/blocked.py",
         "--experiment-id",
         "evolution-replicate-statistics",
         "--blocked-on",
-        "37",
+        "562",
         "--reason",
-        "Issue #37 must expose the authoritative composed trajectory path before replicate statistics can represent the flagship experiment."
+        "Issue #37 now provides the composed engine path, but issue #562 must land the shared continuous-biomass to discrete mutation-opportunity authority before many-seed composed mutation statistics are scientifically valid."
       ],
       "issues": [
         5,

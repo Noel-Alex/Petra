@@ -150,7 +150,9 @@ describe('counterfactual fork authority', () => {
     ;(
       bundle.origin.checkpoint.identity as unknown as { engineVersion: string }
     ).engineVersion = 'petra-ts-core/0.0.9'
-    bundle.origin.checkpointTraceHash = simulationSnapshotTraceHash({
+    ;(
+      bundle.origin as unknown as { checkpointTraceHash: string }
+    ).checkpointTraceHash = simulationSnapshotTraceHash({
       checkpoint: bundle.origin.checkpoint,
       events: bundle.origin.parentEvents,
     })

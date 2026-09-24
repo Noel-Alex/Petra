@@ -149,10 +149,6 @@ export function projectOverlayValue(
   if (maximum < minimum) {
     throw new RangeError("overlay maximum must be >= minimum");
   }
-  if (value < minimum || value > maximum) {
-    throw new RangeError("overlay value must lie within declared bounds");
-  }
-
   const spec = resolveOverlayPresentation(kind);
   if (spec.transfer === "diverging-zero") {
     return projectDiverging(spec, value, minimum, maximum);

@@ -93,6 +93,7 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - `causalNarration.ts` is the app trust boundary for already-authoritative `CausalEventKind` streams. The current synthetic protocol events (`initialized | advanced | synthetic-pulse | restored`) are not eligible and must never be relabeled into causal scientific meaning.
 - A supplied causal stream carries exact `RunIdentity` plus an explicit `runBranchIdentity`. The run identity must match the active runtime before any event is narrated; stale/foreign streams are ignored without advancing the cursor.
 - Within one `runBranchIdentity`, causal history is append-only. The app adapter stores an exact replay-relevant identity for the already accepted prefix and rejects replacement/truncation of that prefix instead of silently continuing from the old narration cursor.
+- Temporary absence of the causal stream is an explicit silent presentation state, not evidence that history reset. Preserve the accepted cursor/prefix while the stream is absent or foreign; do not run supplied-stream continuity validation against an empty placeholder. When same-branch authority returns, #501/#508 append-only validation resumes against the preserved prefix before narration may continue.
 - React revision detection covers every current `CausalEventBurstItem` authority field (`sequence`, `id`, `eventKind`) across the full supplied stream, so same-length/same-frontier rewrites still re-enter validation. This presentation-side scan is deterministic and O(n) in causal-history length; replace it only when runtime authority supplies an explicit collision-resistant rolling history identity with equivalent semantics.
 - The caller/runtime authority must change `runBranchIdentity` for a fresh run/branch generation (including a reset that restarts event sequence under otherwise identical run fields). That change explicitly resets the narration cursor.
 - Narration stores the planner's returned sequence + event-id cursor per active stream identity. React rerenders may clear the live-region text but must not replay already accepted events.
@@ -127,3 +128,17 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - `InterventionPlacementOverlay.tsx` consumes `src/render/pixi/camera.ts` aperture geometry rather than repeating dish diameter assumptions. Pointer/touch outside the circular aperture is ignored.
 - Tool buttons may enable **placement preview** in ready/pending runtime states even while `InterventionCapabilityView.available` remains false. A visible disabled Apply gate and explanatory copy preserve that distinction until #37/#158 provides authoritative intervention schema/metadata.
 - Placement colors consume the shared Petra visual-token CSS variables locally; #458 does not own or fork the central visual theme.
+
+
+## Sources drawer visual-theme ownership
+- `sourcesDrawer.css` owns responsive drawer geometry and consumes shared Petra `--petra-color-*` / `--petra-rgb-*` variables for stable chrome. Do not introduce a drawer-local numeric hex/RGB/RGBA palette or blur-heavy glass treatment.
+- Theme work must preserve the non-modal disclosure contract, requested-visible vs exiting lifecycle, Escape/focus-restoration behavior, inert exit state, overscroll containment, and shared `--panel-motion-*` timing authority.
+- Provenance/source identity and evidence semantics remain upstream authority; the drawer palette may reinforce hierarchy but must never imply source quality or scientific confidence.
+
+
+## Recovery hardening
+- `runtimeRecovery.ts` owns bounded user-facing failure categories for preset, protocol, model, runtime, and presentation failures. Raw diagnostics may remain available to tests/logging but must never be rendered directly into the expo UI.
+- Product/science runtime factories that depend on scenario/preset validation must use the prevalidated runtime-factory seam (or an equivalent validate-before-construction contract). Failed validation must occur before `ExperimentRuntime` / `WorkerSession` construction so no partial authoritative run exists.
+- Runtime recovery is explicit. A failed live runtime may be restarted only through a fresh factory result with the exact same run identity/seed; a changed identity is rejected. The current restart path is a fresh authoritative runtime, not an implied checkpoint resume, and the UI must say so.
+- Last-valid snapshot/timeline evidence may remain visible while a runtime is failed, because it is explicitly historical. Starting recovery clears that stale runtime binding before new authority arrives; never relabel prior evidence as current.
+- `AppErrorBoundary.tsx` is presentation containment only. It must not manufacture simulator state, swallow typed worker/runtime failures that already have a recovery path, or expose raw stacks/payloads. Its reload action is explicit and warns that unsaved run state may be lost.

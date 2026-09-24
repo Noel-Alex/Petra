@@ -5,7 +5,7 @@
 
 ## Authority contracts
 - Lineage channels are aggregate continuous biomass/density unless a higher layer explicitly defines a different population unit.
-- `divisionBiomass` is a continuous growth flux, **not** an integer division-event count. Never pass it directly to the exact mutation sampler or silently round it into births.
+- `divisionBiomass` is a continuous growth flux, **not** an integer division-event count. Never pass it directly to the exact mutation sampler or silently round it into births. The only reviewed conversion seam is parent-level `../populationAuthority.ts`, which preserves fractional carry explicitly and leaves this ecology kernel continuous.
 - Relative-fitness multipliers, Monod parameters, yield, capacity, spread, and death hazards are scenario/composition inputs. Do not add hidden E. coli or antibiotic defaults here.
 - `executionProfile.ts` is the strict model-unit bridge for explicit engineering ecology profiles. It rejects unknown fields/physical-unit relabeling, enforces the spread-step stability bound, preserves profile/scenario/resource-context identity, and projects only caller-selected kernel inputs. It is not a source of hidden defaults and does not upgrade engineering values into biological evidence.
 - A death hazard is a mechanism-owned first-order loss input. This subtree must not infer ciprofloxacin killing from concentration; the pharmacodynamic composition layer owns that derivation.

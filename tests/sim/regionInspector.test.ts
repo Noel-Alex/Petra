@@ -1,0 +1,91 @@
+import { describe, expect, it } from 'vitest'
+import { createComposedState, type ComposedSimulationConfig } from '../../src/sim/authoritative'
+import { inspectAuthoritativeRegion, selectedRegionCellIndices } from '../../src/sim/regionInspector'
+
+const config: ComposedSimulationConfig = {
+  width: 3,
+  height: 2,
+  mask: [1, 1, 1, 1, 0, 1],
+  initialResource: [1, 2, 3, 4, 99, 6],
+  initialLineageBiomass: [
+    [1, 2, 3, 4, 99, 6],
+    [6, 5, 4, 3, 99, 1],
+  ],
+  growth: {
+    maxDivisionRate: 1,
+    halfSaturation: 1,
+    biomassYield: 1,
+    localCapacity: 100,
+    spreadRate: 0,
+  },
+  lineages: [
+    { id: 'ancestor', relativeFitness: 1, deathHazardPerHour: 0 },
+    { id: 'variant', relativeFitness: 1, deathHazardPerHour: 0 },
+  ],
+  hoursPerTick: 0.01,
+}
+
+describe('authoritative region inspector', () => {
+  it('uses cell-centred normalized coordinates and respects the simulation mask', () => {
+    const state = createComposedState(config)
+    expect(selectedRegionCellIndices(state, {
+      id: 'center',
+      centerX: 0.5,
+      centerY: 0.5,
+      radius: 0.3,
+    })).toEqual([1])
+
+    // Cell 4 is geometrically closest to the centre but masked out, so it is
+    // never included even when the radius grows to contain both centre cells.
+    expect(selectedRegionCellIndices(state, {
+      id: 'masked-center',
+      centerX: 0.5,
+      centerY: 0.75,
+      radius: 0.2,
+    })).toEqual([])
+  })
+
+  it('aggregates only authoritative state and preserves explicit abstract units', () => {
+    const state = createComposedState(config)
+    const inspection = inspectAuthoritativeRegion(state, {
+      id: 'upper-row',
+      centerX: 0.5,
+      centerY: 0.25,
+      radius: 0.4,
+    })
+
+    expect(inspection.selectedCellCount).toBe(3)
+    expect(inspection.totalResource).toBe(6)
+    expect(inspection.totalBiomass).toBe(21)
+    expect(inspection.lineageBiomass).toEqual([
+      { lineageId: 'ancestor', biomass: 6, fractionOfRegionBiomass: 6 / 21 },
+      { lineageId: 'variant', biomass: 15, fractionOfRegionBiomass: 15 / 21 },
+    ])
+    expect(inspection.biomassUnit).toBe('model-biomass')
+    expect(inspection.resourceUnit).toBe('model-resource')
+    expect(inspection.configurationFingerprint).toBe(state.configurationFingerprint)
+  })
+
+  it('never lets masked sentinel values leak into scientific readout', () => {
+    const state = createComposedState(config)
+    const inspection = inspectAuthoritativeRegion(state, {
+      id: 'whole-grid',
+      centerX: 0.5,
+      centerY: 0.5,
+      radius: 1,
+    })
+    expect(inspection.selectedCellCount).toBe(5)
+    expect(inspection.totalResource).toBe(16)
+    expect(inspection.totalBiomass).toBe(35)
+  })
+
+  it('rejects invalid selection geometry rather than clamping or inventing it', () => {
+    const state = createComposedState(config)
+    expect(() => selectedRegionCellIndices(state, {
+      id: 'bad', centerX: -0.01, centerY: 0.5, radius: 0.1,
+    })).toThrow(/centerX/)
+    expect(() => selectedRegionCellIndices(state, {
+      id: 'bad', centerX: 0.5, centerY: 0.5, radius: 0,
+    })).toThrow(/radius/)
+  })
+})

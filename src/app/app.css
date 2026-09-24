@@ -438,34 +438,133 @@ button:hover {
   overflow: hidden;
 }
 
-.dish-overlay-legend span:last-child {
+.dish-overlay-copy {
+  display: grid;
+  gap: 0.06rem;
+  min-width: 0;
+}
+
+.dish-overlay-copy strong,
+.dish-overlay-copy small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.dish-overlay-copy strong {
+  color: #dbe6f5;
+  font-weight: 700;
+}
+
+.dish-overlay-copy small {
+  color: #8797ac;
+  font-size: inherit;
+}
+
 .dish-overlay-swatch {
+  position: relative;
   flex: 0 0 auto;
-  width: 0.56rem;
-  height: 0.56rem;
-  border-radius: 50%;
-  background: #8b6cf6;
-  box-shadow: 0 0 0 3px rgba(139, 108, 246, 0.12);
+  width: 2.15rem;
+  height: 0.68rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: var(--overlay-positive, #7d8999);
+  box-shadow: 0 0 0 3px rgba(125, 137, 153, 0.08);
 }
 
-.dish-overlay-legend[data-overlay-kind="nutrient"] .dish-overlay-swatch {
-  background: #f0bd4e;
-  box-shadow: 0 0 0 3px rgba(240, 189, 78, 0.12);
+.dish-overlay-legend[data-overlay-transfer="diverging"] .dish-overlay-swatch {
+  background: linear-gradient(
+    90deg,
+    var(--overlay-negative),
+    var(--overlay-neutral) 50%,
+    var(--overlay-positive)
+  );
 }
 
-.dish-overlay-legend[data-overlay-kind="antibiotic"] .dish-overlay-swatch {
-  background: #8b6cf6;
-  box-shadow: 0 0 0 3px rgba(139, 108, 246, 0.12);
+.dish-overlay-swatch::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.72;
+}
+
+.dish-overlay-legend[data-overlay-pattern="dot-grid"] .dish-overlay-swatch::after {
+  background-image: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.88) 0 1px,
+    transparent 1.3px
+  );
+  background-size: 5px 5px;
+}
+
+.dish-overlay-legend[data-overlay-pattern="diagonal-forward"] .dish-overlay-swatch::after {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0 3px,
+    rgba(255, 255, 255, 0.72) 3px 4px
+  );
+}
+
+.dish-overlay-legend[data-overlay-pattern="diagonal-back"] .dish-overlay-swatch::after {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 3px,
+    rgba(255, 255, 255, 0.72) 3px 4px
+  );
+}
+
+.dish-overlay-legend[data-overlay-pattern="signed-diagonal"] .dish-overlay-swatch::after,
+.dish-overlay-legend[data-overlay-pattern="crosshatch"] .dish-overlay-swatch::after,
+.dish-overlay-legend[data-overlay-pattern="diamond-grid"] .dish-overlay-swatch::after {
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      transparent 0 4px,
+      rgba(255, 255, 255, 0.64) 4px 5px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0 4px,
+      rgba(255, 255, 255, 0.48) 4px 5px
+    );
+}
+
+.dish-overlay-legend[data-overlay-pattern="neutral-grid"] .dish-overlay-swatch::after {
+  background-image:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.5) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.5) 1px, transparent 1px);
+  background-size: 5px 5px;
+}
+
+.dish-overlay-legend[data-overlay-pattern="ring-grid"] .dish-overlay-swatch::after {
+  background-image: radial-gradient(
+    circle,
+    transparent 0 1px,
+    rgba(255, 255, 255, 0.7) 1.2px 2px,
+    transparent 2.2px
+  );
+  background-size: 8px 8px;
+}
+
+.dish-overlay-legend[data-overlay-pattern="horizontal-bars"] .dish-overlay-swatch::after {
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0 3px,
+    rgba(255, 255, 255, 0.68) 3px 4px
+  );
+}
+
+.dish-overlay-legend[data-overlay-pattern="speckle"] .dish-overlay-swatch::after {
+  background-image:
+    radial-gradient(circle at 15% 30%, rgba(255, 255, 255, 0.78) 0 1px, transparent 1.3px),
+    radial-gradient(circle at 55% 68%, rgba(255, 255, 255, 0.62) 0 1px, transparent 1.3px),
+    radial-gradient(circle at 85% 24%, rgba(255, 255, 255, 0.72) 0 1px, transparent 1.3px);
+  background-size: 12px 9px;
 }
 
 .dish-overlay-legend[data-overlay-kind="none"] .dish-overlay-swatch {
   background: #7d8999;
-  box-shadow: 0 0 0 3px rgba(125, 137, 153, 0.12);
 }
 
 .dish-interaction-hint,

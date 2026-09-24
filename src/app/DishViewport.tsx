@@ -15,6 +15,7 @@ import {
   defaultDishOverlayId,
   resolveDishOverlay,
 } from "./dishPresentation";
+import { buildOverlayLegend } from "./overlayLegend";
 import {
   SEMANTIC_ZOOM_GUIDE,
   surfaceMotionCss,
@@ -73,6 +74,8 @@ export function DishViewport({
       ? null
       : resolveDishOverlay(activeSnapshot, requestedOverlayId);
   const resolvedOverlayId = activeOverlay?.id ?? null;
+  const overlayLegend =
+    activeOverlay === null ? null : buildOverlayLegend(activeOverlay);
   const renderEnabled = activeSnapshot !== null;
   const cameraPlan = resolveDishCameraMotion(motion);
   const overlayMotion = useMemo(
@@ -188,21 +191,39 @@ export function DishViewport({
           key={resolvedOverlayId ?? "none"}
           className="dish-overlay-legend"
           data-overlay-kind={activeOverlay?.kind ?? "none"}
+          data-overlay-transfer={overlayLegend?.transfer ?? "none"}
+          data-overlay-pattern={overlayLegend?.patternToken ?? "none"}
           data-transition-treatment={overlayMotion.treatment}
           aria-live="polite"
+          {...(overlayLegend === null
+            ? {}
+            : { "aria-label": overlayLegend.ariaLabel })}
           style={{
             "--overlay-motion-ms": overlayMotion.duration,
             "--overlay-motion-easing": overlayMotion.easing,
+            "--overlay-negative":
+              overlayLegend?.negativeCssColor ?? "#7d8999",
+            "--overlay-neutral":
+              overlayLegend?.neutralCssColor ?? "#7d8999",
+            "--overlay-positive":
+              overlayLegend?.positiveCssColor ?? "#7d8999",
           } as CSSProperties}
         >
           <span className="dish-overlay-swatch" aria-hidden="true" />
-          <span>
-            {activeSnapshot === null
-              ? "No authoritative field overlay"
-              : activeOverlay === null
-                ? "No field overlay"
-                : `${activeOverlay.label} · ${activeOverlay.unit}`}
-          </span>
+          {activeSnapshot === null ? (
+            <span>No authoritative field overlay</span>
+          ) : overlayLegend === null ? (
+            <span>No field overlay</span>
+          ) : (
+            <span className="dish-overlay-copy">
+              <strong>
+                {overlayLegend.label} · {overlayLegend.unit}
+              </strong>
+              <small>
+                {overlayLegend.scaleText} · {overlayLegend.rangeText}
+              </small>
+            </span>
+          )}
         </div>
       </div>
 

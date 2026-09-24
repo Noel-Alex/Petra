@@ -438,29 +438,96 @@ button:hover {
   overflow: hidden;
 }
 
-.dish-overlay-legend span:last-child {
+.dish-overlay-legend-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.05rem;
+}
+
+.dish-overlay-legend-copy strong,
+.dish-overlay-legend-copy small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.dish-overlay-legend-copy strong {
+  font-size: inherit;
+  font-weight: 650;
+}
+
+.dish-overlay-legend-copy small {
+  color: #8392a8;
+  font-size: var(--petra-type-metadata);
+  line-height: 1.25;
+}
+
 .dish-overlay-swatch {
+  position: relative;
   flex: 0 0 auto;
-  width: 0.56rem;
-  height: 0.56rem;
-  border-radius: 50%;
-  background: #8b6cf6;
-  box-shadow: 0 0 0 3px rgba(139, 108, 246, 0.12);
+  width: 1.35rem;
+  height: 0.66rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: var(--overlay-swatch-background, #7d8999);
+  box-shadow: 0 0 0 3px rgba(143, 220, 255, 0.08);
 }
 
-.dish-overlay-legend[data-overlay-kind="nutrient"] .dish-overlay-swatch {
-  background: #f0bd4e;
-  box-shadow: 0 0 0 3px rgba(240, 189, 78, 0.12);
+.dish-overlay-swatch::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
 }
 
-.dish-overlay-legend[data-overlay-kind="antibiotic"] .dish-overlay-swatch {
-  background: #8b6cf6;
-  box-shadow: 0 0 0 3px rgba(139, 108, 246, 0.12);
+.dish-overlay-legend[data-overlay-pattern="dot-grid"] .dish-overlay-swatch::after {
+  background: radial-gradient(rgba(255, 255, 255, 0.82) 1px, transparent 1px)
+    0 0 / 4px 4px;
+}
+
+.dish-overlay-legend[data-overlay-pattern="diagonal-forward"] .dish-overlay-swatch::after {
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 3px,
+    rgba(255, 255, 255, 0.72) 3px 4px
+  );
+}
+
+.dish-overlay-legend[data-overlay-pattern="diagonal-back"] .dish-overlay-swatch::after {
+  background: repeating-linear-gradient(
+    45deg,
+    transparent 0 3px,
+    rgba(255, 255, 255, 0.72) 3px 4px
+  );
+}
+
+.dish-overlay-legend[data-overlay-pattern="crosshatch"] .dish-overlay-swatch::after {
+  background:
+    repeating-linear-gradient(
+      45deg,
+      transparent 0 3px,
+      rgba(255, 255, 255, 0.58) 3px 4px
+    ),
+    repeating-linear-gradient(
+      135deg,
+      transparent 0 3px,
+      rgba(255, 255, 255, 0.58) 3px 4px
+    );
+}
+
+.dish-overlay-legend[data-overlay-pattern="dash-grid"] .dish-overlay-swatch::after {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.68) 0 2px,
+      transparent 2px 5px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 4px,
+      rgba(255, 255, 255, 0.34) 4px 5px
+    );
 }
 
 .dish-overlay-legend[data-overlay-kind="none"] .dish-overlay-swatch {

@@ -56,7 +56,7 @@ export class SamplingPolicyRefusal extends Error {
     super(
       `sampling policy refused ${diagnostic.workload} workload: ` +
         `${diagnostic.trialCount} trials exceed exact budget ` +
-        `${diagnostic.exactTrialBudget} and no accelerated path is enabled`,
+        `${diagnostic.exactTrialBudget} for this execution path`,
     );
     this.name = "SamplingPolicyRefusal";
     this.diagnostic = diagnostic;

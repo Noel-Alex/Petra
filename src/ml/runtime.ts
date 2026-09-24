@@ -43,6 +43,7 @@ export interface DomainViolation {
 export type EmulatedRefusalReason =
   | "feature-disabled"
   | "model-not-promoted"
+  | "engine-version-mismatch"
   | "out-of-domain";
 
 export type ExecutionDecision =
@@ -160,6 +161,7 @@ export function checkSurrogateDomain(
  */
 export function resolveExecutionMode(args: {
   readonly requested: ExecutionMode;
+  readonly activeEngineVersion: string;
   readonly emulatedFeatureEnabled: boolean;
   readonly model: SurrogateModelCard;
   readonly input: SurrogateInput;
@@ -182,6 +184,15 @@ export function resolveExecutionMode(args: {
       mode: "mechanistic",
       requested: "emulated",
       refusalReason: "model-not-promoted",
+      violations: [],
+    };
+  }
+
+  if (args.activeEngineVersion !== args.model.engineVersion) {
+    return {
+      mode: "mechanistic",
+      requested: "emulated",
+      refusalReason: "engine-version-mismatch",
       violations: [],
     };
   }

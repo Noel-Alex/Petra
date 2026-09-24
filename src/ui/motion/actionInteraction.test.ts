@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   beginActionPointerPress,
+  clearActionPointerState,
   createActionInteractionState,
   resolveActionMicroInteractionState,
   updateActionInteractionState,
@@ -183,6 +184,47 @@ describe("PetraAction interaction precedence", () => {
         selected: true,
       }),
     ).toBe("disabled");
+  });
+
+  it("clears a press proactively when the control disables mid-gesture", () => {
+    let state = updateActionInteractionState(
+      createActionInteractionState(),
+      "focus",
+    );
+    state = beginActionPointerPress(state, 0);
+
+    expect(
+      resolveActionMicroInteractionState({
+        interaction: state,
+        disabled: true,
+        selected: true,
+      }),
+    ).toBe("disabled");
+
+    state = clearActionPointerState(state);
+
+    expect(state).toEqual({ focused: true, pointer: "idle" });
+    expect(
+      resolveActionMicroInteractionState({
+        interaction: state,
+        disabled: false,
+        selected: true,
+      }),
+    ).toBe("focus");
+  });
+
+  it("treats pointer-up as terminal cleanup before a later re-enable", () => {
+    let state = beginActionPointerPress(createActionInteractionState(), 0);
+    state = updateActionInteractionState(state, "pointer-up");
+
+    expect(state.pointer).toBe("hover");
+    expect(
+      resolveActionMicroInteractionState({
+        interaction: state,
+        disabled: false,
+        selected: true,
+      }),
+    ).toBe("hover");
   });
 
   it("keeps disabled authoritative over all transient state", () => {

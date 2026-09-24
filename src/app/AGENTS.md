@@ -90,5 +90,7 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 ## Dish render-source transaction
 - `DishViewport.tsx` owns one `DishRenderSourceState` per mounted dish surface and resolves authoritative / visual-demo / awaiting presentation through `dishRenderSource.ts`.
 - The resolved `DishRenderSource.snapshot` object is the single transaction consumed by DOM overlay controls/legend and `PixiDish`; adapters must not call the demo fixture factory independently.
+- Render-source cache transitions are committed through React state/effect only after a render is accepted. The render body may compute a pure candidate resolution, but it must not write refs or external mutable cache state; abandoned/speculative renders cannot change the mounted transaction.
+- Demo snapshot factories used during candidate resolution must remain deterministic and side-effect free for the same explicit demo configuration. They are presentation factories, never a place for RNG progression, network work, persistent mutation, or scientific authority.
 - Source identity is explicit and separate from snapshot shape. Passing a demo-shaped `DishRenderSnapshot` through props must never cause it to be relabelled authoritative.
 - Authoritative state always takes precedence and must not invoke demo generation. Visual-demo state remains explicit opt-in, visibly disclosed, and presentation-only.

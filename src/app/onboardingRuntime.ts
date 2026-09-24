@@ -10,8 +10,25 @@ import type { ExperimentRuntimeState } from "./experimentRuntime";
 
 export type OnboardingUserAction = Extract<
   OnboardingEvent,
-  { readonly type: "continue" | "back" | "skip" }
+  { readonly type: "continue" | "back" | "skip" | "reset" }
 >;
+
+export interface AuthoritativeOnboardingGateStream {
+  /** Exact active simulation identity that owns these cumulative gate facts. */
+  readonly runIdentity: RunIdentity;
+  /**
+   * Stable run/branch generation identity. A reset/reinitialize must change
+   * this even when the underlying RunIdentity fields are reused.
+   */
+  readonly runBranchIdentity: string;
+  /**
+   * Cumulative scientific facts already established by authoritative runtime
+   * state/events. Presentation code may consume these gates but never create
+   * them from timers, animation callbacks, pixels, or generic "advanced"
+   * protocol activity.
+   */
+  readonly gates: readonly ScientificGate[];
+}
 
 export interface OnboardingRuntimeProjection {
   readonly runIdentityKey: string | null;
@@ -43,6 +60,7 @@ const ONBOARDING_GATE_BY_EVENT_TYPE = {
 
 export function projectOnboardingRuntime(
   runtime: ExperimentRuntimeState | null,
+  authoritativeGateStream?: AuthoritativeOnboardingGateStream | null,
 ): OnboardingRuntimeProjection {
   const runIdentityKey =
     runtime === null ? null : serializeRunIdentity(runtime.controls.identity);
@@ -56,6 +74,26 @@ export function projectOnboardingRuntime(
     }
   }
 
+  let authoritativeBranchIdentity: string | null = null;
+  if (
+    runtime !== null &&
+    authoritativeGateStream !== null &&
+    authoritativeGateStream !== undefined
+  ) {
+    assertRunBranchIdentity(authoritativeGateStream.runBranchIdentity);
+    if (
+      serializeRunIdentity(authoritativeGateStream.runIdentity) ===
+      serializeRunIdentity(runtime.controls.identity)
+    ) {
+      authoritativeBranchIdentity =
+        authoritativeGateStream.runBranchIdentity.trim();
+      for (const gate of authoritativeGateStream.gates) {
+        assertScientificGate(gate);
+        if (!gates.includes(gate)) gates.push(gate);
+      }
+    }
+  }
+
   return {
     runIdentityKey,
     hasAuthoritativeSnapshot,
@@ -63,6 +101,7 @@ export function projectOnboardingRuntime(
     revisionKey: JSON.stringify([
       runIdentityKey,
       hasAuthoritativeSnapshot,
+      authoritativeBranchIdentity,
       gates,
     ]),
   };
@@ -138,6 +177,27 @@ export function applyOnboardingUserAction(
     ...synchronized,
     state: reduceOnboarding(synchronized.state, action),
   };
+}
+
+const SCIENTIFIC_GATES: ReadonlySet<string> = new Set([
+  "inoculation-recorded",
+  "population-growth-observed",
+  "antibiotic-command-recorded",
+  "resistant-lineage-frequency-increased",
+]);
+
+function assertScientificGate(value: unknown): asserts value is ScientificGate {
+  if (typeof value !== "string" || !SCIENTIFIC_GATES.has(value)) {
+    throw new TypeError("unsupported authoritative onboarding scientific gate");
+  }
+}
+
+function assertRunBranchIdentity(value: string): void {
+  if (value.trim().length === 0) {
+    throw new TypeError(
+      "authoritative onboarding runBranchIdentity must be non-empty",
+    );
+  }
 }
 
 function serializeRunIdentity(identity: RunIdentity): string {

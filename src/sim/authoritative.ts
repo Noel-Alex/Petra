@@ -424,8 +424,9 @@ function validateConfig(config: ComposedSimulationConfig): void {
 
 /**
  * Canonical, non-cryptographic identity for configuration that must not drift
- * while continuing one composed state. Initial fields are state, not mechanism
- * configuration, so they are deliberately excluded.
+ * while continuing one composed state. Mutable initial resource/biomass fields
+ * are state and remain excluded. The protocol-v4 static ciprofloxacin landscape
+ * is included because it is not checkpoint state and must not change silently.
  */
 export function composedConfigurationFingerprint(
   config: ComposedSimulationConfig,
@@ -569,27 +570,49 @@ function asEcologyState(state: ComposedSimulationState): EcologyState {
   }
 }
 
-export function stepComposedState(
-  state: ComposedSimulationState,
-  config: ComposedSimulationConfig,
-): ComposedMetrics {
-  validateConfig(config)
-  validateStateAgainstConfig(state, config)
+interface PreparedComposedLineageParameters {
+  readonly configurationFingerprint: string
+  readonly lineageParameters: readonly LineageEcologyParameters[]
+}
 
-  const ecology = asEcologyState(state)
+const preparedLineageParameterCache =
+  new WeakMap<ComposedSimulationConfig, PreparedComposedLineageParameters>()
+
+function preparedLineageParameters(
+  config: ComposedSimulationConfig,
+  configurationFingerprint: string,
+): readonly LineageEcologyParameters[] {
+  const cached = preparedLineageParameterCache.get(config)
+  if (cached?.configurationFingerprint === configurationFingerprint) {
+    return cached.lineageParameters
+  }
+
   const fitness = lineageFitness(config)
   const ciprofloxacin = composedCiprofloxacinIdentity(config.ciprofloxacin)
+  const hasDrugExposure =
+    ciprofloxacin !== null &&
+    config.ciprofloxacinConcentrationMgPerL.some((value) => value !== 0)
+
   let drugHazardByGenotype: ReadonlyMap<string, Float64Array> | null = null
-  if (ciprofloxacin !== null) {
+  if (ciprofloxacin !== null && hasDrugExposure) {
+    const micByGenotype = new Map(
+      ciprofloxacin.genotypeMicMgPerL.map((entry) => [
+        entry.genotypeId,
+        entry.micMgPerL,
+      ] as const),
+    )
+    const activeGenotypes = [...new Set(
+      config.lineages.map((lineage) => lineage.genotypeId),
+    )].map((genotypeId) => ({
+      genotypeId,
+      genotypeMic: micByGenotype.get(genotypeId)!,
+    }))
     const composed = composeSpatialCiprofloxacinLoss(
       Float32Array.from(config.ciprofloxacinConcentrationMgPerL),
       Uint8Array.from(config.mask),
       ciprofloxacin.referencePharmacodynamics,
       ciprofloxacin.referenceMicMgPerL,
-      ciprofloxacin.genotypeMicMgPerL.map((entry) => ({
-        genotypeId: entry.genotypeId,
-        genotypeMic: entry.micMgPerL,
-      })),
+      activeGenotypes,
     )
     drugHazardByGenotype = new Map(
       composed.fields.map((field) => [
@@ -629,6 +652,26 @@ export function stepComposedState(
         deathHazardPerTime: combinedHazard,
       }
     },
+  )
+
+  preparedLineageParameterCache.set(config, {
+    configurationFingerprint,
+    lineageParameters,
+  })
+  return lineageParameters
+}
+
+export function stepComposedState(
+  state: ComposedSimulationState,
+  config: ComposedSimulationConfig,
+): ComposedMetrics {
+  validateConfig(config)
+  validateStateAgainstConfig(state, config)
+
+  const ecology = asEcologyState(state)
+  const lineageParameters = preparedLineageParameters(
+    config,
+    state.configurationFingerprint,
   )
   const result = stepEcology(
     ecology,

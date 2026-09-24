@@ -30,14 +30,16 @@ These remain useful product/science umbrellas, but are usually too broad to clai
 
 This list is intentionally selective. Use the live issue search for the complete queue and re-check comments/branches immediately before editing.
 
-- **Authoritative runtime + UX integration:** #37 composed authoritative snapshots → #42 React/runtime bridge; #158 intervention palette, #159 local-region inspector, #156 live analysis, and #58 provenance consume those authority seams.
+- **Authoritative runtime + UX integration:** #37 composed authoritative snapshots → #42 React/runtime bridge; #158 intervention palette and #159 local-region inspector consume those authority seams.
 - **Browser/expo acceptance:** #59 owns local browser visual, motion, accessibility, touch, and frame-time evidence. Source-only work must not claim that evidence.
-- **Renderer/input correctness + polish:** #164 overlay transfer functions/legends; #165 atomic snapshot+overlay application; #166 cross-lineage density truth; #171 shared grid-cell coordinates; #173 dish clipping; #175 camera-interruption continuity; #187 wheel-delta normalization.
-- **Motion/accessibility/product shell:** #39 owns remaining persisted-motion/onboarding shell integration; coordinate other polish through the #10 umbrella and fresh focused issues rather than reviving closed slices.
-- **Counterfactual truth:** #167 binds compare surfaces to the synchronized biological time they claim to show.
-- **Science focused gates:** #139 defines the authoritative phage adsorption concentration bridge.
-- **ML safety/validation:** #172 binds model cards to scenario + normalization contracts; #174 makes promotion metrics trajectory/group/horizon aware.
-- **Build/reproducibility:** #30 owns the canonical JavaScript lockfile/local-install reproducibility task.
+- **Renderer/input + overlay polish:** #241 live semantic-zoom guidance; #253 one visual-demo snapshot transaction; #254 wheel scroll chaining at zoom limits; #262 explicit automatic/none/field overlay identity.
+- **Motion/accessibility/product shell:** #39 owns remaining onboarding/runtime shell integration; #252 owns Full-only ambient dish-hero motion. Coordinate other polish through the #10 umbrella and fresh focused issues rather than reviving closed slices.
+- **Analysis truth/accessibility:** #240 exposes complete authoritative chart/lineage records outside decimated SVG; #246 enforces the scientific SVG typography floor; #249 rejects duplicate per-series biological timestamps; #257 keeps degenerate biological-time axes non-negative.
+- **Counterfactual truth:** #264 preserves judge-facing biological-time precision while #9 remains the fork/compare umbrella.
+- **Science/integration correctness:** #222 composed genotype identity, #224 bounded exact-sampler execution policy, #227 flagship resource identity, and #235 dish-mask state invariants remain focused science/runtime seams.
+- **ML:** #13 remains the mechanistic-dataset/surrogate umbrella; real training/evidence stays blocked until authoritative mechanistic trajectories are available from #37 rather than reopening completed #172/#174 safety work.
+- **Phage:** #12 remains the named T4/MG1655 implementation umbrella; the adsorption concentration bridge formerly tracked in #139 is complete.
+- **Build/reproducibility:** #30 owns the canonical JavaScript lockfile/local-install reproducibility task and remains dependent on real npm-registry access.
 
 ## Work selection
 

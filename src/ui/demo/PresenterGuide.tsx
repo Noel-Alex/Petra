@@ -40,6 +40,7 @@ export function PresenterGuide({
       data-motion={motionPreference}
       data-treatment={presentation.motion.treatment}
       data-surface={presentation.cue.surface}
+      data-run-identity={state.runIdentity ?? "unbound"}
       style={style}
       aria-labelledby="presenter-guide-title"
     >
@@ -94,6 +95,7 @@ export function PresenterGuide({
           <span data-surface-hint={presentation.cue.surface}>
             Focus: {surfaceLabel(presentation.cue.surface)}
           </span>
+          <span>Run: {state.runIdentity ?? "not bound"}</span>
         </div>
 
         <p className="presenter-guide__eyebrow">
@@ -182,7 +184,8 @@ function GateStatus({
 
 function gateLabel(gate: DemoEvidenceGate): string {
   const labels: Readonly<Record<DemoEvidenceGate, string>> = {
-    "runtime-ready": "Waiting for authoritative runtime state.",
+    "flagship-runtime-ready":
+      "Waiting for the authoritative flagship runtime.",
     "growth-observed": "Waiting for authoritative growth evidence.",
     "intervention-recorded": "Waiting for the intervention to be recorded.",
     "selection-evidence-ready":

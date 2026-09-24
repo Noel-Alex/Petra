@@ -3,7 +3,22 @@ import { isLineagePatternToken, type LineagePatternToken } from "./lineagePatter
 
 export type SemanticZoomLevel = "dish" | "colony" | "representative-cell";
 
-export type OverlayKind = "nutrient" | "antibiotic" | "net-growth" | "lineage" | "phage" | "biomass" | "event" | "uncertainty";
+export const OVERLAY_KINDS = [
+  "nutrient",
+  "antibiotic",
+  "net-growth",
+  "lineage",
+  "phage",
+  "biomass",
+  "event",
+  "uncertainty",
+] as const;
+
+export type OverlayKind = (typeof OVERLAY_KINDS)[number];
+
+export function isOverlayKind(value: string): value is OverlayKind {
+  return (OVERLAY_KINDS as readonly string[]).includes(value);
+}
 
 export interface RenderField { readonly id: string; readonly kind: OverlayKind; readonly label: string; readonly unit: string; readonly width: number; readonly height: number; readonly values: Float32Array; readonly minimum: number; readonly maximum: number; }
 export interface RenderLineage { readonly id: string; readonly label: string; readonly appearanceToken: LineageAppearanceToken; readonly patternToken: LineagePatternToken; readonly density: Float32Array; }
@@ -30,6 +45,7 @@ export function validateRenderSnapshot(snapshot: DishRenderSnapshot): void {
   assertLength("dishMask", snapshot.dishMask.length, cells); assertLength("biomass", snapshot.biomass.length, cells); assertFiniteNonNegativeArray("biomass", snapshot.biomass);
   for (const field of snapshot.fields) {
     if (!field.id || !field.label || !field.unit) throw new TypeError("render fields require id, label and unit metadata");
+    if (!isOverlayKind(String(field.kind))) throw new RangeError(`unsupported overlay kind: ${String(field.kind)}`);
     if (field.width !== snapshot.gridWidth || field.height !== snapshot.gridHeight) throw new RangeError(`field ${field.id} dimensions must match snapshot grid`);
     assertLength(`field ${field.id}`, field.values.length, cells); assertFiniteArray(`field ${field.id}`, field.values);
     if (!Number.isFinite(field.minimum) || !Number.isFinite(field.maximum)) throw new TypeError(`field ${field.id} bounds must be finite`);

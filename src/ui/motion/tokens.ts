@@ -28,6 +28,14 @@ export const MOTION = {
     durationMs: 720,
     easing: [0.18, 0.82, 0.22, 1],
   },
+  fieldShift: {
+    durationMs: 600,
+    easing: [0.18, 0.74, 0.24, 1],
+  },
+  lysisBurst: {
+    durationMs: 440,
+    easing: [0.2, 0.86, 0.24, 1],
+  },
   tooltip: {
     durationMs: 140,
     easing: [0.2, 0.7, 0.3, 1],

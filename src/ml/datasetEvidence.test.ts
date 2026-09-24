@@ -255,7 +255,7 @@ describe("first aggregate dataset evidence", () => {
     });
 
     expect(evidence.status).toBe("complete");
-    expect(evidence.trainingEligible).toBe(true);
+    expect(evidence.reproducibleDatasetArtifact).toBe(true);
     expect(evidence.promotionEvidence).toBe(false);
     expect(evidence.dataset?.sampleCount).toBe(12);
     expect(evidence.dataset?.terminationReasonCounts).toEqual({
@@ -278,7 +278,7 @@ describe("first aggregate dataset evidence", () => {
     });
   });
 
-  it("keeps failed or unfinalized generation explicitly incomplete and non-training-eligible", () => {
+  it("keeps failed or unfinalized generation explicitly incomplete and non-reproducible", () => {
     const currentPlan = plan();
     const collector = new IncrementalMechanisticDatasetCollector(
       currentPlan,
@@ -317,7 +317,7 @@ describe("first aggregate dataset evidence", () => {
 
     expect(evidence.status).toBe("incomplete");
     expect(evidence.dataset).toBeNull();
-    expect(evidence.trainingEligible).toBe(false);
+    expect(evidence.reproducibleDatasetArtifact).toBe(false);
     expect(evidence.run.failures).toEqual([
       {
         name: "RangeError",
@@ -327,7 +327,7 @@ describe("first aggregate dataset evidence", () => {
     ]);
   });
 
-  it("marks a finalized dirty-worktree dataset non-training-eligible", () => {
+  it("marks a finalized dirty-worktree dataset non-reproducible from the recorded commit", () => {
     const currentPlan = plan();
     const { finalization, lines } = completeDataset(currentPlan);
     const evidence = buildMechanisticDatasetGenerationEvidence({
@@ -341,6 +341,6 @@ describe("first aggregate dataset evidence", () => {
 
     expect(evidence.status).toBe("complete");
     expect(evidence.source.reproducibleFromCommit).toBe(false);
-    expect(evidence.trainingEligible).toBe(false);
+    expect(evidence.reproducibleDatasetArtifact).toBe(false);
   });
 });

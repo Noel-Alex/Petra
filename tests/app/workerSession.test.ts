@@ -10,7 +10,6 @@ import {
   createRunIdentity,
   type SimulationSnapshot,
   type WorkerRequest,
-  type WorkerResponse,
 } from "../../src/sim/protocol";
 
 const identity = createRunIdentity({
@@ -56,7 +55,7 @@ class FakePort implements WorkerPort {
     this.disposed = true;
   }
 
-  emit(response: WorkerResponse): void {
+  emit(response: unknown): void {
     this.handlers?.message(response);
   }
 
@@ -179,6 +178,53 @@ describe("worker session", () => {
     expect(session.state.phase).toBe("error");
     expect(session.state.error).toContain("expected expected, received stale");
     expect(session.state.latestSnapshot).toBeNull();
+  });
+
+  it("fails closed on a malformed deserialized response and keeps trusted command correlation", () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+
+    session.enqueue([
+      { protocolVersion: PROTOCOL_VERSION, type: "initialize", identity },
+    ]);
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: snapshot(0),
+    });
+
+    session.enqueue([
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: { id: "advance-active", type: "advance", ticks: 4 },
+      },
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: { id: "queued-command", type: "snapshot" },
+      },
+    ]);
+
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      commandId: "forged-command",
+      snapshot: null,
+    });
+
+    expect(session.state).toMatchObject({
+      phase: "error",
+      pendingCommandId: "advance-active",
+      queuedRequests: 0,
+    });
+    expect(session.state.error).toContain("Invalid worker response");
+    expect(session.state.latestSnapshot).toEqual(snapshot(0));
+    expect(port.posted).toHaveLength(2);
+    expect(port.posted.at(-1)).toMatchObject({
+      type: "command",
+      command: { id: "advance-active" },
+    });
   });
 
   it("fails closed on message deserialization during initialization and can recover", () => {

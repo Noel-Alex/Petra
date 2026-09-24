@@ -36,16 +36,18 @@ The main dish is a 2D scientific state with perspective/light cues. Camera zoom 
 
 ## Color strategy
 
-Use a custom Petra palette built around dark ink/navy surfaces and high-chroma biological accents. Do not duplicate another studio's published palette.
+Use a custom Petra palette built around matte ink/navy surfaces, warm cream typography, muted teal/mint, warm amber/coral/olive, and restrained lavender. Accents should remain readable but calm; avoid electric cyan, hot pink, ultraviolet glow, or rainbow saturation. Do not duplicate another studio's published palette.
 
 Semantic families:
-- susceptible lineage — cool cyan/blue family;
-- resistant lineage — magenta/coral family;
+- susceptible lineage — muted cool teal/blue family;
+- resistant lineage — warm restrained coral family;
 - nutrient — warm gold/amber;
-- antibiotic — violet/ultraviolet;
-- phage — acid green/teal;
+- antibiotic — restrained lavender family;
+- phage — mint/teal family;
 - death/inactive biomass — desaturated gray/indigo;
 - warning/uncertainty — amber, with icon + text.
+
+Shared color values live in `src/design/visualTokens.ts` and are projected into CSS/Pixi from that single authority. Core normal-text combinations are regression-tested for WCAG AA contrast.
 
 Every semantic color must also have a non-color cue when critical:
 - icon;

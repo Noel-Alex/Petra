@@ -22,6 +22,7 @@ Own framework-neutral presentation of authoritative scientific/source provenance
 - Critical evidence meaning uses text labels plus icon and **visibly distinct** non-color pattern tokens; `data-pattern` metadata alone is not sufficient without a rendered pattern treatment.
 - `needs-provenance` must be visible in text and must not degrade into a reassuring neutral badge.
 - Sources/assumptions panels must remain keyboard/focus operable; motion is presentation-only.
+- `ProvenancePanel.tsx` owns exactly one stable polite + atomic live region for provenance record/filter count updates. Visible header and filter summaries remain ordinary readable text, not competing announcement regions; authoritative record-set and filter changes collapse into one bounded announcement.
 - Provenance action controls consume the already-resolved app `MotionPreference` through Petra shared action adapters. Filtering/reset remains presentation-only; provenance components must not query OS motion locally or invent interaction timing.
 - Judge-facing provenance search/select/action controls keep a minimum interactive block size of `2.75rem` (44px at Petra's default root size) without fixed widths that break the narrow Sources drawer. Native search/select semantics remain native.
 

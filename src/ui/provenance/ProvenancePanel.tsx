@@ -45,6 +45,18 @@ export function ProvenancePanel({
   const complete = records.filter((record) => record.status === "complete").length;
   const incomplete = records.length - complete;
   const hasActiveFilter = query.trim().length > 0 || evidence !== "all";
+  const announcement =
+    records.length === 0
+      ? "No provenance records are available for the active selection."
+      : [
+          `${complete} complete${incomplete > 0 ? ` · ${incomplete} need provenance` : ""}`,
+          `${filtered.records.length} of ${records.length} records shown${filtered.hiddenCompleteCount > 0 ? ` · ${filtered.hiddenCompleteCount} complete filtered out` : ""}`,
+          filtered.pinnedNeedsProvenanceCount > 0
+            ? `${filtered.pinnedNeedsProvenanceCount} needs-provenance records pinned by safety rule`
+            : null,
+        ]
+          .filter((part): part is string => part !== null)
+          .join(". ");
 
   return (
     <aside
@@ -56,11 +68,20 @@ export function ProvenancePanel({
           <p className="provenance-panel__eyebrow">Scientific provenance</p>
           <h2 id={headingId}>{title}</h2>
         </div>
-        <p className="provenance-panel__summary" aria-live="polite">
+        <p className="provenance-panel__summary">
           {complete} complete
           {incomplete > 0 ? ` · ${incomplete} need provenance` : ""}
         </p>
       </header>
+
+      <p
+        className="provenance-panel__announcement"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {announcement}
+      </p>
 
       {records.length === 0 ? (
         <p className="provenance-panel__empty">
@@ -115,7 +136,7 @@ export function ProvenancePanel({
           </div>
 
           <div className="provenance-panel__filter-meta">
-            <p aria-live="polite" aria-atomic="true">
+            <p>
               {filtered.records.length} of {records.length} records shown
               {filtered.hiddenCompleteCount > 0
                 ? ` · ${filtered.hiddenCompleteCount} complete filtered out`

@@ -106,7 +106,7 @@ export interface MechanisticDatasetGenerationEvidence {
     >;
   };
   readonly runtime: MechanisticRuntimeMeasurement | null;
-  readonly trainingEligible: boolean;
+  readonly reproducibleDatasetArtifact: boolean;
   readonly promotionEvidence: false;
 }
 
@@ -310,7 +310,7 @@ export function buildMechanisticDatasetGenerationEvidence(
     }),
     dataset,
     runtime,
-    trainingEligible: status === "complete" && !args.repositoryDirty,
+    reproducibleDatasetArtifact: status === "complete" && !args.repositoryDirty,
     promotionEvidence: false,
   };
 

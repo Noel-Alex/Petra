@@ -243,6 +243,7 @@ export class WorkerSession {
 
     if (active.type === "initialize") {
       if (response.type !== "ready") {
+        this.recordPerformance(response, "protocol-error");
         this.fail("Expected worker ready response after initialization", responseCommandId(response));
         return;
       }
@@ -252,6 +253,7 @@ export class WorkerSession {
     }
 
     if (response.type !== "snapshot") {
+      this.recordPerformance(response, "protocol-error");
       this.fail(
         `Expected snapshot for command ${active.command.id}`,
         responseCommandId(response),
@@ -260,6 +262,7 @@ export class WorkerSession {
     }
 
     if (response.commandId !== active.command.id) {
+      this.recordPerformance(response, "protocol-error");
       this.fail(
         `Worker snapshot command mismatch: expected ${active.command.id}, received ${response.commandId}`,
         response.commandId,

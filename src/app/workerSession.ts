@@ -190,13 +190,28 @@ export class WorkerSession {
 
   private complete(snapshot: SimulationSnapshot): void {
     this.active = null;
-    this.publish({
-      phase: "ready",
-      latestSnapshot: structuredClone(snapshot),
+    const latestSnapshot = structuredClone(snapshot);
+
+    if (this.queue.length === 0) {
+      this.publish({
+        phase: "ready",
+        latestSnapshot,
+        pendingCommandId: null,
+        queuedRequests: 0,
+        error: null,
+      });
+      return;
+    }
+
+    // Carry the newly accepted authoritative snapshot into the next pending
+    // state without publishing a false "ready" gap during replay/batches.
+    this.current = {
+      ...this.current,
+      latestSnapshot,
       pendingCommandId: null,
       queuedRequests: this.queue.length,
       error: null,
-    });
+    };
     this.pump();
   }
 

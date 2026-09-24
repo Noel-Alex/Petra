@@ -1,3 +1,5 @@
+import { petraVisualColor } from "../design/visualTokens";
+
 export const LINEAGE_APPEARANCE_SCHEMA_VERSION = 1 as const;
 
 export const LINEAGE_APPEARANCE_TOKENS = [
@@ -21,23 +23,23 @@ const STYLES: Readonly<
 > = Object.freeze({
   "lineage-cyan": Object.freeze({
     token: "lineage-cyan",
-    color: 0x55d7ef,
+    color: petraVisualColor("teal"),
   }),
   "lineage-coral": Object.freeze({
     token: "lineage-coral",
-    color: 0xf079b7,
+    color: petraVisualColor("coral"),
   }),
   "lineage-gold": Object.freeze({
     token: "lineage-gold",
-    color: 0xf2ca68,
+    color: petraVisualColor("amber"),
   }),
   "lineage-mint": Object.freeze({
     token: "lineage-mint",
-    color: 0x75e3ae,
+    color: petraVisualColor("mint"),
   }),
   "lineage-violet": Object.freeze({
     token: "lineage-violet",
-    color: 0xb39af5,
+    color: petraVisualColor("lavender"),
   }),
 });
 

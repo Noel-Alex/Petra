@@ -1,6 +1,6 @@
 .petra-onboarding {
-  --onboarding-motion-ms: 220ms;
-  --onboarding-easing: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --onboarding-motion-ms: 0ms;
+  --onboarding-easing: linear;
   --onboarding-progress: 0.1667;
   --onboarding-ambient-primary-ms: 0ms;
   --onboarding-ambient-primary-easing: linear;

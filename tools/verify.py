@@ -6,9 +6,9 @@ import math
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 from local_command import resolve_local_command
-from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / "tools" / "verification_registry.json"

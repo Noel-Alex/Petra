@@ -16,6 +16,10 @@ const scenario: ScenarioProvenanceContext = {
       title: "Marcusson et al. 2009",
       doi: "10.1371/journal.ppat.1000541",
     },
+    huseby_2017: {
+      title: "Huseby et al. 2017",
+      doi: "10.1093/molbev/msx052",
+    },
   },
   transferAssumptions: [
     "Reference pharmacodynamics and genotype MICs come from different experimental systems.",
@@ -51,6 +55,77 @@ describe("scenario provenance adapter", () => {
       value:
         "Regoes et al. 2004 · DOI: 10.1128/AAC.48.10.3670-3676.2004",
     });
+  });
+
+
+  it("resolves normalized nested provenance without reinterpreting domain classification", () => {
+    const result = resolveScenarioProvenance({
+      id: "mutation-edge",
+      label: "WT → gyrA S83L mutation target",
+      record: {
+        classification: "model_target_probability",
+        citation: "huseby_2017",
+        provenance: {
+          classification: "mechanistic_approximation",
+          citation: "huseby_2017",
+          context: "Huseby-scale mutation target used in Petra's curated graph.",
+          limitation:
+            "This is a model target order of magnitude, not a measured exact edge probability.",
+        },
+      },
+      scenario,
+    });
+
+    expect(result.status).toBe("complete");
+    expect(result.rawClassification).toBe("mechanistic_approximation");
+    expect(result.presentation?.badges.map((badge) => badge.label)).toEqual([
+      "Model approximation",
+    ]);
+    expect(result.presentation?.details).toContainEqual({
+      label: "Source",
+      value: "Huseby et al. 2017 · DOI: 10.1093/molbev/msx052",
+    });
+  });
+
+  it("uses nested measured provenance for normalized genotype records", () => {
+    const result = resolveScenarioProvenance({
+      id: "genotype-wt",
+      label: "Wild type MIC / fitness",
+      record: {
+        citation: "marcusson_2009",
+        provenance: {
+          classification: "measured",
+          citation: "marcusson_2009",
+          context: "E. coli K-12 MG1655.",
+        },
+      },
+      scenario,
+      valueText: "0.016 mg/L; fitness 1.00",
+    });
+
+    expect(result.status).toBe("complete");
+    expect(result.presentation?.details).toContainEqual({
+      label: "Context",
+      value: "E. coli K-12 MG1655.",
+    });
+  });
+
+  it("does not fall back to top-level classification when nested provenance is malformed", () => {
+    const result = resolveScenarioProvenance({
+      id: "malformed",
+      label: "Malformed nested provenance",
+      record: {
+        classification: "measured",
+        citation: "marcusson_2009",
+        provenance: "measured",
+      },
+      scenario,
+    });
+
+    expect(result.status).toBe("needs-provenance");
+    expect(result.presentation).toBeNull();
+    expect(result.problems).toContain("Provenance record must be an object.");
+    expect(result.rawClassification).toBeNull();
   });
 
   it("does not infer measured evidence merely because a citation exists", () => {

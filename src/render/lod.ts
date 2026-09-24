@@ -1,5 +1,6 @@
 import { gridCellCenter } from "./gridGeometry";
-import type { CameraView, DishRenderSnapshot, RenderLineage, SemanticZoomLevel } from "./model";
+import type { CameraView, RenderLineage, SemanticZoomLevel } from "./model";
+import type { DishVisualState } from "./visualInterpolation";
 
 export const GLYPH_SAMPLING_SCHEMA_VERSION = 1 as const;
 
@@ -18,7 +19,7 @@ export interface GlyphSamplingOptions {
 
 /** Deterministic visual-proxy sampling. A glyph is not one bacterium. */
 export function sampleRepresentativeGlyphs(
-  snapshot: DishRenderSnapshot,
+  snapshot: DishVisualState,
   camera: CameraView,
   level: SemanticZoomLevel,
   options: GlyphSamplingOptions,
@@ -53,7 +54,7 @@ export function sampleRepresentativeGlyphs(
 }
 
 function collectLineageCandidates(
-  snapshot: DishRenderSnapshot,
+  snapshot: DishVisualState,
   lineage: RenderLineage,
   camera: CameraView,
   minimumDensity: number,
@@ -93,7 +94,7 @@ function collectLineageCandidates(
 
 function stableScore(
   snapshot: Pick<
-    DishRenderSnapshot,
+    DishVisualState,
     "samplingIdentity" | "gridWidth" | "gridHeight"
   >,
   lineageId: string,

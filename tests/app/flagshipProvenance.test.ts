@@ -52,10 +52,15 @@ describe("flagship provenance presentation projection", () => {
     expect(resourceContext?.status).toBe("complete");
     expect(resourceContext?.rawClassification).toBe("engineering");
     expect(resourceContext?.sourceKeys).toEqual([]);
-    expect(resourceContext?.presentation?.valueText).toContain(
-      "dimensionless_model_resource",
-    );
-    expect(resourceContext?.presentation?.units).toBe("model-resource");
+    expect(resourceContext?.presentation?.details).toContainEqual({
+      label: "Value",
+      value:
+        "unbound-model-resource-v1 · dimensionless_model_resource",
+    });
+    expect(resourceContext?.presentation?.details).toContainEqual({
+      label: "Units",
+      value: "model-resource",
+    });
     expect(resourceContext?.presentation?.limitation).toContain(
       "must not be labelled glucose",
     );

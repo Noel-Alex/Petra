@@ -53,4 +53,5 @@ Pure render-model helpers get deterministic unit tests. Browser/GPU/FPS claims r
 - Direct pointer/touch manipulation is immediate camera presentation state: one active pointer pans only beyond overview; two active pointers pinch around their centroid and may translate with the centroid. Programmatic focus/wheel/keyboard navigation continues to use the shared camera transition policy. Touch gesture state must clear on pointer up/cancel and never leak into simulation state.
 - Keep the adapter compatible with mock snapshots so visual work can proceed independently of worker integration. Authoritative browser wiring belongs to the runtime integration issue, not this subtree.
 - Container resize is presentation scheduling: coalesce ResizeObserver bursts, resize the Pixi renderer before redrawing scene geometry, and preserve camera/semantic-zoom state across the resize.
+- Pixi/WebGL initialization failure must be recoverable and visible: consume async creation rejections, destroy instances that resolve after disposal, expose an accessible retry state, and never substitute demo/scientific state to hide a graphics failure.
 

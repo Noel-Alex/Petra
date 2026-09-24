@@ -1,4 +1,4 @@
-import type { PointerEvent as ReactPointerEvent } from "react";
+import type {\n  CSSProperties,\n  PointerEvent as ReactPointerEvent,\n} from "react";
 
 import {
   DISH_VIEWPORT_DIAMETER_FRACTION,
@@ -13,7 +13,7 @@ import {
   INTERVENTION_TARGET_RING_RADIUS_FRACTION,
   constrainPointToCircularDish,
 } from "../ui/interventionPlacement";
-import type { MotionPreference } from "../ui/motion/policy";
+import { planDishMotionPhase } from "../ui/motion/dishVocabulary";\nimport type { MotionPreference } from "../ui/motion/policy";
 
 export interface PlacementBounds {
   readonly left: number;

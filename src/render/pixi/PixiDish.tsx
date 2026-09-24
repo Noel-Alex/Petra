@@ -15,6 +15,7 @@ export interface PixiDishProps {
   readonly overlayId?: string | null;
   readonly className?: string;
   readonly ariaLabel?: string;
+  readonly ariaDescribedBy?: string;
   /** Explicit opt-in for the deterministic presentation-only fixture. */
   readonly demoMode?: boolean;
 }
@@ -26,6 +27,7 @@ export function PixiDish({
   overlayId = null,
   className,
   ariaLabel,
+  ariaDescribedBy,
   demoMode = false,
 }: PixiDishProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -122,7 +124,10 @@ export function PixiDish({
     >
       <div
         ref={hostRef}
-        role="img"
+        role="region"
+        tabIndex={renderEnabled ? 0 : -1}
+        aria-roledescription="interactive Petri dish"
+        aria-describedby={ariaDescribedBy}
         aria-label={resolvedAriaLabel}
         style={{
           position: "absolute",

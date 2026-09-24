@@ -15,6 +15,7 @@ import {
   zoomAroundDishPoint,
   type ScreenPoint,
 } from "./camera";
+import { applyKeyboardCameraKey } from "./keyboardCamera";
 import { createResizeRedrawScheduler } from "./resizeScheduler";
 import {
   cameraTransitionComplete,
@@ -204,12 +205,26 @@ export async function createPixiDishRenderer(
     render();
   };
 
+  const onKeyDown = (event: KeyboardEvent) => {
+    const result = applyKeyboardCameraKey(
+      targetCamera,
+      event.key,
+      { width: app.screen.width, height: app.screen.height },
+    );
+    if (!result.handled) return;
+
+    event.preventDefault();
+    beginCameraTransition(result.camera);
+    render();
+  };
+
   app.canvas.addEventListener("pointerdown", onPointerDown);
   app.canvas.addEventListener("pointermove", onPointerMove);
   app.canvas.addEventListener("pointerup", finishPointer);
   app.canvas.addEventListener("pointercancel", finishPointer);
   app.canvas.addEventListener("wheel", onWheel, { passive: false });
   app.canvas.addEventListener("dblclick", onDoubleClick);
+  host.addEventListener("keydown", onKeyDown);
 
   return {
     update(nextSnapshot) {
@@ -272,6 +287,7 @@ export async function createPixiDishRenderer(
       app.canvas.removeEventListener("pointercancel", finishPointer);
       app.canvas.removeEventListener("wheel", onWheel);
       app.canvas.removeEventListener("dblclick", onDoubleClick);
+      host.removeEventListener("keydown", onKeyDown);
       app.ticker.remove(ticker);
       app.destroy({ removeView: true }, { children: true });
     },

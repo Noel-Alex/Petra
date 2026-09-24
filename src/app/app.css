@@ -504,3 +504,13 @@ button:hover {
     justify-content: center;
   }
 }
+
+
+.dish-renderer-frame:focus-within {
+  outline: 3px solid var(--petra-focus-ring);
+  outline-offset: 5px;
+  box-shadow:
+    0 0 0 2px var(--petra-focus-edge),
+    0 0 0 7px rgba(242, 217, 142, 0.58),
+    inset 0 0 0 2px rgba(242, 217, 142, 0.28);
+}

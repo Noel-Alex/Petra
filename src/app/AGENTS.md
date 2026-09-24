@@ -32,6 +32,7 @@ Own React/browser orchestration around Petra's authoritative worker and presenta
 - Runtime request phase and spoken product status are separate presentation channels: `runtimeView.status` / `workerPhase` may change for visible ready/pending treatment, while `statusText` in the polite runtime live region must stay stable across ordinary continuous-playback ready ↔ pending churn. Errors retain alert semantics and their explicit error text.
 - A snapshot whose run identity does not match active controls is foreign state: do not render/advance it, pause playback, and require an explicit reset/reinitialization path.
 - Dispose workers/listeners when the owning app/runtime is torn down.
+- Worker performance profiling is opt-in through `WorkerSessionPerformanceOptions`. It may observe request/response payload estimates, request-window latency, worker-reported execution time, queued requests, and authoritative event-array length, but it must never alter command ordering, worker/session state, replay identity, checkpoints, or trace hashes. Browser structured-clone payload sizes are estimates of application data, not exact transport framing; compact summaries must not relabel observed request-window payload rate as link bandwidth.
 
 ## Coordination
 - #37 may evolve the composed simulation snapshot/protocol. Keep the browser session generic over WorkerRequest/WorkerResponse so product integration can follow protocol changes without moving biology into React.

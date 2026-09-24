@@ -83,7 +83,7 @@ function readyRuntime(ids: string[] = ["step-1"]) {
     type: "ready",
     snapshot: makeSnapshot({
       tick: 0,
-      events: [{ sequence: 0, tick: 0, type: "initialized" }],
+      events: [{ sequence: 0, tick: 0, simulationTimeHours: 0, type: "initialized" }],
     }),
   });
   return { port, session, runtime };
@@ -131,10 +131,16 @@ describe("experiment runtime", () => {
         tick: 4,
         commandCount: 1,
         events: [
-          { sequence: 0, tick: 0, type: "initialized" },
+          {
+            sequence: 0,
+            tick: 0,
+            simulationTimeHours: 0,
+            type: "initialized",
+          },
           {
             sequence: 1,
             tick: 4,
+            simulationTimeHours: 4 / 60,
             type: "advanced",
             commandId: "advance-1",
             value: 4,

@@ -30,6 +30,7 @@ Own Petra's accessible DOM/UI presentation language, motion policy, story transi
 
 ## Scientific timeline
 - Preserve event sequence, tick, simulation time, and command identity.
+- Project each event's supplied authoritative `simulationTimeHours` directly. Never infer an older event's biological time from the latest snapshot/checkpoint tick ratio.
 - Timeline labels may explain events but cannot alter their scientific meaning.
 - User interventions should appear only after/with authoritative event confirmation in the eventual runtime adapter.
 

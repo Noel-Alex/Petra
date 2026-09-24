@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createRunIdentity } from '../../src/sim/protocol'
+import { PROTOCOL_VERSION, createRunIdentity } from '../../src/sim/protocol'
 import {
   createExperimentControlState,
   planExperimentControlAction,
@@ -43,7 +43,7 @@ describe('experiment control planning', () => {
     expect(result.effect).toEqual({
       type: 'worker-requests',
       requests: [{
-        protocolVersion: 1,
+        protocolVersion: PROTOCOL_VERSION,
         type: 'command',
         command: { id: 'step-1', type: 'advance', ticks: 4 },
       }],

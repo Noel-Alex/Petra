@@ -10,24 +10,42 @@ const identity = createRunIdentity({
   seed: 7,
 })
 
+function snapshotWith(events: SimulationSnapshot['events']): SimulationSnapshot {
+  return {
+    checkpoint: {
+      identity,
+      tick: 600,
+      simulationTimeHours: 10,
+      syntheticPopulation: 1_000,
+      rngState: [1, 2, 3, 4],
+      commandCount: 2,
+    },
+    events,
+    traceHash: 'fixture',
+  }
+}
+
 describe('scientific timeline projection', () => {
-  it('preserves event ordering, ticks, command identity, and derived simulation time', () => {
-    const snapshot: SimulationSnapshot = {
-      checkpoint: {
-        identity,
+  it('preserves event ordering, ticks, command identity, and exact simulation time', () => {
+    const snapshot = snapshotWith([
+      { sequence: 0, tick: 0, simulationTimeHours: 0, type: 'initialized' },
+      {
+        sequence: 1,
+        tick: 60,
+        simulationTimeHours: 1,
+        type: 'advanced',
+        commandId: 'advance-1',
+        value: 60,
+      },
+      {
+        sequence: 2,
         tick: 120,
         simulationTimeHours: 2,
-        syntheticPopulation: 1_000,
-        rngState: [1, 2, 3, 4],
-        commandCount: 2,
+        type: 'synthetic-pulse',
+        commandId: 'pulse-1',
+        value: 10,
       },
-      events: [
-        { sequence: 0, tick: 0, type: 'initialized' },
-        { sequence: 1, tick: 60, type: 'advanced', commandId: 'advance-1', value: 60 },
-        { sequence: 2, tick: 120, type: 'synthetic-pulse', commandId: 'pulse-1', value: 10 },
-      ],
-      traceHash: 'fixture',
-    }
+    ])
 
     expect(buildScientificTimeline(snapshot)).toEqual([
       {
@@ -60,4 +78,39 @@ describe('scientific timeline projection', () => {
       },
     ])
   })
+
+  it('never reinterprets an older event from the latest checkpoint ratio', () => {
+    const timeline = buildScientificTimeline(
+      snapshotWith([
+        {
+          sequence: 0,
+          tick: 30,
+          simulationTimeHours: 1.25,
+          type: 'advanced',
+          commandId: 'non-proportional',
+          value: 30,
+        },
+      ]),
+    )
+
+    expect(timeline[0]?.simulationTimeHours).toBe(1.25)
+  })
+
+  it.each([Number.NaN, Number.POSITIVE_INFINITY, -0.01])(
+    'rejects invalid authoritative event time %s',
+    (simulationTimeHours) => {
+      expect(() =>
+        buildScientificTimeline(
+          snapshotWith([
+            {
+              sequence: 0,
+              tick: 0,
+              simulationTimeHours,
+              type: 'initialized',
+            },
+          ]),
+        ),
+      ).toThrow(/simulationTimeHours must be finite and non-negative/)
+    },
+  )
 })

@@ -14,15 +14,17 @@ export interface TimelineEntry {
 }
 
 export function buildScientificTimeline(snapshot: SimulationSnapshot): readonly TimelineEntry[] {
-  return snapshot.events.map((event) => projectEvent(event, snapshot.checkpoint.tick, snapshot.checkpoint.simulationTimeHours))
+  return snapshot.events.map(projectEvent)
 }
 
-function projectEvent(
-  event: SimulationEvent,
-  currentTick: number,
-  currentTimeHours: number,
-): TimelineEntry {
-  const simulationTimeHours = currentTick === 0 ? 0 : (event.tick / currentTick) * currentTimeHours
+function projectEvent(event: SimulationEvent): TimelineEntry {
+  if (!Number.isFinite(event.simulationTimeHours) || event.simulationTimeHours < 0) {
+    throw new RangeError(
+      `event ${event.sequence} simulationTimeHours must be finite and non-negative`,
+    )
+  }
+
+  const simulationTimeHours = event.simulationTimeHours
   const base = {
     id: `event-${event.sequence}`,
     sequence: event.sequence,

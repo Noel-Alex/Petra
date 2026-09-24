@@ -1,7 +1,7 @@
 import type { RngState } from './rng'
 
 export const ENGINE_VERSION = 'petra-ts-core/0.1.0' as const
-export const PROTOCOL_VERSION = 1 as const
+export const PROTOCOL_VERSION = 2 as const
 
 export interface RunIdentity {
   engineVersion: typeof ENGINE_VERSION
@@ -35,6 +35,7 @@ export type WorkerRequest =
 export interface SimulationEvent {
   sequence: number
   tick: number
+  simulationTimeHours: number
   type: 'initialized' | 'advanced' | 'synthetic-pulse' | 'restored'
   commandId?: string
   value?: number

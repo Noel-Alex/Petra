@@ -41,13 +41,13 @@ export class SimulationEngine {
   constructor(identity: RunIdentity) {
     this.identity = structuredClone(identity)
     this.rng = new SimulationRng(identity.seed)
-    this.events.push({ sequence: 0, tick: 0, type: 'initialized' })
+    this.pushEvent({ type: 'initialized' })
   }
 
   execute(command: SimulationCommand): SimulationSnapshot {
     if (command.type === 'restore') {
       this.restore(command.checkpoint)
-      this.events.push({ sequence: this.events.length, tick: this.tick, type: 'restored', commandId: command.id })
+      this.pushEvent({ type: 'restored', commandId: command.id })
       return this.snapshot()
     }
 
@@ -63,14 +63,22 @@ export class SimulationEngine {
         this.tick += 1
       }
       this.commandCount += 1
-      this.events.push({ sequence: this.events.length, tick: this.tick, type: 'advanced', commandId: command.id, value: command.ticks })
+      this.pushEvent({
+        type: 'advanced',
+        commandId: command.id,
+        value: command.ticks,
+      })
       return this.snapshot()
     }
 
     if (!Number.isFinite(command.magnitude)) throw new Error('synthetic-pulse.magnitude must be finite')
     this.syntheticPopulation = Math.max(0, this.syntheticPopulation + command.magnitude)
     this.commandCount += 1
-    this.events.push({ sequence: this.events.length, tick: this.tick, type: 'synthetic-pulse', commandId: command.id, value: command.magnitude })
+    this.pushEvent({
+      type: 'synthetic-pulse',
+      commandId: command.id,
+      value: command.magnitude,
+    })
     return this.snapshot()
   }
 
@@ -78,13 +86,28 @@ export class SimulationEngine {
     const checkpoint: SimulationCheckpoint = {
       identity: structuredClone(this.identity),
       tick: this.tick,
-      simulationTimeHours: this.tick * HOURS_PER_TICK,
+      simulationTimeHours: this.currentSimulationTimeHours(),
       syntheticPopulation: this.syntheticPopulation,
       rngState: this.rng.snapshot(),
       commandCount: this.commandCount,
     }
     const events = this.events.map((event) => ({ ...event }))
     return { checkpoint, events, traceHash: traceHash({ checkpoint, events }) }
+  }
+
+  private currentSimulationTimeHours(): number {
+    return this.tick * HOURS_PER_TICK
+  }
+
+  private pushEvent(
+    event: Omit<SimulationEvent, 'sequence' | 'tick' | 'simulationTimeHours'>,
+  ): void {
+    this.events.push({
+      sequence: this.events.length,
+      tick: this.tick,
+      simulationTimeHours: this.currentSimulationTimeHours(),
+      ...event,
+    })
   }
 
   private restore(checkpoint: SimulationCheckpoint): void {

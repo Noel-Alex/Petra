@@ -11,6 +11,8 @@
 - Renderer sampling must not consume the biological RNG stream.
 - Synthetic fixture state may exercise infrastructure but must be named as synthetic and removed/replaced as real mechanisms arrive; never present it as biology.
 - Protocol/state changes require deterministic tests and coordination because they are high-conflict integration surfaces.
+- Timeline-worthy protocol events carry exact authoritative `simulationTimeHours` at emission. That timestamp is replay/wire identity and must not be reconstructed later from a newer checkpoint.
+- Required worker wire-shape changes bump `PROTOCOL_VERSION`; do not silently extend an existing protocol version with new required fields.
 - `authoritative.ts` is a bounded composition scaffold over merged mechanism kernels. It accepts only caller-supplied configuration/state, carries a canonical configuration fingerprint so lineage ordering/mechanism configuration cannot drift silently between steps, and is not itself the browser worker protocol or a substitute for versioned run identity/provenance.
 - Composed ecology metrics may expose continuous `divisionBiomass`; that value remains aggregate flux and must not be rounded or passed into the exact evolution sampler until #5/#37 lands the reviewed discrete-event bridge.
 - `regionInspector.ts` is the authoritative read-only local-region projection boundary. Selection geometry is normalized and presentation-independent; values are aggregated directly from simulation grid state, never Pixi/render snapshots. Current composed-state biomass/resource units remain explicit model units; UI must not relabel them as cells, concentration, mass, or area density without a provenance-owned physical unit bridge.

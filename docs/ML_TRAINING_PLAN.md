@@ -77,6 +77,8 @@ Sampling strategy:
 
 Avoid leakage where snapshots from one trajectory land in both training and validation.
 
+Implementation contract: `src/ml/dataset.ts` assigns splits deterministically at the declared parameter/scenario **group** boundary, deliberately excluding snapshot time/index and seed from the split hash. `src/ml/runtime.ts` owns the optional Emulated-mode feature/promotion/OOD gate. These helpers are infrastructure only; they do not mean a surrogate has been trained or promoted.
+
 ## Targets and losses
 
 Aggregate:
@@ -95,9 +97,11 @@ Spatial:
 The model receives explicit domain bounds.
 
 At runtime:
-- reject or warn when parameters/interventions are outside training envelope;
-- expose nearest-training-domain distance/flag;
+- reject parameters/interventions outside the declared training envelope and fall back to Mechanistic mode;
+- surface the refusal/domain violations to the UI;
 - never silently extrapolate and present result as authoritative.
+
+Warnings may supplement a refusal, but a product-promoted Petra surrogate must not silently execute OOD.
 
 ## Validation
 

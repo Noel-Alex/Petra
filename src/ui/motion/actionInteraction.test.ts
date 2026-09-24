@@ -1,12 +1,40 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  beginActionPointerPress,
   createActionInteractionState,
   resolveActionMicroInteractionState,
   updateActionInteractionState,
 } from "./actionInteraction";
 
 describe("PetraAction interaction precedence", () => {
+  it("starts press feedback only for the primary activation button", () => {
+    const idle = createActionInteractionState();
+    const primary = beginActionPointerPress(idle, 0);
+
+    expect(primary).toEqual({ focused: false, pointer: "press" });
+    for (const button of [1, 2, 3, 4, -1]) {
+      expect(beginActionPointerPress(idle, button)).toBe(idle);
+    }
+  });
+
+  it("keeps focus and selection semantics intact on a secondary pointer press", () => {
+    const focused = updateActionInteractionState(
+      createActionInteractionState(),
+      "focus",
+    );
+    const afterSecondary = beginActionPointerPress(focused, 2);
+
+    expect(afterSecondary).toBe(focused);
+    expect(
+      resolveActionMicroInteractionState({
+        interaction: afterSecondary,
+        disabled: false,
+        selected: true,
+      }),
+    ).toBe("focus");
+  });
+
   it("keeps focus authoritative across hover enter and leave", () => {
     let state = createActionInteractionState();
     state = updateActionInteractionState(state, "focus");

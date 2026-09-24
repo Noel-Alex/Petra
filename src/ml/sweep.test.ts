@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  SweepSplitCoverageError,
   buildMechanisticSweepManifest,
   planMechanisticSweep,
   type MechanisticSweepDefinition,
@@ -17,13 +18,16 @@ function definition(): MechanisticSweepDefinition {
     parameterPoints: [
       { id: "point-a", parameterSetHash: "params-a" },
       { id: "point-b", parameterSetHash: "params-b" },
+      // This identity deterministically supplies test-split coverage under
+      // trajectory-group-v1. It is an opaque fixture identity, not biology.
+      { id: "point-c", parameterSetHash: "params-11" },
     ],
     interventionFamilies: [
       { id: "untreated", fingerprint: "none" },
       { id: "pulse", fingerprint: "dose-family-v1" },
     ],
     seeds: ["1", "2", "3"],
-    maxTrajectories: 20,
+    maxTrajectories: 24,
   };
 }
 
@@ -38,10 +42,13 @@ describe("mechanistic ML sweep planner", () => {
       grouped.set(task.splitGroupKey, splits);
     }
 
-    expect(grouped.size).toBe(4);
+    expect(grouped.size).toBe(6);
     expect([...grouped.values()].every((splits) => splits.size === 1)).toBe(true);
-    expect(plan.groupCount).toBe(4);
-    expect(plan.trajectoryCount).toBe(12);
+    expect(plan.groupCount).toBe(6);
+    expect(plan.trajectoryCount).toBe(18);
+    expect(plan.splitGroupCounts.train).toBeGreaterThan(0);
+    expect(plan.splitGroupCounts.validation).toBeGreaterThan(0);
+    expect(plan.splitGroupCounts.test).toBeGreaterThan(0);
   });
 
   it("is deterministic and gives every planned trajectory a stable unique identity", () => {
@@ -57,28 +64,90 @@ describe("mechanistic ML sweep planner", () => {
     );
   });
 
-  it("emits a versioned manifest with split counts that cover every trajectory", () => {
+  it("refuses a sweep with no required held-out group before trajectory execution", () => {
+    const tooSmall: MechanisticSweepDefinition = {
+      ...definition(),
+      parameterPoints: definition().parameterPoints.slice(0, 2),
+    };
+
+    try {
+      planMechanisticSweep(tooSmall);
+      throw new Error("expected split coverage refusal");
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(SweepSplitCoverageError);
+      const refusal = error as SweepSplitCoverageError;
+      expect(refusal.policyVersion).toBe("held-out-group-coverage-v1");
+      expect(refusal.groupCounts).toEqual({
+        train: 2,
+        validation: 2,
+        test: 0,
+      });
+      expect(refusal.trajectoryCounts).toEqual({
+        train: 6,
+        validation: 6,
+        test: 0,
+      });
+      expect(refusal.gaps).toEqual([
+        {
+          split: "test",
+          requiredGroups: 1,
+          observedGroups: 0,
+          observedTrajectories: 0,
+        },
+      ]);
+      expect(refusal.message).toMatch(/do not move individual seeds or frames/);
+    }
+  });
+
+  it("emits versioned coverage provenance and split counts for groups and trajectories", () => {
     const plan = planMechanisticSweep(definition());
     const manifest = buildMechanisticSweepManifest(plan);
-    const counted =
+    const countedTrajectories =
       manifest.splitCounts.train +
       manifest.splitCounts.validation +
       manifest.splitCounts.test;
+    const countedGroups =
+      manifest.splitGroupCounts.train +
+      manifest.splitGroupCounts.validation +
+      manifest.splitGroupCounts.test;
 
-    expect(manifest.schemaVersion).toBe("petra-ml-sweep-manifest-v1");
+    expect(manifest.schemaVersion).toBe("petra-ml-sweep-manifest-v2");
     expect(manifest.engineVersion).toBe("engine-v3");
     expect(manifest.splitPolicyVersion).toBe(plan.splitPolicy.version);
+    expect(manifest.splitCoveragePolicyVersion).toBe(
+      plan.splitCoveragePolicy.version,
+    );
     expect(manifest.trajectories).toHaveLength(plan.trajectoryCount);
-    expect(counted).toBe(plan.trajectoryCount);
+    expect(countedTrajectories).toBe(plan.trajectoryCount);
+    expect(countedGroups).toBe(plan.groupCount);
+  });
+
+  it("records coverage-policy version changes as distinct manifest provenance", () => {
+    const first = buildMechanisticSweepManifest(planMechanisticSweep(definition()));
+    const second = buildMechanisticSweepManifest(
+      planMechanisticSweep({
+        ...definition(),
+        splitCoveragePolicy: {
+          version: "held-out-group-coverage-v2-test-fixture",
+          requiredSplits: ["train", "validation", "test"],
+          minimumGroupsPerSplit: 1,
+        },
+      }),
+    );
+
+    expect(first.trajectories).toEqual(second.trajectories);
+    expect(first.splitCoveragePolicyVersion).not.toBe(
+      second.splitCoveragePolicyVersion,
+    );
   });
 
   it("refuses accidental combinatorial explosions before producing tasks", () => {
     expect(() =>
       planMechanisticSweep({
         ...definition(),
-        maxTrajectories: 11,
+        maxTrajectories: 17,
       }),
-    ).toThrow(/above maxTrajectories=11/);
+    ).toThrow(/above maxTrajectories=17/);
   });
 
   it("rejects duplicate biological grouping identities that could split equivalent data", () => {
@@ -108,5 +177,40 @@ describe("mechanistic ML sweep planner", () => {
         seeds: ["1", "1"],
       }),
     ).toThrow(/duplicate seed/);
+  });
+
+  it("rejects invalid coverage policies rather than silently weakening held-out evidence", () => {
+    expect(() =>
+      planMechanisticSweep({
+        ...definition(),
+        splitCoveragePolicy: {
+          version: "",
+          requiredSplits: ["train", "validation", "test"],
+          minimumGroupsPerSplit: 1,
+        },
+      }),
+    ).toThrow(/split coverage policy version must be non-empty/);
+
+    expect(() =>
+      planMechanisticSweep({
+        ...definition(),
+        splitCoveragePolicy: {
+          version: "bad-coverage",
+          requiredSplits: ["validation", "validation"],
+          minimumGroupsPerSplit: 1,
+        },
+      }),
+    ).toThrow(/duplicate required dataset split/);
+
+    expect(() =>
+      planMechanisticSweep({
+        ...definition(),
+        splitCoveragePolicy: {
+          version: "bad-minimum",
+          requiredSplits: ["validation", "test"],
+          minimumGroupsPerSplit: 0,
+        },
+      }),
+    ).toThrow(/minimumGroupsPerSplit must be a positive safe integer/);
   });
 });

@@ -13,6 +13,7 @@ import {
   type ComposedParameterSetBinding,
 } from './parameterSetBinding'
 import {
+  assertSimulationSeed,
   createRunIdentity,
   type RunIdentity,
 } from './protocol'
@@ -144,10 +145,14 @@ function requireFiniteNonNegative(name: string, value: unknown): number {
 }
 
 function requirePositiveSafeInteger(name: string, value: unknown): number {
-  if (!Number.isSafeInteger(value) || (value as number) <= 0) {
+  if (
+    typeof value !== 'number' ||
+    !Number.isSafeInteger(value) ||
+    value <= 0
+  ) {
     throw new Error(`${name} must be a positive safe integer`)
   }
-  return value as number
+  return value
 }
 
 function parseBaselineParameterSet(
@@ -426,6 +431,7 @@ export function buildFlagshipComposedRunPlan(
   if (!Array.isArray(initialization.inocula)) {
     throw new Error('flagship run initialization inocula must be an array')
   }
+  assertSimulationSeed(initialization.seed)
 
   const scenario: unknown = flagshipScenario
   const scenarioRecord = requireRecord('flagship scenario', scenario)

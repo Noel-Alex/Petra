@@ -35,7 +35,7 @@
 .petra-compare__eyebrow {
   margin: 0 0 0.25rem;
   color: #8fdcff;
-  font-size: 0.7rem;
+  font-size: var(--petra-type-caption);
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -190,7 +190,7 @@
   border: 1px solid rgba(143, 220, 255, 0.35);
   border-radius: 50%;
   color: #8fdcff;
-  font-size: 0.72rem;
+  font-size: var(--petra-type-caption);
   font-weight: 800;
 }
 
@@ -219,7 +219,7 @@
 
 .petra-compare__pane-header dt {
   color: #77869c;
-  font-size: 0.62rem;
+  font-size: var(--petra-type-caption);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -309,7 +309,7 @@
 
 .petra-compare__reveal span {
   color: #c9d2df;
-  font-size: 0.7rem;
+  font-size: var(--petra-type-caption);
   font-weight: 700;
 }
 

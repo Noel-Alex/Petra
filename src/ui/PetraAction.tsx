@@ -36,7 +36,7 @@ export function PetraAction({
   icon,
   label,
   detail,
-  selected = false,
+  selected,
   motionPreference,
   trailing,
   disabled,
@@ -52,14 +52,16 @@ export function PetraAction({
 }: PetraActionProps): ReactElement {
   const [interaction, setInteraction] = useState(createActionInteractionState);
 
+  const isSelected = selected === true;
   const semanticState = resolveActionMicroInteractionState({
     interaction,
     disabled: disabled === true,
-    selected,
+    selected: isSelected,
   });
 
   const presentation = resolveMicroInteraction(semanticState, motionPreference);
   const style = {
+    ...buttonProps.style,
     "--petra-action-duration": `${presentation.durationMs}ms`,
     "--petra-action-easing": `cubic-bezier(${presentation.easing.join(", ")})`,
     "--petra-action-y": `${presentation.translateYRem}rem`,
@@ -74,7 +76,7 @@ export function PetraAction({
       className={["petra-action", className].filter(Boolean).join(" ")}
       data-emphasis={presentation.emphasis}
       data-motion={motionPreference}
-      aria-pressed={selected ? true : undefined}
+      aria-pressed={selected === undefined ? buttonProps["aria-pressed"] : selected}
       style={style}
       onPointerEnter={(event) => {
         if (!disabled) {

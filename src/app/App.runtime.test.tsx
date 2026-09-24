@@ -35,6 +35,14 @@ describe("App authoritative runtime boundary", () => {
     expect(html).toContain("New seed run");
   });
 
+  it("keeps onboarding replay presentation-only and gate input explicit", () => {
+    expect(appSource).toContain(
+      "projectOnboardingRuntime(experiment.state, onboardingGates)",
+    );
+    expect(appSource).toContain("Replay guide");
+    expect(appSource).toContain('{ type: "reset" }');
+  });
+
   it("checks runtime availability before dispatching global shortcuts", () => {
     const gateIndex = appSource.indexOf("canDispatchAppShortcut(plan.action");
     const dispatchIndex = appSource.indexOf("experiment.dispatch(plan.action)");

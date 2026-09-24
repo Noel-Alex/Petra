@@ -68,7 +68,7 @@ describe('flagship engineering ecology execution profile', () => {
     )
     expect(projection).toMatchObject({
       profileId: 'ecoli-ciprofloxacin-ecology-engineering',
-      profileVersion: '1.0.0',
+      profileVersion: '1.1.0',
       scenarioId: flagshipScenario.id,
       scenarioVersion: flagshipScenario.version,
       resourceContextVersion:
@@ -90,7 +90,7 @@ describe('flagship engineering ecology execution profile', () => {
     )
     const changed = parseEcologyExecutionProfile({
       ...flagshipScenario.executionProfile,
-      version: '1.0.1',
+      version: '1.1.1',
       growth: {
         ...flagshipScenario.executionProfile.growth,
         localCapacity:

@@ -73,12 +73,15 @@ Contributor: Noel-Alex
 - The implementation was rebased onto the shared calm visual-token foundation and consumes those tokens without taking ownership of the central theme.
 
 
-## 2026-09-24 — composed provenance binding + research-stage ecology execution
+## 2026-09-24 — composed provenance binding + research-stage flagship composition
 
 - #564 / PR #588 moved composed worker identity to protocol v4: a product-facing parameter-set ID/version must be bound to the exact deterministic composed-configuration fingerprint rather than acting as an unverified friendly label. Ad-hoc test configs use an explicit `fixture:` namespace.
 - #227 remains intentionally open for a future source-compatible physical limiting-resource/Monod binding. Do not close it by mixing incompatible literature values or renaming model-resource as glucose.
-- #494 introduces a separate research-stage engineering execution profile so the flagship ecology loop can run now without weakening #227. Scenario `ecoli-ciprofloxacin-spatial@1.3.0-research` selects `ecoli-ciprofloxacin-ecology-engineering@1.0.0`.
-- The profile uses only `hour`, `model-resource`, and `model-biomass` units and is classified `engineering`. Its normalized values are judged against explicit kernel behavior targets (positive early growth, resource depletion, zero-resource no-growth, capacity bound, conservative neighbour spread), not against a claim of measured MG1655 glucose/CFU calibration.
-- Runtime/data consumers must preserve the execution-profile identity and limitation text. A later physical/calibrated profile is a new scenario/profile identity and must satisfy the #227 evidence compatibility gate.
+- #494 introduced a separate engineering execution profile so ecology can run without weakening #227. The current scenario is `ecoli-ciprofloxacin-spatial@1.4.0-research`; it selects `ecoli-ciprofloxacin-ecology-engineering@1.1.0`.
+- The scenario now also owns `ecoli-ciprofloxacin-baseline-composed@1.0.0`: model-grid geometry, founder `WT` channel identity, and the declared resource×drug loss policy are versioned mechanism authority. Baseline `deathHazardPerHour = 0` means the incremental ciprofloxacin-loss channel is inactive before drug exposure; it is not a measured MG1655 background-death constant.
+- Initial model-resource level, founder placement/biomass, and seed remain explicit run-state inputs and do not silently become mechanism constants. The product-facing `flagshipComposition.ts` builder consumes only bundled scenario authority, constructs the circular mask/state, and mints the protocol-v4 provenance binding from the resulting composed configuration fingerprint.
+- The execution profile remains `engineering` and uses only `hour`, `model-resource`, and `model-biomass`. Its normalized values are judged against kernel behavior targets, not a claim of measured MG1655 glucose/CFU calibration.
+- Continuous model-biomass division flux is still not discrete cell/division-event authority. #562 owns that bridge; do not use the new runnable baseline as permission to round biomass into mutation events.
+- A later physical/calibrated resource profile is a new scenario/profile/parameter-set identity and must satisfy the #227 evidence compatibility gate.
 
 Contributor: Noel-Alex

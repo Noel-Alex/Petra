@@ -493,6 +493,182 @@ def scenario_contracts() -> int:
                             f"{profile_path}.provenance.limitation is required"
                         )
 
+            engineering_defaults = (
+                environment.get("engineeringDefaults")
+                if isinstance(environment, dict)
+                else None
+            )
+            defaults_path = f"{prefix}: environment.engineeringDefaults"
+            if not isinstance(engineering_defaults, dict):
+                errors.append(f"{defaults_path} must be an object")
+            else:
+                if (
+                    not isinstance(engineering_defaults.get("gridSize"), int)
+                    or isinstance(engineering_defaults.get("gridSize"), bool)
+                    or engineering_defaults.get("gridSize") < 3
+                ):
+                    errors.append(f"{defaults_path}.gridSize must be an integer >= 3")
+                for key in ("dishRadiusCells", "cellSize"):
+                    value = engineering_defaults.get(key)
+                    if (
+                        not isinstance(value, (int, float))
+                        or isinstance(value, bool)
+                        or not math.isfinite(value)
+                        or value <= 0
+                    ):
+                        errors.append(f"{defaults_path}.{key} must be positive and finite")
+                if engineering_defaults.get("cellSizeUnit") != "model-grid-cell":
+                    errors.append(
+                        f"{defaults_path}.cellSizeUnit must equal 'model-grid-cell'"
+                    )
+
+            composed_set = obj.get("composedParameterSet")
+            composed_path = f"{prefix}: composedParameterSet"
+            if not isinstance(composed_set, dict):
+                errors.append(f"{composed_path} must be an object")
+            else:
+                if composed_set.get("schemaVersion") != 1:
+                    errors.append(f"{composed_path}.schemaVersion must equal 1")
+                for key in (
+                    "id",
+                    "version",
+                    "scenarioId",
+                    "scenarioVersion",
+                    "executionProfileId",
+                    "executionProfileVersion",
+                    "resourceContextVersion",
+                    "lossPolicyId",
+                ):
+                    if not _nonempty_string(composed_set.get(key)):
+                        errors.append(f"{composed_path}.{key} must be a non-empty string")
+
+                if composed_set.get("scenarioId") != obj.get("id"):
+                    errors.append(f"{composed_path}.scenarioId must match scenario id")
+                if composed_set.get("scenarioVersion") != obj.get("version"):
+                    errors.append(
+                        f"{composed_path}.scenarioVersion must match scenario version"
+                    )
+                if composed_set.get("geometrySource") != "environment.engineeringDefaults":
+                    errors.append(
+                        f"{composed_path}.geometrySource must equal 'environment.engineeringDefaults'"
+                    )
+
+                if isinstance(execution_profile, dict):
+                    if composed_set.get("executionProfileId") != execution_profile.get("id"):
+                        errors.append(
+                            f"{composed_path}.executionProfileId must match executionProfile.id"
+                        )
+                    if composed_set.get("executionProfileVersion") != execution_profile.get("version"):
+                        errors.append(
+                            f"{composed_path}.executionProfileVersion must match executionProfile.version"
+                        )
+                if isinstance(resource_context, dict):
+                    if composed_set.get("resourceContextVersion") != resource_context.get("version"):
+                        errors.append(
+                            f"{composed_path}.resourceContextVersion must match environment.resourceContext.version"
+                        )
+
+                drug = obj.get("drug")
+                active_policy = (
+                    drug.get("resourceDrugCompositionPolicy")
+                    if isinstance(drug, dict)
+                    else None
+                )
+                if not isinstance(active_policy, dict):
+                    errors.append(
+                        f"{prefix}: drug.resourceDrugCompositionPolicy must be an object"
+                    )
+                else:
+                    if composed_set.get("lossPolicyId") != active_policy.get("id"):
+                        errors.append(
+                            f"{composed_path}.lossPolicyId must match active drug loss policy"
+                        )
+                    if active_policy.get("zeroDrugIncrementalLoss") != 0:
+                        errors.append(
+                            f"{composed_path}: baseline loss policy requires exact zeroDrugIncrementalLoss"
+                        )
+
+                genotype_ids = set()
+                raw_genotypes = obj.get("genotypes")
+                if isinstance(raw_genotypes, list):
+                    for genotype in raw_genotypes:
+                        if isinstance(genotype, dict) and _nonempty_string(genotype.get("id")):
+                            genotype_ids.add(genotype["id"])
+
+                lineages = composed_set.get("lineages")
+                if not isinstance(lineages, list) or not lineages:
+                    errors.append(f"{composed_path}.lineages must be a non-empty array")
+                else:
+                    seen_lineage_ids: set[str] = set()
+                    for index, lineage in enumerate(lineages):
+                        lineage_path = f"{composed_path}.lineages[{index}]"
+                        if not isinstance(lineage, dict):
+                            errors.append(f"{lineage_path} must be an object")
+                            continue
+                        lineage_id = lineage.get("id")
+                        genotype_id = lineage.get("genotypeId")
+                        if not _nonempty_string(lineage_id):
+                            errors.append(f"{lineage_path}.id must be a non-empty string")
+                        elif lineage_id in seen_lineage_ids:
+                            errors.append(f"{lineage_path}.id must be unique")
+                        else:
+                            seen_lineage_ids.add(lineage_id)
+                        if not _nonempty_string(genotype_id):
+                            errors.append(
+                                f"{lineage_path}.genotypeId must be a non-empty string"
+                            )
+                        elif genotype_id not in genotype_ids:
+                            errors.append(
+                                f"{lineage_path}.genotypeId references an unknown genotype"
+                            )
+                        hazard = lineage.get("deathHazardPerHour")
+                        if (
+                            not isinstance(hazard, (int, float))
+                            or isinstance(hazard, bool)
+                            or not math.isfinite(hazard)
+                            or hazard < 0
+                        ):
+                            errors.append(
+                                f"{lineage_path}.deathHazardPerHour must be finite and non-negative"
+                            )
+                        elif hazard != 0:
+                            errors.append(
+                                f"{lineage_path}.deathHazardPerHour must remain zero for the baseline inactive drug-loss set"
+                            )
+                        _validate_presentation_provenance(
+                            lineage,
+                            lineage_path,
+                            errors,
+                            require_context=True,
+                        )
+                        lineage_provenance = lineage.get("provenance")
+                        if isinstance(lineage_provenance, dict):
+                            if lineage_provenance.get("classification") != "engineering":
+                                errors.append(
+                                    f"{lineage_path}.provenance.classification must be engineering"
+                                )
+                            if not _nonempty_string(lineage_provenance.get("limitation")):
+                                errors.append(
+                                    f"{lineage_path}.provenance.limitation is required"
+                                )
+
+                _validate_presentation_provenance(
+                    composed_set,
+                    composed_path,
+                    errors,
+                    require_context=True,
+                )
+                composed_provenance = composed_set.get("provenance")
+                if isinstance(composed_provenance, dict):
+                    if composed_provenance.get("classification") != "engineering":
+                        errors.append(
+                            f"{composed_path}.provenance.classification must be engineering"
+                        )
+                    if not _nonempty_string(composed_provenance.get("limitation")):
+                        errors.append(
+                            f"{composed_path}.provenance.limitation is required"
+                        )
+
             genotypes = obj.get("genotypes")
             if not isinstance(genotypes, list) or not genotypes:
                 errors.append(f"{prefix}: flagship genotypes must be a non-empty array")

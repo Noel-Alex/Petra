@@ -179,3 +179,12 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - `scenarioDiscovery.ts` must consume the shared `scienceModeAdmission.ts` result. Bundled/discoverable/runnable and grounded Science Mode are distinct product states; React/catalog code must not invent a second maturity label or promote an experimental scenario from display metadata.
 
 - `liveAnalysisHistory.ts` is the append-only bridge from accepted composed snapshots to authoritative metric history. It binds one exact structured run identity, rejects command-position rewind or same-position trace replacement, treats exact duplicate delivery as idempotent, and emits samples only at the declared metric sampling ticks. It never interpolates, smooths, or mutates biological state; explicit new-run/reset ownership stays outside the accumulator.
+
+
+## Experiment bundle save/load handoff
+- `experimentBundleHandoff.ts` is the framework-neutral product boundary for local experiment file handoff. Export text must come only from `serializeExperimentBundle(...)`; import text must be promoted only through `parseExperimentBundle(...)`. App/UI code must not define a second replay/export schema or parse authoritative JSON directly.
+- Import inspection happens before any runtime replacement plan exists. The preview exposes exact scenario/version, seed, parameter-set identity/binding, authority, origin tick/time/command position, replay-command count, and current-runtime compatibility from the parsed bundle.
+- Typed `ExperimentBundleErrorCode` values map to bounded refusal categories/messages. User-facing refusal text must not echo raw payload contents, stacks, or arbitrary validator details.
+- Import is always an explicit fresh-run replacement/replay action. A matching presentation confirmation key is required before `replace-run` may be planned; stale/unconfirmed inspection remains `confirmation-required`.
+- The confirmation key is presentation-only stale-dialog protection, not cryptographic or scientific identity and must never enter replay/checkpoint authority.
+- Browser File/Blob/download/upload/Web Share adapters may wrap this policy later, but local file save/load must remain fully offline-capable. Renderer state, screenshots, raw ML datasets, and unsupported counterfactual ancestry remain outside bundle authority.

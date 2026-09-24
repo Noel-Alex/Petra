@@ -1,8 +1,12 @@
 /// <reference lib="webworker" />
 
 import { SimulationEngine } from '../sim/engine'
-import { PROTOCOL_VERSION } from '../sim/protocol'
-import type { WorkerRequest, WorkerResponse } from '../sim/protocol'
+import {
+  PROTOCOL_VERSION,
+  parseWorkerRequest,
+  type WorkerRequest,
+  type WorkerResponse,
+} from '../sim/protocol'
 
 let engine: SimulationEngine | undefined
 
@@ -10,10 +14,20 @@ function post(response: WorkerResponse): void {
   self.postMessage(response)
 }
 
-self.onmessage = (event: MessageEvent<WorkerRequest>) => {
-  const request = event.data
-  if (request.protocolVersion !== PROTOCOL_VERSION) {
-    post({ protocolVersion: PROTOCOL_VERSION, type: 'error', message: `Unsupported protocol version: ${request.protocolVersion}` })
+self.onmessage = (event: MessageEvent<unknown>) => {
+  const rawRequest = event.data
+  let request: WorkerRequest
+
+  try {
+    request = parseWorkerRequest(rawRequest)
+  } catch (error) {
+    const commandId = requestCommandId(rawRequest)
+    post({
+      protocolVersion: PROTOCOL_VERSION,
+      type: 'error',
+      ...(commandId === null ? {} : { commandId }),
+      message: error instanceof Error ? error.message : 'Malformed worker request',
+    })
     return
   }
 
@@ -35,6 +49,16 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
       message: error instanceof Error ? error.message : String(error),
     })
   }
+}
+
+function requestCommandId(value: unknown): string | null {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return null
+  const record = value as Record<string, unknown>
+  if (record.type !== 'command') return null
+  const command = record.command
+  if (command === null || typeof command !== 'object' || Array.isArray(command)) return null
+  const id = (command as Record<string, unknown>).id
+  return typeof id === 'string' ? id : null
 }
 
 export {}

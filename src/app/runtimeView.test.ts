@@ -36,7 +36,7 @@ function runtimeState(
             tick: 12,
             simulationTimeHours: options.simulationTimeHours,
             syntheticPopulation: 0,
-            rngState: { seed: 7, state: 7 },
+            rngState: [1, 2, 3, 4],
             commandCount: 0,
           },
           events: [],

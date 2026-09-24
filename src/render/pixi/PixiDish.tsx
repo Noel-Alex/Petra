@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { DishRenderSnapshot, SemanticZoomLevel } from "../model";
 import type { CameraMotionSpec } from "./cameraMotion";
 import { createRendererDemoSnapshot } from "./demoSnapshot";
@@ -24,7 +24,7 @@ export interface PixiDishProps {
   readonly demoMode?: boolean;
 }
 
-type RendererStartupStatus = "idle" | "initializing" | "ready" | "failed";
+export type RendererStartupStatus = "idle" | "initializing" | "ready" | "failed";
 
 interface RendererStartupState {
   readonly status: RendererStartupStatus;
@@ -58,6 +58,7 @@ export function PixiDish({
   const resetCameraSignalRef = useRef(resetCameraSignal);
   const [startup, setStartup] = useState<RendererStartupState>(IDLE_STARTUP);
   const [retryAttempt, setRetryAttempt] = useState(0);
+  const failureDescriptionId = useId();
 
   const usingAuthoritative = snapshot !== null && snapshot !== undefined;
   const usingDemo = !usingAuthoritative && demoMode;
@@ -214,73 +215,32 @@ export function PixiDish({
       </div>
 
       {renderEnabled && startup.status === "failed" ? (
-        <div
-          data-render-fallback="true"
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-          title={startup.errorMessage ?? undefined}
-          style={{
-            position: "absolute",
-            inset: 0,
-            zIndex: 3,
-            display: "grid",
-            placeItems: "center",
-            padding: "1.2rem",
-            background:
-              "radial-gradient(circle at center, rgba(32, 54, 78, 0.56), rgba(5, 13, 25, 0.94))",
-          }}
-        >
-          <div
-            style={{
-              width: "min(24rem, 100%)",
-              padding: "1rem 1.05rem",
-              border: "1px solid rgba(143, 220, 255, 0.2)",
-              borderRadius: "18px",
-              background: "rgba(8, 20, 37, 0.9)",
-              boxShadow: "0 22px 70px rgba(0, 0, 0, 0.28)",
-              textAlign: "center",
-            }}
-          >
-            <strong
-              style={{
-                display: "block",
-                marginBottom: "0.45rem",
-                color: "#eef7ff",
-                fontSize: "0.95rem",
-              }}
-            >
-              Interactive dish unavailable
-            </strong>
-            <span
-              style={{
-                display: "block",
-                marginBottom: "0.8rem",
-                color: "rgba(226, 235, 246, 0.72)",
-                fontSize: "0.78rem",
-                lineHeight: 1.5,
-              }}
-            >
-              The WebGL renderer could not start. Petra has not substituted
-              demonstration biology or changed the simulation state.
-            </span>
-            <button
-              type="button"
-              onClick={() => setRetryAttempt((attempt) => attempt + 1)}
-              style={{
-                border: "1px solid rgba(143, 220, 255, 0.42)",
-                borderRadius: "12px",
-                background: "rgba(143, 220, 255, 0.1)",
-                color: "#eef7ff",
-                padding: "0.58rem 0.82rem",
-                cursor: "pointer",
-              }}
-            >
-              Retry renderer
-            </button>
-          </div>
-        </div>
+        <RendererFailureFallback
+          errorMessage={startup.errorMessage}
+          descriptionId={failureDescriptionId}
+          onRetry={() => setRetryAttempt((attempt) => attempt + 1)}
+        />
       ) : null}
+
+      <span
+        data-render-status-announcement="true"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        style={{
+          position: "absolute",
+          width: "1px",
+          height: "1px",
+          padding: 0,
+          margin: "-1px",
+          overflow: "hidden",
+          clip: "rect(0, 0, 0, 0)",
+          whiteSpace: "nowrap",
+          border: 0,
+        }}
+      >
+        {rendererStartupAnnouncement(startup.status)}
+      </span>
 
       {usingDemo ? (
         <div
@@ -308,6 +268,100 @@ export function PixiDish({
           Visual demo — not simulation data
         </div>
       ) : null}
+    </div>
+  );
+}
+
+export function rendererStartupAnnouncement(
+  status: RendererStartupStatus,
+): string {
+  if (status === "initializing") {
+    return "Starting interactive Petra dish renderer.";
+  }
+  if (status === "failed") {
+    return (
+      "Interactive dish unavailable. The WebGL renderer could not start. " +
+      "Petra has not substituted demonstration biology or changed the simulation state."
+    );
+  }
+  return "";
+}
+
+export function RendererFailureFallback({
+  errorMessage,
+  descriptionId,
+  onRetry,
+}: {
+  readonly errorMessage: string | null;
+  readonly descriptionId: string;
+  readonly onRetry: () => void;
+}) {
+  return (
+    <div
+      data-render-fallback="true"
+      title={errorMessage ?? undefined}
+      style={{
+        position: "absolute",
+        inset: 0,
+        zIndex: 3,
+        display: "grid",
+        placeItems: "center",
+        padding: "1.2rem",
+        background:
+          "radial-gradient(circle at center, rgba(32, 54, 78, 0.56), rgba(5, 13, 25, 0.94))",
+      }}
+    >
+      <div
+        style={{
+          width: "min(24rem, 100%)",
+          padding: "1rem 1.05rem",
+          border: "1px solid rgba(143, 220, 255, 0.2)",
+          borderRadius: "18px",
+          background: "rgba(8, 20, 37, 0.9)",
+          boxShadow: "0 22px 70px rgba(0, 0, 0, 0.28)",
+          textAlign: "center",
+        }}
+      >
+        <div id={descriptionId}>
+          <strong
+            style={{
+              display: "block",
+              marginBottom: "0.45rem",
+              color: "#eef7ff",
+              fontSize: "0.95rem",
+            }}
+          >
+            Interactive dish unavailable
+          </strong>
+          <span
+            style={{
+              display: "block",
+              marginBottom: "0.8rem",
+              color: "rgba(226, 235, 246, 0.72)",
+              fontSize: "0.78rem",
+              lineHeight: 1.5,
+            }}
+          >
+            The WebGL renderer could not start. Petra has not substituted
+            demonstration biology or changed the simulation state.
+          </span>
+        </div>
+        <button
+          type="button"
+          aria-describedby={descriptionId}
+          onClick={onRetry}
+          style={{
+            border: "1px solid rgba(143, 220, 255, 0.42)",
+            borderRadius: "12px",
+            background: "rgba(143, 220, 255, 0.1)",
+            color: "#eef7ff",
+            padding: "0.58rem 0.82rem",
+            cursor: "pointer",
+          }}
+        >
+          Retry renderer
+        </button>
+      </div>
     </div>
   );
 }

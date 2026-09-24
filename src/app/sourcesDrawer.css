@@ -52,7 +52,7 @@
 .sources-drawer__scope code {
   color: #9fdfff;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.72rem;
+  font-size: var(--petra-type-caption);
 }
 
 @keyframes sources-drawer-reveal {

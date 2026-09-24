@@ -35,6 +35,39 @@ export const EXPERIMENT_BUNDLE_SCHEMA_VERSION = 1 as const
 const INTERNAL_BUNDLE_RESTORE_COMMAND_ID =
   '__petra_experiment_bundle_restore__'
 
+const BUNDLE_KEYS = new Set([
+  'kind',
+  'schemaVersion',
+  'replayCompatibilityPolicyVersion',
+  'authority',
+  'identity',
+  'replay',
+  'evidence',
+  'counterfactualAncestry',
+  'capabilities',
+])
+const REPLAY_KEYS = new Set([
+  'originCheckpoint',
+  'commands',
+  'composedConfig',
+])
+const EVIDENCE_KEYS = new Set([
+  'events',
+  'metrics',
+  'provenanceSourceIds',
+])
+const CAPABILITY_KEYS = new Set([
+  'rendererStateIncluded',
+  'rawDatasetIncluded',
+  'counterfactualAncestryIncluded',
+])
+const ADVANCE_COMMAND_KEYS = new Set(['id', 'type', 'ticks'])
+const SYNTHETIC_PULSE_COMMAND_KEYS = new Set([
+  'id',
+  'type',
+  'magnitude',
+])
+
 type ReplayMutationCommand = Extract<
   SimulationCommand,
   { type: 'advance' | 'synthetic-pulse' }
@@ -149,6 +182,12 @@ export function validateExperimentBundle(bundle: ExperimentBundle): void {
     'experiment bundle',
     'unsupported-kind',
   )
+  assertOnlyKeys(
+    record,
+    BUNDLE_KEYS,
+    'experiment bundle',
+    'unsupported-schema',
+  )
   if (record.kind !== 'petra-experiment-bundle') {
     throw new ExperimentBundleError(
       'unsupported-kind',
@@ -192,6 +231,12 @@ export function validateExperimentBundle(bundle: ExperimentBundle): void {
     record.replay,
     'experiment bundle replay payload',
     'checkpoint-invalid',
+  )
+  assertOnlyKeys(
+    replay,
+    REPLAY_KEYS,
+    'experiment bundle replay payload',
+    'unsupported-schema',
   )
   const checkpoint = requireRecord(
     replay.originCheckpoint,
@@ -249,6 +294,12 @@ export function validateExperimentBundle(bundle: ExperimentBundle): void {
     'experiment bundle evidence',
     'evidence-invalid',
   )
+  assertOnlyKeys(
+    evidence,
+    EVIDENCE_KEYS,
+    'experiment bundle evidence',
+    'evidence-invalid',
+  )
   validateEvidence(
     record.authority,
     identity,
@@ -264,6 +315,12 @@ export function validateExperimentBundle(bundle: ExperimentBundle): void {
 
   const capabilities = requireRecord(
     record.capabilities,
+    'experiment bundle capabilities',
+    'capability-claim-invalid',
+  )
+  assertOnlyKeys(
+    capabilities,
+    CAPABILITY_KEYS,
     'experiment bundle capabilities',
     'capability-claim-invalid',
   )
@@ -474,6 +531,12 @@ function validateReplayCommands(
     ids.add(command.id)
 
     if (command.type === 'advance') {
+      assertOnlyKeys(
+        command as unknown as Record<string, unknown>,
+        ADVANCE_COMMAND_KEYS,
+        `experiment replay command ${index}`,
+        'command-invalid',
+      )
       if (!Number.isSafeInteger(command.ticks) || command.ticks < 0) {
         throw new ExperimentBundleError(
           'command-invalid',
@@ -484,6 +547,12 @@ function validateReplayCommands(
     }
 
     if (command.type === 'synthetic-pulse') {
+      assertOnlyKeys(
+        command as unknown as Record<string, unknown>,
+        SYNTHETIC_PULSE_COMMAND_KEYS,
+        `experiment replay command ${index}`,
+        'command-invalid',
+      )
       if (authority === 'composed') {
         throw new ExperimentBundleError(
           'command-invalid',
@@ -795,6 +864,22 @@ function replayCompatibilityAsBundleError(
       ? error.message
       : 'Experiment bundle is incompatible with this Petra runtime.',
   )
+}
+
+function assertOnlyKeys(
+  record: Record<string, unknown>,
+  allowed: ReadonlySet<string>,
+  label: string,
+  code: ExperimentBundleErrorCode,
+): void {
+  for (const key of Object.keys(record)) {
+    if (!allowed.has(key)) {
+      throw new ExperimentBundleError(
+        code,
+        `${label} contains unsupported field ${JSON.stringify(key)}.`,
+      )
+    }
+  }
 }
 
 function requireRecord(

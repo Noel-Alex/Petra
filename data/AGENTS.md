@@ -18,7 +18,7 @@ Machine-readable science and scenario configuration.
 - The research-stage flagship may carry a versioned `executionProfile` solely to make the model-unit ecology loop executable while physical growth/resource parameters remain UNBOUND. Its units must remain `hour` / `model-resource` / `model-biomass`, its provenance must be `engineering`, and its limitation/calibration note must state that it is not a measured MG1655/physical-substrate parameter pack. Changing the selected profile is a scenario/replay identity change.
 - The flagship `composedParameterSet` is separate from run-state initialization. It owns versioned mechanism/geometry/founder-channel identity and must reference the active scenario, execution profile, resource context, and loss policy. Initial model-resource level, inoculum position, and inoculum biomass remain explicit run-state inputs; do not freeze them into the mechanism fingerprint or hide them as defaults.
 - Changes to a science preset require matching research/claim-ledger review.
-
+- Science-Mode maturity is explicit versioned scenario data through `scienceModeAdmission`, then independently evaluated by `src/scenarios/scienceModeAdmission.ts`. Schema validity alone is never admission. Primary-evidence keys, decisive evidence paths, required context/units, limitation paths, and reference-only bindings must remain explicit; engineering execution values cannot satisfy a physical/reference claim. Changing those decisive admission semantics requires scenario-version review.\n
 ## Work guidance
 Prefer normalized IDs and source keys so UI, simulator, validation, and explanation layers resolve the same records.
 

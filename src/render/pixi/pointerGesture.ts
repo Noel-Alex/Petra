@@ -1,4 +1,8 @@
-import type { ScreenPoint } from "./camera";
+import {
+  isScreenPointInsideDishAperture,
+  type ScreenPoint,
+  type ViewportSize,
+} from "./camera";
 
 export interface GesturePointer {
   readonly id: number;
@@ -30,6 +34,18 @@ const MIN_PINCH_DISTANCE_PX = 4;
 
 export function createPointerGestureState(): PointerGestureState {
   return { active: [] };
+}
+
+export function beginPointerGestureInDishAperture(
+  state: PointerGestureState,
+  id: number,
+  point: ScreenPoint,
+  viewport: ViewportSize,
+): PointerGestureUpdate {
+  if (!isScreenPointInsideDishAperture(point, viewport)) {
+    return { state, accepted: false, intent: NO_INTENT };
+  }
+  return beginPointerGesture(state, id, point);
 }
 
 export function beginPointerGesture(

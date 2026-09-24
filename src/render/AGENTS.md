@@ -40,3 +40,14 @@ The contract in this directory must remain usable without PixiJS. Pixi/WebGL ada
 ## Verification
 
 Pure render-model helpers get deterministic unit tests. Browser/GPU/FPS claims require actual browser/device measurements and must not be inferred from source review.
+
+## Pixi live-dish adapter
+- PixiJS/WebGL belongs under `src/render/pixi/**`; it consumes `DishRenderSnapshot` and never owns simulation state.
+- React wrappers may own canvas lifecycle/accessibility only. They must pass immutable snapshots/motion settings into the renderer rather than importing Pixi objects into app/domain state.
+- Camera pan/zoom/focus is presentation state. Semantic zoom changes detail level, not biology.
+- Field overlays are rendered only from source-provided fields and retain source label/unit metadata in the surrounding UI; renderer code must not synthesize scientific units.
+- Lineage identity uses both color and pattern/ring cues. Density marks and representative glyphs remain visual proxies.
+- Demo snapshots must be explicitly tagged as visual-only and dimensionless; they are never evidence, calibration, or a scientific preset.
+- Full motion may interpolate camera/presentation changes. Reduced/off motion resolves to immediate/static presentation while preserving all scientific state.
+- Keep the adapter compatible with mock snapshots so visual work can proceed independently of worker integration. Authoritative browser wiring belongs to the runtime integration issue, not this subtree.
+

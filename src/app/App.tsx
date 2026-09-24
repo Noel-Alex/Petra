@@ -14,6 +14,8 @@ import { planSurfaceTransition } from "../ui/motion/semanticTransitions";
 import { OnboardingGuide } from "../ui/onboarding/OnboardingGuide";
 import { ProvenancePanel } from "../ui/provenance/ProvenancePanel";
 import { DishViewport } from "./DishViewport";
+import { CausalNarrationMount } from "./CausalNarrationMount";
+import type { AuthoritativeCausalEventStream } from "./causalNarration";
 import { InterventionPalette } from "./InterventionPalette";
 import { AnalysisSurface } from "./AnalysisSurface";
 import type { AuthoritativeAnalysisRecords } from "./analysisView";
@@ -67,6 +69,11 @@ export interface AppProps {
    * snapshot is intentionally not adapted into this contract.
    */
   readonly analysisRecords?: AuthoritativeAnalysisRecords | null;
+  /**
+   * Already-authoritative causal-event vocabulary. The current synthetic
+   * protocol is intentionally ineligible and therefore supplies no stream.
+   */
+  readonly causalEvents?: AuthoritativeCausalEventStream | null;
 }
 
 const SOURCES_TRIGGER_ID = "petra-sources-trigger";
@@ -77,7 +84,11 @@ function focusSourcesTrigger(): void {
   document.getElementById(SOURCES_TRIGGER_ID)?.focus();
 }
 
-export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
+export function App({
+  runtimeFactory,
+  analysisRecords = null,
+  causalEvents = null,
+}: AppProps) {
   const systemReduced = useSystemReducedMotion();
   const experiment = useExperimentRuntime(runtimeFactory);
   const onboardingProjection = useMemo(
@@ -214,6 +225,11 @@ export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
         "--panel-motion-easing": panelMotion.easing,
       } as CSSProperties}
     >
+      <CausalNarrationMount
+        activeRunIdentity={experiment.state?.controls.identity ?? null}
+        stream={causalEvents}
+      />
+
       <header className="petra-topbar">
         <div>
           <p className="petra-kicker">Living laboratory</p>

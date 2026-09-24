@@ -1,3 +1,4 @@
+import type { ComposedSimulationConfig } from "../sim/authoritative";
 import {
   PROTOCOL_VERSION,
   type RunIdentity,
@@ -36,7 +37,9 @@ export interface ControlDispatchResult {
   readonly reason: "worker-busy" | "worker-not-ready" | "disposed" | null;
 }
 
-export type ExperimentRuntimeListener = (state: ExperimentRuntimeState) => void;
+export type ExperimentRuntimeListener = (
+  state: ExperimentRuntimeState,
+) => void;
 
 /**
  * Framework-neutral orchestration between UI control intent and authoritative
@@ -47,13 +50,19 @@ export class ExperimentRuntime {
   private readonly listeners = new Set<ExperimentRuntimeListener>();
   private readonly pendingAcceptance = new Map<string, SimulationCommand>();
   private readonly unsubscribeWorker: () => void;
+  private readonly composedConfig: ComposedSimulationConfig | undefined;
   private current: ExperimentRuntimeState;
 
   constructor(
     private readonly session: WorkerSession,
     identity: RunIdentity,
     private readonly createCommandId: () => string,
+    composedConfig?: ComposedSimulationConfig,
   ) {
+    this.composedConfig =
+      composedConfig === undefined
+        ? undefined
+        : structuredClone(composedConfig);
     this.current = {
       controls: createExperimentControlState(identity),
       worker: session.state,
@@ -88,11 +97,7 @@ export class ExperimentRuntime {
 
     this.pendingAcceptance.clear();
     this.session.enqueue([
-      {
-        protocolVersion: PROTOCOL_VERSION,
-        type: "initialize",
-        identity: structuredClone(this.current.controls.identity),
-      },
+      this.initializeRequest(this.current.controls.identity),
     ]);
     return true;
   }
@@ -113,10 +118,14 @@ export class ExperimentRuntime {
       this.current.controls,
       action,
       this.createCommandId,
+      this.composedConfig,
     );
 
     if (planned.effect.type === "worker-requests") {
-      const blocked = workerEffectBlockReason(action, this.current.worker.phase);
+      const blocked = workerEffectBlockReason(
+        action,
+        this.current.worker.phase,
+      );
       if (blocked !== null) {
         return { accepted: false, reason: blocked };
       }
@@ -137,7 +146,9 @@ export class ExperimentRuntime {
       this.current = {
         ...this.current,
         controls: planned.state,
-        ...(reinitializesRun ? { snapshot: null, timeline: [] } : {}),
+        ...(reinitializesRun
+          ? { snapshot: null, timeline: [] }
+          : {}),
         integrationError: null,
       };
       this.publish();
@@ -153,10 +164,6 @@ export class ExperimentRuntime {
     return { accepted: true, reason: null };
   }
 
-  /**
-   * Called by a React timer/animation-frame scheduler. Playback speed changes
-   * requested authoritative tick count; wall-clock cadence remains presentation.
-   */
   advancePlayback(): boolean {
     if (!this.current.controls.playing) return false;
     if (this.current.integrationError !== null) return false;
@@ -177,11 +184,29 @@ export class ExperimentRuntime {
     this.listeners.clear();
   }
 
-  private stageReplayableCommands(requests: readonly WorkerRequest[]): void {
+  private initializeRequest(identity: RunIdentity): WorkerRequest {
+    return {
+      protocolVersion: PROTOCOL_VERSION,
+      type: "initialize",
+      identity: structuredClone(identity),
+      ...(this.composedConfig === undefined
+        ? {}
+        : {
+            composedConfig: structuredClone(this.composedConfig),
+          }),
+    };
+  }
+
+  private stageReplayableCommands(
+    requests: readonly WorkerRequest[],
+  ): void {
     for (const request of requests) {
       if (request.type !== "command") continue;
       if (!isReplayableCommand(request.command)) continue;
-      this.pendingAcceptance.set(request.command.id, structuredClone(request.command));
+      this.pendingAcceptance.set(
+        request.command.id,
+        structuredClone(request.command),
+      );
     }
   }
 
@@ -190,7 +215,10 @@ export class ExperimentRuntime {
       this.pendingAcceptance.clear();
       this.current = {
         ...this.current,
-        controls: { ...this.current.controls, playing: false },
+        controls: {
+          ...this.current.controls,
+          playing: false,
+        },
         worker,
         integrationError: worker.error,
       };
@@ -204,11 +232,19 @@ export class ExperimentRuntime {
       candidate.traceHash !== this.current.snapshot?.traceHash;
 
     if (isNewSnapshot) {
-      if (!snapshotMatchesControlIdentity(this.current.controls, candidate)) {
+      if (
+        !snapshotMatchesControlIdentity(
+          this.current.controls,
+          candidate,
+        )
+      ) {
         this.pendingAcceptance.clear();
         this.current = {
           ...this.current,
-          controls: { ...this.current.controls, playing: false },
+          controls: {
+            ...this.current.controls,
+            playing: false,
+          },
           worker,
           integrationError:
             "Worker snapshot identity does not match the active experiment controls",
@@ -258,7 +294,9 @@ export class ExperimentRuntime {
   }
 }
 
-function isReplayableCommand(command: SimulationCommand): boolean {
+function isReplayableCommand(
+  command: SimulationCommand,
+): boolean {
   return command.type !== "snapshot" && command.type !== "restore";
 }
 
@@ -267,7 +305,9 @@ function workerEffectBlockReason(
   phase: WorkerSessionState["phase"],
 ): ControlDispatchResult["reason"] {
   if (phase === "disposed") return "disposed";
-  if (phase === "initializing" || phase === "pending") return "worker-busy";
+  if (phase === "initializing" || phase === "pending") {
+    return "worker-busy";
+  }
 
   if (action.type === "step" || action.type === "snapshot") {
     return phase === "ready" ? null : "worker-not-ready";

@@ -80,6 +80,24 @@ describe('capacity-conservative colony spread', () => {
     expect(total(b)).toBeCloseTo(beforeB, 5)
   })
 
+  it('proportionally shares genuinely oversubscribed capacity across sources and lineages', () => {
+    const state = make([[20, 49, 10], [10, 49, 20]])
+    const before = total(state)
+
+    stepEcology(state, p, neutral(2), 1)
+
+    // The centre begins at 98/100 capacity. Its neighbours propose 15 total
+    // incoming units, so only 2 are accepted (factor 2/15), split equally by
+    // the two lineage contributions. The centre simultaneously spreads out.
+    expect(state.lineages[0]![0]).toBeCloseTo(31.5833333, 5)
+    expect(state.lineages[1]![0]).toBeCloseTo(21.9166667, 5)
+    expect(state.lineages[0]![1]).toBeCloseTo(25.5, 5)
+    expect(state.lineages[1]![1]).toBeCloseTo(25.5, 5)
+    expect(state.lineages[0]![2]).toBeCloseTo(21.9166667, 5)
+    expect(state.lineages[1]![2]).toBeCloseTo(31.5833333, 5)
+    expect(total(state)).toBeCloseTo(before, 5)
+  })
+
   it('does not reuse same-step death vacancy as spread capacity', () => {
     const state = make([[20, 100]])
     const before = total(state)

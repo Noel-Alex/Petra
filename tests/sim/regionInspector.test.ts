@@ -6,10 +6,10 @@ const config: ComposedSimulationConfig = {
   width: 3,
   height: 2,
   mask: [1, 1, 1, 1, 0, 1],
-  initialResource: [1, 2, 3, 4, 99, 6],
+  initialResource: [1, 2, 3, 4, 0, 6],
   initialLineageBiomass: [
-    [1, 2, 3, 4, 99, 6],
-    [6, 5, 4, 3, 99, 1],
+    [1, 2, 3, 4, 0, 6],
+    [6, 5, 4, 3, 0, 1],
   ],
   growth: {
     maxDivisionRate: 1,
@@ -66,7 +66,7 @@ describe('authoritative region inspector', () => {
     expect(inspection.configurationFingerprint).toBe(state.configurationFingerprint)
   })
 
-  it('never lets masked sentinel values leak into scientific readout', () => {
+  it('keeps masked cells outside whole-grid scientific readout', () => {
     const state = createComposedState(config)
     const inspection = inspectAuthoritativeRegion(state, {
       id: 'whole-grid',

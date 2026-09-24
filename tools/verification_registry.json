@@ -3,28 +3,71 @@
   "checks": [
     {
       "id": "repository-contract",
-      "modes": ["quick", "premerge"],
-      "command": ["python", "tools/verify.py", "_contract"]
+      "modes": [
+        "quick",
+        "premerge"
+      ],
+      "command": [
+        "python",
+        "tools/verify.py",
+        "_contract"
+      ]
     },
     {
       "id": "structured-data",
-      "modes": ["quick", "premerge"],
-      "command": ["python", "tools/verify.py", "_json"]
+      "modes": [
+        "quick",
+        "premerge"
+      ],
+      "command": [
+        "python",
+        "tools/verify.py",
+        "_json"
+      ]
     },
     {
       "id": "provenance-basics",
-      "modes": ["premerge"],
-      "command": ["python", "tools/verify.py", "_provenance"]
+      "modes": [
+        "premerge"
+      ],
+      "command": [
+        "python",
+        "tools/verify.py",
+        "_provenance"
+      ]
     },
     {
       "id": "scenario-contracts",
-      "modes": ["premerge"],
-      "command": ["python", "tools/verify.py", "_scenario"]
+      "modes": [
+        "premerge"
+      ],
+      "command": [
+        "python",
+        "tools/verify.py",
+        "_scenario"
+      ]
+    },
+    {
+      "id": "local-command-resolution",
+      "modes": [
+        "quick",
+        "premerge"
+      ],
+      "command": [
+        "python",
+        "tools/local_command_test.py"
+      ]
     },
     {
       "id": "typescript-deterministic-suite",
-      "modes": ["premerge"],
-      "command": ["npm", "run", "verify"]
+      "modes": [
+        "premerge"
+      ],
+      "command": [
+        "npm",
+        "run",
+        "verify"
+      ]
     }
   ]
 }

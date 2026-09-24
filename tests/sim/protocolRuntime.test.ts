@@ -81,6 +81,7 @@ const composedConfig: ComposedSimulationConfig = {
   },
   ciprofloxacin: null,
   samplingExecutionPolicy: null,
+  populationAuthority: null,
   hoursPerTick: 0.01,
 }
 

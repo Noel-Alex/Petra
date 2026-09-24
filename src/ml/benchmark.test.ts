@@ -146,6 +146,19 @@ describe("surrogate held-out benchmarks", () => {
     expect(assess()).toEqual({ eligible: true, issues: [] });
   });
 
+  it("rejects stale benchmark evidence schemas", () => {
+    const stale = {
+      ...goodEvidence,
+      schemaVersion: "surrogate-benchmark-evidence-v2",
+    } as unknown as SurrogateBenchmarkEvidence;
+    const assessment = assess(stale);
+
+    expect(assessment.eligible).toBe(false);
+    expect(assessment.issues.map((issue) => issue.kind)).toContain(
+      "evidence-schema-mismatch",
+    );
+  });
+
   it("fails closed on malformed benchmark compatibility evidence", () => {
     const malformed = {
       ...compatibility,

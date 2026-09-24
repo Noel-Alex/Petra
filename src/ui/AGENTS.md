@@ -42,6 +42,13 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Causal event choreography preserves the user's current camera by default; attention-stealing camera motion requires a separate explicit navigation action.
 - Event cue timing is presentation wall time only. Never label a motion-token duration as mutation, selection, depletion, infection, or drug-response duration.
 
+## Event-burst choreography
+- When multiple authoritative causal events arrive together, adapters use `src/ui/motion/scheduler.ts` instead of independently launching every animation.
+- Input event order and sequence remain authoritative. The scheduler never sorts, merges, drops, delays, or synthesizes simulator events.
+- The first bounded set of events receives animated/crossfade treatment; overflow events immediately retain their essential static cue while decorative motion is suppressed. This keeps event storms legible without erasing scientific meaning.
+- Burst caps and stagger values are **visual engineering policy only**. They are not biological rates, mechanism durations, event probabilities, or simulator throttling.
+- Motion-off always presents every event immediately with static essential emphasis. Reduced motion uses the same bounded scheduler without spatial/decorative movement.
+- Camera ownership remains with the user. Event-storm handling must not trigger camera jumps or focus stealing.
 
 ## Counterfactual compare semantics
 - Compare/fork presentation consumes authoritative fork metadata and command streams; it never performs simulation mutation itself.
@@ -51,12 +58,10 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Trajectory differences default to shared authoritative sample times. Any later interpolation/smoothing is a chart-layer presentation choice and must be labelled.
 - Export/share adapters should preserve fork origin, seed, ordered post-fork command identity, and provenance needed to replay the comparison.
 
-
 ## Child DOX index
 - [`onboarding/AGENTS.md`](onboarding/AGENTS.md) — canonical science-gated onboarding/story semantics and presentation metadata.
 - [`compare/AGENTS.md`](compare/AGENTS.md) — accessible counterfactual side-by-side/swipe presentation over authoritative branch state.
 - [`provenance/AGENTS.md`](provenance/AGENTS.md) — evidence-class presentation, strict source resolution, and incomplete-provenance rules.
-
 
 ## Provenance presentation
 - Evidence badges present provenance supplied by science/data/runtime layers; UI code must not infer evidence class from color, source count, DOI presence, or confidence tier.
@@ -64,7 +69,6 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Transferred + mechanistic composition remains visibly multi-part; do not collapse cross-study seams into a generic “validated” badge.
 - Missing required source, transfer, derivation, calibration, or limitation metadata is a visible `needs-provenance` state, not an excuse to invent a reassuring label.
 - Engineering and visual-only values must explicitly disclose that they are not measured biological constants / do not control simulation outcomes.
-
 
 ## Semantic icon language
 - Shared scientific/product icons come from `src/ui/icons/spec.ts`; React/Pixi adapters render the same framework-neutral geometry rather than inventing incompatible icon sets.

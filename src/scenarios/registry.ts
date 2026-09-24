@@ -28,10 +28,10 @@ export function discoverBundledScenarios(): readonly BundledScenarioDiscoveryEnt
       version: scenario.version,
       title: scenario.title,
       scienceAdmission,
-      scienceModeSelectable:
+      educationalScienceSelectable:
         scienceAdmission.availability === "educational-only" ||
         scienceAdmission.availability === "reference",
-      referenceScienceMode: scienceAdmission.referenceEligible,
+      referenceScienceModeSelectable: scienceAdmission.referenceEligible,
     };
   });
 }

@@ -56,11 +56,27 @@ describe("Pixi dish visual continuity integration", () => {
       'if (motion === "full" && from !== null)',
     );
     expect(updateSource).toContain(
-      "planDishVisualTransition(from, next.snapshot)",
+      "planDishVisualTransition(\n        from,\n        next.snapshot,\n        visualMotion,\n      )",
     );
     expect(updateSource).toContain(
       "drawableState = next.snapshot;",
     );
+  });
+
+  it("accepts visual continuity timing only through an explicit validated renderer input", () => {
+    expect(rendererSource).toContain(
+      "readonly visualMotion: DishVisualMotionSpec;",
+    );
+    expect(rendererSource).toContain(
+      "let visualMotion = copyDishVisualMotionSpec(options.visualMotion);",
+    );
+    expect(rendererSource).toContain(
+      "setVisualMotion(spec: DishVisualMotionSpec): void;",
+    );
+    expect(rendererSource).toContain(
+      "visualMotion = copyDishVisualMotionSpec(nextSpec);",
+    );
+    expect(rendererSource).not.toContain("DEFAULT_DISH_VISUAL_MOTION");
   });
 
   it("advances camera and state continuity from the same elapsed-time ticker", () => {

@@ -42,17 +42,6 @@ export interface DishVisualMotionSpec {
   readonly easing: MotionEasing;
 }
 
-/**
- * Calm snapshot-continuity policy for the renderer.
- *
- * This wall-clock duration/easing is presentation-only. It never represents
- * biological time or changes an authoritative snapshot.
- */
-export const DEFAULT_DISH_VISUAL_MOTION: DishVisualMotionSpec = Object.freeze({
-  durationMs: 520,
-  easing: Object.freeze([0.16, 1, 0.3, 1]) as MotionEasing,
-});
-
 export type DishVisualTransitionRefusalReason =
   | "sampling-identity-mismatch"
   | "grid-mismatch"
@@ -115,11 +104,11 @@ export interface DishVisualTransitionStep {
 export function planDishVisualTransition(
   from: DishVisualState,
   to: DishRenderSnapshot,
-  motion: DishVisualMotionSpec = DEFAULT_DISH_VISUAL_MOTION,
+  motion: DishVisualMotionSpec,
 ): DishVisualTransitionPlan {
   assertVisualState(from);
   validateRenderSnapshot(to);
-  const safeMotion = copyVisualMotionSpec(motion);
+  const safeMotion = copyDishVisualMotionSpec(motion);
 
   if (from.samplingIdentity !== to.samplingIdentity) {
     return { kind: "snap", reason: "sampling-identity-mismatch" };
@@ -468,7 +457,12 @@ function assertFiniteArray(
   }
 }
 
-function copyVisualMotionSpec(
+/**
+ * Validate and isolate a renderer-facing motion spec at the presentation
+ * boundary. Timing is supplied by the caller; this module owns no product
+ * motion constant.
+ */
+export function copyDishVisualMotionSpec(
   spec: DishVisualMotionSpec,
 ): DishVisualMotionSpec {
   if (!Number.isFinite(spec.durationMs) || spec.durationMs < 0) {

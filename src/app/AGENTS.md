@@ -76,6 +76,11 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - `CameraMotionSpec` describes spatial interpolation only: Full may use the named `MOTION.cameraFocus` travel token, while Reduced/Off request zero camera travel and keep their distinct semantics through the renderer motion mode / surrounding presentation.
 - Generic camera travel policy is not semantic-view identity. Do not pretend every pan, focus, or overview reset is a dish→colony transition just to reuse semantic-zoom labels.
 
+## Dish visual continuity motion adapter
+- `DishViewport.tsx` projects generic live snapshot continuity through `dishVisualMotion.ts`; Pixi must receive that explicit `DishVisualMotionSpec` and must not fall back to renderer-local timing constants.
+- Full continuity consumes the named `MOTION.fieldShift` token through `resolveMotion()`. Reduced/Off keep the pre-existing immediate authoritative-snapshot behavior; no hidden crossfade or spatial travel is added.
+- Generic snapshot deltas are not semantic biological evidence. The adapter must not call a growth/division/diffusion phase merely because pixels changed; evidence-gated named phases remain owned by `src/ui/motion/dishVocabulary.ts`.
+
 ## Authoritative analysis injection
 - `analysisView.ts` is the app-facing trust boundary for chart/ancestry records. It accepts explicit unit-bearing `ScientificSeriesInput` + `LineageAncestryInput` records and projects them only through the existing analysis helpers.
 - The current synthetic worker protocol is **not** eligible analysis authority. Do not adapt `syntheticPopulation`, renderer density/glyphs, demo snapshots, or visual interpolation into this contract to make the panel look populated.

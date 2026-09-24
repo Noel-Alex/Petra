@@ -146,3 +146,10 @@ Petra names recurring dish transitions instead of scattering one-off animation c
 The vocabulary is deliberately evidence-gated. Growth, division, recession, migration, branching, and diffusion may animate only when a caller supplies the required authoritative state or event evidence. Missing evidence fails closed. Aggregate merging is explicitly a presentation-only LOD transition, while selection, placement, and focus are presentation intents.
 
 Each phase exposes a bounded set of visual channels such as opacity, density, radius, contour, path length, outline, position, field texture, or camera. This keeps adapters from turning a convenient animation into a new scientific claim. Timing/easing comes only from existing Petra motion tokens and remains wall-clock presentation time, never biological duration.
+
+### Live snapshot continuity timing
+
+The live Pixi renderer does not own a default tween duration or easing. `DishViewport` resolves a renderer-facing `DishVisualMotionSpec` through the app-layer continuity adapter, which consumes Petra's shared `MOTION.fieldShift` token and `resolveMotion()`. Full motion therefore uses one product timing authority; Reduced and Off settle immediately on the exact authoritative snapshot.
+
+This generic continuity adapter is intentionally **not** a biological phase detector. A change between two snapshots may combine multiple mechanisms or presentation-only changes. It cannot label that delta as growth, division, death, migration, diffusion, or another causal phase without the explicit evidence required by the semantic dish-motion vocabulary. Renderer interpolation remains presentation-only and never changes simulation time, events, metrics, or checkpoint state.
+

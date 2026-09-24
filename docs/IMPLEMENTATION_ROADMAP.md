@@ -10,11 +10,22 @@ Until that end-to-end path is working:
 
 - treat #37 and its concrete prerequisites as the highest-priority implementation work;
 - treat missing parameter binding, science contracts, numerical validation, local experiments, reproducibility tooling, and mechanistic dataset generation as first-class functional work when they block integration;
-- do not jump ahead to model training merely because ML is visible at an expo—learned surrogates remain downstream of authoritative mechanistic trajectories and validation;
+- do not train/promote learned surrogates on synthetic or untrusted trajectories merely because ML is visible at an expo; however, prepare batch runners, dataset schemas, local registrations, baseline/evaluation tooling, and artifact policy early so training can start immediately when authoritative trajectories exist;
 - continue renderer/UI/motion/design work in parallel only when it does not displace available functional work, or when functional work is blocked on another owner/evidence source;
 - do not introduce WASM, hosted compute, or extra services unless measured workload or experiment needs justify them.
 
 The near-term completion gate is therefore **working authority before presentation completeness**. Visual excellence remains required for showcase readiness, but it is not a substitute for a real simulation loop.
+
+## Latency-adjusted execution policy
+
+The numbered phases below are capability groupings, **not a global serialized build order**. Petra should keep truthful non-conflicting work moving across the project while each task obeys its own prerequisites.
+
+- Inspect/recover open PRs before creating replacement implementation; integration debt has direct schedule cost.
+- Start long-lead preparation early: local experiment registrations/helpers, calibration and replicate sweeps, mechanistic dataset generation, training/benchmark commands, profiling, long soaks, browser acceptance, offline rehearsal, and demo rehearsal.
+- A blocked experiment is not a reason to wait. Prepare everything independent of the blocker, register the exact dependency, then move to another useful slice.
+- Keep active capacity diversified across authoritative simulation/science/integration, experiments/data/ML, frontend/renderer/UX, and release hardening whenever actionable work exists.
+- Do not let presentation-only refinement monopolize agents while unclaimed functional or long-lead blockers exist.
+- Measure completion by merged/integrated capability plus honest evidence, not branch count, code volume, or cosmetic churn.
 
 ## Phase 0 — repository contracts and scientific foundation
 

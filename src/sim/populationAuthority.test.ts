@@ -177,6 +177,29 @@ describe('shared discrete population authority', () => {
     ).toThrow(/cannot exceed authoritative standing host count/)
   })
 
+  it('restores valid typed-array checkpoint channels without requiring iterable state', () => {
+    const cfg = config({ width: 1, mask: [1] })
+    const state = createDiscretePopulationAuthorityState(cfg, [[5]])
+    const serialized = {
+      ...state,
+      standingHostCounts: state.standingHostCounts.map((channel) =>
+        Uint32Array.from(Array.from(channel)),
+      ),
+      standingResidualCellEquivalents:
+        state.standingResidualCellEquivalents.map((channel) =>
+          Float64Array.from(Array.from(channel)),
+        ),
+      divisionResidualCellEquivalents:
+        state.divisionResidualCellEquivalents.map((channel) =>
+          Float64Array.from(Array.from(channel)),
+        ),
+    }
+
+    expect(
+      restoreDiscretePopulationAuthorityState(serialized, cfg, [[5]]),
+    ).toEqual(state)
+  })
+
   it('fails restore closed on malformed residuals, biomass drift, and config mismatch', () => {
     const cfg = config({ width: 1, mask: [1] })
     const state = createDiscretePopulationAuthorityState(cfg, [[5]])

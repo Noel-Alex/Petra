@@ -30,6 +30,13 @@ Own Petra's optional learned-surrogate infrastructure without granting ML author
 
 A surrogate is not product-eligible until it has a versioned dataset, leakage-safe held-out evaluation, a simple baseline comparison, declared domain envelope, visible error metrics, and a mechanistic spot-check path.
 
+- Held-out regression evidence uses complete rows and declared targets; missing/extra targets, non-finite values, row-count mismatch, or metric overflow are invalid evidence.
+- Benchmark evidence binds model id/version, dataset version, engine version, split-policy version, held-out split, baseline id, and per-target MAE/RMSE/count.
+- A `validated` model card must carry its promotion evidence and requirements. Emulated admission re-checks that evidence rather than trusting the status label alone.
+- Candidate and baseline must cover exactly the declared targets and use equal evaluation counts for each target.
+- The current default promotion rule requires strict improvement in both MAE and RMSE on every declared target. Petra does not invent a percentage margin; any future margin must be separately versioned and justified.
+- Stale/mismatched benchmark evidence routes to mechanistic mode with an explicit `promotion-evidence-invalid` reason.
+
 ## Verification
 
-Pure dataset/split/OOD/mode-gate helpers require deterministic unit tests. Training quality, held-out metrics, latency, and accelerator claims require actual measured evidence and may not be inferred from source structure.
+Pure dataset/split/OOD/mode-gate/benchmark helpers require deterministic unit tests. Training quality, held-out metrics, latency, and accelerator claims require actual measured evidence and may not be inferred from source structure.

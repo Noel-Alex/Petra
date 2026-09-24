@@ -1,4 +1,9 @@
 import type { AuthoritativeLineageAnalysis } from "../sim/evolution/analysis";
+import {
+  ENGINE_VERSION,
+  PROTOCOL_VERSION,
+  type RunIdentity,
+} from "../sim/protocol";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -6,6 +11,25 @@ import {
   projectAuthoritativeAnalysis,
   type AuthoritativeAnalysisRecords,
 } from "./analysisView";
+
+function composedRunIdentity(seed = 7): RunIdentity {
+  return {
+    engineVersion: ENGINE_VERSION,
+    protocolVersion: PROTOCOL_VERSION,
+    scenarioId: "analysis-fixture",
+    scenarioVersion: "1",
+    parameterSetId: "fixture:analysis",
+    parameterSetVersion: "1",
+    parameterSetBinding: {
+      schemaVersion: 1,
+      authority: "fixture",
+      parameterSetId: "fixture:analysis",
+      parameterSetVersion: "1",
+      configurationFingerprint: "fixture-config",
+    },
+    seed,
+  };
+}
 
 function records(): AuthoritativeAnalysisRecords {
   return {
@@ -173,7 +197,7 @@ describe("authoritative analysis app projection", () => {
     const input = records();
     const lineageAnalysis: AuthoritativeLineageAnalysis = {
       schemaVersion: 1,
-      identity: {} as AuthoritativeLineageAnalysis["identity"],
+      identity: composedRunIdentity(),
       configurationFingerprint: "fixture-config",
       simulationTimeHours: 2,
       records: [
@@ -196,7 +220,10 @@ describe("authoritative analysis app projection", () => {
     };
 
     const view = projectAuthoritativeAnalysis({
-      identity: input.identity,
+      identity: {
+        ...input.identity,
+        composedRunIdentity: composedRunIdentity(),
+      },
       series: input.series,
       lineageAnalysis,
     });
@@ -241,6 +268,36 @@ describe("authoritative analysis app projection", () => {
     );
   });
 
+  it("requires exact composed run identity for rich lineage authority", () => {
+    const input = records();
+    const lineageAnalysis: AuthoritativeLineageAnalysis = {
+      schemaVersion: 1,
+      identity: composedRunIdentity(8),
+      configurationFingerprint: "fixture-config",
+      simulationTimeHours: 2,
+      records: [],
+    };
+
+    expect(() =>
+      projectAuthoritativeAnalysis({
+        identity: input.identity,
+        series: input.series,
+        lineageAnalysis,
+      }),
+    ).toThrow(/requires an exact composed run identity/);
+
+    expect(() =>
+      projectAuthoritativeAnalysis({
+        identity: {
+          ...input.identity,
+          composedRunIdentity: composedRunIdentity(7),
+        },
+        series: input.series,
+        lineageAnalysis,
+      }),
+    ).toThrow(/seed mismatch|different run identity/);
+  });
+
   it("requires exactly one lineage source and exact full-analysis time/lifecycle identity", () => {
     const input = records();
     expect(() =>
@@ -255,7 +312,7 @@ describe("authoritative analysis app projection", () => {
         ...input,
         lineageAnalysis: {
           schemaVersion: 1,
-          identity: {} as AuthoritativeLineageAnalysis["identity"],
+          identity: composedRunIdentity(),
           configurationFingerprint: "fixture-config",
           simulationTimeHours: 2,
           records: [],
@@ -265,14 +322,17 @@ describe("authoritative analysis app projection", () => {
 
     const analysis: AuthoritativeLineageAnalysis = {
       schemaVersion: 1,
-      identity: {} as AuthoritativeLineageAnalysis["identity"],
+      identity: composedRunIdentity(),
       configurationFingerprint: "fixture-config",
       simulationTimeHours: 1.5,
       records: [],
     };
     expect(() =>
       projectAuthoritativeAnalysis({
-        identity: input.identity,
+        identity: {
+          ...input.identity,
+          composedRunIdentity: composedRunIdentity(),
+        },
         series: input.series,
         lineageAnalysis: analysis,
       }),
@@ -280,7 +340,10 @@ describe("authoritative analysis app projection", () => {
 
     expect(() =>
       projectAuthoritativeAnalysis({
-        identity: input.identity,
+        identity: {
+          ...input.identity,
+          composedRunIdentity: composedRunIdentity(),
+        },
         series: input.series,
         lineageAnalysis: {
           ...analysis,

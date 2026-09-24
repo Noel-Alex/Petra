@@ -231,7 +231,9 @@ function DetailList({
       {presentation.details.map((detail, index) => (
         <div key={`${detail.label}-${index}`}>
           <dt>{detail.label}</dt>
-          <dd>{detail.value}</dd>
+          <dd>
+            <ActionableSourceText value={detail.value} href={detail.href} />
+          </dd>
         </div>
       ))}
     </dl>
@@ -270,12 +272,41 @@ function DeclaredSources({
       <ul>
         {sources.map((source) => (
           <li key={source.id}>
-            {source.label}
-            {source.locator === undefined ? "" : ` · ${source.locator}`}
+            <ActionableSourceText
+              value={
+                source.locator === undefined
+                  ? source.label
+                  : `${source.label} · ${source.locator}`
+              }
+              href={source.href}
+            />
           </li>
         ))}
       </ul>
     </div>
+  );
+}
+
+function ActionableSourceText({
+  value,
+  href,
+}: {
+  readonly value: string;
+  readonly href: string | undefined;
+}): ReactElement {
+  if (href === undefined) {
+    return <>{value}</>;
+  }
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer noopener"
+      aria-label={`${value}. Opens source in a new tab.`}
+    >
+      {value}
+    </a>
   );
 }
 

@@ -25,6 +25,8 @@ import { resolveDishCameraMotion } from "./dishCameraMotion";
 export interface DishViewportProps {
   readonly motion: RendererMotionMode;
   readonly snapshot?: DishRenderSnapshot | null;
+  /** Explicit visual-development fixture opt-in. Product/runtime default is false. */
+  readonly demoMode?: boolean;
   /**
    * Gives an active tool first refusal on Escape. Return true when consumed.
    * This callback may cancel presentation-only tool state but must not fabricate
@@ -46,21 +48,32 @@ function isEditableTarget(target: EventTarget | null): boolean {
 export function DishViewport({
   motion,
   snapshot,
+  demoMode = false,
   onEscapeBeforeOverview,
 }: DishViewportProps) {
   const interactionHintId = useId();
-  const demoSnapshot = useMemo(() => createRendererDemoSnapshot(), []);
-  const activeSnapshot = snapshot ?? demoSnapshot;
+  const authoritativeSnapshot = snapshot ?? null;
+  const usingAuthoritative = authoritativeSnapshot !== null;
+  const usingDemo = !usingAuthoritative && demoMode;
+  const demoSnapshot = useMemo(
+    () => (demoMode ? createRendererDemoSnapshot() : null),
+    [demoMode],
+  );
+  const activeSnapshot = usingAuthoritative
+    ? authoritativeSnapshot
+    : usingDemo
+      ? demoSnapshot
+      : null;
   const [requestedOverlayId, setRequestedOverlayId] = useState<string | null>(
-    () => defaultDishOverlayId(activeSnapshot),
+    () => (activeSnapshot === null ? null : defaultDishOverlayId(activeSnapshot)),
   );
   const [cameraResetSignal, setCameraResetSignal] = useState(0);
-  const activeOverlay = resolveDishOverlay(
-    activeSnapshot,
-    requestedOverlayId,
-  );
+  const activeOverlay =
+    activeSnapshot === null
+      ? null
+      : resolveDishOverlay(activeSnapshot, requestedOverlayId);
   const resolvedOverlayId = activeOverlay?.id ?? null;
-  const usingDemo = snapshot === null || snapshot === undefined;
+  const renderEnabled = activeSnapshot !== null;
   const cameraPlan = resolveDishCameraMotion(motion);
   const overlayMotion = useMemo(
     () =>
@@ -86,7 +99,7 @@ export function DishViewport({
       defaultPrevented: event.defaultPrevented,
       editableTarget: isEditableTarget(event.target),
       higherPriorityConsumed,
-      renderEnabled: true,
+      renderEnabled,
     });
     if (action !== "reset-overview") return;
 
@@ -98,12 +111,18 @@ export function DishViewport({
   return (
     <div
       className="dish-renderer-shell"
-      data-render-source={usingDemo ? "visual-demo" : "authoritative-snapshot"}
+      data-render-source={
+        usingAuthoritative
+          ? "authoritative-snapshot"
+          : usingDemo
+            ? "visual-demo"
+            : "awaiting-authoritative-snapshot"
+      }
       onKeyDown={handleDishKeyDown}
     >
       <div className="dish-renderer-frame">
         <PixiDish
-          snapshot={snapshot}
+          snapshot={authoritativeSnapshot}
           demoMode={usingDemo}
           motion={cameraPlan.mode}
           cameraMotion={cameraPlan.cameraMotion}
@@ -111,14 +130,20 @@ export function DishViewport({
           resetCameraSignal={cameraResetSignal}
           className="dish-renderer-canvas"
           ariaLabel={
-            usingDemo
-              ? "Interactive Petra Petri dish using clearly labelled visual demonstration data"
-              : "Interactive Petra Petri dish from authoritative simulation state"
+            usingAuthoritative
+              ? "Interactive Petra Petri dish from authoritative simulation state"
+              : usingDemo
+                ? "Interactive Petra Petri dish using clearly labelled visual demonstration data"
+                : "Petra Petri dish waiting for authoritative simulation data"
           }
           ariaDescribedBy={interactionHintId}
         />
         <span className="dish-source-badge">
-          {usingDemo ? "visual demo · not biology" : "authoritative snapshot"}
+          {usingAuthoritative
+            ? "authoritative snapshot"
+            : usingDemo
+              ? "visual demo · not biology"
+              : "waiting for authority"}
         </span>
       </div>
 
@@ -128,6 +153,7 @@ export function DishViewport({
           className="ghost-button"
           onClick={requestOverview}
           aria-label="Return Petri dish camera to whole-dish overview"
+          disabled={!renderEnabled}
         >
           Dish
         </PetraCompactAction>
@@ -137,14 +163,16 @@ export function DishViewport({
           <select
             aria-label="Petri dish overlay"
             value={resolvedOverlayId ?? ""}
-            disabled={activeSnapshot.fields.length === 0}
+            disabled={activeSnapshot === null || activeSnapshot.fields.length === 0}
             onChange={(event) => {
               setRequestedOverlayId(
                 event.target.value === "" ? null : event.target.value,
               );
             }}
           >
-            {activeSnapshot.fields.length === 0 ? (
+            {activeSnapshot === null ? (
+              <option value="">Awaiting authoritative data</option>
+            ) : activeSnapshot.fields.length === 0 ? (
               <option value="">No overlay</option>
             ) : (
               activeSnapshot.fields.map((field) => (
@@ -169,9 +197,11 @@ export function DishViewport({
         >
           <span className="dish-overlay-swatch" aria-hidden="true" />
           <span>
-            {activeOverlay === null
-              ? "No field overlay"
-              : `${activeOverlay.label} · ${activeOverlay.unit}`}
+            {activeSnapshot === null
+              ? "No authoritative field overlay"
+              : activeOverlay === null
+                ? "No field overlay"
+                : `${activeOverlay.label} · ${activeOverlay.unit}`}
           </span>
         </div>
       </div>

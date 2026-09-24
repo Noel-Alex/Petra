@@ -265,9 +265,5 @@ function ComparePane({ side, branch, surface }: ComparePaneProps) {
 }
 
 function formatHours(hours: number): string {
-  if (hours < 1) {
-    return `${Math.round(hours * 60)} min`;
-  }
-
-  return `${hours.toFixed(hours >= 10 ? 0 : 1)} h`;
+  return `${hours.toFixed(2)} h`;
 }

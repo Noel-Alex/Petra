@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 // Vite resolves raw assets in the Vitest runtime; this project intentionally omits vite/client globals.
 // @ts-expect-error Vite raw asset import is runtime-supported but not declared in tsconfig types.
 import presenterCss from "./PresenterGuide.css?raw";
+// @ts-expect-error Vite raw asset import is runtime-supported but not declared in tsconfig types.
+import presenterSource from "./PresenterGuide.tsx?raw";
 
 describe("PresenterGuide resolved motion CSS", () => {
   it("fails static when adapter-projected motion variables are absent", () => {
@@ -14,12 +16,34 @@ describe("PresenterGuide resolved motion CSS", () => {
   it("uses resolved motion attributes without a second OS motion authority", () => {
     expect(presenterCss).not.toContain("@media (prefers-reduced-motion: reduce)");
     expect(presenterCss).toContain(
-      '.presenter-guide[data-motion="full"] .presenter-guide__card',
+      '.presenter-guide[data-motion="full"] .presenter-guide__card-content {',
     );
     expect(presenterCss).toContain(
-      '.presenter-guide[data-motion="reduced"] .presenter-guide__card',
+      '.presenter-guide[data-motion="reduced"] .presenter-guide__card-content {',
     );
     expect(presenterCss).toContain('.presenter-guide[data-motion="off"] *');
+    expect(presenterCss).not.toContain(
+      '.presenter-guide[data-motion="full"] .presenter-guide__card {',
+    );
+    expect(presenterCss).not.toContain(
+      '.presenter-guide[data-motion="reduced"] .presenter-guide__card {',
+    );
+  });
+
+  it("keys only the cue visual layer while keeping the polite live region stable", () => {
+    expect(presenterSource).toContain(
+      '<section className="presenter-guide__card" aria-live="polite">',
+    );
+    expect(presenterSource).toContain("key={presentation.cue.id}");
+    expect(presenterSource).toContain(
+      'className="presenter-guide__card-content"',
+    );
+    expect(presenterSource).toContain(
+      "data-cue-id={presentation.cue.id}",
+    );
+    expect(presenterSource).not.toContain(
+      '<section key={presentation.cue.id}',
+    );
   });
 
   it("does not shrink the shared compact-action touch target locally", () => {

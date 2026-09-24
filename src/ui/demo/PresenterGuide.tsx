@@ -88,44 +88,50 @@ export function PresenterGuide({
       </ol>
 
       <section className="presenter-guide__card" aria-live="polite">
-        <div className="presenter-guide__meta">
-          <span>
-            Cue {presentation.cueNumber} / {presentation.cueCount}
-          </span>
-          <span>{formatTarget(presentation.elapsedTargetSeconds)} target</span>
-          <span data-surface-hint={presentation.cue.surface}>
-            Focus: {surfaceLabel(presentation.cue.surface)}
-          </span>
-          <span>Run: {state.runIdentity ?? "not bound"}</span>
-        </div>
-
-        <p className="presenter-guide__eyebrow">
-          {presentation.cue.eyebrow}
-        </p>
-        <h3>{presentation.cue.title}</h3>
-        <p className="presenter-guide__note">
-          {presentation.cue.presenterNote}
-        </p>
-
-        <div className="presenter-guide__takeaway">
-          <span aria-hidden="true">→</span>
-          <div>
-            <strong>Audience takeaway</strong>
-            <p>{presentation.cue.audienceTakeaway}</p>
+        <div
+          key={presentation.cue.id}
+          className="presenter-guide__card-content"
+          data-cue-id={presentation.cue.id}
+        >
+          <div className="presenter-guide__meta">
+            <span>
+              Cue {presentation.cueNumber} / {presentation.cueCount}
+            </span>
+            <span>{formatTarget(presentation.elapsedTargetSeconds)} target</span>
+            <span data-surface-hint={presentation.cue.surface}>
+              Focus: {surfaceLabel(presentation.cue.surface)}
+            </span>
+            <span>Run: {state.runIdentity ?? "not bound"}</span>
           </div>
+
+          <p className="presenter-guide__eyebrow">
+            {presentation.cue.eyebrow}
+          </p>
+          <h3>{presentation.cue.title}</h3>
+          <p className="presenter-guide__note">
+            {presentation.cue.presenterNote}
+          </p>
+
+          <div className="presenter-guide__takeaway">
+            <span aria-hidden="true">→</span>
+            <div>
+              <strong>Audience takeaway</strong>
+              <p>{presentation.cue.audienceTakeaway}</p>
+            </div>
+          </div>
+
+          <div className="presenter-guide__boundary" data-boundary="scientific">
+            <strong>Scientific boundary</strong>
+            <p>{presentation.cue.scientificBoundary}</p>
+          </div>
+
+          <GateStatus waitingFor={presentation.waitingFor} />
+
+          <p className="presenter-guide__timing">
+            Target times are presenter pacing only. They never advance the
+            simulator or satisfy scientific evidence gates.
+          </p>
         </div>
-
-        <div className="presenter-guide__boundary" data-boundary="scientific">
-          <strong>Scientific boundary</strong>
-          <p>{presentation.cue.scientificBoundary}</p>
-        </div>
-
-        <GateStatus waitingFor={presentation.waitingFor} />
-
-        <p className="presenter-guide__timing">
-          Target times are presenter pacing only. They never advance the
-          simulator or satisfy scientific evidence gates.
-        </p>
       </section>
 
       <footer className="presenter-guide__actions">

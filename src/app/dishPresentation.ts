@@ -50,6 +50,10 @@ export const NO_DISH_OVERLAY: DishOverlaySelection = Object.freeze({
   mode: "none",
 });
 
+export const AUTOMATIC_DISH_OVERLAY_CONTROL_VALUE = "automatic";
+export const NO_DISH_OVERLAY_CONTROL_VALUE = "none";
+const DISH_OVERLAY_FIELD_CONTROL_PREFIX = "field:";
+
 export function dishOverlayFieldSelection(
   fieldId: string,
 ): DishOverlayFieldSelection {
@@ -61,6 +65,45 @@ export function dishOverlayFieldSelection(
     throw new Error("dish overlay field id must be trimmed");
   }
   return Object.freeze({ mode: "field", fieldId: normalized });
+}
+
+export function dishOverlayControlValue(
+  selection: DishOverlaySelection,
+): string {
+  switch (selection.mode) {
+    case "automatic":
+      return AUTOMATIC_DISH_OVERLAY_CONTROL_VALUE;
+    case "none":
+      return NO_DISH_OVERLAY_CONTROL_VALUE;
+    case "field":
+      return DISH_OVERLAY_FIELD_CONTROL_PREFIX + selection.fieldId;
+  }
+}
+
+export function dishOverlaySelectionFromControlValue(
+  value: string,
+): DishOverlaySelection {
+  if (value === AUTOMATIC_DISH_OVERLAY_CONTROL_VALUE) {
+    return AUTOMATIC_DISH_OVERLAY;
+  }
+  if (value === NO_DISH_OVERLAY_CONTROL_VALUE) {
+    return NO_DISH_OVERLAY;
+  }
+  if (value.startsWith(DISH_OVERLAY_FIELD_CONTROL_PREFIX)) {
+    return dishOverlayFieldSelection(
+      value.slice(DISH_OVERLAY_FIELD_CONTROL_PREFIX.length),
+    );
+  }
+  throw new Error("unknown dish overlay control value");
+}
+
+export function sameDishOverlaySelection(
+  left: DishOverlaySelection,
+  right: DishOverlaySelection,
+): boolean {
+  if (left.mode !== right.mode) return false;
+  if (left.mode !== "field") return true;
+  return right.mode === "field" && left.fieldId === right.fieldId;
 }
 
 /**

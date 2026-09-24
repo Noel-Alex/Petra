@@ -76,6 +76,7 @@ import {
   rendererOwnsGestureIntent,
   rendererTouchActionForNextGesture,
 } from "./touchOwnership";
+import { resolveDishActivationPoint } from "./dishActivation";
 
 export type RendererMotionMode = "full" | "reduced" | "off";
 
@@ -86,6 +87,8 @@ export interface PixiDishOptions {
   readonly overlayId?: string | null;
   readonly maxRepresentativeGlyphs?: number;
   readonly onSemanticZoomLevelChange?: (level: SemanticZoomLevel) => void;
+  /** Presentation-only normalized dish activation for inspector/selection adapters. */
+  readonly onDishPointActivate?: (point: ScreenPoint) => void;
 }
 
 export interface PixiDishRenderer {
@@ -161,6 +164,7 @@ export async function createPixiDishRenderer(
   let destroyed = false;
   let gestureState = createPointerGestureState();
   let onePointerPanOwned = false;
+  let activationCandidate: { readonly pointerId: number; readonly start: ScreenPoint } | null = null;
   const previousHostTouchAction = host.style.touchAction;
 
   const syncHostTouchAction = () => {
@@ -362,16 +366,36 @@ export async function createPixiDishRenderer(
 
     if (startingNewGesture) {
       onePointerPanOwned = onePointerPanOwnedAtGestureStart(camera);
+      activationCandidate = {
+        pointerId: event.pointerId,
+        start: screen,
+      };
+    } else {
+      // A second admitted pointer makes this a multi-touch gesture, never a tap.
+      activationCandidate = null;
     }
 
     app.canvas.setPointerCapture(event.pointerId);
   };
 
   const onPointerMove = (event: PointerEvent) => {
+    const screen = localPointer(event);
+    if (
+      activationCandidate?.pointerId === event.pointerId &&
+      resolveDishActivationPoint({
+        start: activationCandidate.start,
+        end: screen,
+        viewport: { width: app.screen.width, height: app.screen.height },
+        camera,
+      }) === null
+    ) {
+      activationCandidate = null;
+    }
+
     const moved = movePointerGesture(
       gestureState,
       event.pointerId,
-      localPointer(event),
+      screen,
     );
     gestureState = moved.state;
     if (!moved.accepted || moved.intent.kind === "none") return;
@@ -418,13 +442,36 @@ export async function createPixiDishRenderer(
     render();
   };
 
-  const finishPointer = (event: PointerEvent) => {
+  const finishPointer = (event: PointerEvent, allowActivation: boolean) => {
+    const candidate = activationCandidate;
+    const endingSinglePointer =
+      gestureState.active.length === 1 &&
+      gestureState.active[0]?.id === event.pointerId;
+    const screen = localPointer(event);
+    const activated =
+      allowActivation &&
+      endingSinglePointer &&
+      candidate?.pointerId === event.pointerId
+        ? resolveDishActivationPoint({
+            start: candidate.start,
+            end: screen,
+            viewport: { width: app.screen.width, height: app.screen.height },
+            camera,
+          })
+        : null;
+
     gestureState = endPointerGesture(gestureState, event.pointerId);
+    if (candidate?.pointerId === event.pointerId || gestureState.active.length === 0) {
+      activationCandidate = null;
+    }
     if (gestureState.active.length === 0) {
       onePointerPanOwned = false;
     }
     if (app.canvas.hasPointerCapture(event.pointerId)) {
       app.canvas.releasePointerCapture(event.pointerId);
+    }
+    if (activated !== null) {
+      options.onDishPointActivate?.(activated);
     }
   };
 
@@ -474,6 +521,15 @@ export async function createPixiDishRenderer(
   const onKeyDown = (event: KeyboardEvent) => {
     if (!keyboardCameraModifiersAllowInput(event)) return;
 
+    if (event.key === "Enter" && options.onDishPointActivate !== undefined) {
+      event.preventDefault();
+      options.onDishPointActivate({
+        x: camera.centerX,
+        y: camera.centerY,
+      });
+      return;
+    }
+
     const result = applyKeyboardCameraKey(
       targetCamera,
       event.key,
@@ -488,8 +544,11 @@ export async function createPixiDishRenderer(
 
   app.canvas.addEventListener("pointerdown", onPointerDown);
   app.canvas.addEventListener("pointermove", onPointerMove);
-  app.canvas.addEventListener("pointerup", finishPointer);
-  app.canvas.addEventListener("pointercancel", finishPointer);
+  const onPointerUp = (event: PointerEvent) => finishPointer(event, true);
+  const onPointerCancel = (event: PointerEvent) => finishPointer(event, false);
+
+  app.canvas.addEventListener("pointerup", onPointerUp);
+  app.canvas.addEventListener("pointercancel", onPointerCancel);
   app.canvas.addEventListener("wheel", onWheel, { passive: false });
   app.canvas.addEventListener("dblclick", onDoubleClick);
   host.addEventListener("keydown", onKeyDown);
@@ -572,8 +631,8 @@ export async function createPixiDishRenderer(
       resizeScheduler.cancel();
       app.canvas.removeEventListener("pointerdown", onPointerDown);
       app.canvas.removeEventListener("pointermove", onPointerMove);
-      app.canvas.removeEventListener("pointerup", finishPointer);
-      app.canvas.removeEventListener("pointercancel", finishPointer);
+      app.canvas.removeEventListener("pointerup", onPointerUp);
+      app.canvas.removeEventListener("pointercancel", onPointerCancel);
       app.canvas.removeEventListener("wheel", onWheel);
       app.canvas.removeEventListener("dblclick", onDoubleClick);
       host.removeEventListener("keydown", onKeyDown);

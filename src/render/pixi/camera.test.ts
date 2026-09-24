@@ -86,10 +86,9 @@ describe("Pixi dish camera helpers", () => {
 
     expect(isScreenPointInsideDishAperture(admittedScreenPoint, viewport)).toBe(true);
     expect(isScreenPointInsideDishAperture(outsideScreenPoint, viewport)).toBe(false);
-    expect(screenToDish(admittedScreenPoint, viewport, zoomedCamera)).toEqual({
-      x: 0.60625,
-      y: 0.3,
-    });
+    const mapped = screenToDish(admittedScreenPoint, viewport, zoomedCamera);
+    expect(mapped.x).toBeCloseTo(0.60625, 12);
+    expect(mapped.y).toBeCloseTo(0.3, 12);
   });
 
   it("maps the viewport center to the camera center", () => {

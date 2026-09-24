@@ -82,6 +82,19 @@
       "mutations": [],
       "mic_mg_L": 0.016,
       "relativeFitness": 1,
+      "measurementUncertainty": {
+        "mic": {
+          "classification": "measured",
+          "kind": "half_doubling_step_margin",
+          "plusMinusSteps": 1
+        },
+        "relativeFitness": {
+          "classification": "measured",
+          "kind": "standard_deviation",
+          "standardDeviation": 0.01,
+          "independentCompetitionExperiments": 5
+        }
+      },
       "citation": "marcusson_2009",
       "provenance": {
         "classification": "measured",
@@ -97,6 +110,19 @@
       ],
       "mic_mg_L": 0.38,
       "relativeFitness": 1.01,
+      "measurementUncertainty": {
+        "mic": {
+          "classification": "measured",
+          "kind": "half_doubling_step_margin",
+          "plusMinusSteps": 1
+        },
+        "relativeFitness": {
+          "classification": "measured",
+          "kind": "standard_deviation",
+          "standardDeviation": 0.03,
+          "independentCompetitionExperiments": 6
+        }
+      },
       "citation": "marcusson_2009",
       "provenance": {
         "classification": "measured",
@@ -112,6 +138,19 @@
       ],
       "mic_mg_L": 0.25,
       "relativeFitness": 0.99,
+      "measurementUncertainty": {
+        "mic": {
+          "classification": "measured",
+          "kind": "half_doubling_step_margin",
+          "plusMinusSteps": 1
+        },
+        "relativeFitness": {
+          "classification": "measured",
+          "kind": "standard_deviation",
+          "standardDeviation": 0.03,
+          "independentCompetitionExperiments": 7
+        }
+      },
       "citation": "marcusson_2009",
       "provenance": {
         "classification": "measured",
@@ -127,6 +166,19 @@
       ],
       "mic_mg_L": 0.016,
       "relativeFitness": 0.99,
+      "measurementUncertainty": {
+        "mic": {
+          "classification": "measured",
+          "kind": "half_doubling_step_margin",
+          "plusMinusSteps": 1
+        },
+        "relativeFitness": {
+          "classification": "measured",
+          "kind": "standard_deviation",
+          "standardDeviation": 0.01,
+          "independentCompetitionExperiments": 5
+        }
+      },
       "citation": "marcusson_2009",
       "provenance": {
         "classification": "measured",
@@ -142,6 +194,19 @@
       ],
       "mic_mg_L": 0.032,
       "relativeFitness": 0.83,
+      "measurementUncertainty": {
+        "mic": {
+          "classification": "measured",
+          "kind": "half_doubling_step_margin",
+          "plusMinusSteps": 1
+        },
+        "relativeFitness": {
+          "classification": "measured",
+          "kind": "standard_deviation",
+          "standardDeviation": 0.03,
+          "independentCompetitionExperiments": 5
+        }
+      },
       "citation": "marcusson_2009",
       "provenance": {
         "classification": "measured",
@@ -157,6 +222,19 @@
       ],
       "mic_mg_L": 0.047,
       "relativeFitness": 0.91,
+      "measurementUncertainty": {
+        "mic": {
+          "classification": "measured",
+          "kind": "half_doubling_step_margin",
+          "plusMinusSteps": 1
+        },
+        "relativeFitness": {
+          "classification": "measured",
+          "kind": "standard_deviation",
+          "standardDeviation": 0.02,
+          "independentCompetitionExperiments": 5
+        }
+      },
       "citation": "marcusson_2009",
       "provenance": {
         "classification": "measured",
@@ -173,6 +251,19 @@
       ],
       "mic_mg_L": 0.38,
       "relativeFitness": 0.97,
+      "measurementUncertainty": {
+        "mic": {
+          "classification": "measured",
+          "kind": "half_doubling_step_margin",
+          "plusMinusSteps": 1
+        },
+        "relativeFitness": {
+          "classification": "measured",
+          "kind": "standard_deviation",
+          "standardDeviation": 0.03,
+          "independentCompetitionExperiments": 8
+        }
+      },
       "citation": "marcusson_2009",
       "provenance": {
         "classification": "measured",
@@ -189,6 +280,19 @@
       ],
       "mic_mg_L": 1,
       "relativeFitness": 0.98,
+      "measurementUncertainty": {
+        "mic": {
+          "classification": "measured",
+          "kind": "half_doubling_step_margin",
+          "plusMinusSteps": 1
+        },
+        "relativeFitness": {
+          "classification": "measured",
+          "kind": "standard_deviation",
+          "standardDeviation": 0.03,
+          "independentCompetitionExperiments": 6
+        }
+      },
       "citation": "marcusson_2009",
       "provenance": {
         "classification": "measured",
@@ -205,6 +309,19 @@
       ],
       "mic_mg_L": 1,
       "relativeFitness": 0.86,
+      "measurementUncertainty": {
+        "mic": {
+          "classification": "measured",
+          "kind": "half_doubling_step_margin",
+          "plusMinusSteps": 1
+        },
+        "relativeFitness": {
+          "classification": "measured",
+          "kind": "standard_deviation",
+          "standardDeviation": 0.03,
+          "independentCompetitionExperiments": 5
+        }
+      },
       "citation": "marcusson_2009",
       "provenance": {
         "classification": "measured",
@@ -221,6 +338,19 @@
       ],
       "mic_mg_L": 0.5,
       "relativeFitness": 0.95,
+      "measurementUncertainty": {
+        "mic": {
+          "classification": "measured",
+          "kind": "half_doubling_step_margin",
+          "plusMinusSteps": 1
+        },
+        "relativeFitness": {
+          "classification": "measured",
+          "kind": "standard_deviation",
+          "standardDeviation": 0.04,
+          "independentCompetitionExperiments": 11
+        }
+      },
       "citation": "marcusson_2009",
       "provenance": {
         "classification": "measured",
@@ -237,6 +367,19 @@
       ],
       "mic_mg_L": 0.38,
       "relativeFitness": 1.02,
+      "measurementUncertainty": {
+        "mic": {
+          "classification": "measured",
+          "kind": "half_doubling_step_margin",
+          "plusMinusSteps": 1
+        },
+        "relativeFitness": {
+          "classification": "measured",
+          "kind": "standard_deviation",
+          "standardDeviation": 0.02,
+          "independentCompetitionExperiments": 8
+        }
+      },
       "citation": "marcusson_2009",
       "provenance": {
         "classification": "measured",
@@ -253,6 +396,19 @@
       ],
       "mic_mg_L": 1,
       "relativeFitness": 0.83,
+      "measurementUncertainty": {
+        "mic": {
+          "classification": "measured",
+          "kind": "half_doubling_step_margin",
+          "plusMinusSteps": 1
+        },
+        "relativeFitness": {
+          "classification": "measured",
+          "kind": "standard_deviation",
+          "standardDeviation": 0.03,
+          "independentCompetitionExperiments": 5
+        }
+      },
       "citation": "marcusson_2009",
       "provenance": {
         "classification": "measured",
@@ -270,6 +426,19 @@
       ],
       "mic_mg_L": 32,
       "relativeFitness": 1.01,
+      "measurementUncertainty": {
+        "mic": {
+          "classification": "measured",
+          "kind": "half_doubling_step_margin",
+          "plusMinusSteps": 1
+        },
+        "relativeFitness": {
+          "classification": "measured",
+          "kind": "standard_deviation",
+          "standardDeviation": 0.02,
+          "independentCompetitionExperiments": 13
+        }
+      },
       "citation": "marcusson_2009",
       "provenance": {
         "classification": "measured",

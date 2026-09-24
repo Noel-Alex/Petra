@@ -327,6 +327,7 @@ export function App({
             records={provenance.records}
             assumptions={provenance.assumptions}
             title="Flagship sources & assumptions"
+            motionPreference={motionPreference}
           />
         </section>
       ) : null}

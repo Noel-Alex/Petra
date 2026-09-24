@@ -1,5 +1,4 @@
 import {
-  COMPOSED_STATE_VERSION,
   cloneComposedState,
   composedConfigurationFingerprint,
   createComposedState,

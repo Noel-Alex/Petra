@@ -8,10 +8,22 @@
     "exactOptionalPropertyTypes": true,
     "useDefineForClassFields": true,
     "jsx": "react-jsx",
-    "lib": ["ES2022", "DOM", "WebWorker"],
-    "types": ["vitest/globals"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "WebWorker"
+    ],
+    "types": [
+      "vitest/globals"
+    ],
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "resolveJsonModule": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts", "vite.config.ts"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "tests/**/*.ts",
+    "vite.config.ts"
+  ]
 }

@@ -1,3 +1,4 @@
+import type { ComposedSimulationConfig } from '../sim/authoritative'
 import {
   PROTOCOL_VERSION,
   assertSimulationSeed,
@@ -58,6 +59,7 @@ export function planExperimentControlAction(
   state: ExperimentControlState,
   action: ExperimentControlAction,
   createCommandId: () => string,
+  composedConfig?: ComposedSimulationConfig,
 ): PlannedControlAction {
   if (action.type === 'toggle-play') return noWorkerEffect({ ...state, playing: !state.playing })
   if (action.type === 'pause') return noWorkerEffect({ ...state, playing: false })
@@ -79,7 +81,7 @@ export function planExperimentControlAction(
       state: { ...state, playing: false, acceptedCommands: [] },
       effect: {
         type: 'worker-requests',
-        requests: [{ protocolVersion: PROTOCOL_VERSION, type: 'initialize', identity: structuredClone(state.identity) }],
+        requests: [initializeRequest(state.identity, composedConfig)],
       },
     }
   }
@@ -91,13 +93,13 @@ export function planExperimentControlAction(
       state: { identity, playing: false, speed: state.speed, acceptedCommands: [] },
       effect: {
         type: 'worker-requests',
-        requests: [{ protocolVersion: PROTOCOL_VERSION, type: 'initialize', identity: structuredClone(identity) }],
+        requests: [initializeRequest(identity, composedConfig)],
       },
     }
   }
 
   const replayRequests: WorkerRequest[] = [
-    { protocolVersion: PROTOCOL_VERSION, type: 'initialize', identity: structuredClone(state.identity) },
+    initializeRequest(state.identity, composedConfig),
     ...state.acceptedCommands.map((command) => ({
       protocolVersion: PROTOCOL_VERSION,
       type: 'command' as const,
@@ -128,6 +130,20 @@ export function snapshotMatchesControlIdentity(
     checkpoint.identity.parameterSetVersion === state.identity.parameterSetVersion &&
     checkpoint.identity.seed === state.identity.seed
   )
+}
+
+function initializeRequest(
+  identity: RunIdentity,
+  composedConfig?: ComposedSimulationConfig,
+): WorkerRequest {
+  return {
+    protocolVersion: PROTOCOL_VERSION,
+    type: 'initialize',
+    identity: structuredClone(identity),
+    ...(composedConfig === undefined
+      ? {}
+      : { composedConfig: structuredClone(composedConfig) }),
+  }
 }
 
 function withCommands(

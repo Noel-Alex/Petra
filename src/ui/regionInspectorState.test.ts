@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { PROTOCOL_VERSION } from "../sim/protocol";
 import type { AuthoritativeRegionInspection } from "../sim/regionInspector";
 import {
   acceptRegionInspection,
@@ -13,7 +14,7 @@ import {
 
 const runIdentityFixture = {
   engineVersion: "petra-ts-core/0.1.0",
-  protocolVersion: 4,
+  protocolVersion: PROTOCOL_VERSION,
   scenarioId: "region-inspector-ui",
   scenarioVersion: "1",
   parameterSetId: "fixture:region-inspector-ui",

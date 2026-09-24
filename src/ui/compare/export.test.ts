@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { COMPOSED_PARAMETER_SET_BINDING_SCHEMA_VERSION } from "../../sim/parameterSetBinding";
+import { PROTOCOL_VERSION } from "../../sim/protocol";
 import type { CounterfactualBranch } from "../counterfactual";
 import {
   createCounterfactualExportManifest,
@@ -18,7 +19,7 @@ const origin = {
 
 const replayContext = {
   engineVersion: "petra-ts-core/0.1.0",
-  protocolVersion: 4,
+  protocolVersion: PROTOCOL_VERSION,
   scenarioId: "flagship",
   scenarioVersion: "1",
   parameterSetId: "flagship-parameters",

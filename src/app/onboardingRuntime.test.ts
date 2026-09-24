@@ -86,6 +86,34 @@ describe("onboarding runtime bridge", () => {
     expect(projection.gates).toEqual([]);
   });
 
+  it("accepts the real ciprofloxacin command fact without inferring downstream selection", () => {
+    const events: readonly SimulationEvent[] = [
+      { sequence: 0, tick: 0, simulationTimeHours: 0, type: "initialized" },
+      {
+        sequence: 1,
+        tick: 0,
+        simulationTimeHours: 0,
+        type: "ciprofloxacin-applied",
+        commandId: "dose-1",
+        intervention: {
+          schemaVersion: 1,
+          concentrationMgPerL: 0.125,
+          concentrationUnit: "mg/L",
+          blendMode: "set",
+          geometry: { kind: "global" },
+        },
+      },
+    ];
+
+    const projection = projectOnboardingRuntime(runtimeState(7, { events }));
+
+    expect(projection.gates).toEqual(["antibiotic-command-recorded"]);
+    expect(projection.gates).not.toContain("population-growth-observed");
+    expect(projection.gates).not.toContain(
+      "resistant-lineage-frequency-increased",
+    );
+  });
+
   it("keeps user navigation within one run but resets when run identity changes", () => {
     const firstProjection = projectOnboardingRuntime(runtimeState(7));
     let session = createOnboardingRuntimeSession(firstProjection);

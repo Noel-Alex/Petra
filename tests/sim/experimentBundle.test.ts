@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   composedConfigurationFingerprint,
+  type ComposedCiprofloxacinConfig,
   type ComposedSimulationConfig,
 } from '../../src/sim/authoritative'
 import { ComposedSimulationEngine } from '../../src/sim/composedEngine'
@@ -66,6 +67,53 @@ const binding: ComposedParameterSetBinding = {
   parameterSetVersion: '1',
   configurationFingerprint: composedConfigurationFingerprint(config),
 }
+
+
+const ciprofloxacinAuthority: ComposedCiprofloxacinConfig = {
+  policyId: 'reference_pd_decrement_as_first_order_loss_v1',
+  concentrationUnit: 'mg/L',
+  referencePharmacodynamics: {
+    psiMaxLog10PerHour: 0.88,
+    psiMinLog10PerHour: -6.5,
+    zMic: 0.017,
+    kappa: 1.1,
+  },
+  referenceMicMgPerL: 0.03,
+  genotypeMicMgPerL: [
+    { genotypeId: 'WT', micMgPerL: 0.016 },
+    { genotypeId: 'VAR', micMgPerL: 0.38 },
+  ],
+}
+
+const drugConfig: ComposedSimulationConfig = {
+  ...config,
+  ciprofloxacin: ciprofloxacinAuthority,
+}
+
+const drugBinding: ComposedParameterSetBinding = {
+  schemaVersion: COMPOSED_PARAMETER_SET_BINDING_SCHEMA_VERSION,
+  authority: 'provenance',
+  parameterSetId: 'experiment-bundle-ciprofloxacin-parameters',
+  parameterSetVersion: '1',
+  configurationFingerprint: composedConfigurationFingerprint(drugConfig),
+}
+
+const drugCommand = {
+  id: 'dose-1',
+  type: 'apply-ciprofloxacin',
+  intervention: {
+    schemaVersion: 1,
+    concentrationMgPerL: 0.25,
+    concentrationUnit: 'mg/L',
+    blendMode: 'set',
+    geometry: {
+      kind: 'stripe',
+      axis: 'x',
+      centerFraction: 0.5,
+      widthFraction: 0.5,
+    },
+  },
+} as const
 
 describe('experiment export bundle', () => {
   it('round-trips a synthetic replay from an exact origin checkpoint', () => {
@@ -162,6 +210,75 @@ describe('experiment export bundle', () => {
     const replayed = replayExperimentBundle(bundle)
     expect(replayed.checkpoint).toEqual(expected.checkpoint)
     expect(replayed.checkpoint.identity.parameterSetBinding).toEqual(binding)
+  })
+
+  it('round-trips composed ciprofloxacin intervention commands in bundle v2', () => {
+    const identity = createRunIdentity({
+      scenarioId: evolutionGraph.scenarioId,
+      scenarioVersion: evolutionGraph.scenarioVersion,
+      parameterSetId: drugBinding.parameterSetId,
+      parameterSetVersion: drugBinding.parameterSetVersion,
+      parameterSetBinding: drugBinding,
+      seed: 29,
+    })
+    const origin = new ComposedSimulationEngine(
+      identity,
+      drugConfig,
+    ).snapshot()
+    const commands = [
+      drugCommand,
+      { id: 'advance-after-dose', type: 'advance' as const, ticks: 2 },
+    ]
+
+    const expectedEngine = new ComposedSimulationEngine(identity, drugConfig)
+    expectedEngine.execute({
+      id: 'expected-restore',
+      type: 'restore',
+      checkpoint: structuredClone(origin.checkpoint),
+    })
+    for (const command of commands) expectedEngine.execute(command)
+    const expected = expectedEngine.snapshot()
+
+    const bundle = createExperimentBundle({
+      originCheckpoint: origin.checkpoint,
+      commands,
+      composedConfig: drugConfig,
+      events: expected.events,
+      provenanceSourceIds: ['doi:fixture'],
+    })
+    const serialized = serializeExperimentBundle(bundle)
+    const parsed = parseExperimentBundle(serialized)
+    const replayed = replayExperimentBundle(parsed)
+
+    expect(parsed.replay.commands[0]).toEqual(drugCommand)
+    expect(parsed.evidence.events).toContainEqual(
+      expect.objectContaining({
+        type: 'ciprofloxacin-applied',
+        intervention: drugCommand.intervention,
+      }),
+    )
+    expect(replayed.checkpoint).toEqual(expected.checkpoint)
+    expect(serializeExperimentBundle(parsed)).toBe(serialized)
+  })
+
+  it('rejects ciprofloxacin replay history when the composed config has no drug authority', () => {
+    const identity = createRunIdentity({
+      scenarioId: evolutionGraph.scenarioId,
+      scenarioVersion: evolutionGraph.scenarioVersion,
+      parameterSetId: binding.parameterSetId,
+      parameterSetVersion: binding.parameterSetVersion,
+      parameterSetBinding: binding,
+      seed: 23,
+    })
+    const origin = new ComposedSimulationEngine(identity, config).snapshot()
+
+    expect(() =>
+      createExperimentBundle({
+        originCheckpoint: origin.checkpoint,
+        commands: [drugCommand],
+        composedConfig: config,
+      }),
+    ).toThrow(/pharmacodynamic authority/)
   })
 
   it('rejects composed config drift before replay', () => {

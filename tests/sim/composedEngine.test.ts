@@ -7,6 +7,7 @@ import {
   composedConfigurationFingerprint,
   createComposedState,
   stepComposedState,
+  type ComposedCiprofloxacinConfig,
   type ComposedSimulationConfig,
 } from '../../src/sim/authoritative'
 import type { CuratedMutationGraph } from '../../src/sim/evolution/graph'
@@ -49,7 +50,6 @@ const config: ComposedSimulationConfig = {
     scenarioVersion: '1',
   },
   ciprofloxacin: null,
-  samplingExecutionPolicy: null,
   lineages: [
     { id: 'ancestor', genotypeId: 'WT', deathHazardPerHour: 0 },
     { id: 'variant', genotypeId: 'VAR', deathHazardPerHour: 0.1 },
@@ -57,6 +57,49 @@ const config: ComposedSimulationConfig = {
   samplingExecutionPolicy: null,
   hoursPerTick: 0.01,
 }
+
+const ciprofloxacinAuthority: ComposedCiprofloxacinConfig = {
+  policyId: 'reference_pd_decrement_as_first_order_loss_v1',
+  concentrationUnit: 'mg/L',
+  referencePharmacodynamics: {
+    psiMaxLog10PerHour: 0.88,
+    psiMinLog10PerHour: -6.5,
+    zMic: 0.017,
+    kappa: 1.1,
+  },
+  referenceMicMgPerL: 0.03,
+  genotypeMicMgPerL: [
+    { genotypeId: 'WT', micMgPerL: 0.016 },
+    { genotypeId: 'VAR', micMgPerL: 0.38 },
+  ],
+}
+
+const drugConfig: ComposedSimulationConfig = {
+  ...config,
+  ciprofloxacin: ciprofloxacinAuthority,
+}
+
+const drugParameterSetId = 'fixture:explicit-ciprofloxacin-test-config'
+const drugIdentity = createRunIdentity({
+  scenarioId: evolutionGraph.scenarioId,
+  scenarioVersion: evolutionGraph.scenarioVersion,
+  parameterSetId: drugParameterSetId,
+  parameterSetVersion,
+  parameterSetBinding: createFixtureComposedParameterSetBinding(
+    drugParameterSetId,
+    parameterSetVersion,
+    drugConfig,
+  ),
+  seed: 0x5eed1234,
+})
+
+const drugIntervention = {
+  schemaVersion: 1,
+  concentrationMgPerL: 0.5,
+  concentrationUnit: 'mg/L',
+  blendMode: 'set',
+  geometry: { kind: 'global' },
+} as const
 
 const identity = createRunIdentity({
   scenarioId: 'composed-worker-fixture',
@@ -156,6 +199,116 @@ describe('ComposedSimulationEngine', () => {
     expect(advanced.metrics.totalResource).toBeLessThan(16)
   })
 
+  it('applies authoritative ciprofloxacin without advancing biological time', () => {
+    const baseline = new ComposedSimulationEngine(drugIdentity, drugConfig)
+    const treated = new ComposedSimulationEngine(drugIdentity, drugConfig)
+
+    const applied = treated.execute({
+      id: 'dose-global',
+      type: 'apply-ciprofloxacin',
+      intervention: drugIntervention,
+    })
+
+    expect(applied.checkpoint.tick).toBe(0)
+    expect(applied.checkpoint.simulationTimeHours).toBe(0)
+    expect(applied.checkpoint.commandCount).toBe(1)
+    expect(applied.checkpoint.composedState.ciprofloxacinConcentrationMgPerL).toEqual([
+      0.5,
+      0.5,
+    ])
+    expect(applied.events.at(-1)).toMatchObject({
+      type: 'ciprofloxacin-applied',
+      commandId: 'dose-global',
+      intervention: drugIntervention,
+    })
+
+    const baselineAdvanced = baseline.execute({
+      id: 'advance',
+      type: 'advance',
+      ticks: 1,
+    })
+    const treatedAdvanced = treated.execute({
+      id: 'advance',
+      type: 'advance',
+      ticks: 1,
+    })
+    expect(treatedAdvanced.checkpoint.metrics.deathBiomass).toBeGreaterThan(
+      baselineAdvanced.checkpoint.metrics.deathBiomass,
+    )
+  })
+
+  it('deep-copies nested ciprofloxacin event payloads out of engine authority', () => {
+    const engine = new ComposedSimulationEngine(drugIdentity, drugConfig)
+    engine.execute({
+      id: 'dose-global',
+      type: 'apply-ciprofloxacin',
+      intervention: drugIntervention,
+    })
+    const exported = engine.snapshot()
+    const event = exported.events.at(-1)
+    if (event?.type !== 'ciprofloxacin-applied' || event.intervention === undefined) {
+      throw new Error('expected ciprofloxacin-applied event')
+    }
+    ;(
+      event.intervention as unknown as { concentrationMgPerL: number }
+    ).concentrationMgPerL = 999
+
+    expect(engine.snapshot().events.at(-1)).toMatchObject({
+      type: 'ciprofloxacin-applied',
+      intervention: { concentrationMgPerL: 0.5 },
+    })
+  })
+
+  it('restores and replays mutable ciprofloxacin checkpoint state exactly', () => {
+    const original = new ComposedSimulationEngine(drugIdentity, drugConfig)
+    original.execute({
+      id: 'dose-global',
+      type: 'apply-ciprofloxacin',
+      intervention: drugIntervention,
+    })
+    const checkpoint = original.snapshot().checkpoint
+    original.execute({ id: 'advance-after-dose', type: 'advance', ticks: 3 })
+    const expected = original.snapshot().checkpoint
+
+    const restored = new ComposedSimulationEngine(drugIdentity, drugConfig)
+    restored.execute({ id: 'restore-dose', type: 'restore', checkpoint })
+    restored.execute({ id: 'advance-after-dose', type: 'advance', ticks: 3 })
+
+    expect(restored.snapshot().checkpoint).toEqual(expected)
+  })
+
+  it('refuses malformed or unsupported ciprofloxacin commands atomically', () => {
+    const engine = new ComposedSimulationEngine(drugIdentity, drugConfig)
+    const before = engine.snapshot()
+
+    expect(() =>
+      engine.execute({
+        id: 'invalid-dose',
+        type: 'apply-ciprofloxacin',
+        intervention: {
+          ...drugIntervention,
+          geometry: {
+            kind: 'radial',
+            center: { x: 0.5, y: 0.5 },
+            radiusFraction: 0,
+          },
+        },
+      }),
+    ).toThrow(/radiusFraction/)
+    expect(engine.snapshot()).toEqual(before)
+
+    const noAuthority = new ComposedSimulationEngine(identity, config)
+    const beforeNoAuthority = noAuthority.snapshot()
+    expect(() =>
+      noAuthority.execute({
+        id: 'unsupported-dose',
+        type: 'apply-ciprofloxacin',
+        intervention: drugIntervention,
+      }),
+    ).toThrow(/requires explicit pharmacodynamic authority/)
+    expect(noAuthority.snapshot()).toEqual(beforeNoAuthority)
+  })
+
   it('replays deterministically for identical identity, config, and commands', () => {
     const first = new ComposedSimulationEngine(identity, config)
     const second = new ComposedSimulationEngine(identity, config)
@@ -213,6 +366,7 @@ describe('ComposedSimulationEngine', () => {
     const exported = engine.snapshot()
 
     exported.checkpoint.composedState.resource[0] = 999
+    exported.checkpoint.composedState.ciprofloxacinConcentrationMgPerL[0] = 999
     exported.checkpoint.composedState.genotypeIds[0] = 'CORRUPT'
     ;(
       exported.checkpoint.metrics.lineageBiomass as Record<string, number>
@@ -220,6 +374,7 @@ describe('ComposedSimulationEngine', () => {
 
     const fresh = engine.snapshot().checkpoint
     expect(fresh.composedState.resource[0]).toBe(8)
+    expect(fresh.composedState.ciprofloxacinConcentrationMgPerL[0]).toBe(0)
     expect(fresh.composedState.genotypeIds[0]).toBe('WT')
     expect(fresh.metrics.lineageBiomass.ancestor).toBe(1)
   })

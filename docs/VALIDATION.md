@@ -51,9 +51,12 @@ If enabled:
 - zero drug produces zero incremental PD-derived loss;
 - at the reference zMIC, the incremental loss equals the converted reference drug-free PD rate while the transferred PD response itself crosses zero;
 - the spatial loss field follows the authoritative drug mask/concentration state and remains finite/non-negative;
-- composed protocol-v4 configuration refuses non-zero ciprofloxacin exposure without explicit supported PD/MIC authority, refuses missing active-genotype MICs, and refuses off-mask concentration;
-- changing the static ciprofloxacin landscape or its PD/MIC authority changes the composed configuration fingerprint, while the bundled all-zero baseline preserves untreated behavior;
-- a non-zero configured landscape produces additional authoritative ecology death flux through the existing genotype-specific spatial PD composition; this is tested separately from future mutable intervention commands;
+- composed protocol-v5/state-v3 authority refuses non-zero ciprofloxacin exposure without explicit supported PD/MIC authority, refuses missing active-genotype MICs, and refuses off-mask concentration;
+- changing the **initial** ciprofloxacin landscape or PD/MIC authority changes the composed configuration fingerprint, while accepted intervention commands mutate only checkpoint state and remain reproducible through command/checkpoint history;
+- global/radial/stripe/paint ciprofloxacin commands preserve the exact composed mask, validate dense normalized geometry and finite Float32-representable `mg/L`, apply transactionally, increment accepted command position without advancing biological time, and are replay/export complete;
+- a refused intervention is an exact replay no-op: checkpoint drug state, biomass/resource state, metrics, tick/time, command count, and event history remain unchanged;
+- a non-zero current checkpoint landscape produces additional authoritative ecology death flux through the existing genotype-specific spatial PD composition;
+- intervention geometry alone is not evidence for calibrated ciprofloxacin diffusion, decay, clearance, or physical delivery equivalence;
 - zero-resource + drug behavior is tested as a declared composition policy, not reported as stationary-phase calibration;
 - the whole-model zero-growth concentration is not assumed to equal Regoes zMIC until the independent ecology baseline is calibrated.
 

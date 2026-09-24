@@ -80,12 +80,19 @@ landscape, so its incremental ciprofloxacin loss is exactly zero before any
 drug exposure is configured. Zero here is not a measured MG1655
 background-death rate.
 
-Under protocol v4 this concentration landscape is immutable run configuration
-and participates in the exact composed configuration fingerprint. That is a
-bounded authority bridge for static configured landscapes, not a substitute for
-typed mutable intervention state. Dose/paint commands require a separately
-versioned checkpoint/protocol path before the UI may claim that applying a tool
-changed authoritative drug state.
+Under protocol v5 the all-zero landscape in the composed config is the
+fingerprinted **initial** exposure. Composed state v3 checkpoints the current
+`mg/L` landscape, and the typed `apply-ciprofloxacin` command may mutate that
+state through validated global/radial/stripe/paint `set|add` geometry while
+preserving exact replay/export identity. Accepted commands record the exact
+intervention at the current biological time; they do not themselves advance the
+clock.
+
+This authority does not promote intervention geometry into a calibrated drug
+transport model. No source-compatible ciprofloxacin diffusion coefficient,
+decay/clearance law, plate-medium mapping, clinical dose interpretation, or
+physical-delivery equivalence is claimed by the command path. Those remain
+separate calibration/mechanism work.
 
 Initial model-resource level, founder placement, founder biomass, and random seed
 remain explicit run-state inputs. They are intentionally not silently promoted

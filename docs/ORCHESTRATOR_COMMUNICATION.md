@@ -108,3 +108,18 @@ Contributor: Noel-Alex
 - Hosted CI remains frozen. This environment has source/connector review but no working network checkout for local npm/Vitest execution, so no unrun test result is claimed.
 
 Contributor: Noel-Alex
+
+
+## 2026-09-24 — protocol v5 makes ciprofloxacin intervention state authoritative
+
+- #626's next integration slice upgrades the composed worker contract to protocol v5 and composed state v3. The initial ciprofloxacin landscape remains part of configuration identity; the **current** full-grid `mg/L` landscape is now checkpoint state, so restore/replay can continue after intervention without reconstructing exposure from UI history.
+- `apply-ciprofloxacin` is the first real typed flagship intervention command. It carries schema-versioned exact `mg/L`, `set|add` semantics, and validated global/radial/stripe/paint geometry in normalized dish coordinates. The spatial write layer targets the checkpoint's exact mask and remains transactional.
+- Accepted intervention commands increment `commandCount`, preserve tick and biological time, and emit `ciprofloxacin-applied` with the exact intervention payload. A refused command leaves state, metrics, counters, time, and events unchanged.
+- Composed stepping consumes the mutable checkpoint concentration through the existing reviewed Regoes/MIC loss composition; no duplicate pharmacodynamic equation was added.
+- Experiment bundle schema v2 includes the exact `apply-ciprofloxacin` command in replay history and validates intervention-bearing evidence events. Synthetic authority rejects both.
+- This is **not** a ciprofloxacin transport calibration. Protocol v5 edits concentration landscapes but does not add a source-calibrated diffusion coefficient, decay/clearance law, medium mapping, clinical dose interpretation, or physical delivery equivalence.
+- Product placement previews remain presentation-only until app/runtime metadata performs a lossless supported preview→command conversion. Point/nutrient/inoculate/fungus/phage/environment tools remain unsupported by this command vocabulary.
+- Once merged, `flagship-runtime-smoke` can replace its #626 blocked registration with a real intervention/replay assertion, which is the next long-lead unlock.
+- Local TypeScript/Vitest/premerge execution is still unavailable in this agent environment because a GitHub checkout cannot resolve the host; hosted CI remains frozen. Verification claims for this slice must therefore stay source/audit-only unless another environment executes the local gates.
+
+Contributor: Noel-Alex

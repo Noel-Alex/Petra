@@ -1,9 +1,20 @@
-import {
-  CircularScalarField,
-  requireFiniteNonNegativeFloat32,
-} from './field'
+import { requireFiniteNonNegativeFloat32 } from './field'
 
 export type FieldBlendMode = 'set' | 'add'
+
+/**
+ * Minimal exact-mask write target for deterministic intervention geometry.
+ * CircularScalarField satisfies this structurally; composed checkpoint adapters
+ * may supply the same contract without regenerating dish geometry.
+ */
+export interface WritableScalarField {
+  readonly width: number
+  readonly height: number
+  readonly values: Float32Array
+  index(x: number, y: number): number
+  isInside(x: number, y: number): boolean
+  set(x: number, y: number, value: number): void
+}
 
 function validateMagnitude(value: number): void {
   requireFiniteNonNegativeFloat32('intervention value', value)
@@ -24,7 +35,7 @@ function validateFiniteCoordinate(name: string, value: number): void {
 type PendingWrites = Map<number, number>
 
 function stageWrite(
-  field: CircularScalarField,
+  field: WritableScalarField,
   pending: PendingWrites,
   x: number,
   y: number,
@@ -46,7 +57,7 @@ function stageWrite(
 }
 
 function commitWrites(
-  field: CircularScalarField,
+  field: WritableScalarField,
   pending: PendingWrites,
 ): void {
   for (const [index, value] of pending) {
@@ -57,7 +68,7 @@ function commitWrites(
 }
 
 function stageRadial(
-  field: CircularScalarField,
+  field: WritableScalarField,
   pending: PendingWrites,
   centerX: number,
   centerY: number,
@@ -66,8 +77,12 @@ function stageRadial(
   mode: FieldBlendMode,
 ): void {
   const radiusSquared = radius * radius
-  for (let y = 0; y < field.height; y += 1) {
-    for (let x = 0; x < field.width; x += 1) {
+  const minX = Math.max(0, Math.ceil(centerX - radius))
+  const maxX = Math.min(field.width - 1, Math.floor(centerX + radius))
+  const minY = Math.max(0, Math.ceil(centerY - radius))
+  const maxY = Math.min(field.height - 1, Math.floor(centerY + radius))
+  for (let y = minY; y <= maxY; y += 1) {
+    for (let x = minX; x <= maxX; x += 1) {
       const dx = x - centerX
       const dy = y - centerY
       if (dx * dx + dy * dy <= radiusSquared) {
@@ -78,7 +93,7 @@ function stageRadial(
 }
 
 export function applyUniform(
-  field: CircularScalarField,
+  field: WritableScalarField,
   value: number,
   mode: FieldBlendMode = 'set',
 ): void {
@@ -95,7 +110,7 @@ export function applyUniform(
 }
 
 export function applyRadial(
-  field: CircularScalarField,
+  field: WritableScalarField,
   centerX: number,
   centerY: number,
   radius: number,
@@ -117,7 +132,7 @@ export function applyRadial(
 
 /** Writes a stripe defined by signed projection along a unit-normal direction. */
 export function applyBand(
-  field: CircularScalarField,
+  field: WritableScalarField,
   centerX: number,
   centerY: number,
   normalX: number,
@@ -161,7 +176,7 @@ export interface BrushPoint {
 
 /** Applies a circular brush at each sampled pointer point. UI interpolation belongs outside simulation authority. */
 export function applyBrush(
-  field: CircularScalarField,
+  field: WritableScalarField,
   points: readonly BrushPoint[],
   radius: number,
   value: number,

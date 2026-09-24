@@ -117,10 +117,13 @@ export function createTimelineBookmark(
 }
 
 /**
- * Current protocol-v4 only exposes generic lifecycle/fixture event types.
+ * Protocol v5 exposes generic lifecycle/fixture events plus the exact
+ * `ciprofloxacin-applied` command-acceptance event.
  *
- * Named scientific threshold/event requests therefore fail closed until the
- * authoritative runtime emits an explicit event vocabulary that can prove
+ * That event proves an intervention command was accepted, but it does not prove
+ * a downstream biological threshold. Named threshold/event requests therefore
+ * still fail closed until the authoritative runtime emits an explicit event
+ * vocabulary that can prove
  * those meanings. Generic `advanced` events are never promoted into growth,
  * resistance, depletion, collapse, or lineage evidence here.
  */

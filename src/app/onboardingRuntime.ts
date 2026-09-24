@@ -48,7 +48,9 @@ export interface OnboardingRuntimeSession {
 /**
  * Current protocol events are intentionally explicit here. None of them prove
  * Petra's causal onboarding gates: "advanced" does not prove population growth,
- * and "synthetic-pulse" is not an inoculation or antibiotic intervention.
+ * while an accepted ciprofloxacin command proves only the bounded
+ * "antibiotic-command-recorded" fact, not a downstream selection outcome.
+ * "synthetic-pulse" remains non-biological infrastructure activity.
  *
  * The satisfies clause is deliberate. Adding a new SimulationEvent type forces
  * this adapter to make an explicit gate/no-gate decision at type-check time.
@@ -56,6 +58,7 @@ export interface OnboardingRuntimeSession {
 const ONBOARDING_GATE_BY_EVENT_TYPE = {
   initialized: null,
   advanced: null,
+  "ciprofloxacin-applied": "antibiotic-command-recorded",
   "synthetic-pulse": null,
   restored: null,
 } satisfies Record<SimulationEvent["type"], ScientificGate | null>;

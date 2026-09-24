@@ -14,6 +14,7 @@ import {
   samplingExecutionPolicyIdentity,
   type SamplingExecutionPolicy,
 } from './samplingPolicy'
+import { requireFiniteNonNegativeFloat32 } from './spatial/field'
 import {
   CIPROFLOXACIN_RESOURCE_COMPOSITION_POLICY,
   composeSpatialCiprofloxacinLoss,
@@ -24,7 +25,7 @@ import {
 } from './pharmacodynamics/ciprofloxacin'
 
 /** Versioned serializable composition boundary. Biological values are caller supplied. */
-export const COMPOSED_STATE_VERSION = 2 as const
+export const COMPOSED_STATE_VERSION = 3 as const
 
 export interface ComposedLineageConfig {
   readonly id: string
@@ -51,8 +52,8 @@ export interface ComposedSimulationConfig {
   readonly mask: readonly number[]
   readonly initialResource: readonly number[]
   /**
-   * Replay-critical static ciprofloxacin landscape for this run, in mg/L.
-   * Mutable intervention state requires a separately versioned protocol/state change.
+   * Replay-critical initial ciprofloxacin landscape for this run, in mg/L.
+   * The mutable current landscape is checkpoint state.
    */
   readonly ciprofloxacinConcentrationMgPerL: readonly number[]
   readonly initialLineageBiomass: readonly (readonly number[])[]
@@ -75,6 +76,7 @@ export interface ComposedSimulationState {
   readonly lineageIds: string[]
   readonly genotypeIds: string[]
   resource: number[]
+  ciprofloxacinConcentrationMgPerL: number[]
   lineageBiomass: number[][]
 }
 
@@ -424,9 +426,9 @@ function validateConfig(config: ComposedSimulationConfig): void {
 
 /**
  * Canonical, non-cryptographic identity for configuration that must not drift
- * while continuing one composed state. Mutable initial resource/biomass fields
- * are state and remain excluded. The protocol-v4 static ciprofloxacin landscape
- * is included because it is not checkpoint state and must not change silently.
+ * while continuing one composed state. Mutable resource/biomass/drug fields are
+ * checkpoint state after initialization. The initial ciprofloxacin landscape
+ * remains fingerprinted so genesis exposure cannot drift silently.
  */
 export function composedConfigurationFingerprint(
   config: ComposedSimulationConfig,
@@ -437,9 +439,13 @@ export function composedConfigurationFingerprint(
     width: config.width,
     height: config.height,
     mask: Array.from(config.mask),
-    ciprofloxacinConcentrationMgPerL: Array.from(
-      config.ciprofloxacinConcentrationMgPerL,
-    ),
+    ciprofloxacinConcentrationMgPerL:
+      config.ciprofloxacinConcentrationMgPerL.map((value) =>
+        requireFiniteNonNegativeFloat32(
+          'initial ciprofloxacin concentration',
+          value,
+        ),
+      ),
     ciprofloxacin: composedCiprofloxacinIdentity(config.ciprofloxacin),
     growth: {
       maxDivisionRate: config.growth.maxDivisionRate,
@@ -478,6 +484,13 @@ export function createComposedState(
     lineageIds: config.lineages.map((lineage) => lineage.id),
     genotypeIds: config.lineages.map((lineage) => lineage.genotypeId),
     resource: Array.from(config.initialResource),
+    ciprofloxacinConcentrationMgPerL:
+      config.ciprofloxacinConcentrationMgPerL.map((value) =>
+        requireFiniteNonNegativeFloat32(
+          'initial ciprofloxacin concentration',
+          value,
+        ),
+      ),
     lineageBiomass: config.initialLineageBiomass.map((channel) =>
       Array.from(channel),
     ),
@@ -508,7 +521,11 @@ export function validateComposedStateAgainstConfig(
   }
 
   const cellCount = state.width * state.height
-  if (state.mask.length !== cellCount || state.resource.length !== cellCount) {
+  if (
+    state.mask.length !== cellCount ||
+    state.resource.length !== cellCount ||
+    state.ciprofloxacinConcentrationMgPerL.length !== cellCount
+  ) {
     throw new Error('composed state fields do not match grid dimensions')
   }
   if (state.mask.some((value) => value !== 0 && value !== 1)) {
@@ -548,6 +565,30 @@ export function validateComposedStateAgainstConfig(
   state.resource.forEach((value) =>
     finiteNonNegative('state.resource', value),
   )
+  state.ciprofloxacinConcentrationMgPerL.forEach((value, index) => {
+    finiteNonNegative('state.ciprofloxacinConcentrationMgPerL', value)
+    const stored = requireFiniteNonNegativeFloat32(
+      'state.ciprofloxacinConcentrationMgPerL',
+      value,
+    )
+    if (!Object.is(value, stored)) {
+      throw new Error(
+        'state ciprofloxacin concentration must be canonical Float32 at cell ' +
+          index,
+      )
+    }
+    if (state.mask[index] === 0 && value !== 0) {
+      throw new Error(
+        'state ciprofloxacin concentration must be zero outside composed mask at cell ' +
+          index,
+      )
+    }
+    if (config.ciprofloxacin === null && value !== 0) {
+      throw new Error(
+        'non-zero state ciprofloxacin concentration requires explicit PD authority',
+      )
+    }
+  })
   state.lineageBiomass.forEach((channel) =>
     channel.forEach((value) =>
       finiteNonNegative('state.lineageBiomass', value),
@@ -583,14 +624,17 @@ interface PreparedComposedLineageParameters {
 }
 
 const preparedLineageParameterCache =
-  new WeakMap<ComposedSimulationConfig, PreparedComposedLineageParameters>()
+  new WeakMap<readonly number[], PreparedComposedLineageParameters>()
 
 function preparedLineageParameters(
+  state: ComposedSimulationState,
   config: ComposedSimulationConfig,
-  configurationFingerprint: string,
 ): readonly LineageEcologyParameters[] {
-  const cached = preparedLineageParameterCache.get(config)
-  if (cached?.configurationFingerprint === configurationFingerprint) {
+  const concentration = state.ciprofloxacinConcentrationMgPerL
+  const cached = preparedLineageParameterCache.get(concentration)
+  if (
+    cached?.configurationFingerprint === state.configurationFingerprint
+  ) {
     return cached.lineageParameters
   }
 
@@ -598,7 +642,7 @@ function preparedLineageParameters(
   const ciprofloxacin = composedCiprofloxacinIdentity(config.ciprofloxacin)
   const hasDrugExposure =
     ciprofloxacin !== null &&
-    config.ciprofloxacinConcentrationMgPerL.some((value) => value !== 0)
+    concentration.some((value) => value !== 0)
 
   let drugHazardByGenotype: ReadonlyMap<string, Float64Array> | null = null
   if (ciprofloxacin !== null && hasDrugExposure) {
@@ -615,8 +659,8 @@ function preparedLineageParameters(
       genotypeMic: micByGenotype.get(genotypeId)!,
     }))
     const composed = composeSpatialCiprofloxacinLoss(
-      Float32Array.from(config.ciprofloxacinConcentrationMgPerL),
-      Uint8Array.from(config.mask),
+      Float32Array.from(concentration),
+      Uint8Array.from(state.mask),
       ciprofloxacin.referencePharmacodynamics,
       ciprofloxacin.referenceMicMgPerL,
       activeGenotypes,
@@ -647,7 +691,7 @@ function preparedLineageParameters(
       }
       const combinedHazard = new Float64Array(drugHazard.length)
       for (let cell = 0; cell < drugHazard.length; cell += 1) {
-        if (config.mask[cell] !== 1) continue
+        if (state.mask[cell] !== 1) continue
         const value = lineage.deathHazardPerHour + drugHazard[cell]!
         if (!Number.isFinite(value) || value < 0) {
           throw new Error('composed lineage death hazard became invalid')
@@ -661,8 +705,8 @@ function preparedLineageParameters(
     },
   )
 
-  preparedLineageParameterCache.set(config, {
-    configurationFingerprint,
+  preparedLineageParameterCache.set(concentration, {
+    configurationFingerprint: state.configurationFingerprint,
     lineageParameters,
   })
   return lineageParameters
@@ -675,10 +719,7 @@ export function stepComposedState(
   validateComposedStateAgainstConfig(state, config)
 
   const ecology = asEcologyState(state)
-  const lineageParameters = preparedLineageParameters(
-    config,
-    state.configurationFingerprint,
-  )
+  const lineageParameters = preparedLineageParameters(state, config)
   const result = stepEcology(
     ecology,
     config.growth,
@@ -720,6 +761,9 @@ export function cloneComposedState(
     lineageIds: [...state.lineageIds],
     genotypeIds: [...state.genotypeIds],
     resource: [...state.resource],
+    ciprofloxacinConcentrationMgPerL: [
+      ...state.ciprofloxacinConcentrationMgPerL,
+    ],
     lineageBiomass: state.lineageBiomass.map((channel) => [...channel]),
   }
 }

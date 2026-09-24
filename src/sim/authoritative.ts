@@ -66,6 +66,15 @@ function positiveFinite(name: string, value: number): void {
   }
 }
 
+function canonicalIdentity(name: string, value: unknown): asserts value is string {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(name + ' must be a non-empty string')
+  }
+  if (value !== value.trim()) {
+    throw new Error(name + ' must be canonical with no surrounding whitespace')
+  }
+}
+
 function validateMaskedDomain(
   name: string,
   mask: readonly number[],
@@ -153,15 +162,19 @@ function validateConfig(config: ComposedSimulationConfig): void {
     throw new Error('lineage biomass arrays must match grid dimensions')
   }
 
+  config.lineages.forEach((lineage, index) => {
+    canonicalIdentity('lineage id at index ' + index, lineage.id)
+    canonicalIdentity('genotype id at index ' + index, lineage.genotypeId)
+  })
+  canonicalIdentity('evolution scenario id', config.evolutionScenario.scenarioId)
+  canonicalIdentity(
+    'evolution scenario version',
+    config.evolutionScenario.scenarioVersion,
+  )
+
   const lineageIds = config.lineages.map((lineage) => lineage.id)
-  if (lineageIds.some((id) => id.trim().length === 0)) {
-    throw new Error('lineage ids must be non-empty')
-  }
   if (new Set(lineageIds).size !== lineageIds.length) {
     throw new Error('lineage ids must be unique')
-  }
-  if (config.lineages.some((lineage) => lineage.genotypeId.trim().length === 0)) {
-    throw new Error('genotype ids must be non-empty')
   }
 
   // Strict scenario/genotype validation boundary. Relative fitness is owned by
@@ -301,6 +314,11 @@ function validateStateAgainstConfig(
     throw new Error('composed state lineage channels do not match configuration')
   }
   state.lineageIds.forEach((id, index) => {
+    canonicalIdentity('composed state lineage id at index ' + index, id)
+    canonicalIdentity(
+      'composed state genotype id at index ' + index,
+      state.genotypeIds[index],
+    )
     if (id !== config.lineages[index]?.id) {
       throw new Error('composed state lineage order does not match configuration')
     }

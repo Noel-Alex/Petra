@@ -164,13 +164,20 @@ function assertCursorIdentity(
 ): void {
   if (cursor.sequence < 0) return;
 
+  // Within one run/branch identity the causal stream is append-only. Keeping
+  // the accepted frontier in the batch lets us prove that later events extend
+  // the same authority history rather than silently continuing after a
+  // truncated or replaced prefix. A genuine reset/fork must reset the cursor
+  // by changing run/branch identity in the app adapter.
   const matchingSequence = events.find(
     (event) => event.sequence === cursor.sequence,
   );
-  if (
-    matchingSequence !== undefined &&
-    matchingSequence.id !== cursor.eventId
-  ) {
+  if (matchingSequence === undefined) {
+    throw new RangeError(
+      "causal announcement cursor event must remain present in the append-only authority stream",
+    );
+  }
+  if (matchingSequence.id !== cursor.eventId) {
     throw new RangeError(
       "causal announcement cursor identity does not match authoritative event sequence",
     );

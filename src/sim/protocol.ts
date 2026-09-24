@@ -107,6 +107,8 @@ export type SimulationSnapshot =
   | SyntheticSimulationSnapshot
   | ComposedSimulationSnapshot
 
+export type WorkerErrorCode = 'advance-execution-policy-refusal'
+
 export type WorkerResponse =
   | {
       protocolVersion: typeof PROTOCOL_VERSION
@@ -123,6 +125,7 @@ export type WorkerResponse =
       protocolVersion: typeof PROTOCOL_VERSION
       type: 'error'
       commandId?: string
+      code?: WorkerErrorCode
       message: string
     }
 

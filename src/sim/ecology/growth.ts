@@ -211,7 +211,7 @@ export function stepEcology(
     }
   }
 
-  if (p.spreadRate > 0 && dt > 0) spread(state, p.spreadRate * dt)
+  if (p.spreadRate > 0 && dt > 0) spread(state, p.spreadRate * dt, p.localCapacity)
 
   let totalBiomass = 0
   let occupiedCells = 0
@@ -235,29 +235,146 @@ export function stepEcology(
   }
 }
 
-/** Conservative coarse colony-front spread. This is not single-cell motility. */
-function spread(state: EcologyState, fractionPerNeighbour: number): void {
-  const { width, height, mask } = state
-  for (const lineage of state.lineages) {
-    const source = Float64Array.from(lineage)
-    const delta = new Float64Array(lineage.length)
+/**
+ * Conservative coarse colony-front spread with a strict local-capacity budget.
+ *
+ * Capacity is evaluated from the pre-spread snapshot. Every destination accepts
+ * the same proportional fraction of all proposed incoming source/lineage flows;
+ * rejected flux stays at its source. This keeps the operator conservative and
+ * lineage-order independent without post-hoc clipping or hidden rerouting.
+ *
+ * This is still a coarse engineering/calibrated front-spread approximation,
+ * not literal single-cell motility.
+ */
+function spread(
+  state: EcologyState,
+  fractionPerNeighbour: number,
+  localCapacity: number,
+): void {
+  const { width, height, mask, lineages } = state
+  const n = width * height
+  const capacityTolerance = Math.max(1e-7, localCapacity * 1e-6)
+  const lineageSources = lineages.map((lineage) => Float64Array.from(lineage))
+  const localBiomass = new Float64Array(n)
+  const proposedIncoming = new Float64Array(n)
+  const acceptance = new Float64Array(n)
+  const lineageScratch = new Float64Array(lineages.length)
+
+  for (let index = 0; index < n; index += 1) {
+    if (mask[index] === 0) continue
+    const total = stableCellBiomass(lineageSources, index, lineageScratch)
+    if (total > localCapacity + capacityTolerance) {
+      throw new Error('pre-spread biomass exceeds localCapacity')
+    }
+    localBiomass[index] = total
+  }
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const index = y * width + x
+      if (mask[index] === 0 || localBiomass[index] === 0) continue
+      const proposed = localBiomass[index]! * fractionPerNeighbour
+      forEachNeighbour(width, height, mask, x, y, (neighbourIndex) => {
+        proposedIncoming[neighbourIndex] =
+          proposedIncoming[neighbourIndex]! + proposed
+      })
+    }
+  }
+
+  for (let index = 0; index < n; index += 1) {
+    if (mask[index] === 0) continue
+    const incoming = proposedIncoming[index]!
+    if (incoming === 0) {
+      acceptance[index] = 0
+      continue
+    }
+    const freeCapacity = Math.max(0, localCapacity - localBiomass[index]!)
+    acceptance[index] = Math.min(1, freeCapacity / incoming)
+  }
+
+  for (let lineageIndex = 0; lineageIndex < lineages.length; lineageIndex += 1) {
+    const source = lineageSources[lineageIndex]!
+    const outgoing = new Float64Array(n)
+    const incoming = new Float64Array(n)
+
     for (let y = 0; y < height; y += 1) {
       for (let x = 0; x < width; x += 1) {
         const index = y * width + x
-        if (mask[index] === 0 || source[index] === 0) continue
-        const neighbours = [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]] as const
-        for (const [nx, ny] of neighbours) {
-          if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue
-          const neighbourIndex = ny * width + nx
-          if (mask[neighbourIndex] === 0) continue
-          const moved = source[index]! * fractionPerNeighbour
-          delta[index] = delta[index]! - moved
-          delta[neighbourIndex] = delta[neighbourIndex]! + moved
-        }
+        const amount = source[index]!
+        if (mask[index] === 0 || amount === 0) continue
+
+        const proposed = amount * fractionPerNeighbour
+        forEachNeighbour(width, height, mask, x, y, (neighbourIndex) => {
+          const accepted = proposed * acceptance[neighbourIndex]!
+          outgoing[index] = outgoing[index]! + accepted
+          incoming[neighbourIndex] = incoming[neighbourIndex]! + accepted
+        })
       }
     }
-    for (let index = 0; index < lineage.length; index += 1) {
-      lineage[index] = Math.max(0, source[index]! + delta[index]!)
+
+    const lineage = lineages[lineageIndex]!
+    for (let index = 0; index < n; index += 1) {
+      const sent = outgoing[index]!
+      if (sent > source[index]! + capacityTolerance) {
+        throw new Error('spread outgoing flux exceeds source biomass')
+      }
+      const next = source[index]! - sent + incoming[index]!
+      if (!Number.isFinite(next) || next < -capacityTolerance) {
+        throw new Error('spread produced invalid lineage biomass')
+      }
+      lineage[index] = next
     }
+  }
+
+  for (let index = 0; index < n; index += 1) {
+    if (mask[index] === 0) continue
+    const total = stableCellBiomass(
+      lineages.map((lineage) => Float64Array.from(lineage)),
+      index,
+      lineageScratch,
+    )
+    if (total > localCapacity + capacityTolerance) {
+      throw new Error('spread exceeded localCapacity')
+    }
+  }
+}
+
+function stableCellBiomass(
+  lineages: readonly Float64Array[],
+  index: number,
+  scratch: Float64Array,
+): number {
+  for (let lineageIndex = 0; lineageIndex < lineages.length; lineageIndex += 1) {
+    scratch[lineageIndex] = lineages[lineageIndex]![index]!
+  }
+  scratch.sort()
+
+  let total = 0
+  for (let lineageIndex = 0; lineageIndex < scratch.length; lineageIndex += 1) {
+    total += scratch[lineageIndex]!
+  }
+  return total
+}
+
+function forEachNeighbour(
+  width: number,
+  height: number,
+  mask: Uint8Array,
+  x: number,
+  y: number,
+  visit: (index: number) => void,
+): void {
+  const neighbours = [
+    [x - 1, y],
+    [x + 1, y],
+    [x, y - 1],
+    [x, y + 1],
+  ] as const
+
+  for (const [nx, ny] of neighbours) {
+    if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue
+    const neighbourIndex = ny * width + nx
+    if (mask[neighbourIndex] === 0) continue
+    visit(neighbourIndex)
   }
 }

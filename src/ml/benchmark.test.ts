@@ -371,6 +371,51 @@ describe("surrogate held-out benchmarks", () => {
     ).toBe(true);
   });
 
+  it("refuses long-horizon degradation even when balanced overall metrics still beat baseline", () => {
+    const horizonRows = goodRows.map((item) => ({
+      ...item,
+      candidate: {
+        ...item.candidate,
+        population:
+          item.actual.population + (item.horizonId === "short" ? 0 : 2.5),
+      },
+      baseline: {
+        ...item.baseline,
+        population:
+          item.actual.population + (item.horizonId === "short" ? 3 : 2),
+      },
+    }));
+    const benchmark = computeStratifiedRegressionBenchmark({
+      targetIds: requirements.targetIds,
+      requiredGroupKeys: requirements.requiredGroupKeys,
+      requiredHorizons: requirements.requiredHorizons,
+      rows: horizonRows,
+    });
+
+    expect(benchmark.candidate.overall.population!.mae).toBeLessThan(
+      benchmark.baseline.overall.population!.mae,
+    );
+    for (const groupKey of requirements.requiredGroupKeys) {
+      expect(benchmark.candidate.byGroup[groupKey]!.population!.mae).toBeLessThan(
+        benchmark.baseline.byGroup[groupKey]!.population!.mae,
+      );
+    }
+
+    const assessment = assess({
+      ...goodEvidence,
+      ...benchmark,
+    });
+    expect(assessment.eligible).toBe(false);
+    expect(
+      assessment.issues.some(
+        (issue) =>
+          issue.kind === "baseline-not-beaten" &&
+          issue.targetId === "population" &&
+          issue.stratum === "horizon:long",
+      ),
+    ).toBe(true);
+  });
+
   it("accepts only matching compatibility plus evidence that beats baseline in every required stratum", () => {
     expect(assess()).toEqual({ eligible: true, issues: [] });
   });

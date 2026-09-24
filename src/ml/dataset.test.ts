@@ -19,7 +19,7 @@ const group: DatasetGroupIdentity = {
   groupId: "drug-gradient-family-a",
 };
 
-function trajectory(seed: string): TrajectoryIdentity {
+function trajectory(seed: number): TrajectoryIdentity {
   return {
     group,
     seed,
@@ -32,15 +32,15 @@ describe("mechanistic ML dataset contract", () => {
     const split = assignDatasetSplit(group);
     expect(assignDatasetSplit({ ...group })).toBe(split);
 
-    for (const seed of ["1", "2", "3", "999"]) {
+    for (const seed of [1, 2, 3, 999]) {
       const identity = trajectory(seed);
       expect(assignDatasetSplit(identity.group)).toBe(split);
     }
   });
 
   it("keeps trajectory identity distinct without using it for split leakage", () => {
-    const first = trajectory("1");
-    const second = trajectory("2");
+    const first = trajectory(1);
+    const second = trajectory(2);
 
     expect(trajectoryKey(first)).not.toBe(trajectoryKey(second));
     expect(splitGroupKey(first.group)).toBe(splitGroupKey(second.group));
@@ -53,7 +53,7 @@ describe("mechanistic ML dataset contract", () => {
     const sample: MechanisticSample<{ population: number }, { future: number }> =
       {
         datasetVersion: "dataset-v1",
-        trajectory: trajectory("42"),
+        trajectory: trajectory(42),
         snapshotIndex: 3,
         simulationTimeHours: 1.5,
         normalizationProfileId: "aggregate-v1",
@@ -62,6 +62,30 @@ describe("mechanistic ML dataset contract", () => {
       };
 
     expect(() => validateMechanisticSample(sample)).not.toThrow();
+  });
+
+  it("rejects seeds outside the authoritative uint32 simulation domain", () => {
+    for (const seed of [-1, 0x1_0000_0000, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(() => trajectoryKey(trajectory(seed))).toThrow(/simulation seed/);
+    }
+
+    expect(() =>
+      validateMechanisticSample({
+        datasetVersion: "dataset-v1",
+        trajectory: trajectory(0x1_0000_0000),
+        snapshotIndex: 0,
+        simulationTimeHours: 0,
+        normalizationProfileId: "aggregate-v1",
+        input: null,
+        target: null,
+      }),
+    ).toThrow(/simulation seed/);
+
+    expect(() =>
+      trajectoryKey(trajectory("01" as unknown as number)),
+    ).toThrow(/simulation seed/);
+    expect(() => trajectoryKey(trajectory(0))).not.toThrow();
+    expect(() => trajectoryKey(trajectory(0xffff_ffff))).not.toThrow();
   });
 
   it("rejects invalid time/index and malformed split policies", () => {

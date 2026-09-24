@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "id": "ecoli-ciprofloxacin-spatial",
-  "version": "1.0.0-research",
+  "version": "1.1.0-research",
   "title": "E. coli / ciprofloxacin spatial evolution",
   "status": "research",
   "warning": "Educational mechanistic scenario, not clinical guidance and not a quantitative prediction of an arbitrary laboratory culture.",
@@ -35,6 +35,14 @@
       "citation": "regoes_2004"
     },
     "genotypeCompositionPolicy": "mic_ratio_shift_reference_curve",
+    "resourceDrugCompositionPolicy": {
+      "id": "reference_pd_decrement_as_first_order_loss_v1",
+      "classification": "transferred_mechanistic_approximation",
+      "equation": "h_drug = ln(10) * (psi_max - psi_g(a))",
+      "zeroDrugIncrementalLoss": 0,
+      "stationaryPhaseCalibration": "not_source_matched",
+      "note": "This policy maps the transferred PD decrement to the ecology loss channel; it does not identify Petra's independent Monod mu_max with Regoes psi_max."
+    },
     "classification": "transferred_mechanistic_approximation"
   },
   "genotypes": [

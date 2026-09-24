@@ -6,9 +6,13 @@ import { PROTOCOL_VERSION } from '../sim/protocol'
 import type {
   SimulationCommand,
   SimulationSnapshot,
-  WorkerRequest,
   WorkerResponse,
 } from '../sim/protocol'
+import {
+  WORKER_PERFORMANCE_DIAGNOSTICS_VERSION,
+  type InstrumentedWorkerRequest,
+  type InstrumentedWorkerResponse,
+} from './performanceInstrumentation'
 
 interface WorkerSimulationEngine {
   snapshot(): SimulationSnapshot
@@ -17,11 +21,29 @@ interface WorkerSimulationEngine {
 
 let engine: WorkerSimulationEngine | undefined
 
-function post(response: WorkerResponse): void {
-  self.postMessage(response)
+function post(
+  response: WorkerResponse,
+  executionDurationMs?: number,
+): void {
+  const payload: InstrumentedWorkerResponse =
+    executionDurationMs === undefined
+      ? response
+      : {
+          ...response,
+          performanceDiagnostics: {
+            version: WORKER_PERFORMANCE_DIAGNOSTICS_VERSION,
+            executionDurationMs,
+          },
+        }
+  self.postMessage(payload)
 }
 
-self.onmessage = (event: MessageEvent<WorkerRequest>) => {
+function elapsedSince(startedAtMs: number | null): number | undefined {
+  if (startedAtMs === null) return undefined
+  return Math.max(0, performance.now() - startedAtMs)
+}
+
+self.onmessage = (event: MessageEvent<InstrumentedWorkerRequest>) => {
   const request = event.data
   if (request.protocolVersion !== PROTOCOL_VERSION) {
     post({
@@ -31,6 +53,9 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
     })
     return
   }
+
+  const startedAtMs =
+    request.performanceDiagnostics === true ? performance.now() : null
 
   try {
     if (request.type === 'initialize') {
@@ -45,11 +70,14 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
               request.composedConfig,
             )
 
-      post({
-        protocolVersion: PROTOCOL_VERSION,
-        type: 'ready',
-        snapshot: engine.snapshot(),
-      })
+      post(
+        {
+          protocolVersion: PROTOCOL_VERSION,
+          type: 'ready',
+          snapshot: engine.snapshot(),
+        },
+        elapsedSince(startedAtMs),
+      )
       return
     }
 
@@ -58,21 +86,27 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
     }
 
     const snapshot = engine.execute(request.command)
-    post({
-      protocolVersion: PROTOCOL_VERSION,
-      type: 'snapshot',
-      commandId: request.command.id,
-      snapshot,
-    })
+    post(
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: 'snapshot',
+        commandId: request.command.id,
+        snapshot,
+      },
+      elapsedSince(startedAtMs),
+    )
   } catch (error) {
-    post({
-      protocolVersion: PROTOCOL_VERSION,
-      type: 'error',
-      ...(request.type === 'command'
-        ? { commandId: request.command.id }
-        : {}),
-      message: error instanceof Error ? error.message : String(error),
-    })
+    post(
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: 'error',
+        ...(request.type === 'command'
+          ? { commandId: request.command.id }
+          : {}),
+        message: error instanceof Error ? error.message : String(error),
+      },
+      elapsedSince(startedAtMs),
+    )
   }
 }
 

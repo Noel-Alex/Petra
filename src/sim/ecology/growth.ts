@@ -7,7 +7,7 @@ export interface GrowthParameters {
   biomassYield: number
   /** Maximum total biomass represented by one spatial cell. */
   localCapacity: number
-  /** Fraction of biomass eligible to move to each available neighbour per unit time. Engineering/calibrated. */
+  /** Fraction moved to each available neighbour per unit time. Engineering/calibrated. */
   spreadRate: number
 }
 
@@ -70,8 +70,9 @@ export function stepEcology(state: EcologyState, p: GrowthParameters, dt: number
     finiteNonNegative('resource concentration', resource)
     let biomass = 0
     for (const lineage of state.lineages) {
-      finiteNonNegative('lineage biomass', lineage[i]!)
-      biomass += lineage[i]!
+      const amount = lineage[i]!
+      finiteNonNegative('lineage biomass', amount)
+      biomass += amount
     }
     if (resource === 0 || biomass === 0 || biomass >= p.localCapacity || dt === 0) continue
 
@@ -85,11 +86,12 @@ export function stepEcology(state: EcologyState, p: GrowthParameters, dt: number
     }
     if (potential === 0) continue
 
-    const byResource = resource * p.biomassYield
-    const byCapacity = p.localCapacity - biomass
-    const allowed = Math.min(potential, byResource, byCapacity)
+    const allowed = Math.min(potential, resource * p.biomassYield, p.localCapacity - biomass)
     const scale = allowed / potential
-    for (let l = 0; l < lineageCount; l += 1) growth[l]![i] *= scale
+    for (let l = 0; l < lineageCount; l += 1) {
+      const channel = growth[l]!
+      channel[i] = channel[i]! * scale
+    }
     const consumed = allowed / p.biomassYield
     state.resource[i] = Math.max(0, resource - consumed)
     divisions += allowed
@@ -99,7 +101,7 @@ export function stepEcology(state: EcologyState, p: GrowthParameters, dt: number
   for (let l = 0; l < lineageCount; l += 1) {
     const lineage = state.lineages[l]!
     const delta = growth[l]!
-    for (let i = 0; i < n; i += 1) lineage[i] += delta[i]!
+    for (let i = 0; i < n; i += 1) lineage[i] = lineage[i]! + delta[i]!
   }
 
   if (p.spreadRate > 0 && dt > 0) spread(state, p.spreadRate * dt)
@@ -132,8 +134,8 @@ function spread(state: EcologyState, fractionPerNeighbour: number): void {
           const j = ny * width + nx
           if (mask[j] === 0) continue
           const moved = source[i]! * fractionPerNeighbour
-          delta[i] -= moved
-          delta[j] += moved
+          delta[i] = delta[i]! - moved
+          delta[j] = delta[j]! + moved
         }
       }
     }

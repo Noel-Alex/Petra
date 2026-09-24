@@ -2,7 +2,8 @@
 
 import { SimulationEngine } from '../sim/engine'
 import { PROTOCOL_VERSION } from '../sim/protocol'
-import type { WorkerRequest, WorkerResponse } from '../sim/protocol'
+import type { WorkerResponse } from '../sim/protocol'
+import { parseWorkerRequest } from '../sim/protocolRuntime'
 
 let engine: SimulationEngine | undefined
 
@@ -10,12 +11,19 @@ function post(response: WorkerResponse): void {
   self.postMessage(response)
 }
 
-self.onmessage = (event: MessageEvent<WorkerRequest>) => {
-  const request = event.data
-  if (request.protocolVersion !== PROTOCOL_VERSION) {
-    post({ protocolVersion: PROTOCOL_VERSION, type: 'error', message: `Unsupported protocol version: ${request.protocolVersion}` })
+self.onmessage = (event: MessageEvent<unknown>) => {
+  const parsed = parseWorkerRequest(event.data)
+  if (!parsed.ok) {
+    post({
+      protocolVersion: PROTOCOL_VERSION,
+      type: 'error',
+      ...(parsed.commandId !== null ? { commandId: parsed.commandId } : {}),
+      message: parsed.error,
+    })
     return
   }
+
+  const request = parsed.value
 
   try {
     if (request.type === 'initialize') {

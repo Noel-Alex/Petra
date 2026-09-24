@@ -15,6 +15,7 @@ import { resolveLineagePattern, type LineagePatternToken } from "../lineagePatte
 import {
   semanticZoomLevel,
   type CameraView,
+  type SemanticZoomLevel,
   type DishRenderSnapshot,
   type RenderField,
   type RenderLineage,
@@ -58,6 +59,7 @@ import {
 } from "./cameraMotion";
 import { updateCameraMotionRuntime } from "./cameraMotionLifecycle";
 import { resolveSnapshotOverlayUpdate } from "./snapshotOverlay";
+import { createSemanticZoomLevelObserver } from "../semanticZoomObserver";
 import { wheelZoomFactor } from "./wheelZoom";
 
 export type RendererMotionMode = "full" | "reduced" | "off";
@@ -67,6 +69,7 @@ export interface PixiDishOptions {
   readonly cameraMotion: CameraMotionSpec;
   readonly overlayId?: string | null;
   readonly maxRepresentativeGlyphs?: number;
+  readonly onSemanticZoomLevelChange?: (level: SemanticZoomLevel) => void;
 }
 
 export interface PixiDishRenderer {
@@ -133,9 +136,13 @@ export async function createPixiDishRenderer(
   let gestureState = createPointerGestureState();
 
   const maxRepresentativeGlyphs = options.maxRepresentativeGlyphs ?? 180;
+  const semanticZoomObserver = createSemanticZoomLevelObserver((level) => {
+    options.onSemanticZoomLevelChange?.(level);
+  });
 
   const render = () => {
     if (snapshot === null || destroyed) return;
+    semanticZoomObserver.update(semanticZoomLevel(camera.zoom));
     drawScene({
       app,
       snapshot,
@@ -456,6 +463,7 @@ export async function createPixiDishRenderer(
       destroyed = true;
       resizeObserver.disconnect();
       resolutionWatcher.dispose();
+      semanticZoomObserver.dispose();
       resizeScheduler.cancel();
       app.canvas.removeEventListener("pointerdown", onPointerDown);
       app.canvas.removeEventListener("pointermove", onPointerMove);

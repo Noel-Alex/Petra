@@ -22,6 +22,7 @@ Use named semantic levels rather than raw camera scale as scientific meaning:
 - `representative-cell` — explanatory illustration only, clearly labelled representative rather than microscopic truth.
 
 Zoom thresholds are presentation policy. Crossing them may reveal/hide information but may not change the simulation.
+- Renderer→adapter semantic zoom reporting uses the shared threshold observer and emits only the named `dish | colony | representative-cell` level when that name changes. Raw numeric zoom stays renderer-local; animation frames within one level must not churn React state, and the observer is disposed with the renderer.
 
 ## LOD
 

@@ -1,3 +1,10 @@
+import {
+  assessSurrogatePromotion,
+  type PromotionIssue,
+  type SurrogateBenchmarkEvidence,
+  type SurrogatePromotionRequirements,
+} from "./benchmark";
+
 export type ExecutionMode = "mechanistic" | "emulated";
 export type SurrogatePromotionStatus = "experimental" | "validated";
 
@@ -16,14 +23,27 @@ export interface SurrogateInput {
   readonly categorical: Readonly<Record<string, string>>;
 }
 
-export interface SurrogateModelCard {
+interface SurrogateModelCardBase {
   readonly modelId: string;
   readonly modelVersion: string;
   readonly datasetVersion: string;
   readonly engineVersion: string;
-  readonly promotionStatus: SurrogatePromotionStatus;
   readonly domain: SurrogateDomain;
 }
+
+export interface ExperimentalSurrogateModelCard extends SurrogateModelCardBase {
+  readonly promotionStatus: "experimental";
+}
+
+export interface ValidatedSurrogateModelCard extends SurrogateModelCardBase {
+  readonly promotionStatus: "validated";
+  readonly promotionEvidence: SurrogateBenchmarkEvidence;
+  readonly promotionRequirements: SurrogatePromotionRequirements;
+}
+
+export type SurrogateModelCard =
+  | ExperimentalSurrogateModelCard
+  | ValidatedSurrogateModelCard;
 
 export type DomainViolationKind =
   | "missing-numeric"
@@ -44,6 +64,7 @@ export type EmulatedRefusalReason =
   | "feature-disabled"
   | "model-not-promoted"
   | "engine-version-mismatch"
+  | "promotion-evidence-invalid"
   | "out-of-domain";
 
 export type ExecutionDecision =
@@ -64,6 +85,7 @@ export type ExecutionDecision =
       readonly requested: "emulated";
       readonly refusalReason: EmulatedRefusalReason;
       readonly violations: readonly DomainViolation[];
+      readonly promotionIssues?: readonly PromotionIssue[];
     };
 
 export function checkSurrogateDomain(
@@ -194,6 +216,24 @@ export function resolveExecutionMode(args: {
       requested: "emulated",
       refusalReason: "engine-version-mismatch",
       violations: [],
+    };
+  }
+
+  const promotion = assessSurrogatePromotion({
+    evidence: args.model.promotionEvidence,
+    requirements: args.model.promotionRequirements,
+    expectedModelId: args.model.modelId,
+    expectedModelVersion: args.model.modelVersion,
+    expectedDatasetVersion: args.model.datasetVersion,
+    expectedEngineVersion: args.model.engineVersion,
+  });
+  if (!promotion.eligible) {
+    return {
+      mode: "mechanistic",
+      requested: "emulated",
+      refusalReason: "promotion-evidence-invalid",
+      violations: [],
+      promotionIssues: promotion.issues,
     };
   }
 

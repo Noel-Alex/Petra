@@ -292,6 +292,50 @@ describe('experiment export bundle', () => {
     )
   })
 
+  it('rejects unknown versionless payload fields instead of ignoring them', () => {
+    const identity = createRunIdentity({
+      scenarioId: 'synthetic-export-fixture',
+      scenarioVersion: '1',
+      parameterSetId: 'none',
+      parameterSetVersion: '1',
+      seed: 17,
+    })
+    const bundle = createExperimentBundle({
+      originCheckpoint: new SimulationEngine(identity).snapshot().checkpoint,
+      commands: [],
+    })
+
+    const extraTopLevel = structuredClone(bundle) as unknown as Record<
+      string,
+      unknown
+    >
+    extraTopLevel.rendererSnapshot = { decorative: true }
+    expect(() =>
+      validateExperimentBundle(extraTopLevel as never),
+    ).toThrowError(
+      expect.objectContaining({
+        code: 'unsupported-schema',
+      }),
+    )
+
+    const extraCommand = structuredClone(bundle) as unknown as {
+      replay: { commands: Array<Record<string, unknown>> }
+    }
+    extraCommand.replay.commands.push({
+      id: 'advance-with-renderer-data',
+      type: 'advance',
+      ticks: 1,
+      rendererFrame: 42,
+    })
+    expect(() =>
+      validateExperimentBundle(extraCommand as never),
+    ).toThrowError(
+      expect.objectContaining({
+        code: 'command-invalid',
+      }),
+    )
+  })
+
   it('returns explicit malformed-json errors on import', () => {
     expect(() => parseExperimentBundle('{not-json')).toThrowError(
       expect.objectContaining<Partial<ExperimentBundleError>>({

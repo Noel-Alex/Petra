@@ -31,7 +31,7 @@ Prefer aggregate density/texture at dish scale and bounded representative glyphs
 
 ## Accessibility
 
-Critical lineage/state distinctions require a non-color cue. Reduced-motion mode suppresses decorative movement/camera sweeps while preserving state changes and scientific information.
+Critical lineage/state distinctions require a non-color cue. Reduced-motion mode suppresses decorative movement/camera sweeps while preserving state changes and scientific information. The interactive dish camera must remain keyboard-operable as well as pointer/touch-operable; keyboard input may update camera presentation state only and must never create or mutate simulation state.
 
 ## Technology boundary
 

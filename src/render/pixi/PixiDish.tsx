@@ -29,6 +29,8 @@ export function PixiDish({
 }: PixiDishProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const rendererRef = useRef<PixiDishRenderer | null>(null);
+  const motionRef = useRef(motion);
+  const overlayRef = useRef(overlayId);
   const demoSnapshotRef = useRef<DishRenderSnapshot | null>(null);
   if (demoSnapshotRef.current === null) {
     demoSnapshotRef.current = createRendererDemoSnapshot();
@@ -37,7 +39,9 @@ export function PixiDish({
     snapshot ?? demoSnapshotRef.current,
   );
 
-  snapshotRef.current = snapshot ?? snapshotRef.current;
+  motionRef.current = motion;
+  overlayRef.current = overlayId;
+  snapshotRef.current = snapshot ?? demoSnapshotRef.current;
 
   useEffect(() => {
     const host = hostRef.current;
@@ -54,7 +58,9 @@ export function PixiDish({
 
       instance = renderer;
       rendererRef.current = renderer;
+      renderer.setMotionMode(motionRef.current);
       renderer.update(snapshotRef.current);
+      renderer.setOverlay(overlayRef.current);
     });
 
     return () => {
@@ -77,9 +83,9 @@ export function PixiDish({
   }, [overlayId]);
 
   useEffect(() => {
-    if (snapshot === null || snapshot === undefined) return;
-    snapshotRef.current = snapshot;
-    rendererRef.current?.update(snapshot);
+    const nextSnapshot = snapshot ?? demoSnapshotRef.current;
+    snapshotRef.current = nextSnapshot;
+    rendererRef.current?.update(nextSnapshot);
   }, [snapshot]);
 
   const usingDemo = snapshot === null || snapshot === undefined;

@@ -70,6 +70,7 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Exact recorded positions return an authoritative checkpoint clone. Positions between recorded checkpoints return only authoritative lower/upper bounds plus a normalized presentation cursor; they are explicitly `presentation-only` and must never be relabelled as an interpolated biological state.
 - Historical inspection never mutates the live runtime. Resuming from a past checkpoint requires explicit replay/fork semantics; a scrub cursor is not a hidden worker restore.
 - Dish/charts/inspector adapters should key all historical projections from the same resolved authoritative checkpoint/bounds so a displayed time label cannot drift from the state being inspected.
+- `historicalPresentation.ts` is the framework-neutral synchronization adapter over that resolution. An exact cursor may expose a cloned composed checkpoint and region inspection plus an exact chart/time cursor. A between-keyframe cursor always exposes `scientificCheckpoint: null` and `regionInspection: null`; renderer interpolation **or renderer snap-to-lower authority** does not upgrade the requested scrub position into scientific authority. Analysis series supplied to the adapter must match the exact run identity, and dish replay bounds must match the same branch/order/time bounds before presentation is accepted.
 
 ## Timeline history presentation
 - The compact footer may emphasize recent authoritative events, but every event exposed by `ExperimentRuntime` must remain inspectable in original order.

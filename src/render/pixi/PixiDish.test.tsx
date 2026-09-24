@@ -13,26 +13,65 @@ const CAMERA_MOTION: CameraMotionSpec = { durationMs: 0, easing: [0, 0, 1, 1] };
 
 describe("PixiDish render-source boundary", () => {
   it("renders a neutral waiting state without authoritative data", () => {
-    const html = renderToStaticMarkup(<PixiDish snapshot={null} cameraMotion={CAMERA_MOTION} />);
+    const html = renderToStaticMarkup(
+      <PixiDish
+        snapshot={null}
+        sourceKind="awaiting-authoritative-snapshot"
+        cameraMotion={CAMERA_MOTION}
+      />,
+    );
     expect(html).toContain('data-render-source="awaiting-authoritative-snapshot"');
     expect(html).toContain('data-render-empty="true"');
     expect(html).toContain("Waiting for authoritative simulation data");
     expect(html).not.toContain("Visual demo");
   });
 
-  it("requires explicit demoMode for presentation-only biology", () => {
-    const html = renderToStaticMarkup(<PixiDish snapshot={null} cameraMotion={CAMERA_MOTION} demoMode />);
+  it("renders caller-supplied visual-demo state without manufacturing a fixture", () => {
+    const demo = createRendererDemoSnapshot(12);
+    const html = renderToStaticMarkup(
+      <PixiDish
+        snapshot={demo}
+        sourceKind="visual-demo"
+        cameraMotion={CAMERA_MOTION}
+      />,
+    );
     expect(html).toContain('data-render-source="visual-demo"');
     expect(html).toContain('data-render-demo-disclosure="true"');
     expect(html).toContain("Visual demo — not simulation data");
   });
 
-  it("authoritative snapshots take precedence over demo mode", () => {
+  it("renders caller-supplied authoritative snapshots without demo disclosure", () => {
     const html = renderToStaticMarkup(
-      <PixiDish snapshot={createRendererDemoSnapshot(12)} cameraMotion={CAMERA_MOTION} demoMode />,
+      <PixiDish
+        snapshot={createRendererDemoSnapshot(12)}
+        sourceKind="authoritative-snapshot"
+        cameraMotion={CAMERA_MOTION}
+      />,
     );
     expect(html).toContain('data-render-source="authoritative-snapshot"');
     expect(html).not.toContain('data-render-demo-disclosure="true"');
+  });
+
+  it("rejects source identity that disagrees with snapshot presence", () => {
+    expect(() =>
+      renderToStaticMarkup(
+        <PixiDish
+          snapshot={createRendererDemoSnapshot(12)}
+          sourceKind="awaiting-authoritative-snapshot"
+          cameraMotion={CAMERA_MOTION}
+        />,
+      ),
+    ).toThrow(/must not include a snapshot/);
+
+    expect(() =>
+      renderToStaticMarkup(
+        <PixiDish
+          snapshot={null}
+          sourceKind="visual-demo"
+          cameraMotion={CAMERA_MOTION}
+        />,
+      ),
+    ).toThrow(/visual-demo dish render source requires a snapshot/);
   });
 
   it("keeps one stable polite atomic renderer-status region mounted", () => {

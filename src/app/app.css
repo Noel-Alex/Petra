@@ -202,6 +202,38 @@ select:focus-visible {
   cursor: grabbing;
 }
 
+.pixi-overlay-legend {
+  position: absolute;
+  left: 50%;
+  top: 7%;
+  transform: translateX(-50%);
+  z-index: 2;
+  width: max-content;
+  max-width: 78%;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.38rem 0.58rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(5, 13, 25, 0.72);
+  color: #bac6d7;
+  font-size: 0.68rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  backdrop-filter: blur(12px);
+}
+
+.overlay-swatch {
+  flex: 0 0 auto;
+  width: 0.58rem;
+  height: 0.58rem;
+  border-radius: 50%;
+  background: #8e72ff;
+  box-shadow: 0 0 0 3px rgba(142, 114, 255, 0.13);
+}
+
 .pixi-dish-hud {
   position: absolute;
   left: 50%;
@@ -241,14 +273,16 @@ select:focus-visible {
 .fixture-disclosure {
   position: absolute;
   left: 50%;
-  top: calc(100% + 0.55rem);
-  width: min(32rem, 82vw);
+  top: 13%;
+  z-index: 2;
+  width: min(28rem, 72%);
   transform: translateX(-50%);
   margin: 0;
-  color: #8f9caf;
-  font-size: 0.72rem;
-  line-height: 1.45;
+  color: #9ba8bb;
+  font-size: 0.66rem;
+  line-height: 1.4;
   text-align: center;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.72);
 }
 
 .metric-list {

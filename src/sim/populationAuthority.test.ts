@@ -233,6 +233,34 @@ describe('shared discrete population authority', () => {
     ).toThrow(/configuration identity mismatch/)
   })
 
+  it('rejects sparse mask, lineage, and serialized channel containers', () => {
+    const sparseMask = Array(1) as number[]
+    expect(() =>
+      createDiscretePopulationAuthorityState(
+        config({ width: 1, mask: sparseMask }),
+        [[2]],
+      ),
+    ).toThrow(/mask must be dense/)
+
+    const sparseLineageIds = Array(1) as string[]
+    expect(() =>
+      createDiscretePopulationAuthorityState(
+        config({ width: 1, mask: [1], lineageIds: sparseLineageIds }),
+        [[2]],
+      ),
+    ).toThrow(/lineage ids must be dense/)
+
+    const cfg = config({ width: 1, mask: [1] })
+    const state = createDiscretePopulationAuthorityState(cfg, [[2]])
+    const sparseCounts = {
+      ...state,
+      standingHostCounts: Array(1) as number[][],
+    }
+    expect(() =>
+      restoreDiscretePopulationAuthorityState(sparseCounts, cfg, [[2]]),
+    ).toThrow(/standing host counts channels must be dense/)
+  })
+
   it('keeps masked cells outside both standing and division authority', () => {
     const cfg = config({ mask: [1, 0] })
     expect(() =>

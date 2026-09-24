@@ -14,13 +14,11 @@ import {
   assertComposedParameterSetBinding,
 } from './parameterSetBinding'
 import {
-  type ComposedSimulationSnapshot,
   type RunIdentity,
   type SimulationCheckpoint,
   type SimulationCommand,
   type SimulationEvent,
   type SimulationSnapshot,
-  type SyntheticSimulationSnapshot,
 } from './protocol'
 import {
   REPLAY_COMPATIBILITY_POLICY_VERSION,

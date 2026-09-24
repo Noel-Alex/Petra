@@ -100,6 +100,23 @@ export function sampleSpatialDivisionMutations(args: {
         const divisions = opportunities[cellIndex]!
         if (divisions === 0) continue
 
+        if (plan.targets.length === 0) {
+          cells.push(
+            Object.freeze({
+              sourceLineageId: plan.sourceLineageId,
+              sourceGenotypeId: plan.sourceGenotypeId,
+              cellIndex,
+              divisionOpportunities: divisions,
+              mutationBirths: Object.freeze([]),
+              sampling: Object.freeze({
+                mode: 'exact-reference' as const,
+                rngDraws: 0,
+              }),
+            }),
+          )
+          continue
+        }
+
         const sampled = sampleDivisionMutationsWithPolicy(
           divisions,
           plan.targets,

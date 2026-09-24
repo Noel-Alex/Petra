@@ -67,4 +67,40 @@ describe('SimulationEngine replay substrate', () => {
 
     expect(() => other.execute({ id: 'restore', type: 'restore', checkpoint })).toThrow(/different run identity/)
   })
+
+  it('remains finite, non-negative, and replay-identical through a long synthetic soak', () => {
+    const first = new SimulationEngine(identity)
+    const second = new SimulationEngine(identity)
+    const chunks = 100
+    const ticksPerChunk = 1_000
+
+    for (let chunk = 0; chunk < chunks; chunk += 1) {
+      const command = { id: `soak-${chunk}`, type: 'advance' as const, ticks: ticksPerChunk }
+      first.execute(command)
+      second.execute(command)
+
+      const checkpoint = first.snapshot().checkpoint
+      expect(checkpoint.tick).toBe((chunk + 1) * ticksPerChunk)
+      expect(Number.isFinite(checkpoint.simulationTimeHours)).toBe(true)
+      expect(Number.isFinite(checkpoint.syntheticPopulation)).toBe(true)
+      expect(checkpoint.syntheticPopulation).toBeGreaterThanOrEqual(0)
+      expect(checkpoint.rngState.every((value) => Number.isInteger(value) && value >= 0 && value <= 0xffff_ffff)).toBe(true)
+    }
+
+    expect(first.snapshot()).toEqual(second.snapshot())
+  })
+
+  it('rejects non-finite synthetic pulses before they can contaminate state', () => {
+    const engine = new SimulationEngine(identity)
+
+    for (const magnitude of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+      expect(() =>
+        engine.execute({ id: `non-finite-${String(magnitude)}`, type: 'synthetic-pulse', magnitude }),
+      ).toThrow(/must be finite/)
+    }
+
+    const checkpoint = engine.snapshot().checkpoint
+    expect(checkpoint.syntheticPopulation).toBe(1_000)
+    expect(Number.isFinite(checkpoint.syntheticPopulation)).toBe(true)
+  })
 })

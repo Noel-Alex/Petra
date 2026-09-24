@@ -1,3 +1,5 @@
+/** Sampler-validation fixture only: probabilities such as 0.02, 0.05, 0.1,
+ * 0.3, and 0.4 below are synthetic stress-test values, not biological mutation rates. */
 import { describe, expect, it } from 'vitest'
 import { SimulationRng } from '../rng'
 import { sampleDivisionMutations } from './mutation'

@@ -1,3 +1,5 @@
+/** Numerical fixture only: these compact values exercise Monod/yield/capacity
+ * invariants and are not E. coli biological constants or a flagship preset. */
 import { describe, expect, it } from 'vitest'
 import { monod, stepEcology, type EcologyState, type GrowthParameters } from './growth'
 

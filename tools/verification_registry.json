@@ -15,6 +15,16 @@
       "id": "provenance-basics",
       "modes": ["premerge"],
       "command": ["python", "tools/verify.py", "_provenance"]
+    },
+    {
+      "id": "scenario-contracts",
+      "modes": ["premerge"],
+      "command": ["python", "tools/verify.py", "_scenario"]
+    },
+    {
+      "id": "typescript-deterministic-suite",
+      "modes": ["premerge"],
+      "command": ["npm", "run", "verify"]
     }
   ]
 }

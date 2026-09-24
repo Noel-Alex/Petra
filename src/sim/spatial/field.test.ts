@@ -1,3 +1,5 @@
+/** Numerical fixture only: grid spacing, diffusion coefficients, masses, and
+ * intervention magnitudes below are synthetic invariant tests, not physical parameters. */
 import { describe, expect, it } from 'vitest'
 import { CircularScalarField } from './field'
 import { applyBand, applyBrush, applyRadial, applyUniform } from './interventions'

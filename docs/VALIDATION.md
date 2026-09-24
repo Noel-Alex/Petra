@@ -2,6 +2,18 @@
 
 A scientific validation suite is a major differentiator between PETRA and a polished toy.
 
+## Executable premerge entrypoint
+
+Run:
+
+```bash
+python tools/verify.py premerge
+```
+
+That registry command is the canonical source-level premerge gate. With the TypeScript implementation substrate present it runs repository/provenance checks, strict TypeScript typechecking, and the deterministic Vitest suite. CI executes the same contract.
+
+A green source-test run is **not** browser, GPU, frame-time/device, or experimental validation. Record those evidence classes separately and only after they are actually measured.
+
 ## Numerical invariants
 
 - same seed + same actions -> identical checkpoint hashes;

@@ -4,13 +4,18 @@ import type {
   GrowthParameters,
   LineageEcologyParameters,
 } from './ecology/growth'
+import type { CuratedMutationGraph } from './evolution/graph'
+import {
+  bindLineageFitness,
+  type EvolutionScenarioIdentity,
+} from './evolution/fitness'
 
 /** Versioned serializable composition boundary. Biological values are caller supplied. */
-export const COMPOSED_STATE_VERSION = 1 as const
+export const COMPOSED_STATE_VERSION = 2 as const
 
 export interface ComposedLineageConfig {
   readonly id: string
-  readonly relativeFitness: number
+  readonly genotypeId: string
   readonly deathHazardPerHour: number
 }
 
@@ -22,6 +27,8 @@ export interface ComposedSimulationConfig {
   readonly initialLineageBiomass: readonly (readonly number[])[]
   readonly growth: Readonly<GrowthParameters>
   readonly lineages: readonly ComposedLineageConfig[]
+  readonly evolutionGraph: CuratedMutationGraph
+  readonly evolutionScenario: EvolutionScenarioIdentity
   readonly hoursPerTick: number
 }
 
@@ -32,6 +39,7 @@ export interface ComposedSimulationState {
   readonly height: number
   readonly mask: number[]
   readonly lineageIds: string[]
+  readonly genotypeIds: string[]
   resource: number[]
   lineageBiomass: number[][]
 }
@@ -100,6 +108,17 @@ function sumInMask(
   return total
 }
 
+function lineageFitness(config: ComposedSimulationConfig) {
+  return bindLineageFitness(
+    config.evolutionGraph,
+    config.evolutionScenario,
+    config.lineages.map((lineage) => ({
+      lineageId: lineage.id,
+      genotypeId: lineage.genotypeId,
+    })),
+  )
+}
+
 function validateConfig(config: ComposedSimulationConfig): void {
   if (
     !Number.isSafeInteger(config.width) ||
@@ -141,6 +160,13 @@ function validateConfig(config: ComposedSimulationConfig): void {
   if (new Set(lineageIds).size !== lineageIds.length) {
     throw new Error('lineage ids must be unique')
   }
+  if (config.lineages.some((lineage) => lineage.genotypeId.trim().length === 0)) {
+    throw new Error('genotype ids must be non-empty')
+  }
+
+  // Strict scenario/genotype validation boundary. Relative fitness is owned by
+  // the curated evolution graph and cannot be re-entered by composition callers.
+  lineageFitness(config)
 
   positiveFinite('hoursPerTick', config.hoursPerTick)
   finiteNonNegative('maxDivisionRate', config.growth.maxDivisionRate)
@@ -173,10 +199,6 @@ function validateConfig(config: ComposedSimulationConfig): void {
   )
   config.lineages.forEach((lineage) => {
     finiteNonNegative(
-      'relativeFitness(' + lineage.id + ')',
-      lineage.relativeFitness,
-    )
-    finiteNonNegative(
       'deathHazardPerHour(' + lineage.id + ')',
       lineage.deathHazardPerHour,
     )
@@ -199,6 +221,7 @@ export function composedConfigurationFingerprint(
   config: ComposedSimulationConfig,
 ): string {
   validateConfig(config)
+  const fitness = lineageFitness(config)
   return JSON.stringify({
     width: config.width,
     height: config.height,
@@ -210,9 +233,14 @@ export function composedConfigurationFingerprint(
       localCapacity: config.growth.localCapacity,
       spreadRate: config.growth.spreadRate,
     },
-    lineages: config.lineages.map((lineage) => ({
+    evolutionScenario: {
+      scenarioId: config.evolutionScenario.scenarioId,
+      scenarioVersion: config.evolutionScenario.scenarioVersion,
+    },
+    lineages: config.lineages.map((lineage, index) => ({
       id: lineage.id,
-      relativeFitness: lineage.relativeFitness,
+      genotypeId: lineage.genotypeId,
+      relativeFitness: fitness[index]!.relativeFitness,
       deathHazardPerHour: lineage.deathHazardPerHour,
     })),
     hoursPerTick: config.hoursPerTick,
@@ -230,6 +258,7 @@ export function createComposedState(
     height: config.height,
     mask: Array.from(config.mask),
     lineageIds: config.lineages.map((lineage) => lineage.id),
+    genotypeIds: config.lineages.map((lineage) => lineage.genotypeId),
     resource: Array.from(config.initialResource),
     lineageBiomass: config.initialLineageBiomass.map((channel) =>
       Array.from(channel),
@@ -266,6 +295,7 @@ function validateStateAgainstConfig(
 
   if (
     state.lineageIds.length !== config.lineages.length ||
+    state.genotypeIds.length !== config.lineages.length ||
     state.lineageBiomass.length !== config.lineages.length
   ) {
     throw new Error('composed state lineage channels do not match configuration')
@@ -273,6 +303,9 @@ function validateStateAgainstConfig(
   state.lineageIds.forEach((id, index) => {
     if (id !== config.lineages[index]?.id) {
       throw new Error('composed state lineage order does not match configuration')
+    }
+    if (state.genotypeIds[index] !== config.lineages[index]?.genotypeId) {
+      throw new Error('composed state genotype order does not match configuration')
     }
   })
   if (state.lineageBiomass.some((channel) => channel.length !== cellCount)) {
@@ -313,9 +346,10 @@ export function stepComposedState(
   validateStateAgainstConfig(state, config)
 
   const ecology = asEcologyState(state)
+  const fitness = lineageFitness(config)
   const lineageParameters: LineageEcologyParameters[] = config.lineages.map(
-    (lineage) => ({
-      relativeFitness: lineage.relativeFitness,
+    (lineage, index) => ({
+      relativeFitness: fitness[index]!.relativeFitness,
       deathHazardPerTime: lineage.deathHazardPerHour,
     }),
   )
@@ -358,6 +392,7 @@ export function cloneComposedState(
     height: state.height,
     mask: [...state.mask],
     lineageIds: [...state.lineageIds],
+    genotypeIds: [...state.genotypeIds],
     resource: [...state.resource],
     lineageBiomass: state.lineageBiomass.map((channel) => [...channel]),
   }

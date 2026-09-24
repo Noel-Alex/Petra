@@ -157,7 +157,7 @@ export class WorkerSession {
       pendingCommandId: null,
       queuedRequests: 0,
       error: null,
-  errorCode: null,
+      errorCode: null,
     });
     this.listeners.clear();
   }
@@ -173,7 +173,7 @@ export class WorkerSession {
         pendingCommandId: null,
         queuedRequests: 0,
         error: null,
-  errorCode: null,
+        errorCode: null,
       });
       return;
     }
@@ -186,7 +186,7 @@ export class WorkerSession {
       pendingCommandId,
       queuedRequests: this.queue.length,
       error: null,
-  errorCode: null,
+      errorCode: null,
     });
 
     const outbound: InstrumentedWorkerRequest =
@@ -354,7 +354,7 @@ export class WorkerSession {
         pendingCommandId: null,
         queuedRequests: 0,
         error: null,
-  errorCode: null,
+        errorCode: null,
       });
       return;
     }
@@ -367,7 +367,7 @@ export class WorkerSession {
       pendingCommandId: null,
       queuedRequests: this.queue.length,
       error: null,
-  errorCode: null,
+      errorCode: null,
     };
     this.pump();
   }

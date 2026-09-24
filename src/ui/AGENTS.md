@@ -99,6 +99,7 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Full motion may use small decorative lift/compression. Reduced and off modes remove spatial movement while retaining focus/selection through border/background/static emphasis.
 - Touch devices must not depend on hover state. Keyboard focus must remain visibly distinct, and disabled state must be static.
 - Reusable action controls track persistent DOM focus independently from transient hover/press state. Press may temporarily take visual precedence, but pointer movement must not erase focus; the visible focus ring is owned by CSS `:focus-visible`.
+- Pointer cancellation is a presentation reset: `pointercancel` clears transient pointer state without clearing persistent keyboard focus, changing selection, or synthesizing a command.
 - Micro-interaction duration and easing are presentation wall-time policy only and must come from named Petra motion tokens; React/CSS adapters project them rather than defining parallel curves.
 
 

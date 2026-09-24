@@ -71,6 +71,30 @@ describe('CircularScalarField', () => {
     expectFiniteNonNegative(field)
   })
 
+  it('rejects JS-finite values that would overflow authoritative Float32 storage', () => {
+    const tooLargeForFloat32 = 1e39
+    expect(Number.isFinite(tooLargeForFloat32)).toBe(true)
+
+    expect(() =>
+      new CircularScalarField(
+        { width: 9, height: 9, cellSize: 1 },
+        tooLargeForFloat32,
+      ),
+    ).toThrow(/finite Float32 field storage/)
+
+    const field = new CircularScalarField({ width: 9, height: 9, cellSize: 1 }, 2)
+    const before = field.values.slice()
+    expect(() => field.fill(tooLargeForFloat32)).toThrow(
+      /finite Float32 field storage/,
+    )
+    expect(field.values).toEqual(before)
+
+    expect(() => field.set(4, 4, tooLargeForFloat32)).toThrow(
+      /finite Float32 field storage/,
+    )
+    expect(field.values).toEqual(before)
+  })
+
   it('conserves total mass under no-flux diffusion', () => {
     const field = new CircularScalarField({ width: 33, height: 33, cellSize: 0.25 })
     field.set(16, 16, 100)
@@ -109,6 +133,88 @@ describe('field interventions', () => {
     applyBand(field, 12, 12, 1, 0, 1, 4)
     applyBrush(field, [{ x: 12, y: 12 }, { x: 14, y: 12 }], 1.5, 1, 'add')
     expect(field.get(12, 12)).toBeGreaterThan(4)
+    expectFiniteNonNegative(field)
+  })
+
+  it('rolls back the whole intervention when a later add would overflow Float32', () => {
+    const field = new CircularScalarField({ width: 9, height: 9, cellSize: 1 })
+    const maxFloat32 = 3.4028234663852886e38
+    field.set(4, 4, maxFloat32)
+    const before = field.values.slice()
+
+    expect(() =>
+      applyRadial(field, 4, 4, 1, maxFloat32, 'add'),
+    ).toThrow(/finite Float32 field storage/)
+    expect(field.values).toEqual(before)
+  })
+
+  it('rejects malformed brush geometry atomically after valid earlier points', () => {
+    const field = new CircularScalarField({ width: 9, height: 9, cellSize: 1 })
+    const before = field.values.slice()
+    const malformed = [
+      { x: 4, y: 4 },
+      { x: Number.NaN, y: 4 },
+    ] as unknown as readonly { x: number; y: number }[]
+
+    expect(() => applyBrush(field, malformed, 1, 2, 'add')).toThrow(
+      /brush point 1 x must be finite/,
+    )
+    expect(field.values).toEqual(before)
+  })
+
+  it('rejects sparse brush arrays atomically', () => {
+    const field = new CircularScalarField({ width: 9, height: 9, cellSize: 1 })
+    const before = field.values.slice()
+    const sparse = new Array<{ x: number; y: number }>(2)
+    sparse[0] = { x: 4, y: 4 }
+
+    expect(() => applyBrush(field, sparse, 1, 2, 'add')).toThrow(
+      /brush points must be dense; missing index 1/,
+    )
+    expect(field.values).toEqual(before)
+  })
+
+  it('rejects non-finite intervention centers instead of silently no-oping', () => {
+    const field = new CircularScalarField({ width: 9, height: 9, cellSize: 1 }, 1)
+    const before = field.values.slice()
+
+    expect(() => applyRadial(field, Number.NaN, 4, 1, 2)).toThrow(
+      /radial centerX must be finite/,
+    )
+    expect(field.values).toEqual(before)
+
+    expect(() => applyBand(field, 4, Number.POSITIVE_INFINITY, 1, 0, 1, 2)).toThrow(
+      /band centerY must be finite/,
+    )
+    expect(field.values).toEqual(before)
+  })
+
+  it('rejects an invalid runtime blend mode instead of aliasing it to add', () => {
+    const field = new CircularScalarField({ width: 9, height: 9, cellSize: 1 }, 1)
+    const before = field.values.slice()
+
+    expect(() =>
+      applyUniform(field, 2, 'multiply' as unknown as 'set'),
+    ).toThrow(/blend mode must be set or add/)
+    expect(field.values).toEqual(before)
+  })
+
+  it('preserves sequential Float32 overlap semantics while staging brush writes', () => {
+    const field = new CircularScalarField({ width: 9, height: 9, cellSize: 1 })
+    const value = 0.1
+    let expected = 0
+    expected = Math.fround(expected + value)
+    expected = Math.fround(expected + value)
+
+    applyBrush(
+      field,
+      [{ x: 4, y: 4 }, { x: 4, y: 4 }],
+      0,
+      value,
+      'add',
+    )
+
+    expect(field.get(4, 4)).toBe(expected)
     expectFiniteNonNegative(field)
   })
 

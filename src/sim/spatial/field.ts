@@ -17,6 +17,25 @@ function requirePositiveFinite(name: string, value: number): void {
 }
 
 /**
+ * Validate a scalar before it enters authoritative Float32 field storage.
+ * JavaScript can represent finite numbers that binary32 would round to Infinity,
+ * so Number.isFinite(value) alone is not a sufficient storage-domain check.
+ */
+export function requireFiniteNonNegativeFloat32(
+  name: string,
+  value: number,
+): number {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(`${name} must be finite and non-negative`)
+  }
+  const stored = Math.fround(value)
+  if (!Number.isFinite(stored)) {
+    throw new Error(`${name} must fit in finite Float32 field storage`)
+  }
+  return stored
+}
+
+/**
  * Dense scalar field over a circular Petri-dish mask.
  * Values outside the mask are always zero and are never part of simulation authority.
  */
@@ -32,7 +51,7 @@ export class CircularScalarField {
     if (!Number.isSafeInteger(spec.width) || spec.width < 3) throw new Error('width must be an integer >= 3')
     if (!Number.isSafeInteger(spec.height) || spec.height < 3) throw new Error('height must be an integer >= 3')
     requirePositiveFinite('cellSize', spec.cellSize)
-    if (!Number.isFinite(initialValue) || initialValue < 0) throw new Error('initialValue must be finite and non-negative')
+    const storedInitialValue = requireFiniteNonNegativeFloat32('initialValue', initialValue)
 
     this.width = spec.width
     this.height = spec.height
@@ -60,7 +79,7 @@ export class CircularScalarField {
         const dy = y - centerY
         if (dx * dx + dy * dy <= radiusSquared) {
           this.mask[index] = 1
-          this.values[index] = initialValue
+          this.values[index] = storedInitialValue
           inDomainCells += 1
         }
       }
@@ -88,16 +107,16 @@ export class CircularScalarField {
   }
 
   fill(value: number): void {
-    if (!Number.isFinite(value) || value < 0) throw new Error('field value must be finite and non-negative')
+    const stored = requireFiniteNonNegativeFloat32('field value', value)
     for (let index = 0; index < this.values.length; index += 1) {
-      this.values[index] = this.mask[index] === 1 ? value : 0
+      this.values[index] = this.mask[index] === 1 ? stored : 0
     }
   }
 
   set(x: number, y: number, value: number): void {
     if (!this.isInside(x, y)) throw new Error('cannot write outside the dish mask')
-    if (!Number.isFinite(value) || value < 0) throw new Error('field value must be finite and non-negative')
-    this.values[this.index(x, y)] = value
+    const stored = requireFiniteNonNegativeFloat32('field value', value)
+    this.values[this.index(x, y)] = stored
   }
 
   get(x: number, y: number): number {

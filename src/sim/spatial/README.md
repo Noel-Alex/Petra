@@ -24,7 +24,9 @@ The field owns one reusable scratch buffer; diffusion performs no per-cell alloc
 
 ## Numerical authority
 
-Field values are `Float32Array`s for browser memory/transfer efficiency. Tests therefore use tolerances appropriate to Float32 arithmetic. The no-flux diffusion-only invariant is conservation of total field mass up to floating-point error, together with non-negativity and symmetry for symmetric fixtures.
+Field values are `Float32Array`s for browser memory/transfer efficiency. A value must therefore be finite/non-negative **and remain finite after binary32 conversion** before it can enter authoritative storage; a JavaScript-finite value such as `1e39` is invalid because it would store as `Infinity`. Constructor, fill, set, and intervention paths share that storage-domain rule.
+
+Tests use tolerances appropriate to Float32 arithmetic. The no-flux diffusion-only invariant is conservation of total field mass up to floating-point error, together with non-negativity and symmetry for symmetric fixtures.
 
 ## Units
 
@@ -32,4 +34,8 @@ This module is deliberately unit-agnostic. `cellSize`, diffusivity and `dt` must
 
 ## Interventions
 
-Uniform, radial, band and brush primitives write deterministic geometry into a field. They are numerical tools only: the scenario/UI layer must supply the meaning, units and provenance of a nutrient/drug concentration.
+Uniform, radial, band and brush primitives write deterministic geometry into a field. Every intervention is transactional: geometry, blend mode, brush points, and every resulting binary32 value are staged and validated before any authoritative field cell changes. A refused add/brush therefore cannot leave a partial concentration pattern behind.
+
+Overlapping staged writes preserve the previous sequential Float32 semantics by rounding each conceptual write to binary32 before the next overlap is evaluated. Runtime blend mode is exactly `set | add`; malformed geometry or sparse/non-finite brush points fail closed rather than silently disappearing or aliasing to another mode.
+
+These primitives are numerical tools only: the scenario/UI layer must supply the meaning, units and provenance of a nutrient/drug concentration.

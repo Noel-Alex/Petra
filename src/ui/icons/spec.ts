@@ -13,6 +13,9 @@ export type PetraIconName =
   | "experimental"
   | "source"
   | "intervention"
+  | "inoculate"
+  | "antibiotic"
+  | "fungus"
   | "nutrient"
   | "lineage"
   | "inspect"
@@ -133,6 +136,27 @@ export const PETRA_ICONS: Readonly<Record<PetraIconName, PetraIconSpec>> = {
     line(12, 17.5, 12, 21),
     line(3, 12, 6.5, 12),
     line(17.5, 12, 21, 12),
+  ]),
+  inoculate: icon("inoculate", "Inoculate", [
+    poly([[5, 6], [8, 3], [17, 12], [14, 15]], true),
+    line(13.5, 14.5, 10.5, 17.5),
+    circle(9, 19, 1.4),
+    circle(13, 20, 1),
+    circle(6.5, 17.2, 0.9),
+  ]),
+  antibiotic: icon("antibiotic", "Antibiotic", [
+    rect(4, 8, 16, 8, 4),
+    line(12, 8, 12, 16),
+    line(6.6, 13.2, 9.4, 10.4),
+  ]),
+  fungus: icon("fungus", "Fungal placement", [
+    line(12, 20, 12, 8),
+    poly([[12, 13], [8.5, 10], [6, 7]]),
+    poly([[12, 11], [15.5, 8.5], [18, 5.5]]),
+    poly([[12, 16], [16, 14], [19, 11]]),
+    circle(6, 7, 1.2),
+    circle(18, 5.5, 1.2),
+    circle(19, 11, 1.2),
   ]),
   nutrient: icon("nutrient", "Nutrient field", [
     circle(8, 9, 2.4),

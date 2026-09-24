@@ -16,6 +16,8 @@ export interface InterventionToolAvailability {
 
 export interface InterventionCapabilityView {
   readonly available: false;
+  /** Placement-only preview may be enabled without granting simulation authority. */
+  readonly previewAvailable: boolean;
   readonly reason: InterventionUnavailableReason;
   readonly message: string;
   readonly tools: readonly InterventionToolAvailability[];
@@ -23,6 +25,7 @@ export interface InterventionCapabilityView {
 
 const TOOLS = Object.freeze([
   { tool: "inoculate", label: "Inoculate", available: false },
+  { tool: "fungus", label: "Fungi", available: false },
   { tool: "antibiotic", label: "Antibiotic", available: false },
   { tool: "nutrient", label: "Nutrient", available: false },
 ] as const satisfies readonly InterventionToolAvailability[]);
@@ -44,7 +47,8 @@ export function projectInterventionCapability(
     case "pending":
       return unavailable(
         "runtime-pending",
-        "An authoritative simulation request is in flight. Intervention tools are unavailable until the runtime is ready.",
+        "An authoritative simulation request is in flight. Placement preview remains available, but scientific application stays locked until authority is ready.",
+        true,
       );
     case "error":
       return unavailable(
@@ -54,7 +58,8 @@ export function projectInterventionCapability(
     case "ready":
       return unavailable(
         "authoritative-schema-unavailable",
-        "The runtime is ready, but the current protocol does not expose authoritative intervention commands. Petra will not substitute synthetic commands.",
+        "Placement preview is available, but the current protocol does not expose authoritative intervention commands. Petra will not substitute synthetic commands.",
+        true,
       );
   }
 }
@@ -62,6 +67,13 @@ export function projectInterventionCapability(
 function unavailable(
   reason: InterventionUnavailableReason,
   message: string,
+  previewAvailable = false,
 ): InterventionCapabilityView {
-  return { available: false, reason, message, tools: TOOLS };
+  return {
+    available: false,
+    previewAvailable,
+    reason,
+    message,
+    tools: TOOLS,
+  };
 }

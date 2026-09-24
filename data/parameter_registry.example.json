@@ -77,7 +77,8 @@
   "transfer_assumptions": [
     "The reference pharmacodynamic curve and the MG1655 genotype table come from different experimental systems.",
     "Before calling the combined scenario quantitatively calibrated, normalize/fit the PD response to the selected genotype MICs and verify rate conventions.",
-    "Spatial diffusion and colony-dispersal coefficients remain scenario-calibration parameters until source-matched values are chosen."
+    "Spatial diffusion and colony-dispersal coefficients remain scenario-calibration parameters until source-matched values are chosen.",
+    "The resource-by-drug policy maps the transferred PD decrement to a first-order loss channel; it is not source-matched stationary-phase calibration."
   ],
   "unbound_requirements": [
     {
@@ -111,9 +112,19 @@
     {
       "key": "ecology.death_hazard",
       "required_for": "mechanism_specific_loss",
-      "status": "COMPOSED_NOT_GLOBAL",
-      "evidence_class_required": "mechanism_specific",
-      "notes": "No universal default is implied. Ciprofloxacin-associated loss must be derived from the named pharmacodynamic/resource composition policy."
+      "status": "COMPOSED_FROM_VERSIONED_PD_POLICY",
+      "evidence_class_required": "transferred_mechanistic_approximation",
+      "notes": "For the ciprofloxacin flagship, the hazard is derived from reference_pd_decrement_as_first_order_loss_v1 rather than set as a free scalar. Other mechanisms require their own provenance."
     }
-  ]
+  ],
+  "composition_policies": {
+    "resource_drug": {
+      "id": "reference_pd_decrement_as_first_order_loss_v1",
+      "classification": "transferred_mechanistic_approximation",
+      "reference_source": "10.1128/AAC.48.10.3670-3676.2004",
+      "genotype_source": "10.1371/journal.ppat.1000541",
+      "equation": "h_drug = ln(10) * (psi_max - psi_g(a))",
+      "notes": "The loss channel is the decrement relative to the Regoes drug-free reference. Petra's Monod growth baseline remains independently provenance-owned; starvation interaction is not source-matched calibration."
+    }
+  }
 }

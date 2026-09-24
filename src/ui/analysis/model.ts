@@ -1,6 +1,7 @@
 import {
   resolveMotion,
   type MotionPreference,
+  type MotionTreatment,
   type ResolvedMotion,
 } from "../motion/policy";
 import { resolveCausalEventChoreography } from "../motion/events";
@@ -75,10 +76,11 @@ export interface LineageTreeLayout {
 
 export interface AnalysisMotionPlan {
   readonly panel: ResolvedMotion;
+  readonly panelEasing: readonly [number, number, number, number];
   readonly chart: ResolvedMotion;
   readonly chartEasing: readonly [number, number, number, number];
   readonly lineageBranch: {
-    readonly treatment: string;
+    readonly treatment: MotionTreatment;
     readonly durationMs: number;
     readonly easing: readonly [number, number, number, number];
   };
@@ -109,8 +111,13 @@ export function buildScientificChart(
   let vMin = Number.POSITIVE_INFINITY;
   let vMax = Number.NEGATIVE_INFINITY;
 
+  const seriesIds = new Set<string>();
   for (const series of inputs) {
     validateSeries(series);
+    if (seriesIds.has(series.id)) {
+      throw new RangeError("duplicate scientific series id: " + series.id);
+    }
+    seriesIds.add(series.id);
     if (series.unit !== unit) {
       throw new RangeError("series with different units must use separate scientific charts");
     }
@@ -367,6 +374,7 @@ export function resolveAnalysisMotion(
 
   return {
     panel,
+    panelEasing: MOTION.panel.easing,
     chart,
     chartEasing: MOTION.fieldShift.easing,
     lineageBranch: {

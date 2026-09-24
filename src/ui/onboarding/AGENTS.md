@@ -20,6 +20,7 @@ Own the guided science-story choreography that introduces Petra without duplicat
 - Guide navigation actions (`Skip`, `Back`, `Continue` / `Start experimenting`) consume the shared `PetraCompactAction` interaction adapter. Onboarding CSS may own layout, tone, static shadow, and focus-ring color, but must not declare navigation-specific hover/press transforms, filters, transitions, state timing, or easing.
 - Guide navigation CSS must not undercut `PetraCompactAction`'s shared `2.75rem` minimum touch height. Onboarding may add padding or deliberate width for composition, but the shared repeated-action block target remains the accessibility floor.
 - Decorative onboarding loops also resolve through shared `src/ui/motion/decorativeLoops.ts` authority and are projected as CSS variables. CSS may not reintroduce local loop cadence/easing or re-enable loops in Reduced/Off.
+- Onboarding may consume `PetraPrimitiveGlyph` only as decorative, `aria-hidden` story artwork. A colony/rod motif in the guide is not evidence about the current run and cannot satisfy a scientific gate, choose a lineage phenotype, or authorize renderer biology.
 
 ## Verification
 Deterministic tests must prove gated progression, skip/reset behavior, and reduced/off presentation semantics. Browser polish and screenshot/FPS acceptance require browser-capable verification.

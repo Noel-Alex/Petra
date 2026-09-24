@@ -29,6 +29,13 @@ The dish gets a subtle rim, refraction/highlight treatment and soft environmenta
 - lineage: outline/halo/pattern, not just recolor;
 - UI panels: rounded but not bubbly; compact editorial cards with strong headings.
 
+### Reusable code-rendered primitives
+Petra's shared normalized visual vocabulary lives in `src/design/vectorPrimitives.ts`; DOM/SVG consumers use `src/ui/PetraPrimitiveGlyph.tsx` where the geometry is concrete enough to render without invention. The current reusable component supports calm colony clusters, rounded rods, budding clusters, selection rings, and intervention markers with explicit idle/hover/selected/disabled/loading/active presentation states.
+
+These shapes are visual language, not biological authority. A live surface must receive organism/field/action identity from authoritative runtime contracts before associating a silhouette with scientific meaning. Onboarding may use the same shapes as clearly decorative story motifs. Missing hyphal/contour path geometry is a specification gap to fill at the framework-neutral design layer, not a license for React or Pixi to improvise a biologically suggestive path.
+
+All component tones derive from `src/design/visualTokens.ts`, and transition behavior derives from named Petra motion policy. Reduced/Off motion removes decorative looping while preserving static shape and state cues.
+
 ### Depth
 Use **2.5D**, not gratuitous 3D.
 

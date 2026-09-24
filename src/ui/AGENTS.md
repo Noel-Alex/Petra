@@ -115,6 +115,13 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Shared action stylesheet fallback variables are deliberately static (`0ms` + `linear`). Motion exists only when the adapter projects a resolved named Petra token; missing projection must fail static rather than revive a stale CSS timing.
 
 
+## Reusable flat-vector primitive adapter
+- `PetraPrimitiveGlyph.tsx` is the DOM/SVG adapter over `src/design/vectorPrimitives.ts` for the currently concrete primitive families (colony cluster, rounded rod, budding cluster, selection ring, intervention marker).
+- Primitive choice, tone, and visual state are presentation inputs only. The adapter must never infer organism kind, abundance, fitness, field identity, or intervention acceptance from lineage color/index, renderer density, or component state.
+- Live scientific surfaces may associate organism-looking silhouettes with biology only after their caller has the required authoritative organism-kind evidence. Fixed onboarding motifs are decorative story artwork, `aria-hidden`, and must not satisfy scientific gates.
+- Idle/hover/selected/disabled/loading/active states use shared Petra palette variables and named motion policy. Stylesheets fail static at `0ms + linear`; Reduced/Off may not revive decorative loops.
+- Hyphal paths, field contours, and other specialized geometry require a dedicated adapter once their framework-neutral spec carries sufficient drawable geometry. Do not invent missing path data inside React merely to make a visual look complete.
+
 ## Causal event narration
 - Screen-reader narration for authoritative causal events uses `src/ui/motion/announcements.ts`; do not write each event directly into an independent live region.
 - One new event may use its event-specific explanation. Multi-event batches collapse to one bounded count summary while the scientific timeline remains complete and ordered.

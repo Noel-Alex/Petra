@@ -26,6 +26,8 @@ describe("OnboardingGuide", () => {
     expect(html).toContain("Selection");
     expect(html).toContain("Experiment");
     expect(html).toContain('data-motion-treatment="animate"');
+    expect(html).toContain('data-primitive="selection-ring"');
+    expect(html).toContain('data-semantic-boundary="presentation-only"');
     expect(html).toContain('data-ambient-motion="animate"');
     expect(html).toContain("--onboarding-ambient-primary-ms:8000ms");
     expect(html).toContain("--onboarding-ambient-secondary-ms:11000ms");
@@ -69,6 +71,8 @@ describe("OnboardingGuide", () => {
     );
 
     expect(locked).toContain("Start with a population.");
+    expect(locked).toContain('data-primitive="round-colony-cluster"');
+    expect(locked).toContain('data-requires="authoritative-organism-kind"');
     expect(locked).toContain("Waiting for simulation evidence");
     expect(locked).toContain("authoritative simulator state");
     expect(locked).toContain('data-motion-treatment="static-emphasis"');

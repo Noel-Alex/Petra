@@ -323,6 +323,26 @@
     inset 0 0 24px var(--onboarding-accent-soft);
 }
 
+.petra-onboarding__focus-motif {
+  width: 2.45rem;
+  height: 2.45rem;
+}
+
+.petra-onboarding__focus-icon {
+  position: absolute;
+  right: -0.08rem;
+  bottom: -0.08rem;
+  width: 1.42rem;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--onboarding-accent) 52%, var(--petra-color-ink));
+  border-radius: 50%;
+  color: var(--petra-color-cream);
+  background: var(--petra-color-ink);
+  box-shadow: 0 4px 12px rgb(var(--petra-rgb-ink-deep) / 0.2);
+}
+
 .petra-onboarding__copy {
   min-width: 0;
 }

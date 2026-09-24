@@ -25,4 +25,18 @@ describe("Pixi dish aperture scene contract", () => {
     expect(rendererSource).toContain("dishMask: snapshot.dishMask");
     expect(rendererSource).toContain(".lineTo(to.x, to.y)");
   });
+
+  it("draws shared-scale lineage density contours with existing pattern geometry", () => {
+    expect(rendererSource).toContain(
+      'import { extractLineageDensityContourSegments } from "../lineageDensityContours"',
+    );
+    expect(rendererSource).toContain(
+      "const contourSegments = extractLineageDensityContourSegments({",
+    );
+    expect(rendererSource).toContain("sharedMaximum");
+    expect(rendererSource).toContain(
+      "const contourPattern = resolveLineagePattern(lineage.patternToken)",
+    );
+    expect(rendererSource).toContain("color: LINEAGE_PATTERN_COLOR");
+  });
 });

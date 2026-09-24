@@ -56,6 +56,9 @@
       "properties": {
         "resourceContext": {
           "$ref": "#/$defs/resourceContext"
+        },
+        "engineeringDefaults": {
+          "$ref": "#/$defs/engineeringDefaults"
         }
       },
       "additionalProperties": true
@@ -117,6 +120,9 @@
     },
     "executionProfile": {
       "$ref": "#/$defs/ecologyExecutionProfile"
+    },
+    "composedParameterSet": {
+      "$ref": "#/$defs/composedParameterSet"
     }
   },
   "additionalProperties": true,
@@ -425,6 +431,130 @@
             }
           },
           "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "engineeringDefaults": {
+      "type": "object",
+      "required": [
+        "gridSize",
+        "dishRadiusCells",
+        "cellSize",
+        "cellSizeUnit",
+        "note"
+      ],
+      "properties": {
+        "gridSize": {
+          "type": "integer",
+          "minimum": 3
+        },
+        "dishRadiusCells": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "cellSize": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "cellSizeUnit": {
+          "const": "model-grid-cell"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "composedParameterSet": {
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "id",
+        "version",
+        "scenarioId",
+        "scenarioVersion",
+        "executionProfileId",
+        "executionProfileVersion",
+        "resourceContextVersion",
+        "geometrySource",
+        "lossPolicyId",
+        "lineages",
+        "provenance"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scenarioId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scenarioVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executionProfileId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executionProfileVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resourceContextVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "geometrySource": {
+          "const": "environment.engineeringDefaults"
+        },
+        "lossPolicyId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lineages": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "genotypeId",
+              "deathHazardPerHour",
+              "provenance"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "genotypeId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "deathHazardPerHour": {
+                "type": "number",
+                "minimum": 0
+              },
+              "provenance": {
+                "$ref": "#/$defs/provenance"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "provenance": {
+          "$ref": "#/$defs/provenance"
         }
       },
       "additionalProperties": false

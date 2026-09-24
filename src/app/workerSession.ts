@@ -1,5 +1,4 @@
 import {
-  PROTOCOL_VERSION,
   type SimulationCommand,
   type SimulationSnapshot,
   type WorkerRequest,
@@ -8,6 +7,7 @@ import {
 import {
   WORKER_PERFORMANCE_DIAGNOSTICS_VERSION,
   estimateStructuredClonePayloadBytes,
+  parseInstrumentedWorkerResponse,
   type InstrumentedWorkerRequest,
   type InstrumentedWorkerResponse,
 } from "../worker/performanceInstrumentation";
@@ -29,7 +29,7 @@ export interface WorkerSessionState {
 }
 
 export interface WorkerPortHandlers {
-  readonly message: (response: InstrumentedWorkerResponse) => void;
+  readonly message: (response: unknown) => void;
   readonly error: (message: string) => void;
 }
 
@@ -207,17 +207,16 @@ export class WorkerSession {
     }
   }
 
-  private handleResponse(response: InstrumentedWorkerResponse): void {
+  private handleResponse(payload: unknown): void {
     if (this.current.phase === "disposed") return;
 
-    if (response.protocolVersion !== PROTOCOL_VERSION) {
-      this.recordPerformance(response, "protocol-error");
-      this.fail(
-        `Worker protocol mismatch: expected ${PROTOCOL_VERSION}, received ${response.protocolVersion}`,
-        responseCommandId(response),
-      );
+    const parsed = parseInstrumentedWorkerResponse(payload);
+    if (!parsed.ok) {
+      this.recordPerformance(null, "protocol-error");
+      this.fail(parsed.error, this.activeCommandId());
       return;
     }
+    const response = parsed.value;
 
     const active = this.active;
     if (active === null) {
@@ -402,7 +401,7 @@ export function createBrowserWorkerPort(worker: Worker): WorkerPort {
       worker.postMessage(request);
     },
     subscribe(handlers) {
-      const onMessage = (event: MessageEvent<InstrumentedWorkerResponse>) => {
+      const onMessage = (event: MessageEvent<unknown>) => {
         handlers.message(event.data);
       };
       const onError = (event: ErrorEvent) => {

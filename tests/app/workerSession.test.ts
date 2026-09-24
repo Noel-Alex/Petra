@@ -11,7 +11,6 @@ import {
   type SimulationSnapshot,
   type WorkerRequest,
 } from "../../src/sim/protocol";
-import type { InstrumentedWorkerResponse } from "../../src/worker/performanceInstrumentation";
 
 const identity = createRunIdentity({
   scenarioId: "worker-session-fixture",
@@ -56,7 +55,7 @@ class FakePort implements WorkerPort {
     this.disposed = true;
   }
 
-  emit(response: InstrumentedWorkerResponse): void {
+  emit(response: unknown): void {
     this.handlers?.message(response);
   }
 
@@ -186,6 +185,49 @@ describe("worker session", () => {
     expect(session.state.phase).toBe("error");
     expect(session.state.error).toContain("expected expected, received stale");
     expect(session.state.latestSnapshot).toBeNull();
+  });
+
+  it("fails closed on malformed deserialized responses and keeps trusted command correlation", () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+
+    session.enqueue([
+      { protocolVersion: PROTOCOL_VERSION, type: "initialize", identity },
+    ]);
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: snapshot(0),
+    });
+
+    session.enqueue([
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: { id: "advance-active", type: "advance", ticks: 4 },
+      },
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: { id: "queued-command", type: "snapshot" },
+      },
+    ]);
+
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      commandId: "forged-command",
+      snapshot: null,
+    });
+
+    expect(session.state).toMatchObject({
+      phase: "error",
+      pendingCommandId: "advance-active",
+      queuedRequests: 0,
+    });
+    expect(session.state.error).toContain("Invalid worker response");
+    expect(session.state.latestSnapshot).toEqual(snapshot(0));
+    expect(port.posted).toHaveLength(2);
   });
 
   it("fails closed on message deserialization during initialization and can recover", () => {
@@ -430,6 +472,51 @@ describe("worker session", () => {
     expect(samples[0]?.requestPayloadBytes).toBeGreaterThan(0);
     expect(samples[1]?.responsePayloadBytes).toBeGreaterThan(0);
     expect(session.state.phase).toBe("ready");
+  });
+
+  it("treats malformed performance diagnostics as a protocol failure", () => {
+    const port = new FakePort();
+    const samples: import("../../src/app/workerSession").WorkerSessionPerformanceSample[] = [];
+    let now = 40;
+    const session = new WorkerSession(port, {
+      observe: (sample) => samples.push(sample),
+      now: () => now,
+    });
+
+    session.enqueue([
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: { id: "profile-invalid", type: "snapshot" },
+      },
+    ]);
+
+    now = 45;
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      commandId: "profile-invalid",
+      snapshot: snapshot(0),
+      performanceDiagnostics: {
+        version: 1,
+        executionDurationMs: Number.NaN,
+      },
+    });
+
+    expect(samples).toHaveLength(1);
+    expect(samples[0]).toMatchObject({
+      commandId: "profile-invalid",
+      roundTripMs: 5,
+      workerExecutionMs: null,
+      responsePayloadBytes: null,
+      outcome: "protocol-error",
+    });
+    expect(session.state).toMatchObject({
+      phase: "error",
+      pendingCommandId: "profile-invalid",
+      queuedRequests: 0,
+    });
+    expect(session.state.error).toContain("performanceDiagnostics");
   });
 
   it("records profiled protocol failures before failing closed", () => {

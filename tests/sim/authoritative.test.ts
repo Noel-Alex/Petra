@@ -28,6 +28,13 @@ const config: ComposedSimulationConfig = {
 }
 
 describe('authoritative composed state', () => {
+  const maskedConfig: ComposedSimulationConfig = {
+    ...config,
+    mask: [1, 0],
+    initialResource: [8, 0],
+    initialLineageBiomass: [[1, 0], [2, 0]],
+  }
+
   it('is deterministic for identical explicit configuration and starting state', () => {
     const first = createComposedState(config)
     const second = createComposedState(config)
@@ -104,6 +111,51 @@ describe('authoritative composed state', () => {
         ],
       }),
     ).toThrow(/non-empty/)
+  })
+
+  it('rejects non-zero initial ecology state outside the dish mask', () => {
+    expect(() =>
+      createComposedState({
+        ...maskedConfig,
+        initialResource: [8, 9],
+      }),
+    ).toThrow(/resource must be zero outside composed mask/)
+
+    expect(() =>
+      createComposedState({
+        ...maskedConfig,
+        initialLineageBiomass: [[1, 4], [2, 0]],
+      }),
+    ).toThrow(/lineage biomass must be zero outside composed mask/)
+  })
+
+  it('rejects corrupted serialized ecology state outside the dish mask', () => {
+    const resourceState = createComposedState(maskedConfig)
+    resourceState.resource[1] = 9
+    expect(() => stepComposedState(resourceState, maskedConfig)).toThrow(
+      /resource must be zero outside composed mask/,
+    )
+
+    const lineageState = createComposedState(maskedConfig)
+    lineageState.lineageBiomass[1]![1] = 4
+    expect(() => stepComposedState(lineageState, maskedConfig)).toThrow(
+      /lineage biomass must be zero outside composed mask/,
+    )
+  })
+
+  it('reports resource and lineage aggregates over the same in-mask domain', () => {
+    const state = createComposedState(maskedConfig)
+    const metrics = stepComposedState(state, maskedConfig)
+    const lineageTotal = Object.values(metrics.lineageBiomass).reduce(
+      (sum, value) => sum + value,
+      0,
+    )
+
+    expect(metrics.totalResource).toBeCloseTo(state.resource[0]!)
+    expect(lineageTotal).toBeCloseTo(metrics.totalBiomass)
+    expect(state.resource[1]).toBe(0)
+    expect(state.lineageBiomass[0]![1]).toBe(0)
+    expect(state.lineageBiomass[1]![1]).toBe(0)
   })
 
   it('rejects corrupted serialized state before typed-array conversion can hide it', () => {

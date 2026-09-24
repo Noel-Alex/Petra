@@ -10,8 +10,11 @@ import {
 import type { MotionPreference } from "./motion/policy";
 import { resolveMicroInteraction } from "./motion/microInteractions";
 import {
+  beginActionKeyboardPress,
   beginActionPointerPress,
+  clearActionKeyboardPress,
   clearActionPointerState,
+  finishActionKeyboardPress,
   createActionInteractionState,
   resolveActionMicroInteractionState,
   updateActionInteractionState,
@@ -51,13 +54,17 @@ export function PetraAction({
   onPointerCancel,
   onFocus,
   onBlur,
+  onKeyDown,
+  onKeyUp,
   ...buttonProps
 }: PetraActionProps): ReactElement {
   const [interaction, setInteraction] = useState(createActionInteractionState);
 
   useEffect(() => {
     if (!disabled) return;
-    setInteraction(clearActionPointerState);
+    setInteraction((current) =>
+      clearActionKeyboardPress(clearActionPointerState(current)),
+    );
   }, [disabled]);
 
   const isSelected = selected === true;
@@ -132,6 +139,20 @@ export function PetraAction({
           updateActionInteractionState(current, "blur"),
         );
         onBlur?.(event);
+      }}
+      onKeyDown={(event) => {
+        onKeyDown?.(event);
+        if (!disabled && !event.defaultPrevented) {
+          const key = event.key;
+          setInteraction((current) =>
+            beginActionKeyboardPress(current, key, false),
+          );
+        }
+      }}
+      onKeyUp={(event) => {
+        const key = event.key;
+        setInteraction((current) => finishActionKeyboardPress(current, key));
+        onKeyUp?.(event);
       }}
     >
       <span className="petra-action__icon" aria-hidden="true">

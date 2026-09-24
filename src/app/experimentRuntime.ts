@@ -23,9 +23,12 @@ import {
   WorkerSession,
   type WorkerSessionState,
 } from "./workerSession";
+import { createRunBranchIdentity } from "./runBranchIdentity";
 
 export interface ExperimentRuntimeState {
   readonly controls: ExperimentControlState;
+  /** Runtime-owned command-history generation shared by replay/narration consumers. */
+  readonly runBranchIdentity: string;
   readonly worker: WorkerSessionState;
   readonly snapshot: SimulationSnapshot | null;
   readonly timeline: readonly TimelineEntry[];
@@ -49,6 +52,7 @@ export class ExperimentRuntime {
   private readonly pendingAcceptance = new Map<string, SimulationCommand>();
   private readonly unsubscribeWorker: () => void;
   private readonly composedConfig: ComposedSimulationConfig | undefined;
+  private runBranchGeneration = 0;
   private current: ExperimentRuntimeState;
 
   constructor(
@@ -61,6 +65,7 @@ export class ExperimentRuntime {
       composedConfig === undefined ? undefined : structuredClone(composedConfig);
     this.current = {
       controls: createExperimentControlState(identity),
+      runBranchIdentity: createRunBranchIdentity(identity, this.runBranchGeneration),
       worker: session.state,
       snapshot: null,
       timeline: [],
@@ -132,6 +137,10 @@ export class ExperimentRuntime {
         this.pendingAcceptance.clear();
       }
 
+      const runBranchIdentity = reinitializesRun
+        ? this.rotateRunBranchIdentity(planned.state.identity)
+        : this.current.runBranchIdentity;
+
       if (action.type !== "replay") {
         this.stageReplayableCommands(planned.effect.requests);
       }
@@ -139,6 +148,7 @@ export class ExperimentRuntime {
       this.current = {
         ...this.current,
         controls: planned.state,
+        runBranchIdentity,
         ...(reinitializesRun ? { snapshot: null, timeline: [] } : {}),
         integrationError: null,
       };
@@ -242,6 +252,7 @@ export class ExperimentRuntime {
 
       this.current = {
         controls,
+        runBranchIdentity: this.current.runBranchIdentity,
         worker,
         snapshot: structuredClone(candidate),
         timeline: buildScientificTimeline(candidate),
@@ -256,6 +267,14 @@ export class ExperimentRuntime {
       worker,
     };
     this.publish();
+  }
+
+  private rotateRunBranchIdentity(identity: RunIdentity): string {
+    if (this.runBranchGeneration >= Number.MAX_SAFE_INTEGER) {
+      throw new RangeError("run branch generation exhausted safe integer range");
+    }
+    this.runBranchGeneration += 1;
+    return createRunBranchIdentity(identity, this.runBranchGeneration);
   }
 
   private publish(): void {

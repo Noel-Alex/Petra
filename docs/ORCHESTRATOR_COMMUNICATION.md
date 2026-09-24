@@ -67,7 +67,7 @@ Contributor: Noel-Alex
 ## 2026-09-24 — localized intervention preview boundary
 
 - #458 establishes a reusable presentation-only localized placement state: direct dish pointer/touch target + keyboard-equivalent X/Y controls, with circular coordinates tied to the renderer aperture authority.
-- Inoculation, fungi, antibiotic, and nutrient are available as **placement-preview vocabulary** without claiming the current synthetic protocol can apply them. The target ring is cursor affordance, not a modeled biological footprint.
+- Inoculation, fungi, antibiotic, and nutrient are available as **placement-preview vocabulary** without claiming that protocol-v4 composed authority can already apply them. The current command union still has no real typed flagship intervention command; the target ring is cursor affordance, not a modeled biological footprint.
 - Scientific Apply remains fail-closed until #37/#158 supplies authoritative intervention command schema plus parameter labels/units/bounds. Do not translate these previews into `synthetic-pulse`.
 - Placement survives transient pending requests, cancels on Escape/explicit Cancel, and is cleared when runtime authority is unavailable/starting/failed.
 - The implementation was rebased onto the shared calm visual-token foundation and consumes those tokens without taking ownership of the central theme.

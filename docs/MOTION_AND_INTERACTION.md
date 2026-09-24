@@ -130,3 +130,10 @@ Use scroll-driven illustration only on the intro/learn surface. Respect reduced 
 - touch controls remain possible, though desktop is the primary competition target;
 - inspector/tooltips work with keyboard focus;
 - avoid hover-only required actions.
+
+
+## Replay and scrubbing presentation
+
+Replay rendering separates scientific authority from visual continuity. An ordered set of authoritative dish snapshots supplies the keyframes. Exact keyframes remain authoritative; a compatible in-between dish frame may be evaluated deterministically from normalized timeline progress for visual continuity only.
+
+Interpolated biomass, fields, and lineage density are never valid substitutes for authoritative scientific readouts, event identity, or checkpoint state. If adjacent keyframes differ in sampling identity, grid/mask geometry, field metadata, or lineage metadata, the presentation fails closed to the previous authoritative keyframe instead of inventing a morph. Until runtime history exposes a stronger ordering identity, ambiguous same-time snapshot keyframes are rejected rather than silently ordered.

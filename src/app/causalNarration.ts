@@ -1,5 +1,6 @@
 import type { RunIdentity } from "../sim/protocol";
 import {
+  CAUSAL_LIVE_REGION_POLICY,
   INITIAL_CAUSAL_ANNOUNCEMENT_CURSOR,
   planCausalAnnouncements,
   type CausalAnnouncementCursor,
@@ -193,7 +194,22 @@ function assertAppendOnlyCausalHistory(
 }
 
 function silentPlan(cursor: CausalAnnouncementCursor): CausalAnnouncementPlan {
-  return planCausalAnnouncements([], cursor);
+  // No authority stream is supplied in this lifecycle state, so there is
+  // nothing to run append-only stream validation against. Preserve the exact
+  // accepted cursor while keeping the stable live region silent. Once a stream
+  // is supplied again, normal #501/#508 continuity validation resumes.
+  return {
+    presentation: "none",
+    message: null,
+    eventIds: [],
+    firstSequence: null,
+    lastSequence: null,
+    nextCursor: cursor,
+    liveRegion: CAUSAL_LIVE_REGION_POLICY,
+    orderMeaning: "authoritative-sequence-only",
+    timingMeaning: "independent-of-animation-wall-time",
+    historyPolicy: "scientific-timeline-remains-complete",
+  };
 }
 
 function assertRunBranchIdentity(runBranchIdentity: string): void {

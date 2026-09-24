@@ -7,7 +7,7 @@ import {
 import {
   cubicBezierProgress,
   type MotionEasing,
-} from "./pixi/cameraMotion";
+} from "./motionMath";
 
 export interface DishVisualState {
   readonly samplingIdentity: string;

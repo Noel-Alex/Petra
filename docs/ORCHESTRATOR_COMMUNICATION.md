@@ -78,7 +78,7 @@ Contributor: Noel-Alex
 - #564 / PR #588 moved composed worker identity to protocol v4: a product-facing parameter-set ID/version must be bound to the exact deterministic composed-configuration fingerprint rather than acting as an unverified friendly label. Ad-hoc test configs use an explicit `fixture:` namespace.
 - #227 remains intentionally open for a future source-compatible physical limiting-resource/Monod binding. Do not close it by mixing incompatible literature values or renaming model-resource as glucose.
 - #494 introduced a separate engineering execution profile so ecology can run without weakening #227. The current scenario is `ecoli-ciprofloxacin-spatial@1.4.0-research`; it selects `ecoli-ciprofloxacin-ecology-engineering@1.1.0`.
-- The scenario now also owns `ecoli-ciprofloxacin-baseline-composed@1.0.0`: model-grid geometry, founder `WT` channel identity, and the declared resource×drug loss policy are versioned mechanism authority. Baseline `deathHazardPerHour = 0` means the incremental ciprofloxacin-loss channel is inactive before drug exposure; it is not a measured MG1655 background-death constant.
+- The scenario now also owns `ecoli-ciprofloxacin-baseline-composed@1.1.0`: model-grid geometry, founder `WT` channel identity, and the declared resource×drug loss policy are versioned mechanism authority. Baseline `deathHazardPerHour = 0` means the incremental ciprofloxacin-loss channel is inactive before drug exposure; it is not a measured MG1655 background-death constant.
 - Initial model-resource level, founder placement/biomass, and seed remain explicit run-state inputs and do not silently become mechanism constants. The product-facing `flagshipComposition.ts` builder consumes only bundled scenario authority, constructs the circular mask/state, and mints the protocol-v4 provenance binding from the resulting composed configuration fingerprint.
 - The execution profile remains `engineering` and uses only `hour`, `model-resource`, and `model-biomass`. Its normalized values are judged against kernel behavior targets, not a claim of measured MG1655 glucose/CFU calibration.
 - Continuous model-biomass division flux is still not discrete cell/division-event authority. #562 owns that bridge; do not use the new runnable baseline as permission to round biomass into mutation events.
@@ -95,3 +95,16 @@ Contributor: Noel-Alex
 - Learned-model authority remains downstream of trustworthy mechanistic trajectories, but ML infrastructure preparation is explicitly allowed and encouraged before those trajectories are ready.
 - Active DOX now uses role-based language for local experiment/CI ownership. Historical references to individuals remain historical facts, not contributor templates.
 - Claims, branches, commits, PRs, and handoffs must use the actual authenticated contributor identity. Repository ownership or old `Contributor:` lines are never permission to impersonate that identity.
+
+
+## 2026-09-24 — composed ciprofloxacin field authority enters the P0 integration path
+
+- #626 now has a bounded authoritative drug-field bridge on `Noel-Alex/626-authoritative-cipro-field`: `ComposedSimulationConfig` carries a full-grid static ciprofloxacin landscape in `mg/L` plus explicit source-backed PD/MIC authority or explicit `null`.
+- Non-zero exposure fails closed without the supported `reference_pd_decrement_as_first_order_loss_v1` authority, a valid Regoes reference curve, and MIC records covering every active genotype. Concentration is finite/non-negative and exactly zero outside the dish mask.
+- `stepComposedState` does not reimplement pharmacodynamics. It feeds the authoritative concentration array into the existing `composeSpatialCiprofloxacinLoss(...)` kernel, adds the resulting genotype-specific per-cell hazard to any baseline loss hazard, and then uses the existing ecology loss channel.
+- The static landscape and PD/MIC identity are part of the composed configuration fingerprint. The flagship baseline parameter set is therefore versioned as `ecoli-ciprofloxacin-baseline-composed@1.1.0` and projects the curated Regoes + Marcusson authority while keeping exposure exactly zero.
+- This deliberately does **not** add mutable drug state to the protocol-v4 checkpoint. A mutable dose/radial/stripe/paint command would change required worker state/wire authority and must land as a separately versioned protocol/checkpoint slice; UI previews remain presentation-only until then.
+- A repository-wide constructor audit also found three typed composed fixtures that still omitted the already-required explicit sampling policy. #667 was reopened and those omissions are repaired on the same integration branch rather than hidden by a stale closed issue.
+- Hosted CI remains frozen. This environment has source/connector review but no working network checkout for local npm/Vitest execution, so no unrun test result is claimed.
+
+Contributor: Noel-Alex

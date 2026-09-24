@@ -4,6 +4,7 @@ import {
   composedConfigurationFingerprint,
   createComposedState,
   stepComposedState,
+  type ComposedCiprofloxacinConfig,
   type ComposedSimulationConfig,
 } from '../../src/sim/authoritative'
 import type { CuratedMutationGraph } from '../../src/sim/evolution/graph'
@@ -29,11 +30,28 @@ const acceleratedSamplingPolicy: SamplingExecutionPolicy = {
   maximumAcceleratedDraws: 20000,
 }
 
+const ciprofloxacinAuthority: ComposedCiprofloxacinConfig = {
+  policyId: 'reference_pd_decrement_as_first_order_loss_v1',
+  concentrationUnit: 'mg/L',
+  referencePharmacodynamics: {
+    psiMaxLog10PerHour: 0.88,
+    psiMinLog10PerHour: -6.5,
+    zMic: 0.017,
+    kappa: 1.1,
+  },
+  referenceMicMgPerL: 0.03,
+  genotypeMicMgPerL: [
+    { genotypeId: 'WT', micMgPerL: 0.016 },
+    { genotypeId: 'VAR', micMgPerL: 0.38 },
+  ],
+}
+
 const config: ComposedSimulationConfig = {
   width: 2,
   height: 1,
   mask: [1, 1],
   initialResource: [8, 8],
+  ciprofloxacinConcentrationMgPerL: [0, 0],
   initialLineageBiomass: [[1, 0], [2, 0]],
   growth: {
     maxDivisionRate: 0.8,
@@ -44,6 +62,7 @@ const config: ComposedSimulationConfig = {
   },
   evolutionGraph,
   evolutionScenario: { scenarioId: 'test-scenario', scenarioVersion: '1' },
+  ciprofloxacin: null,
   samplingExecutionPolicy: null,
   lineages: [
     { id: 'ancestor', genotypeId: 'WT', deathHazardPerHour: 0 },
@@ -111,6 +130,58 @@ describe('authoritative composed state', () => {
         growth: { ...config.growth, maxDivisionRate: 0.81 },
       }),
     ).toThrow(/fingerprint mismatch/)
+  })
+
+  it('binds a static ciprofloxacin landscape into replay identity and ecology loss', () => {
+    const baselineState = createComposedState(config)
+    const baselineMetrics = stepComposedState(baselineState, config)
+
+    const drugConfig: ComposedSimulationConfig = {
+      ...config,
+      ciprofloxacinConcentrationMgPerL: [0.5, 0.5],
+      ciprofloxacin: ciprofloxacinAuthority,
+    }
+    const drugState = createComposedState(drugConfig)
+    const drugMetrics = stepComposedState(drugState, drugConfig)
+
+    expect(composedConfigurationFingerprint(drugConfig)).not.toBe(
+      composedConfigurationFingerprint(config),
+    )
+    expect(drugMetrics.deathBiomass).toBeGreaterThan(
+      baselineMetrics.deathBiomass,
+    )
+    expect(drugState.lineageBiomass[0]![0]).toBeLessThan(
+      baselineState.lineageBiomass[0]![0]!,
+    )
+  })
+
+  it('requires explicit source-backed ciprofloxacin authority for non-zero exposure', () => {
+    expect(() =>
+      createComposedState({
+        ...config,
+        ciprofloxacinConcentrationMgPerL: [0.5, 0],
+      }),
+    ).toThrow(/requires explicit PD authority/)
+
+    expect(() =>
+      createComposedState({
+        ...config,
+        ciprofloxacin: {
+          ...ciprofloxacinAuthority,
+          genotypeMicMgPerL: [
+            { genotypeId: 'WT', micMgPerL: 0.016 },
+          ],
+        },
+      }),
+    ).toThrow(/missing active genotype VAR/)
+
+    const missingAuthority = {
+      ...config,
+    } as Partial<ComposedSimulationConfig>
+    delete missingAuthority.ciprofloxacin
+    expect(() =>
+      createComposedState(missingAuthority as ComposedSimulationConfig),
+    ).toThrow(/ciprofloxacin authority must be explicit null/)
   })
 
   it('binds sampling execution policy identity into composed replay configuration', () => {
@@ -370,6 +441,7 @@ describe('authoritative composed state', () => {
       height: 1,
       mask: [1],
       initialResource: [0],
+      ciprofloxacinConcentrationMgPerL: [0],
       initialLineageBiomass: [
         [Math.fround(0.1)],
         [Math.fround(0.2)],

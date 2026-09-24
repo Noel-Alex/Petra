@@ -33,7 +33,7 @@ describe('flagship composed run planning', () => {
       scenarioId: 'ecoli-ciprofloxacin-spatial',
       scenarioVersion: '1.4.0-research',
       parameterSetId: 'ecoli-ciprofloxacin-baseline-composed',
-      parameterSetVersion: '1.0.0',
+      parameterSetVersion: '1.1.0',
       seed: baseline.seed,
     })
     expect(plan.parameterSetBinding.authority).toBe('provenance')
@@ -54,6 +54,23 @@ describe('flagship composed run planning', () => {
       spreadRate: 0.05,
     })
     expect(plan.config.hoursPerTick).toBe(0.02)
+    expect(plan.config.ciprofloxacinConcentrationMgPerL.every((value) => value === 0)).toBe(true)
+    expect(plan.config.ciprofloxacin).toMatchObject({
+      policyId: 'reference_pd_decrement_as_first_order_loss_v1',
+      concentrationUnit: 'mg/L',
+      referenceMicMgPerL: 0.03,
+      referencePharmacodynamics: {
+        psiMaxLog10PerHour: 0.88,
+        psiMinLog10PerHour: -6.5,
+        zMic: 0.017,
+        kappa: 1.1,
+      },
+    })
+    expect(
+      plan.config.ciprofloxacin?.genotypeMicMgPerL.find(
+        (entry) => entry.genotypeId === 'WT',
+      )?.micMgPerL,
+    ).toBe(0.016)
     expect(plan.config.samplingExecutionPolicy).toBeNull()
     expect(plan.config.lineages).toEqual([
       {
@@ -67,6 +84,7 @@ describe('flagship composed run planning', () => {
     expect(plan.config.initialResource[center]).toBe(8)
     expect(plan.config.initialLineageBiomass[0]![center]).toBe(1)
     expect(plan.config.mask[0]).toBe(0)
+    expect(plan.config.ciprofloxacinConcentrationMgPerL[0]).toBe(0)
     expect(plan.config.initialResource[0]).toBe(0)
     expect(plan.config.initialLineageBiomass[0]![0]).toBe(0)
   })

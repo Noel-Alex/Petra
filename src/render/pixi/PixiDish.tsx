@@ -23,6 +23,7 @@ export interface PixiDishProps {
   readonly motion?: RendererMotionMode;
   readonly cameraMotion: CameraMotionSpec;
   readonly visualMotion: DishVisualMotionSpec;
+  readonly hyphalMotion: DishVisualMotionSpec;
   readonly overlayId?: string | null;
   readonly className?: string;
   readonly ariaLabel?: string;
@@ -64,6 +65,7 @@ export function PixiDish({
   motion = "full",
   cameraMotion,
   visualMotion,
+  hyphalMotion,
   overlayId = null,
   className,
   ariaLabel,
@@ -76,6 +78,7 @@ export function PixiDish({
   const motionRef = useRef(motion);
   const cameraMotionRef = useRef(cameraMotion);
   const visualMotionRef = useRef(visualMotion);
+  const hyphalMotionRef = useRef(hyphalMotion);
   const overlayRef = useRef(overlayId);
   const semanticZoomCallbackRef = useRef(onSemanticZoomLevelChange);
   const resetCameraSignalRef = useRef(resetCameraSignal);
@@ -94,11 +97,13 @@ export function PixiDish({
     motionRef.current = motion;
     cameraMotionRef.current = cameraMotion;
     visualMotionRef.current = visualMotion;
+    hyphalMotionRef.current = hyphalMotion;
     overlayRef.current = overlayId;
     semanticZoomCallbackRef.current = onSemanticZoomLevelChange;
     snapshotRef.current = renderSnapshot;
   }, [
     cameraMotion,
+    hyphalMotion,
     motion,
     onSemanticZoomLevelChange,
     overlayId,
@@ -126,6 +131,7 @@ export function PixiDish({
           motion,
           cameraMotion,
           visualMotion,
+          hyphalMotion,
           overlayId,
           onSemanticZoomLevelChange(level) {
             semanticZoomCallbackRef.current?.(level);
@@ -136,6 +142,7 @@ export function PixiDish({
           rendererRef.current = renderer;
           renderer.setCameraMotion(cameraMotionRef.current);
           renderer.setVisualMotion(visualMotionRef.current);
+          renderer.setHyphalMotion(hyphalMotionRef.current);
           renderer.setMotionMode(motionRef.current);
           const currentSnapshot = snapshotRef.current;
           if (currentSnapshot !== null) {
@@ -162,8 +169,9 @@ export function PixiDish({
     if (renderer === null) return;
     renderer.setCameraMotion(cameraMotion);
     renderer.setVisualMotion(visualMotion);
+    renderer.setHyphalMotion(hyphalMotion);
     renderer.setMotionMode(motion);
-  }, [cameraMotion, motion, visualMotion]);
+  }, [cameraMotion, hyphalMotion, motion, visualMotion]);
 
   useEffect(() => {
     if (resetCameraSignal === resetCameraSignalRef.current) return;

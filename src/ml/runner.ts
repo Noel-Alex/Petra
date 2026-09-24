@@ -23,7 +23,10 @@ import {
   type RunIdentity,
 } from "../sim/protocol";
 import type { ComposedSimulationConfig } from "../sim/authoritative";
-import type { ComposedParameterSetBinding } from "../sim/parameterSetBinding";
+import {
+  assertTaskMatchesMechanisticExecutionDefinition,
+  type MechanisticExecutionDefinition,
+} from "./executionDefinition";
 
 export interface MechanisticRunnerOptions {
   readonly maxConcurrency: number;
@@ -64,9 +67,7 @@ export interface MechanisticTaskExecutor<TInput, TTarget> {
 }
 
 export interface ComposedMechanisticTaskDefinition<TInput, TTarget> {
-  readonly parameterSetId: string;
-  readonly parameterSetVersion: string;
-  readonly parameterSetBinding: ComposedParameterSetBinding;
+  readonly executionDefinition: MechanisticExecutionDefinition;
   readonly config: ComposedSimulationConfig;
   readonly totalTicks: number;
   readonly snapshotEveryTicks: number;
@@ -103,12 +104,14 @@ export function createComposedMechanisticTaskExecutor<TInput, TTarget>(
       const definition = resolve(task);
       validateComposedTaskDefinition(task, definition);
 
+      const parameterSetBinding =
+        definition.executionDefinition.parameterSetBinding;
       const identity: RunIdentity = createRunIdentity({
         scenarioId: task.trajectory.group.scenarioId,
         scenarioVersion: task.trajectory.group.scenarioVersion,
-        parameterSetId: definition.parameterSetId,
-        parameterSetVersion: definition.parameterSetVersion,
-        parameterSetBinding: definition.parameterSetBinding,
+        parameterSetId: parameterSetBinding.parameterSetId,
+        parameterSetVersion: parameterSetBinding.parameterSetVersion,
+        parameterSetBinding,
         seed: task.trajectory.seed,
       });
       const engine = new ComposedSimulationEngine(identity, definition.config);
@@ -308,6 +311,11 @@ function validateComposedTaskDefinition<TInput, TTarget>(
       "resolved composed configuration scenario does not match sweep task",
     );
   }
+  assertTaskMatchesMechanisticExecutionDefinition(
+    task,
+    definition.executionDefinition,
+    definition.config,
+  );
   if (!Number.isSafeInteger(definition.totalTicks) || definition.totalTicks < 0) {
     throw new RangeError("totalTicks must be a non-negative safe integer");
   }

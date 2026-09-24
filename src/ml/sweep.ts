@@ -261,7 +261,7 @@ export function buildMechanisticSweepManifest(
   const splitCounts = { ...plan.splitTrajectoryCounts };
 
   return {
-    schemaVersion: "petra-ml-sweep-manifest-v2",
+    schemaVersion: "petra-ml-sweep-manifest-v3",
     planVersion: plan.planVersion,
     datasetVersion: plan.datasetVersion,
     engineVersion: plan.engineVersion,

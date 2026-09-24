@@ -188,15 +188,16 @@ export class WorkerSession {
         ? next
         : { ...next, performanceDiagnostics: true };
 
-    this.activePerformance =
-      this.performanceOptions === null
-        ? null
-        : {
-            startedAtMs: this.performanceOptions.now(),
-            requestPayloadBytes:
-              estimateStructuredClonePayloadBytes(outbound),
-            queuedRequestsBehindAtDispatch: this.queue.length,
-          };
+    if (this.performanceOptions === null) {
+      this.activePerformance = null;
+    } else {
+      const requestPayloadBytes = estimateStructuredClonePayloadBytes(outbound);
+      this.activePerformance = {
+        startedAtMs: this.performanceOptions.now(),
+        requestPayloadBytes,
+        queuedRequestsBehindAtDispatch: this.queue.length,
+      };
+    }
 
     try {
       this.port.post(outbound);

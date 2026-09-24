@@ -70,7 +70,6 @@ export async function createPixiDishRenderer(
   let destroyed = false;
   let dragging = false;
   let lastPointer: ScreenPoint | null = null;
-  let accentPhase = 0;
 
   const maxRepresentativeGlyphs = options.maxRepresentativeGlyphs ?? 180;
 
@@ -88,7 +87,6 @@ export async function createPixiDishRenderer(
       densityLayer,
       glyphLayer,
       accentLayer,
-      accentPhase,
     });
   };
 
@@ -101,18 +99,19 @@ export async function createPixiDishRenderer(
   const ticker = () => {
     if (destroyed) return;
 
-    if (motion === "full") {
-      const blend = 0.14;
-      camera = {
-        centerX: mix(camera.centerX, targetCamera.centerX, blend),
-        centerY: mix(camera.centerY, targetCamera.centerY, blend),
-        zoom: mix(camera.zoom, targetCamera.zoom, blend),
-      };
-      accentPhase = (accentPhase + app.ticker.deltaMS / 2400) % 1;
-    } else {
-      camera = targetCamera;
-      accentPhase = 0;
-    }
+    if (motion !== "full") return;
+
+    const dx = Math.abs(camera.centerX - targetCamera.centerX);
+    const dy = Math.abs(camera.centerY - targetCamera.centerY);
+    const dz = Math.abs(camera.zoom - targetCamera.zoom);
+    if (dx < 0.0001 && dy < 0.0001 && dz < 0.0001) return;
+
+    const blend = 0.14;
+    camera = {
+      centerX: mix(camera.centerX, targetCamera.centerX, blend),
+      centerY: mix(camera.centerY, targetCamera.centerY, blend),
+      zoom: mix(camera.zoom, targetCamera.zoom, blend),
+    };
 
     if (
       Math.abs(camera.centerX - targetCamera.centerX) < 0.0001 &&
@@ -272,7 +271,6 @@ function drawScene(args: {
   readonly densityLayer: Graphics;
   readonly glyphLayer: Graphics;
   readonly accentLayer: Graphics;
-  readonly accentPhase: number;
 }): void {
   const {
     app,
@@ -286,7 +284,6 @@ function drawScene(args: {
     densityLayer,
     glyphLayer,
     accentLayer,
-    accentPhase,
   } = args;
 
   const viewportWidth = app.screen.width;
@@ -369,8 +366,7 @@ function drawScene(args: {
     }
   }
 
-  const accentAlpha =
-    motion === "full" ? 0.16 + 0.07 * Math.sin(accentPhase * Math.PI * 2) : 0.14;
+  const accentAlpha = motion === "off" ? 0.12 : 0.16;
   accentLayer
     .circle(centerX, centerY, radius * 0.985)
     .stroke({ color: 0x8fdcff, alpha: accentAlpha, width: Math.max(1, dishSize * 0.003) });

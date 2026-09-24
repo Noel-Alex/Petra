@@ -104,6 +104,19 @@ describe("flagship provenance presentation projection", () => {
     ).toBe(true);
   });
 
+  it("surfaces source-supported Marcusson MIC and fitness uncertainty without a composite score", () => {
+    const view = buildFlagshipProvenanceView();
+    const s83l = view.records.find((record) => record.id === "genotype:A");
+
+    expect(s83l?.status).toBe("complete");
+    expect(s83l?.rawClassification).toBe("measured");
+    expect(s83l?.presentation?.details).toContainEqual({
+      label: "Uncertainty",
+      value:
+        "MIC measurement margin ±1 half-doubling step; relative-fitness SD 0.03 across 6 independent competition experiments.",
+    });
+  });
+
   it("keeps the cross-study drug composition explicitly transferred and mechanistic", () => {
     const view = buildFlagshipProvenanceView();
     const composition = view.records.find((record) =>

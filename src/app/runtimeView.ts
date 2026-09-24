@@ -16,6 +16,15 @@ export type RuntimeUiStatus =
   | "ready"
   | "error";
 
+export interface ExperimentRunControlsView {
+  readonly seed: number | null;
+  readonly acceptedCommandCount: number;
+  readonly canStep: boolean;
+  readonly canReset: boolean;
+  readonly canReplay: boolean;
+  readonly canSetSeed: boolean;
+}
+
 export interface ExperimentRuntimeView {
   /** Visible request/transport phase used by data attributes and CSS treatment. */
   readonly status: RuntimeUiStatus;
@@ -29,6 +38,7 @@ export interface ExperimentRuntimeView {
   readonly canChangeSpeed: boolean;
   readonly simulationTimeLabel: string;
   readonly timeline: readonly TimelineEntry[];
+  readonly runControls: ExperimentRunControlsView;
   /** Internal diagnostic retained for logs/tests; never render directly. */
   readonly error: string | null;
   readonly failure: RuntimeFailure | null;
@@ -42,6 +52,8 @@ export function projectExperimentRuntimeView(
   state: ExperimentRuntimeState | null,
   setupFailure: RuntimeFailure | null = null,
 ): ExperimentRuntimeView {
+  const runControls = projectRunControls(state, setupFailure);
+
   if (setupFailure !== null) {
     return {
       status: "error",
@@ -54,6 +66,7 @@ export function projectExperimentRuntimeView(
       canChangeSpeed: false,
       simulationTimeLabel: simulationTimeLabel(state),
       timeline: state?.timeline ?? [],
+      runControls,
       error: setupFailure.diagnostic,
       failure: setupFailure,
     };
@@ -71,6 +84,7 @@ export function projectExperimentRuntimeView(
       canChangeSpeed: false,
       simulationTimeLabel: simulationTimeLabel(state),
       timeline: state?.timeline ?? [],
+      runControls,
       error: null,
       failure: null,
     };
@@ -94,6 +108,7 @@ export function projectExperimentRuntimeView(
       canChangeSpeed: false,
       simulationTimeLabel: simulationTimeLabel(state),
       timeline: state.timeline,
+      runControls,
       error: failure.diagnostic,
       failure,
     };
@@ -111,6 +126,7 @@ export function projectExperimentRuntimeView(
       canChangeSpeed: false,
       simulationTimeLabel: simulationTimeLabel(state),
       timeline: state.timeline,
+      runControls,
       error: null,
       failure: null,
     };
@@ -134,6 +150,7 @@ export function projectExperimentRuntimeView(
       canChangeSpeed: true,
       simulationTimeLabel: simulationTimeLabel(state),
       timeline: state.timeline,
+      runControls,
       error: null,
       failure: null,
     };
@@ -152,8 +169,47 @@ export function projectExperimentRuntimeView(
     canChangeSpeed: true,
     simulationTimeLabel: simulationTimeLabel(state),
     timeline: state.timeline,
+    runControls,
     error: null,
     failure: null,
+  };
+}
+
+function projectRunControls(
+  state: ExperimentRuntimeState | null,
+  setupFailure: RuntimeFailure | null,
+): ExperimentRunControlsView {
+  if (
+    setupFailure !== null ||
+    state === null ||
+    state.worker.phase === "disposed"
+  ) {
+    return {
+      seed: null,
+      acceptedCommandCount: 0,
+      canStep: false,
+      canReset: false,
+      canReplay: false,
+      canSetSeed: false,
+    };
+  }
+
+  const acceptedCommandCount = state.controls.acceptedCommands.length;
+  const canReinitialize =
+    state.worker.phase === "ready" || state.worker.phase === "error";
+  const healthy =
+    state.integrationError === null && state.worker.error === null;
+
+  return {
+    seed: state.controls.identity.seed,
+    acceptedCommandCount,
+    canStep:
+      state.worker.phase === "ready" &&
+      healthy &&
+      !state.controls.playing,
+    canReset: canReinitialize,
+    canReplay: canReinitialize && acceptedCommandCount > 0,
+    canSetSeed: canReinitialize,
   };
 }
 

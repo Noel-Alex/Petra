@@ -154,3 +154,9 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - `timelineHistory.css` owns disclosure/history layout but consumes Petra's shared `--petra-color-*` / `--petra-rgb-*` variables for stable chrome. Do not restore a timeline-local numeric cyan/white/blue-grey palette.
 - Theme changes must preserve native `details/summary` behavior, the 2.75rem summary touch floor, focus visibility, bounded history scrolling, responsive stacking, authoritative event order/content, and supplied simulation timestamps.
 - Hover/background color is non-essential presentation reinforcement only. Timeline meaning, chronology, and playback authority must remain understandable without it, and this stylesheet must not introduce independent motion timing.
+
+## Authoritative analysis metric series
+- `analysisMetrics.ts` is the app-layer bridge from versioned `AuthoritativeMetricSample` history to chart-ready scientific source series. It preserves exact recorded biological timestamps and values; it does not smooth or interpolate scientific history.
+- One series bundle must contain one exact run identity and one exact metric sampling policy with strictly increasing authoritative ticks/times. Mixed runs/cadences fail closed rather than being plotted together.
+- Biomass/resource/fraction/diversity display units and visual identity tokens are caller/scenario owned. Genotype display labels/tokens must be supplied explicitly for every genotype observed; never derive scientific identity from renderer colors.
+- A genotype absent from an authoritative sample is plotted as exact zero fraction for that sample, not interpolated between neighboring samples. Presentation decimation remains downstream in the analysis chart model and may select source points only.

@@ -9,8 +9,11 @@ import {
   type MotionSetting,
 } from "../ui/motion/preference";
 import { planSurfaceTransition } from "../ui/motion/semanticTransitions";
-import { surfaceMotionCss } from "./motionAdapter";
+import { ProvenancePanel } from "../ui/provenance/ProvenancePanel";
 import { DishViewport } from "./DishViewport";
+import { buildFlagshipProvenanceView } from "./flagshipProvenance";
+import { surfaceMotionCss } from "./motionAdapter";
+import "./sourcesDrawer.css";
 import { TimelineHistory } from "./TimelineHistory";
 import {
   useExperimentRuntime,
@@ -41,9 +44,19 @@ export interface AppProps {
   readonly runtimeFactory?: ExperimentRuntimeFactory;
 }
 
+const SOURCES_SURFACE_STYLE: CSSProperties = {
+  position: "fixed",
+  inset: "5.5rem 1rem 1rem auto",
+  width: "min(34rem, calc(100vw - 2rem))",
+  maxHeight: "calc(100vh - 6.5rem)",
+  overflow: "auto",
+  zIndex: 30,
+};
+
 export function App({ runtimeFactory }: AppProps) {
   const systemReduced = useSystemReducedMotion();
   const experiment = useExperimentRuntime(runtimeFactory);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
   const [motionSetting, setMotionSetting] = useState<MotionSetting>(() => {
     try {
       return loadMotionSetting(globalThis.localStorage);
@@ -51,6 +64,8 @@ export function App({ runtimeFactory }: AppProps) {
       return "system";
     }
   });
+
+  const provenance = useMemo(() => buildFlagshipProvenanceView(), []);
 
   const motionPreference = resolveMotionSetting({
     setting: motionSetting,
@@ -110,11 +125,56 @@ export function App({ runtimeFactory }: AppProps) {
           <PetraCompactAction
             motionPreference={motionPreference}
             className="ghost-button"
+            aria-expanded={sourcesOpen}
+            aria-controls="petra-sources-panel"
+            onClick={() => setSourcesOpen((open) => !open)}
           >
-            Sources
+            {sourcesOpen ? "Close sources" : "Sources"}
           </PetraCompactAction>
         </div>
       </header>
+
+      {sourcesOpen ? (
+        <section
+          id="petra-sources-panel"
+          className="sources-drawer"
+          aria-label="Flagship scientific sources and assumptions"
+          data-transition-treatment={panelMotion.treatment}
+          style={SOURCES_SURFACE_STYLE}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.stopPropagation();
+              setSourcesOpen(false);
+            }
+          }}
+        >
+          <div className="sources-drawer__chrome">
+            <p className="sources-drawer__scope" role="note">
+              <strong>{provenance.scenario.title}</strong>
+              <span>
+                Curated flagship evidence set · version{" "}
+                <code>{provenance.scenario.version}</code>.
+              </span>
+              <span>
+                This does not claim that the current runtime has selected this
+                scenario.
+              </span>
+            </p>
+            <PetraCompactAction
+              motionPreference={motionPreference}
+              className="ghost-button"
+              onClick={() => setSourcesOpen(false)}
+            >
+              Close
+            </PetraCompactAction>
+          </div>
+          <ProvenancePanel
+            records={provenance.records}
+            assumptions={provenance.assumptions}
+            title="Flagship sources & assumptions"
+          />
+        </section>
+      ) : null}
 
       <section className="petra-workspace" aria-label="Experiment workspace">
         <aside className="petra-panel petra-panel--tools" aria-label="Interventions">

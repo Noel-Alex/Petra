@@ -62,6 +62,13 @@ export interface LineageScientificDetail {
   readonly mutationClass: string | null;
   readonly abundanceModelBiomass: number;
   readonly relativeFitness: number;
+  readonly ciprofloxacin?: {
+    readonly micMgPerL: number;
+    readonly responseShift: {
+      readonly referenceGenotypeId: string;
+      readonly micRatio: number;
+    } | null;
+  } | null;
   readonly sourceKeys: readonly string[];
   readonly assumptionKeys: readonly string[];
 }
@@ -367,6 +374,20 @@ export function buildLineageTree(
       : {
           scientificDetail: {
             ...lineage.scientificDetail,
+            ...(lineage.scientificDetail.ciprofloxacin === undefined
+              ? {}
+              : {
+                  ciprofloxacin:
+                    lineage.scientificDetail.ciprofloxacin === null
+                      ? null
+                      : {
+                          micMgPerL: lineage.scientificDetail.ciprofloxacin.micMgPerL,
+                          responseShift:
+                            lineage.scientificDetail.ciprofloxacin.responseShift === null
+                              ? null
+                              : { ...lineage.scientificDetail.ciprofloxacin.responseShift },
+                        },
+                }),
             sourceKeys: [...lineage.scientificDetail.sourceKeys],
             assumptionKeys: [...lineage.scientificDetail.assumptionKeys],
           },
@@ -517,6 +538,30 @@ function validateLineage(lineage: LineageAncestryInput): void {
       throw new RangeError(
         "lineage scientific relativeFitness must be finite and non-negative",
       );
+    }
+    if (detail.ciprofloxacin != null) {
+      if (
+        !Number.isFinite(detail.ciprofloxacin.micMgPerL) ||
+        detail.ciprofloxacin.micMgPerL <= 0
+      ) {
+        throw new RangeError(
+          "lineage scientific ciprofloxacin MIC must be finite and positive",
+        );
+      }
+      if (detail.ciprofloxacin.responseShift !== null) {
+        assertNonEmpty(
+          "lineage scientific response reference genotype",
+          detail.ciprofloxacin.responseShift.referenceGenotypeId,
+        );
+        if (
+          !Number.isFinite(detail.ciprofloxacin.responseShift.micRatio) ||
+          detail.ciprofloxacin.responseShift.micRatio <= 0
+        ) {
+          throw new RangeError(
+            "lineage scientific response MIC ratio must be finite and positive",
+          );
+        }
+      }
     }
     validateCanonicalKeys(
       "lineage scientific sourceKeys",

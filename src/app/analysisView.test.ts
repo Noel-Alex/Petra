@@ -213,6 +213,10 @@ describe("authoritative analysis app projection", () => {
           status: "extant",
           abundanceModelBiomass: 3.25,
           relativeFitness: 1,
+          ciprofloxacin: {
+            micMgPerL: 0.016,
+            responseShift: null,
+          },
           sourceKeys: ["source:ancestor"],
           assumptionKeys: ["assumption:context"],
         },
@@ -236,6 +240,10 @@ describe("authoritative analysis app projection", () => {
       mutationClass: null,
       abundanceModelBiomass: 3.25,
       relativeFitness: 1,
+      ciprofloxacin: {
+        micMgPerL: 0.016,
+        responseShift: null,
+      },
       sourceKeys: ["source:ancestor"],
       assumptionKeys: ["assumption:context"],
     });

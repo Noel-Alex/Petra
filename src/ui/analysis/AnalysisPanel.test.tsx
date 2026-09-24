@@ -302,6 +302,13 @@ describe("AnalysisPanel", () => {
           mutationClass: "target-site",
           abundanceModelBiomass: 1.23456789,
           relativeFitness: 0.91,
+          ciprofloxacin: {
+            micMgPerL: 0.38,
+            responseShift: {
+              referenceGenotypeId: "WT",
+              micRatio: 23.75,
+            },
+          },
           sourceKeys: ["source:marcusson-2009"],
           assumptionKeys: ["assumption:cross-context"],
         },
@@ -329,6 +336,8 @@ describe("AnalysisPanel", () => {
     expect(html).toContain("GyrA S83L");
     expect(html).toContain("1.23456789 model-biomass");
     expect(html).toContain("0.91");
+    expect(html).toContain("0.38 mg/L");
+    expect(html).toContain("23.75× MIC vs WT");
     expect(html).toContain("target-site");
     expect(html).toContain("source:marcusson-2009");
     expect(html).toContain("assumption:cross-context");

@@ -67,12 +67,23 @@ const evidence: readonly GenotypeAnalysisEvidence[] = [
   {
     genotypeId: 'WT',
     label: 'Wild type',
+    ciprofloxacin: {
+      micMgPerL: 0.016,
+      responseShift: null,
+    },
     sourceKeys: ['source-wt'],
     assumptionKeys: [],
   },
   {
     genotypeId: 'R',
     label: 'Variant R',
+    ciprofloxacin: {
+      micMgPerL: 0.38,
+      responseShift: {
+        referenceGenotypeId: 'WT',
+        micRatio: 23.75,
+      },
+    },
     sourceKeys: ['source-r'],
     assumptionKeys: ['transfer-r'],
   },
@@ -127,10 +138,42 @@ describe('authoritative lineage analysis projection', () => {
         genotypeLabel: 'Variant R',
         abundanceModelBiomass: 2,
         relativeFitness: 0.85,
+        ciprofloxacin: {
+          micMgPerL: 0.38,
+          responseShift: {
+            referenceGenotypeId: 'WT',
+            micRatio: 23.75,
+          },
+        },
         mutationClass: 'fixture-mutation',
         assumptionKeys: ['transfer-r'],
       }),
     ])
+  })
+
+  it('refuses malformed supplied ciprofloxacin phenotype evidence', () => {
+    const checkpoint = new ComposedSimulationEngine(identity, config).snapshot().checkpoint
+    expect(() =>
+      projectAuthoritativeLineageAnalysis({
+        checkpoint,
+        lineageRegistry: registryCheckpoint(),
+        evolutionGraph: graph,
+        genotypeEvidence: evidence.map((item) =>
+          item.genotypeId === 'R'
+            ? {
+                ...item,
+                ciprofloxacin: {
+                  micMgPerL: 0,
+                  responseShift: {
+                    referenceGenotypeId: 'WT',
+                    micRatio: 23.75,
+                  },
+                },
+              }
+            : item,
+        ),
+      }),
+    ).toThrow(/ciprofloxacin MIC must be finite and positive/)
   })
 
   it('does not infer source or phenotype facts from genotype identifiers', () => {

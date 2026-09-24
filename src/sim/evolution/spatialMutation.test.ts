@@ -232,6 +232,45 @@ describe('spatial discrete mutation consumer', () => {
     expect(rng.snapshot()).toEqual(before)
   })
 
+  it('does not invoke sampling policy for terminal genotypes with no mutation targets', () => {
+    const opportunities = population({
+      lineageIds: ['L1'],
+      currentBiomass: [[100_000]],
+      divisionBiomass: [[100_000]],
+    })
+    const rng = new SimulationRng(77)
+    const before = rng.snapshot()
+
+    const result = sampleSpatialDivisionMutations({
+      population: opportunities,
+      genotypeIds: ['B'],
+      graph: graph(0.2),
+      rng,
+      policy: samplingPolicy({
+        exactTrialLimit: 1,
+        acceleration: 'disabled',
+      }),
+    })
+
+    expect(result.totalDivisionOpportunities).toBe(100_000)
+    expect(result.totalMutantBirths).toBe(0)
+    expect(result.rngDraws).toBe(0)
+    expect(result.cells).toEqual([
+      {
+        sourceLineageId: 'L1',
+        sourceGenotypeId: 'B',
+        cellIndex: 0,
+        divisionOpportunities: 100_000,
+        mutationBirths: [],
+        sampling: {
+          mode: 'exact-reference',
+          rngDraws: 0,
+        },
+      },
+    ])
+    expect(rng.snapshot()).toEqual(before)
+  })
+
   it('rolls back the whole spatial RNG transaction when a later cell refuses', () => {
     const opportunities = population({
       lineageIds: ['L1'],

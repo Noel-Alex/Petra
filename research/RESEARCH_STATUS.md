@@ -54,15 +54,18 @@ at eight MG1655 specific growth rates from 0.06 to 0.98 h^-1. See `phage_t4_mg16
 ### Ready with an explicit transfer
 The measured table is ready to implement as a named life-history evidence object. Applying homogeneous chemostat growth-rate relationships to Petra's local spatial growth state is a **transferred mechanistic approximation**, not a direct spatial measurement. Out-of-range growth rates must be treated as OOD rather than silently extrapolated.
 
+### Spatial transport calibration
+Hu et al. 2010/2012 establish that T4 apparent diffusion is strongly matrix-dependent. Petra's selected physical transport baseline is now **0.5% agarose without embedded hosts**, using the measured Hu 2012 value `4.2e-12 m^2/s` as a **transferred** extracellular transport calibration. This does not cover living host-bearing regions; the dead-K-12 `2.4e-12 m^2/s` result is retained as adsorption-confounded evidence, not promoted as a living-host coefficient.
+
 ### Still pending
 - a separately measured eclipse-time subdivision if Petra wants eclipse distinct from total latent delay;
-- a physical matrix choice for the dish and corresponding T4 diffusion calibration;
-- a general free-phage decay/loss constant for that matrix/environment;
+- a general free-phage decay/loss constant for the selected matrix/environment;
+- living-host transport calibration/composition once adsorption and proliferation are explicit;
 - an explicit concentration/population unit bridge before the measured mL/min adsorption constant is applied to authoritative spatial state.
 
 Hadas et al. 1997 (T4 / E. coli B/r) and You et al. 2002 (T7 / BL21) remain corroborating host-physiology evidence, not sources of numeric values for the MG1655/T4 preset.
 
-Status: **named life-history pack ready for implementation with transfer label; spatial transport/loss calibration pending**.
+Status: **named life-history pack ready with transfer label; host-free 0.5% agarose transport baseline ready as transferred calibration; loss/living-host transport still pending**.
 
 ## Temperature
 

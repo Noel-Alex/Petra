@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "id": "t4_hu_2010_2012_transport",
+  "phage": {
+    "name": "T4"
+  },
+  "units": {
+    "diffusionCoefficient": "m^2 s^-1",
+    "agaroseConcentration": "%"
+  },
+  "sources": [
+    {
+      "key": "hu_2010_t4_diffusion",
+      "label": "Hu, Miyanaga & Tanji (2010)",
+      "doi": "10.1002/btpr.447"
+    },
+    {
+      "key": "hu_2012_t4_biofilm_diffusion",
+      "label": "Hu, Miyanaga & Tanji (2012)",
+      "doi": "10.1002/btpr.742"
+    }
+  ],
+  "measurements": [
+    {
+      "id": "hu2010-water-filter-paper",
+      "sourceKey": "hu_2010_t4_diffusion",
+      "matrix": {
+        "material": "water",
+        "barrier": "filter paper",
+        "agarosePercent": null,
+        "embeddedHostCondition": "none"
+      },
+      "apparentDiffusionCoefficientM2PerS": 2.8e-11,
+      "classification": "measured",
+      "limitation": "Measured as apparent T4 diffusion in water through filter paper; not a Petra agarose-dish coefficient."
+    },
+    {
+      "id": "hu2012-agarose-0.5-no-host",
+      "sourceKey": "hu_2012_t4_biofilm_diffusion",
+      "matrix": {
+        "material": "agarose",
+        "barrier": "agarose gel membrane",
+        "agarosePercent": 0.5,
+        "embeddedHostCondition": "none"
+      },
+      "apparentDiffusionCoefficientM2PerS": 4.2e-12,
+      "classification": "measured",
+      "limitation": "Measured in a 0.5% agarose gel membrane without embedded host cells."
+    },
+    {
+      "id": "hu2012-agarose-0.5-dead-k12",
+      "sourceKey": "hu_2012_t4_biofilm_diffusion",
+      "matrix": {
+        "material": "agarose",
+        "barrier": "agarose gel membrane",
+        "agarosePercent": 0.5,
+        "embeddedHostCondition": "dead-escherichia-coli-k12"
+      },
+      "apparentDiffusionCoefficientM2PerS": 2.4e-12,
+      "classification": "measured",
+      "limitation": "Measured with dead E. coli K-12 embedded in 0.5% agarose; adsorption contributes to the lower apparent diffusion coefficient and this is not a living-host transport constant."
+    }
+  ],
+  "petraCalibration": {
+    "id": "petra-t4-agarose-0.5-host-free-baseline",
+    "selectedMeasurementId": "hu2012-agarose-0.5-no-host",
+    "classification": "transferred",
+    "matrix": {
+      "material": "agarose",
+      "agarosePercent": 0.5,
+      "embeddedHostCondition": "none"
+    },
+    "limitation": "Transferred from a two-chamber agarose-gel-membrane measurement to Petra's 2-D extracellular transport baseline. It is valid only for the explicitly selected 0.5% host-free agarose calibration context; host-bearing regions, other agarose concentrations, liquid media, and other matrices are out of domain until separately calibrated.",
+    "freePhageLoss": {
+      "status": "unbound",
+      "limitation": "No compatible general environmental T4 free-phage loss constant is bound for this Petra matrix. Nabergoj's zero-loss model term is not promoted to a measured spatial decay constant."
+    }
+  }
+}

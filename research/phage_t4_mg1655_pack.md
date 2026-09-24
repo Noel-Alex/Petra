@@ -71,7 +71,7 @@ If the first engine uses infected transit compartments, their total mean delay m
 
 Nabergoj et al. set the free-phage death/loss term to zero in their population-growth calculation, citing long-term T4-like phage stability. That is a modeling assumption for their controlled context, not evidence that free T4 loss is universally zero in Petra's spatial environment.
 
-Science Mode default free-phage decay remains **UNBOUND** until Petra chooses the physical matrix/storage/environmental context to model.
+Science Mode default free-phage decay remains **UNBOUND**. The 0.5% agarose transport calibration below does not provide a compatible environmental loss constant, and Nabergoj's zero-loss model term is not promoted to one.
 
 ### Spatial diffusion
 
@@ -82,7 +82,11 @@ Useful external transport anchors are:
 - Hu, Miyanaga & Tanji 2010, DOI 10.1002/btpr.447: apparent T4 diffusion about 2.8e-11 m^2/s in water through filter paper;
 - Hu, Miyanaga & Tanji 2012, DOI 10.1002/btpr.742: apparent T4 diffusion about 4.2e-12 m^2/s through 0.5% agarose without host cells and 2.4e-12 m^2/s through 0.5% agarose containing dead *E. coli* K-12 cells.
 
-These are **transferred transport anchors**, not a default for the LB chemostat life-history pack. Petra must choose a dish/agar/biofilm matrix before binding a physical diffusion coefficient.
+Petra now selects a deliberately narrow transport calibration context: **0.5% agarose with no embedded host cells**, using the Hu et al. 2012 measured apparent coefficient `4.2e-12 m^2/s` as a **transferred extracellular baseline**. The source measurement is an agarose-gel-membrane experiment, not Petra's 2-D dish itself, so the Petra use is transferred rather than measured-in-scenario.
+
+The `2.4e-12 m^2/s` measurement with dead *E. coli* K-12 embedded is retained as evidence that adsorption can reduce apparent transport, but it is **not** used as a living-host diffusion coefficient. Hu et al. explicitly report that adsorption by dead host cells slowed apparent diffusion; living hosts add adsorption and proliferation, so that regime is outside this calibration.
+
+OOD rule: other agarose concentrations, liquid media, living/dead host-bearing regions, and other matrices must refuse this calibration until separately measured or explicitly calibrated. The `2.8e-11 m^2/s` water/filter-paper value remains a comparison anchor only.
 
 ## Implementation handoff
 
@@ -95,7 +99,8 @@ An implementation may proceed if it:
 - preserves a latent delay rather than immediate burst;
 - uses the measured burst-size dependence rather than a fixed decorative burst;
 - does not activate measured adsorption until state units support mL-compatible host/phage concentration semantics;
-- keeps diffusion and free-phage decay visibly unbound or explicitly engineering/transferred until their separate calibration gates land;
+- uses the selected `4.2e-12 m^2/s` transport value only for the exact 0.5% host-free agarose context, labelled transferred, and refuses host-bearing/other-matrix extrapolation;
+- keeps free-phage decay visibly unbound until a compatible environmental-loss calibration lands;
 - validates no-host, no-phage, zero-adsorption, and latent-delay invariants;
 - exposes T4 DSM 4505 / MG1655 DSM 18039 and source context in Sources/Assumptions UI.
 
@@ -103,6 +108,8 @@ An implementation may proceed if it:
 
 **Life-history science pack: READY FOR IMPLEMENTATION WITH TRANSFER LABEL.**
 
-**Physical spatial transport / free-phage-loss calibration: NOT YET READY FOR SCIENCE-MODE PHYSICAL CLAIMS.**
+**Host-free 0.5% agarose spatial transport baseline: READY AS A TRANSFERRED CALIBRATION.**
+
+**Living-host transport and general free-phage loss: NOT YET READY FOR SCIENCE-MODE PHYSICAL CLAIMS.**
 
 Do not reopen broad T4-vs-T7 selection research unless new evidence creates a concrete incompatibility with the MG1655/T4 pack above.

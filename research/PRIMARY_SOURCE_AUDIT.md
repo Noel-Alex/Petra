@@ -96,7 +96,7 @@ DOI: `10.1038/nrmicro2319`
 
 Resistance mechanisms often carry fitness costs, but magnitudes vary and compensatory evolution can reduce costs.
 
-## 7. T4 / MG1655 phage life history — VERIFIED; transport calibration pending
+## 7. T4 / MG1655 phage life history — VERIFIED; narrow transport calibration selected
 
 **Nabergoj, Modic & Podgornik (2018), MicrobiologyOpen**  
 DOI: `10.1002/mbo3.558`
@@ -107,7 +107,11 @@ Across that measured domain, latent period decreased from roughly 80 to 27 min a
 
 **Decision:** this exact pair is Petra's first phage life-history pack. The source table is the primary evidence object; interpolation is derived and application to local spatial growth state is a disclosed transfer.
 
-**Still unbound:** separate eclipse time, physical dish diffusion and a general free-phage loss constant. The paper's zero-loss term was a model assumption for its controlled context, not a universal measured constant.
+**Transport audit:** Hu, Miyanaga & Tanji 2010 (DOI `10.1002/btpr.447`) measured apparent T4 diffusion of about `2.8e-11 m^2/s` in water through filter paper. Hu & Tanji 2012 (DOI `10.1002/btpr.742`) measured `4.2e-12 m^2/s` in 0.5% agarose without embedded hosts and `2.4e-12 m^2/s` with dead *E. coli* K-12 embedded; the paper attributes the slowdown to host adsorption.
+
+**Decision:** Petra uses `4.2e-12 m^2/s` only as a **transferred 0.5% host-free agarose extracellular baseline**. Other matrix concentrations/materials and host-bearing regions are OOD. The dead-host coefficient is not a living-host constant.
+
+**Still unbound:** separate eclipse time, living-host transport behavior and a general free-phage loss constant. Nabergoj's zero-loss term was a model assumption for its controlled context, not a universal measured constant.
 
 ## Audit status
 
@@ -115,6 +119,6 @@ Across that measured domain, latent period decreased from roughly 80 to 27 min a
 
 **Named life-history pack ready with transfer caveat:** T4 DSM 4505 / MG1655 DSM 18039 phage adsorption + latent period + burst.
 
-**Calibration pending:** physical phage transport/loss and any eclipse-vs-latent subdivision.
+**Calibration pending:** general free-phage loss, living-host transport/composition and any eclipse-vs-latent subdivision. Host-free 0.5% agarose transport is selected with an explicit transfer caveat.
 
 **Post-MVP:** HGT/plasmids, detailed fungi, quorum sensing, host immune system, cross-feeding networks.

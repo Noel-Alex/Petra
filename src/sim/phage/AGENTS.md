@@ -12,11 +12,13 @@ This subtree currently owns pure phage evidence resolution only. Infection dynam
 - Out-of-domain host growth must return an explicit OOD result. Do not extrapolate as if measured.
 - Interpolation computes reported parameter means only. It must not invent an interpolated uncertainty distribution; measured bracket-row uncertainties remain available to callers.
 - A life-history lookup does not cause adsorption, infection, lysis, mutation, or any other biological state change.
+- `transport.ts` imports canonical Hu transport evidence and resolves only Petra's exact selected 0.5% host-free agarose context. The selected coefficient is **transferred** from a measured agarose-membrane experiment; all other materials, agarose concentrations, or embedded-host conditions return OOD rather than extrapolating.
+- The measured dead-K-12 agarose transport anchor is adsorption-confounded and must never be substituted for living-host diffusion. Free-phage loss remains unbound.
 
 ## Pending gates
 
 - #139 owns the concentration/population unit bridge needed before applying the measured `mL min^-1` adsorption constant to authoritative state.
-- #140 owns matrix-specific spatial T4 diffusion and free-phage loss.
+- #140 binds a narrow host-free 0.5% agarose extracellular transport baseline; live host-bearing transport and general free-phage loss remain outside that calibration.
 - Total latent period may drive a reviewed delayed-infection representation, but a separate eclipse/assembly split remains experimental unless separately sourced.
 
 ## Replay and provenance

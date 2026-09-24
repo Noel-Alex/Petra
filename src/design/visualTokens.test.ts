@@ -29,9 +29,9 @@ describe("Petra visual token authority", () => {
   });
 
   it("derives CSS and renderer representations from the same numeric value", () => {
-    expect(petraVisualColor("teal")).toBe(0x5d9e98);
-    expect(petraVisualColorCss("teal")).toBe("#5d9e98");
-    expect(petraVisualColorRgbChannels("teal")).toBe("93 158 152");
+    expect(petraVisualColor("teal")).toBe(0x68aaa4);
+    expect(petraVisualColorCss("teal")).toBe("#68aaa4");
+    expect(petraVisualColorRgbChannels("teal")).toBe("104 170 164");
   });
 
   it("projects every color into both CSS hex and RGB channel variables", () => {
@@ -43,7 +43,7 @@ describe("Petra visual token authority", () => {
     ]);
     expect(entries).toContainEqual([
       "--petra-rgb-coral",
-      "215 120 111",
+      "223 131 121",
     ]);
   });
 
@@ -58,4 +58,46 @@ describe("Petra visual token authority", () => {
     expect(variables.get("--petra-color-ink-deep")).toBe("#172033");
     expect(variables.get("--petra-rgb-mint")).toBe("131 184 154");
   });
+
+  it("keeps core normal-text accent pairs at WCAG AA contrast", () => {
+    const pairs = [
+      ["cream", "inkDeep"],
+      ["creamMuted", "ink"],
+      ["teal", "ink"],
+      ["mint", "ink"],
+      ["amber", "ink"],
+      ["coral", "ink"],
+    ] as const;
+
+    for (const [foreground, background] of pairs) {
+      expect(
+        contrastRatio(
+          petraVisualColor(foreground),
+          petraVisualColor(background),
+        ),
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
 });
+
+
+function contrastRatio(foreground: number, background: number): number {
+  const lighter = Math.max(relativeLuminance(foreground), relativeLuminance(background));
+  const darker = Math.min(relativeLuminance(foreground), relativeLuminance(background));
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function relativeLuminance(color: number): number {
+  const channels = [
+    (color >> 16) & 0xff,
+    (color >> 8) & 0xff,
+    color & 0xff,
+  ].map((value) => {
+    const channel = value / 255;
+    return channel <= 0.04045
+      ? channel / 12.92
+      : ((channel + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * channels[0]! + 0.7152 * channels[1]! + 0.0722 * channels[2]!;
+}

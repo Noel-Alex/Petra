@@ -30,6 +30,25 @@ function traceHash(value: unknown): string {
   return hash.toString(16).padStart(8, '0')
 }
 
+function nextSafeNonNegativeInteger(
+  name: string,
+  current: number,
+  increment: number,
+): number {
+  const next = current + increment
+  if (!Number.isSafeInteger(next) || next < 0) {
+    throw new RangeError(name + ' would exceed the non-negative safe integer range')
+  }
+  return next
+}
+
+function finiteNonNegativeResult(name: string, value: number): number {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new RangeError(name + ' must remain finite and non-negative')
+  }
+  return value
+}
+
 function assertCheckpointScalarInvariants(checkpoint: SimulationCheckpoint): void {
   if (!Number.isSafeInteger(checkpoint.tick) || checkpoint.tick < 0) {
     throw new Error('checkpoint.tick must be a non-negative safe integer')
@@ -76,6 +95,11 @@ export class SimulationEngine {
 
     if (command.type === 'advance') {
       if (!Number.isSafeInteger(command.ticks) || command.ticks < 0) throw new Error('advance.ticks must be a non-negative safe integer')
+
+      // Preflight every scalar transition before consuming RNG or mutating state.
+      const nextTick = nextSafeNonNegativeInteger('advance tick', this.tick, command.ticks)
+      const nextCommandCount = nextSafeNonNegativeInteger('command count', this.commandCount, 1)
+
       for (let index = 0; index < command.ticks; index += 1) {
         // Synthetic stochastic state exists only to prove the deterministic substrate.
         // Biology modules replace this with explicit mechanisms in later issues.
@@ -83,7 +107,8 @@ export class SimulationEngine {
         this.syntheticPopulation = Math.max(0, this.syntheticPopulation + jitter)
         this.tick += 1
       }
-      this.commandCount += 1
+      this.tick = nextTick
+      this.commandCount = nextCommandCount
       this.pushEvent({
         type: 'advanced',
         commandId: command.id,
@@ -93,8 +118,14 @@ export class SimulationEngine {
     }
 
     if (!Number.isFinite(command.magnitude)) throw new Error('synthetic-pulse.magnitude must be finite')
-    this.syntheticPopulation = Math.max(0, this.syntheticPopulation + command.magnitude)
-    this.commandCount += 1
+    const nextCommandCount = nextSafeNonNegativeInteger('command count', this.commandCount, 1)
+    const nextSyntheticPopulation = finiteNonNegativeResult(
+      'synthetic population',
+      Math.max(0, this.syntheticPopulation + command.magnitude),
+    )
+
+    this.syntheticPopulation = nextSyntheticPopulation
+    this.commandCount = nextCommandCount
     this.pushEvent({
       type: 'synthetic-pulse',
       commandId: command.id,

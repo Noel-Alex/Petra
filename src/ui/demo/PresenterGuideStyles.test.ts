@@ -103,3 +103,40 @@ describe("PresenterGuide presentation contracts", () => {
     );
   });
 });
+
+
+describe("PresenterGuide shared visual-theme contract", () => {
+  it("derives stable chrome from Petra shared visual variables", () => {
+    for (const token of [
+      "--petra-color-cream",
+      "--petra-color-cream-muted",
+      "--petra-color-teal",
+      "--petra-color-mint",
+      "--petra-color-amber",
+      "--petra-rgb-ink-deep",
+    ]) {
+      expect(presenterCss).toContain(token);
+    }
+
+    expect(presenterCss).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+    expect(presenterCss).not.toMatch(/\brgba?\(\s*\d/i);
+  });
+
+  it("keeps presenter evidence and scientific-boundary reinforcement on shared families", () => {
+    expect(presenterCss).toMatch(
+      /presenter-guide__gate--ready[\s\S]*?--petra-(?:rgb|color)-mint/,
+    );
+    expect(presenterCss).toMatch(
+      /presenter-guide__gate--waiting[\s\S]*?--petra-(?:rgb|color)-amber/,
+    );
+    expect(presenterCss).toMatch(
+      /presenter-guide__boundary[\s\S]*?--petra-rgb-amber/,
+    );
+  });
+
+  it("uses the shared focus-ring authority without changing presenter motion ownership", () => {
+    expect(presenterCss).toContain("var(--petra-focus-ring)");
+    expect(presenterCss).toContain("var(--presenter-motion-ms)");
+    expect(presenterCss).toContain("var(--presenter-ease)");
+  });
+});

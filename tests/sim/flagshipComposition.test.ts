@@ -54,6 +54,7 @@ describe('flagship composed run planning', () => {
       spreadRate: 0.05,
     })
     expect(plan.config.hoursPerTick).toBe(0.02)
+    expect(plan.config.samplingExecutionPolicy).toBeNull()
     expect(plan.config.lineages).toEqual([
       {
         id: 'founder-wt',

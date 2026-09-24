@@ -46,28 +46,36 @@ describe("PixiDish render-source boundary", () => {
     expect(html).not.toContain("Retry renderer");
   });
 
-  it("keeps the interactive retry action outside live-region semantics", () => {
-    const html = renderToStaticMarkup(
-      <RendererFailureFallback
-        errorMessage="webgl unavailable"
-        descriptionId="renderer-failure-description"
-        onRetry={() => undefined}
-      />,
-    );
+  it.each(["full", "reduced", "off"] as const)(
+    "keeps the interactive retry action native, described, and outside live-region semantics in %s motion",
+    (motion) => {
+      const html = renderToStaticMarkup(
+        <RendererFailureFallback
+          motion={motion}
+          errorMessage="webgl unavailable"
+          descriptionId="renderer-failure-description"
+          onRetry={() => undefined}
+        />,
+      );
 
-    expect(html).toContain('data-render-fallback="true"');
-    expect(html).toContain('title="webgl unavailable"');
-    expect(html).toContain("Interactive dish unavailable");
-    expect(html).toContain(
-      "Petra has not substituted demonstration biology or changed the simulation state.",
-    );
-    expect(html).toContain("Retry renderer");
-    expect(html).toContain(
-      'aria-describedby="renderer-failure-description"',
-    );
-    expect(html).not.toContain('role="status"');
-    expect(html).not.toContain("aria-live=");
-  });
+      expect(html).toContain('data-render-fallback="true"');
+      expect(html).toContain('title="webgl unavailable"');
+      expect(html).toContain("Interactive dish unavailable");
+      expect(html).toContain(
+        "Petra has not substituted demonstration biology or changed the simulation state.",
+      );
+      expect(html).toContain('class="petra-compact-action pixi-renderer-retry-action"');
+      expect(html).toContain(`data-motion="${motion}"`);
+      expect(html).toContain('type="button"');
+      expect(html).toContain(">Retry renderer</button>");
+      expect(html).toContain(
+        'aria-describedby="renderer-failure-description"',
+      );
+      expect(html).not.toContain('role="status"');
+      expect(html).not.toContain("aria-live=");
+      expect(html).not.toContain("aria-pressed");
+    },
+  );
 
   it("announces renderer startup/failure state without interactive copy", () => {
     expect(rendererStartupAnnouncement("idle")).toBe("");

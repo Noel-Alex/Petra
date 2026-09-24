@@ -80,8 +80,8 @@ landscape, so its incremental ciprofloxacin loss is exactly zero before any
 drug exposure is configured. Zero here is not a measured MG1655
 background-death rate.
 
-Under protocol v5 the all-zero landscape in the composed config is the
-fingerprinted **initial** exposure. Composed state v3 checkpoints the current
+Under protocol v6 the all-zero landscape in the composed config is the
+fingerprinted **initial** exposure. Composed state v4 checkpoints the current
 `mg/L` landscape, and the typed `apply-ciprofloxacin` command may mutate that
 state through validated global/radial/stripe/paint `set|add` geometry while
 preserving exact replay/export identity. Accepted commands record the exact
@@ -96,9 +96,17 @@ separate calibration/mechanism work.
 
 Initial model-resource level, founder placement, founder biomass, and random seed
 remain explicit run-state inputs. They are intentionally not silently promoted
-into parameter constants or used to change the mechanism fingerprint. Likewise,
-the continuous model-biomass growth channel remains distinct from discrete
-cell/division-event authority; #562 owns that future bridge.
+into parameter constants or used to change the mechanism fingerprint.
+
+Protocol v6/state v4 can bind the reviewed shared discrete population authority
+only when a composed config supplies an explicit cell-equivalent calibration and
+numerical policy. That identity then enters the composed fingerprint and its
+count/residual state enters checkpoints. The bundled flagship deliberately sets
+this authority to `null`: there is no scenario-owned
+`modelBiomassPerCellEquivalent` calibration, so Petra does not relabel
+engineering model biomass as bacterial cells or division counts. A later
+calibration is new scenario/mechanism authority with provenance and visible
+limitations, not a hidden runtime default.
 
 ## Uncertainty
 Where papers provide uncertainty, preserve it. Petra can later support ensemble runs that sample parameter distributions. A single pretty run must not imply certainty.

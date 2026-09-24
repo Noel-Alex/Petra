@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { PLAYBACK_SPEEDS } from "../ui/experimentControls";
-import { playbackSpeedShortcut } from "../ui/keyboard";
 import { PetraCompactAction } from "../ui/PetraCompactAction";
 import {
   loadMotionSetting,
@@ -14,6 +12,7 @@ import { planSurfaceTransition } from "../ui/motion/semanticTransitions";
 import { OnboardingGuide } from "../ui/onboarding/OnboardingGuide";
 import { ProvenancePanel } from "../ui/provenance/ProvenancePanel";
 import { DishViewport } from "./DishViewport";
+import { ExperimentRunControls } from "./ExperimentRunControls";
 import { resolveDishFocusMode } from "./dishFocusMode";
 import { CausalNarrationMount } from "./CausalNarrationMount";
 import type { AuthoritativeCausalEventStream } from "./causalNarration";
@@ -260,7 +259,7 @@ export function App({
             playing: experiment.view.playing,
             canTogglePlayback: experiment.view.canTogglePlayback,
             canChangeSpeed: experiment.view.canChangeSpeed,
-            canStep: experiment.view.status === "ready",
+            canStep: experiment.view.runControls.canStep,
           })
         ) {
           return;
@@ -536,34 +535,11 @@ export function App({
 
         <TimelineHistory entries={experiment.view.timeline} />
 
-        <div className="timeline-controls">
-          <PetraCompactAction
-            motionPreference={motionPreference}
-            disabled={!experiment.view.canTogglePlayback}
-            aria-keyshortcuts="Space"
-            onClick={() => {
-              experiment.dispatch({
-                type: experiment.view.playing ? "pause" : "play",
-              });
-            }}
-          >
-            {experiment.view.playing ? "Pause" : "Play"}
-          </PetraCompactAction>
-          {PLAYBACK_SPEEDS.map((speed) => (
-            <PetraCompactAction
-              key={speed}
-              motionPreference={motionPreference}
-              selected={experiment.view.speed === speed}
-              disabled={!experiment.view.canChangeSpeed}
-              aria-keyshortcuts={playbackSpeedShortcut(speed)}
-              onClick={() => {
-                experiment.dispatch({ type: "set-speed", speed });
-              }}
-            >
-              {speed}×
-            </PetraCompactAction>
-          ))}
-        </div>
+        <ExperimentRunControls
+          motion={motionPreference}
+          view={experiment.view}
+          dispatch={experiment.dispatch}
+        />
       </footer>
     </main>
   );

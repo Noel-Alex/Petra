@@ -184,12 +184,85 @@ button:hover {
 }
 
 .dish-stage__halo {
+  --dish-ambient-ms: 0ms;
+  --dish-ambient-easing: ease;
   position: absolute;
   width: min(70vw, 46rem);
   aspect-ratio: 1;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(94, 201, 255, 0.11), transparent 68%);
+  background:
+    radial-gradient(circle at 50% 48%, rgba(94, 201, 255, 0.13), transparent 67%),
+    radial-gradient(circle at 38% 34%, rgba(176, 142, 255, 0.055), transparent 43%);
   filter: blur(18px);
+  opacity: 0.82;
+  pointer-events: none;
+  transform: scale(1);
+  transform-origin: center;
+}
+
+.dish-stage__halo::before,
+.dish-stage__halo::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.dish-stage__halo::before {
+  inset: 8%;
+  border: 1px solid rgba(143, 220, 255, 0.09);
+  background:
+    radial-gradient(circle at 30% 34%, rgba(143, 220, 255, 0.12), transparent 16%),
+    radial-gradient(circle at 72% 62%, rgba(242, 202, 104, 0.07), transparent 18%);
+  box-shadow:
+    0 0 46px rgba(94, 201, 255, 0.055),
+    inset 0 0 34px rgba(176, 142, 255, 0.035);
+  opacity: 0.54;
+}
+
+.dish-stage__halo::after {
+  inset: 20%;
+  border: 1px solid rgba(242, 217, 142, 0.055);
+  box-shadow:
+    0 0 56px rgba(94, 201, 255, 0.08),
+    inset 0 0 42px rgba(94, 201, 255, 0.045);
+  opacity: 0.46;
+}
+
+.dish-stage__halo[data-ambient-motion="animate"] {
+  animation: petra-dish-halo-breathe var(--dish-ambient-ms)
+    var(--dish-ambient-easing) infinite alternate;
+  will-change: transform, opacity;
+}
+
+.dish-stage__halo[data-ambient-motion="animate"]::before {
+  animation: petra-dish-halo-drift calc(var(--dish-ambient-ms) * 1.4)
+    var(--dish-ambient-easing) infinite alternate;
+  will-change: transform, opacity;
+}
+
+@keyframes petra-dish-halo-breathe {
+  from {
+    opacity: 0.72;
+    transform: scale(0.985);
+  }
+
+  to {
+    opacity: 0.88;
+    transform: scale(1.035);
+  }
+}
+
+@keyframes petra-dish-halo-drift {
+  from {
+    opacity: 0.42;
+    transform: translate3d(-1.1%, 0.6%, 0) rotate(-1.5deg);
+  }
+
+  to {
+    opacity: 0.68;
+    transform: translate3d(1.2%, -0.7%, 0) rotate(1.5deg);
+  }
 }
 
 .dish-mount {
@@ -293,13 +366,8 @@ button:hover {
   font-variant-numeric: tabular-nums;
 }
 
-.petra-app[data-motion="off"] *,
-.petra-app[data-motion="reduced"] .dish-stage__halo {
+.petra-app[data-motion="off"] * {
   animation: none !important;
-}
-
-.petra-app[data-motion="reduced"] .dish-stage__halo {
-  display: none;
 }
 
 .petra-app[data-motion="off"] * {

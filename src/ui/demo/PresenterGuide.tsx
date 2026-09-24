@@ -3,6 +3,7 @@ import type {
   ReactElement,
 } from "react";
 
+import { PetraCompactAction } from "../PetraCompactAction";
 import type { MotionPreference } from "../motion/policy";
 import {
   cuesForProfile,
@@ -128,15 +129,15 @@ export function PresenterGuide({
       </section>
 
       <footer className="presenter-guide__actions">
-        <button
-          type="button"
+        <PetraCompactAction
+          motionPreference={motionPreference}
           onClick={() => onEvent({ type: "back" })}
           disabled={state.cueIndex === 0 && !state.completed}
         >
           Back
-        </button>
-        <button
-          type="button"
+        </PetraCompactAction>
+        <PetraCompactAction
+          motionPreference={motionPreference}
           className="presenter-guide__next"
           onClick={() => onEvent({ type: "next" })}
           disabled={!presentation.canAdvance}
@@ -147,7 +148,7 @@ export function PresenterGuide({
           }
         >
           {state.cueIndex >= cues.length - 1 ? "Finish" : "Next cue"}
-        </button>
+        </PetraCompactAction>
       </footer>
     </aside>
   );

@@ -33,6 +33,24 @@ export interface ProvenanceFilterResult {
 }
 
 /**
+ * Stable provenance record IDs identify one scientific presentation record
+ * within a rendered/filterable collection. Duplicate IDs are ambiguous and
+ * must fail before React reconciliation or discoverability logic can act on
+ * the collection.
+ */
+export function assertUniqueProvenanceRecordIds(
+  records: readonly ScenarioProvenanceResolution[],
+): void {
+  const ids = new Set<string>();
+  for (const record of records) {
+    if (ids.has(record.id)) {
+      throw new RangeError(`duplicate provenance record id: ${record.id}`);
+    }
+    ids.add(record.id);
+  }
+}
+
+/**
  * Filters only the discoverability layer. Scientific classifications and
  * provenance status are never changed.
  *
@@ -43,6 +61,7 @@ export function filterProvenanceRecords(
   records: readonly ScenarioProvenanceResolution[],
   request: ProvenanceFilterRequest,
 ): ProvenanceFilterResult {
+  assertUniqueProvenanceRecordIds(records);
   const query = normalize(request.query);
   const evidence = assertEvidenceFilter(request.evidence);
   const visible: ScenarioProvenanceResolution[] = [];

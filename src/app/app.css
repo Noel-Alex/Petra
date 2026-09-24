@@ -1088,6 +1088,8 @@ button:hover {
   border-radius: 50%;
   cursor: crosshair;
   touch-action: none;
+  --placement-motion-ms: 0ms;
+  --placement-motion-easing: linear;
 }
 
 .dish-placement-target {

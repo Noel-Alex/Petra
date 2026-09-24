@@ -20,11 +20,18 @@ export interface AuthoritativeAnalysisIdentity {
   readonly simulationTimeHours: number;
 }
 
+export type AncestryOnlyLineageInput = Omit<
+  LineageAncestryInput,
+  "scientificDetail"
+> & {
+  readonly scientificDetail?: never;
+};
+
 export interface AuthoritativeAnalysisRecords {
   readonly identity: AuthoritativeAnalysisIdentity;
   readonly series: readonly ScientificSeriesInput[];
   /** Generic ancestry-only records for callers without the #665 projection. */
-  readonly lineages?: readonly LineageAncestryInput[];
+  readonly lineages?: readonly AncestryOnlyLineageInput[];
   /** Full authoritative #665 lineage analysis; mutually exclusive with lineages. */
   readonly lineageAnalysis?: AuthoritativeLineageAnalysis;
 }
@@ -173,7 +180,15 @@ function resolveLineageInputs(
     });
   }
 
-  return records.lineages!;
+  const lineages = records.lineages!;
+  for (const lineage of lineages) {
+    if ((lineage as LineageAncestryInput).scientificDetail !== undefined) {
+      throw new Error(
+        "rich lineage scientific detail requires full authoritative lineageAnalysis",
+      );
+    }
+  }
+  return lineages;
 }
 
 function assertRecordsDoNotExceedStateTime(

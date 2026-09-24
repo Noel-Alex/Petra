@@ -283,6 +283,45 @@ export function App({
         stream={causalEvents}
       />
 
+      {experiment.view.status === "error" ? (
+        <section
+          className="petra-runtime-recovery"
+          aria-labelledby="petra-runtime-recovery-title"
+        >
+          <div>
+            <p className="petra-kicker">Simulation paused</p>
+            <h2 id="petra-runtime-recovery-title">
+              {experiment.view.failure?.title ?? "Runtime recovery required"}
+            </h2>
+            <p>{experiment.view.statusText}</p>
+          </div>
+          {runtimeFactory !== undefined &&
+          experiment.view.failure?.recoverable !== false ? (
+            <PetraCompactAction
+              motionPreference={motionPreference}
+              onClick={() => {
+                experiment.restart();
+              }}
+            >
+              Restart same run identity
+            </PetraCompactAction>
+          ) : (
+            <p className="panel-note">
+              Correct or reselect the incompatible experiment configuration
+              before starting another authoritative run.
+            </p>
+          )}
+          {runtimeFactory !== undefined &&
+          experiment.view.failure?.recoverable !== false ? (
+            <p className="panel-note">
+              Restart uses the same scenario, parameters, and seed. It starts a
+              fresh authoritative runtime; it does not pretend to resume the
+              failed checkpoint.
+            </p>
+          ) : null}
+        </section>
+      ) : null}
+
       <header className="petra-topbar">
         <div>
           <p className="petra-kicker">Living laboratory</p>

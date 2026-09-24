@@ -48,7 +48,7 @@ describe("PresenterGuide resolved motion CSS", () => {
 
   it("keeps the native runbook selector at Petra's expo touch target", () => {
     const profileRule = presenterCss.match(
-      /\\.presenter-guide__profile select \\{([\\s\\S]*?)\\}/,
+      /\.presenter-guide__profile select \{([\s\S]*?)\}/,
     )?.[1];
 
     expect(profileRule).toBeDefined();

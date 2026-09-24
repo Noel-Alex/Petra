@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { LINEAGE_APPEARANCE_TOKENS } from "./lineageAppearance";
 import type { DishRenderSnapshot } from "./model";
 import {
   createDishReplayPresenter,
@@ -37,7 +38,7 @@ function snapshot(
       {
         id: "ancestor",
         label: "Ancestor",
-        appearanceToken: "lineage-cyan",
+        appearanceToken: LINEAGE_APPEARANCE_TOKENS[0],
         patternToken: "solid-ring",
         density: new Float32Array(biomass),
       },

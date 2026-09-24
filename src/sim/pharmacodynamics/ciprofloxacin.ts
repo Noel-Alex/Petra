@@ -59,11 +59,14 @@ function evaluateRegoesNetRateLog10PerHour(
 ): number {
   if (concentration === 0) return psiMaxLog10PerHour;
 
-  const scaled = Math.pow(concentration / zMic, kappa);
-  const denominator = scaled - psiMinLog10PerHour / psiMaxLog10PerHour;
+  // Algebraically equivalent to the source form, but evaluated with the
+  // inverse concentration ratio. This avoids Infinity/Infinity at extremely
+  // high finite concentration while preserving the finite psi_min asymptote.
+  const inverseScaled = Math.pow(zMic / concentration, kappa);
+  const denominator = 1 - (psiMinLog10PerHour / psiMaxLog10PerHour) * inverseScaled;
   return (
     psiMaxLog10PerHour -
-    ((psiMaxLog10PerHour - psiMinLog10PerHour) * scaled) / denominator
+    (psiMaxLog10PerHour - psiMinLog10PerHour) / denominator
   );
 }
 

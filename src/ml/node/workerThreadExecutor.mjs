@@ -173,6 +173,12 @@ export class WorkerThreadMechanisticExecutor {
     if (slot.current !== null) {
       slot.current.reject(failure);
       slot.current = null;
+    } else if (!slot.ready) {
+      // A worker that dies before its initial ready message never owned a task.
+      // Reject one waiting request before replenishing capacity so a persistent
+      // executor import/startup failure converges instead of respawning forever.
+      const queued = this.queue.shift();
+      if (queued !== undefined) queued.reject(failure);
     }
     this.retireSlot(slot);
     this.ensureCapacity();

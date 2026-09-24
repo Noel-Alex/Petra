@@ -100,13 +100,17 @@ describe("mechanistic ML dataset generator", () => {
       normalizationProfileId: plan.normalizationProfileId,
       splitPolicyVersion: plan.splitPolicy.version,
       splitCoveragePolicyVersion: plan.splitCoveragePolicy.version,
+      groupCount: plan.groupCount,
       trajectoryCount: plan.trajectoryCount,
       sampleCount: plan.trajectoryCount * 2,
+      splitGroupCounts: plan.splitGroupCounts,
       splitTrajectoryCounts: plan.splitTrajectoryCounts,
     });
     expect(first.rows).toHaveLength(plan.trajectoryCount * 2);
     expect(first.rows[0]).toMatchObject({
       taskId: plan.tasks[0]!.taskId,
+      parameterPointId: plan.tasks[0]!.parameterPointId,
+      interventionFamilyId: plan.tasks[0]!.interventionFamilyId,
       split: plan.tasks[0]!.split,
       splitGroupKey: plan.tasks[0]!.splitGroupKey,
       trajectoryKey: plan.tasks[0]!.trajectoryKey,
@@ -122,6 +126,24 @@ describe("mechanistic ML dataset generator", () => {
         plan.splitTrajectoryCounts[split] * 2,
       );
     }
+  });
+
+  it("detaches and freezes collected rows so later runner mutation cannot change an artifact", () => {
+    const plan = planMechanisticSweep(definition());
+    const results = completeResults(plan);
+    const artifact = buildMechanisticDatasetArtifact(plan, results);
+
+    const sourceInput = results[0]!.samples[0]!.input as {
+      population: number;
+      resource: number;
+    };
+    sourceInput.population = 999;
+
+    expect(artifact.rows[0]!.sample.input.population).toBe(100);
+    expect(Object.isFrozen(artifact.rows)).toBe(true);
+    expect(Object.isFrozen(artifact.rows[0])).toBe(true);
+    expect(Object.isFrozen(artifact.rows[0]!.sample)).toBe(true);
+    expect(Object.isFrozen(artifact.rows[0]!.sample.input)).toBe(true);
   });
 
   it("exports stable streaming JSONL plus a canonical provenance sidecar", () => {
@@ -148,6 +170,31 @@ describe("mechanistic ML dataset generator", () => {
     expect(firstLine.indexOf('"split"')).toBeLessThan(
       firstLine.indexOf('"splitGroupKey"'),
     );
+  });
+
+  it("revalidates group and split-count provenance instead of trusting a typed plan", () => {
+    const plan = planMechanisticSweep(definition());
+    const results = completeResults(plan);
+
+    expect(() =>
+      buildMechanisticDatasetArtifact(
+        { ...plan, groupCount: plan.groupCount + 1 },
+        results,
+      ),
+    ).toThrow(/groupCount does not match/);
+
+    expect(() =>
+      buildMechanisticDatasetArtifact(
+        {
+          ...plan,
+          splitGroupCounts: {
+            ...plan.splitGroupCounts,
+            train: plan.splitGroupCounts.train + 1,
+          },
+        },
+        results,
+      ),
+    ).toThrow(/group count does not match/);
   });
 
   it("refuses missing, duplicate, or unknown trajectory results", () => {

@@ -143,6 +143,52 @@ describe("Node mechanistic sweep adapters", () => {
     );
   });
 
+  it("rejects an active task on clean worker exit and replenishes the pool", async () => {
+    const executor = new WorkerThreadMechanisticExecutor({
+      maxWorkers: 1,
+      executorModuleUrl: new URL(
+        "./workerThreadFixtureExecutor.mjs",
+        import.meta.url,
+      ).href,
+      executorData: {
+        exitTaskId: "exit-cleanly",
+      },
+    });
+
+    const exited = executor.execute({ taskId: "exit-cleanly" });
+    const recovered = executor.execute({
+      taskId: "recover-after-clean-exit",
+      datasetVersion: "dataset",
+      trajectory: {
+        group: {
+          engineVersion: "engine",
+          scenarioId: "scenario",
+          scenarioVersion: "1",
+          parameterSetHash: "params",
+          interventionFingerprint: "none",
+        },
+        seed: 1,
+      },
+      normalizationProfileId: "norm",
+      datasetSchema: {
+        schemaVersion: "mechanistic-dataset-schema-v1",
+        inputSchemaVersion: "input",
+        targetSchemaVersion: "target",
+      },
+      parameterPointId: "point",
+      interventionFamilyId: "none",
+    });
+
+    await expect(exited).rejects.toThrow(
+      "mechanistic worker exited unexpectedly with code 0",
+    );
+    await expect(recovered).resolves.toMatchObject({
+      taskId: "recover-after-clean-exit",
+    });
+
+    await executor.dispose();
+  });
+
   it("propagates worker task failures without poisoning the pool", async () => {
     const executor = new WorkerThreadMechanisticExecutor({
       maxWorkers: 2,

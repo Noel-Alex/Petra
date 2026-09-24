@@ -10,6 +10,10 @@ export async function executeMechanisticTask(task, executorData) {
     // Intentional CPU work for the worker-thread integration fixture.
   }
 
+  if (executorData && executorData.exitTaskId === task.taskId) {
+    process.exit(0);
+  }
+
   if (executorData && executorData.failTaskId === task.taskId) {
     throw new RangeError("fixture worker refusal");
   }

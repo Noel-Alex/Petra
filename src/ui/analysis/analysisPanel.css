@@ -1,19 +1,19 @@
 .analysis-panel {
-  --analysis-surface: rgba(9, 20, 35, 0.76);
-  --analysis-surface-strong: rgba(12, 27, 45, 0.92);
-  --analysis-border: rgba(220, 238, 255, 0.16);
-  --analysis-grid: rgba(220, 238, 255, 0.1);
-  --analysis-muted: rgba(232, 244, 255, 0.7);
-  --analysis-accent: rgba(193, 235, 255, 0.96);
+  --analysis-surface: rgb(var(--petra-rgb-ink) / 0.82);
+  --analysis-surface-strong: rgb(var(--petra-rgb-ink-deep) / 0.94);
+  --analysis-border: rgb(var(--petra-rgb-cream-muted) / 0.18);
+  --analysis-grid: rgb(var(--petra-rgb-cream-muted) / 0.1);
+  --analysis-muted: rgb(var(--petra-rgb-cream-muted) / 0.76);
+  --analysis-accent: var(--petra-color-mint);
   display: grid;
   gap: 1rem;
   padding: 1rem;
   border: 1px solid var(--analysis-border);
   border-radius: 1.35rem;
   background:
-    radial-gradient(circle at 18% 0%, rgba(125, 210, 235, 0.12), transparent 36%),
+    radial-gradient(circle at 18% 0%, rgb(var(--petra-rgb-teal) / 0.1), transparent 36%),
     linear-gradient(155deg, var(--analysis-surface-strong), var(--analysis-surface));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 20px 54px rgba(0, 0, 0, 0.18);
+  box-shadow: inset 0 1px 0 rgb(var(--petra-rgb-cream) / 0.045), 0 20px 54px rgb(var(--petra-rgb-ink-deep) / 0.36);
   transition:
     opacity var(--analysis-panel-ms) cubic-bezier(var(--analysis-panel-ease)),
     transform var(--analysis-panel-ms) cubic-bezier(var(--analysis-panel-ease));
@@ -67,7 +67,7 @@
   padding: 0.9rem;
   border: 1px solid var(--analysis-border);
   border-radius: 1rem;
-  background: rgba(4, 13, 24, 0.48);
+  background: rgb(var(--petra-rgb-ink-deep) / 0.52);
   overflow: hidden;
 }
 
@@ -167,9 +167,9 @@
   gap: 0.48rem;
   min-width: 0;
   padding: 0.42rem 0.5rem;
-  border: 1px solid rgba(220, 238, 255, 0.09);
+  border: 1px solid rgb(var(--petra-rgb-cream-muted) / 0.1);
   border-radius: 0.75rem;
-  background: rgba(255, 255, 255, 0.025);
+  background: rgb(var(--petra-rgb-cream) / 0.028);
 }
 
 .analysis-chart__legend strong,
@@ -216,7 +216,7 @@
 
 .analysis-lineage__edges path {
   fill: none;
-  stroke: rgba(220, 238, 255, 0.3);
+  stroke: rgb(var(--petra-rgb-cream-muted) / 0.32);
   stroke-width: 1.6;
   stroke-linejoin: round;
 }
@@ -233,7 +233,7 @@
 }
 
 .analysis-lineage__node-id {
-  fill: rgba(248, 252, 255, 0.96);
+  fill: rgb(var(--petra-rgb-cream) / 0.96);
   font-size: var(--petra-type-caption);
   font-weight: 800;
 }
@@ -288,7 +288,7 @@
   margin-top: 0.75rem;
   border: 1px solid var(--analysis-border);
   border-radius: 0.8rem;
-  background: rgba(255, 255, 255, 0.022);
+  background: rgb(var(--petra-rgb-cream) / 0.024);
 }
 
 .analysis-data > summary {
@@ -301,7 +301,7 @@
   cursor: pointer;
   font-size: var(--petra-type-caption);
   font-weight: 750;
-  color: rgba(248, 252, 255, 0.92);
+  color: rgb(var(--petra-rgb-cream) / 0.92);
 }
 
 .analysis-data > summary:focus-visible {
@@ -319,7 +319,7 @@
   max-height: 15rem;
   margin: 0 0.55rem 0.55rem;
   overflow: auto;
-  border: 1px solid rgba(220, 238, 255, 0.08);
+  border: 1px solid rgb(var(--petra-rgb-cream-muted) / 0.09);
   border-radius: 0.65rem;
 }
 
@@ -346,7 +346,7 @@
 .analysis-data__table th,
 .analysis-data__table td {
   padding: 0.48rem 0.58rem;
-  border-top: 1px solid rgba(220, 238, 255, 0.075);
+  border-top: 1px solid rgb(var(--petra-rgb-cream-muted) / 0.08);
   text-align: left;
   vertical-align: top;
 }
@@ -356,12 +356,12 @@
   top: 0;
   z-index: 1;
   border-top: 0;
-  background: rgba(12, 27, 45, 0.98);
+  background: rgb(var(--petra-rgb-ink-deep) / 0.98);
   color: var(--analysis-muted);
 }
 
 .analysis-data__table tbody th {
-  color: rgba(248, 252, 255, 0.94);
+  color: rgb(var(--petra-rgb-cream) / 0.94);
 }
 
 .analysis-data__table code {

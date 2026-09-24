@@ -14,6 +14,7 @@ Own React/browser orchestration around Petra's authoritative worker and presenta
 - `DishViewport.tsx` may choose/display source-provided render overlays and units, but it must not derive scientific units or fabricate authoritative snapshots. Until #42/#37 supplies a valid `DishRenderSnapshot`, the renderer demo fixture must remain visibly labelled visual-only.
 - Dish camera controls are presentation-only. The visible overview/reset action sends a declarative reset request into the renderer rather than storing Pixi objects in app state.
 - Escape inside the dish may reset camera overview only after active-tool, default-prevented, and editable-control paths have had first refusal; it must not override intervention cancellation or synthesize worker commands.
+- `flagshipProvenance.ts` is presentation-only: it may attach labels/value text to the versioned flagship scenario, but evidence classes, citation keys, transfer notes, limitations, and assumptions must come from authoritative scenario records. It must never infer a reassuring class from field names or source presence.
 
 ## Runtime rules
 - Do not emit the next queued request until the active request receives its expected authoritative response.
@@ -39,4 +40,3 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - `src/app/motionAdapter.ts` is the thin CSS projection layer for framework-neutral surface plans.
 - Representative-cell semantic zoom must remain visibly labelled illustrative/explanatory and never be described as literal microscopy or a finer simulation scale.
 - Semantic zoom guidance may explain renderer meaning, but it must not infer current scientific state from camera position unless the renderer explicitly reports a presentation-only semantic level.
-

@@ -1,5 +1,5 @@
 import {
-  PROTOCOL_VERSION,
+  parseWorkerResponse,
   type SimulationSnapshot,
   type WorkerRequest,
   type WorkerResponse,
@@ -22,7 +22,7 @@ export interface WorkerSessionState {
 }
 
 export interface WorkerPortHandlers {
-  readonly message: (response: WorkerResponse) => void;
+  readonly message: (response: unknown) => void;
   readonly error: (message: string) => void;
 }
 
@@ -129,13 +129,17 @@ export class WorkerSession {
     }
   }
 
-  private handleResponse(response: WorkerResponse): void {
+  private handleResponse(rawResponse: unknown): void {
     if (this.current.phase === "disposed") return;
 
-    if (response.protocolVersion !== PROTOCOL_VERSION) {
+    let response: WorkerResponse;
+    try {
+      response = parseWorkerResponse(rawResponse);
+    } catch (error) {
+      const commandId = this.active?.type === "command" ? this.active.command.id : null;
       this.fail(
-        `Worker protocol mismatch: expected ${PROTOCOL_VERSION}, received ${response.protocolVersion}`,
-        responseCommandId(response),
+        error instanceof Error ? error.message : "Malformed worker response",
+        commandId,
       );
       return;
     }
@@ -247,7 +251,7 @@ export function createBrowserWorkerPort(worker: Worker): WorkerPort {
       worker.postMessage(request);
     },
     subscribe(handlers) {
-      const onMessage = (event: MessageEvent<WorkerResponse>) => {
+      const onMessage = (event: MessageEvent<unknown>) => {
         handlers.message(event.data);
       };
       const onError = (event: ErrorEvent) => {

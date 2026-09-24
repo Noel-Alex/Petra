@@ -330,22 +330,22 @@ function resolveSources(
       continue;
     }
 
-    const locator = citationLocator(key, citation, problems);
+    const location = citationLocation(key, citation, problems);
     sources.push({
       id: key,
       label: citation.title.trim(),
-      ...(locator === null ? {} : { locator }),
+      ...(location === null ? {} : location),
     });
   }
 
   return sources;
 }
 
-function citationLocator(
+function citationLocation(
   key: string,
   citation: ScenarioCitationRecord,
   problems: string[],
-): string | null {
+): Pick<ProvenanceSource, "locator" | "href"> | null {
   if (citation.doi !== undefined) {
     if (
       typeof citation.doi !== "string" ||
@@ -355,7 +355,11 @@ function citationLocator(
         `Provenance incomplete: citation "${key}" has an invalid DOI locator.`,
       );
     } else {
-      return `DOI: ${citation.doi.trim()}`;
+      const doi = citation.doi.trim();
+      return {
+        locator: `DOI: ${doi}`,
+        href: `https://doi.org/${doi}`,
+      };
     }
   }
 
@@ -368,7 +372,25 @@ function citationLocator(
         `Provenance incomplete: citation "${key}" has an invalid URL locator.`,
       );
     } else {
-      return citation.url.trim();
+      const url = citation.url.trim();
+      let parsed: URL;
+      try {
+        parsed = new URL(url);
+      } catch {
+        problems.push(
+          `Provenance incomplete: citation "${key}" has an invalid URL locator.`,
+        );
+        return { locator: url };
+      }
+
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        problems.push(
+          `Provenance incomplete: citation "${key}" uses unsupported URL protocol "${parsed.protocol}".`,
+        );
+        return { locator: url };
+      }
+
+      return { locator: url, href: url };
     }
   }
 

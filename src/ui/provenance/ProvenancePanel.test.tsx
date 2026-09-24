@@ -39,6 +39,11 @@ describe("provenance panel", () => {
     expect(markup).toContain("<svg");
     expect(markup).toContain("Marcusson et al. 2009");
     expect(markup).toContain("DOI: 10.1371/journal.ppat.1000541");
+    expect(markup).toContain(
+      'href="https://doi.org/10.1371/journal.ppat.1000541"',
+    );
+    expect(markup).toContain('target="_blank"');
+    expect(markup).toContain("Opens source in a new tab.");
     expect(markup).toContain("1 complete");
   });
 
@@ -69,8 +74,38 @@ describe("provenance panel", () => {
     expect(markup).toContain("Declared sources");
     expect(markup).toContain("Marcusson et al. 2009");
     expect(markup).toContain("DOI: 10.1371/journal.ppat.1000541");
+    expect(markup).toContain(
+      'href="https://doi.org/10.1371/journal.ppat.1000541"',
+    );
     expect(markup).toContain("0 complete · 1 need provenance");
     expect(markup).not.toContain("Measured evidence");
+  });
+
+  it("renders unsupported locator schemes as visible non-actionable text", () => {
+    const record = resolveScenarioProvenance({
+      id: "unsafe",
+      label: "Unsupported source",
+      record: {
+        citation: "unsafe",
+      },
+      scenario: {
+        citations: {
+          unsafe: {
+            title: "Unsupported source locator",
+            url: "javascript:alert(1)",
+          },
+        },
+      },
+    });
+
+    const markup = renderToStaticMarkup(
+      <ProvenancePanel records={[record]} />,
+    );
+
+    expect(markup).toContain("Unsupported source locator");
+    expect(markup).toContain("javascript:alert(1)");
+    expect(markup).not.toContain('href="javascript:alert(1)"');
+    expect(markup).toContain("unsupported URL protocol");
   });
 
   it("renders scenario assumptions separately from field-level evidence", () => {

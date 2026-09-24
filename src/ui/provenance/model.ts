@@ -43,6 +43,11 @@ export interface ProvenanceSource {
   readonly id: string;
   readonly label: string;
   readonly locator?: string;
+  /**
+   * Optional actionable external source resolved from explicit authoritative
+   * citation metadata. Presentation must never infer this from label/title.
+   */
+  readonly href?: string;
 }
 
 export interface ProvenancePresentationInput {
@@ -71,6 +76,7 @@ export interface EvidenceBadge {
 export interface ProvenanceDetailRow {
   readonly label: string;
   readonly value: string;
+  readonly href?: string;
 }
 
 export interface ProvenancePresentation {
@@ -241,6 +247,7 @@ function buildDetails(
           source.locator === undefined
             ? source.label
             : `${source.label} · ${source.locator}`,
+        ...(source.href === undefined ? {} : { href: source.href }),
       });
     }
   }

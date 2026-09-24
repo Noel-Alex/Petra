@@ -175,25 +175,32 @@
     },
     {
       "id": "ml-mechanistic-dataset",
-      "description": "BLOCKED on #37 and #531: broad authoritative mechanistic sweep generation; bulky datasets remain local.",
+      "description": "BLOCKED on #682, #685, #544, and #594: authoritative group-split mechanistic dataset generation; bulky datasets remain local.",
       "command": [
         "python",
         "experiments/blocked.py",
         "--experiment-id",
         "ml-mechanistic-dataset",
         "--blocked-on",
-        "37",
+        "682",
         "--blocked-on",
-        "531",
+        "685",
+        "--blocked-on",
+        "544",
+        "--blocked-on",
+        "594",
         "--reason",
-        "Issue #37 must provide authoritative trajectories and #531 must provide the durable dataset-generation contract before broad local generation starts."
+        "Issue #682 must land explicit run-condition identity, #685 must bind horizon/cadence into task and resume identity, #544 must declare the first authoritative held-out sweep, and #594 must provide the concrete laptop worker/CLI path before broad local generation is reproducible."
       ],
       "issues": [
         13,
-        37,
         442,
         531,
-        542
+        542,
+        544,
+        594,
+        682,
+        685
       ],
       "timeout_seconds": 30
     },

@@ -43,6 +43,13 @@
 - Public lineage reads (`create`, `get`, `list`, and `eventLog`) return isolated projections. Consumer mutation must never alter registry authority; extinction mutation is owned by `markExtinct()`.
 - Presentation layers may aggregate or sample lineages visually, but must not imply decorative glyph count equals simulated cell count.
 
+## Lineage compaction planning
+- `lineageCompaction.ts` is a pure, versioned planner for **dense per-lineage state retention only**. It validates the complete `LineageRegistryCheckpoint` through the canonical restore boundary and emits release eligibility in deterministic checkpoint creation order.
+- Extant lineages are never release-eligible. Extinct dense state becomes eligible only when the explicit non-negative biological-time retention window has elapsed; the exact boundary is deterministic.
+- Compaction planning never deletes or rewrites lineage records, ancestry, events, extinction times, or the next-ID allocator. Those remain replay/explanation authority even when an external dense grid channel may eventually be released.
+- The planner is not enabled in `ComposedSimulationEngine` yet. Any future integration that changes checkpoint storage/state shape must first prove checkpoint/replay/metric equivalence, coordinate protocol/schema identity where required, bind the versioned policy into the relevant configuration/checkpoint contract, and preserve atomic refusal semantics.
+- A release-eligible plan is not performance evidence. Memory/throughput savings and any retention-window choice must be justified by #558 long-soak measurements rather than guessed from presentation needs.
+
 ## Scientific provenance
 - Curated mutation edges/target classes come from scenario-owned records. Aggregate selected appearance rates must not be silently converted into one exact edge probability.
 - Genotype fitness and mutation supply remain separate concepts; mutation count is not a generic fitness penalty.

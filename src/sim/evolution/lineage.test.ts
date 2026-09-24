@@ -80,6 +80,78 @@ describe('lineage registry', () => {
     ).toThrow(/missing creation event/)
   })
 
+  it('rejects sparse record and event arrays before restoring authority', () => {
+    const registry = new LineageRegistry()
+    const founder = registry.create({
+      parentLineageId: null,
+      genotypeId: 'WT',
+      createdAtHours: 0,
+      originCellIndex: null,
+      mutationClass: null,
+    })
+    const child = registry.create({
+      parentLineageId: founder.lineageId,
+      genotypeId: 'A',
+      createdAtHours: 1,
+      originCellIndex: null,
+      mutationClass: 'target',
+    })
+    registry.create({
+      parentLineageId: child.lineageId,
+      genotypeId: 'AB',
+      createdAtHours: 2,
+      originCellIndex: null,
+      mutationClass: 'second-step',
+    })
+    const checkpoint = registry.checkpoint()
+
+    const sparseRecordCases = [
+      (() => {
+        const records = [...checkpoint.records]
+        delete records[0]
+        return records
+      })(),
+      (() => {
+        const records = [...checkpoint.records]
+        delete records[1]
+        return records
+      })(),
+      (() => {
+        const records = [...checkpoint.records]
+        records.length += 1
+        return records
+      })(),
+    ]
+
+    for (const records of sparseRecordCases) {
+      expect(() =>
+        LineageRegistry.restore({
+          ...checkpoint,
+          nextId: records.length + 1,
+          records,
+        }),
+      ).toThrow(/records must be dense/)
+    }
+
+    const trailingSparseEvents = [...checkpoint.events]
+    trailingSparseEvents.length += 1
+    expect(() =>
+      LineageRegistry.restore({
+        ...checkpoint,
+        events: trailingSparseEvents,
+      }),
+    ).toThrow(/events must be dense/)
+
+    const interiorSparseEvents = [...checkpoint.events]
+    delete interiorSparseEvents[1]
+    expect(() =>
+      LineageRegistry.restore({
+        ...checkpoint,
+        events: interiorSparseEvents,
+      }),
+    ).toThrow(/events must be dense/)
+  })
+
   it('rejects corrupted ancestry and mismatched extinction events', () => {
     const registry = new LineageRegistry()
     const founder = registry.create({ parentLineageId: null, genotypeId: 'WT', createdAtHours: 0, originCellIndex: null, mutationClass: null })

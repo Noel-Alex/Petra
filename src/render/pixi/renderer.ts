@@ -2,6 +2,10 @@ import { Application, Container, Graphics } from "pixi.js";
 import { gridCellCenter } from "../gridGeometry";
 import { sampleRepresentativeGlyphs } from "../lod";
 import { resolveLineageAppearance } from "../lineageAppearance";
+import {
+  projectComparableLineageDensity,
+  resolveSharedLineageDensityMaximum,
+} from "../lineageDensityPresentation";
 import { resolveLineagePattern, type LineagePatternToken } from "../lineagePatterns";
 import {
   semanticZoomLevel,
@@ -477,6 +481,9 @@ function drawScene(args: {
     drawField(fieldLayer, overlay, snapshot, camera, centerX, centerY, dishSize);
   }
 
+  const lineageDensityMaximum =
+    resolveSharedLineageDensityMaximum(snapshot);
+
   snapshot.lineages.forEach((lineage) => {
     drawLineageDensity(
       densityLayer,
@@ -488,6 +495,7 @@ function drawScene(args: {
       dishSize,
       resolveLineageAppearance(lineage.appearanceToken).color,
       level,
+      lineageDensityMaximum,
     );
   });
 
@@ -589,10 +597,9 @@ function drawLineageDensity(
   dishSize: number,
   color: number,
   level: ReturnType<typeof semanticZoomLevel>,
+  sharedMaximum: number,
 ): void {
-  let maximum = 0;
-  for (const value of lineage.density) maximum = Math.max(maximum, value);
-  if (maximum <= 0) return;
+  if (sharedMaximum <= 0) return;
 
   const cellWidth = dishSize * camera.zoom / snapshot.gridWidth;
   const cellHeight = dishSize * camera.zoom / snapshot.gridHeight;
@@ -601,7 +608,11 @@ function drawLineageDensity(
   for (let index = 0; index < lineage.density.length; index += 1) {
     if (snapshot.dishMask[index] !== 1) continue;
     const weight = lineage.density[index] ?? 0;
-    if (weight <= maximum * 0.025) continue;
+    const presentation = projectComparableLineageDensity(
+      weight,
+      sharedMaximum,
+    );
+    if (!presentation.visible) continue;
     const center = gridCellCenter(
       index,
       snapshot.gridWidth,
@@ -617,18 +628,21 @@ function drawLineageDensity(
     );
     if (!insideViewport(point, centerX, centerY, dishSize)) continue;
 
-    const normalized = Math.sqrt(weight / maximum);
-    const markRadius = radius * (0.65 + normalized * 0.8);
+    const normalized = presentation.normalized;
+    // normalized=1 preserves the previous peak radius/alpha exactly. Lower
+    // source densities remain visible without being promoted to lineage-local
+    // maxima.
+    const markRadius = radius * (0.45 + normalized);
     graphics
       .circle(point.x, point.y, markRadius)
-      .fill({ color, alpha: 0.08 + normalized * 0.5 });
+      .fill({ color, alpha: 0.02 + normalized * 0.56 });
 
     drawLineagePatternRings(
       graphics,
       point,
       markRadius,
       lineage.patternToken,
-      0.14 + normalized * 0.22,
+      0.04 + normalized * 0.32,
       Math.max(0.65, Math.min(1.15, markRadius * 0.14)),
     );
   }

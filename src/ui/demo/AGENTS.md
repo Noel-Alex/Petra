@@ -21,6 +21,11 @@ Own Petra's optional presenter-facing cue deck for the expo runbook. This layer 
 - `3-minute` extends that same prefix with verified compare, trade-off, spatial contingency, and closing provenance beats.
 - The first six cue IDs remain identical between profiles so rehearsal semantics do not fork.
 
+## Accessibility and touch
+
+- The native Presenter runbook selector remains a native `select` and owns at least a 2.75rem minimum block size so profile switching meets Petra's repeated expo/touch target.
+- Back/Next navigation keeps its touch sizing and interaction semantics in `PetraCompactAction`; scoped presenter CSS may style tone/geometry but must not create a smaller competing target.
+
 ## Motion
 
 - Motion uses shared Petra policy/tokens only.

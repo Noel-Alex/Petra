@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import visualInterpolationSource from "./visualInterpolation.ts?raw";
 
 import type { DishRenderSnapshot, RenderLineage } from "./model";
 import {
@@ -65,6 +66,12 @@ function snapshot(args: {
 }
 
 describe("dish visual continuity", () => {
+  it("stays framework-neutral instead of depending on the Pixi adapter", () => {
+    expect(visualInterpolationSource).toContain('from "./motionMath"');
+    expect(visualInterpolationSource).not.toContain("/pixi/");
+    expect(visualInterpolationSource).not.toContain("pixi.js");
+  });
+
   it("interpolates only presentation channels and completes at exact authority", () => {
     const from = snapshot({
       id: "a",

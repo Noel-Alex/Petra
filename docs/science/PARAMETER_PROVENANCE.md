@@ -32,6 +32,21 @@ A composed model can use multiple papers, but every seam must be declared. Flags
 
 The combined model is therefore **mechanistically grounded but not one experimentally calibrated system**.
 
+### Versioned resource × drug policy
+
+For the flagship research scenario, the active composition policy is
+`reference_pd_decrement_as_first_order_loss_v1`. It maps the MIC-shifted Regoes
+decrement relative to the source drug-free state into an ecology first-order loss
+hazard:
+
+`h_drug = ln(10) * (psi_max - psi_g(a))`.
+
+This policy is **transferred/mechanistic**, not a newly measured parameter.
+Its ID, classification, equation, zero-drug invariant, and stationary-phase
+calibration limitation are stored in the scenario preset so the future inspector
+can display the seam directly. Regoes `psi_max` and Petra's separately
+provenance-owned Monod `mu_max` must not be silently treated as the same value.
+
 ## Engineering parameters
 Grid resolution, display scale, LOD thresholds, normalized diffusion CFL coefficients, and visual particle counts can be engineering parameters. They must be kept separate from physical measurements and must not be shown in the UI as “real bacterial constants.”
 

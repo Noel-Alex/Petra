@@ -53,7 +53,7 @@ export function AnalysisSurface({
       <summary>
         <span>
           <span className="petra-kicker">Analysis</span>
-          <strong>Population trajectory & lineage ancestry</strong>
+          <strong>Scientific trajectories & lineage ancestry</strong>
         </span>
         <span className="analysis-surface__identity">
           authoritative · {view.identity.simulationTimeHours.toFixed(2)} h
@@ -61,7 +61,7 @@ export function AnalysisSurface({
       </summary>
 
       <AnalysisPanel
-        chart={view.chart}
+        charts={view.charts}
         lineageTree={view.lineageTree}
         motion={motion}
       />

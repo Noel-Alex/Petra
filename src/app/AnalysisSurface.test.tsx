@@ -23,6 +23,17 @@ const RECORDS: AuthoritativeAnalysisRecords = {
         { timeHours: 1, value: 2 },
       ],
     },
+    {
+      id: "resource",
+      label: "Remaining resource",
+      unit: "model-resource",
+      appearanceToken: "resource",
+      patternToken: "dash",
+      points: [
+        { timeHours: 0, value: 1 },
+        { timeHours: 1, value: 0.5 },
+      ],
+    },
   ],
   lineages: [
     {
@@ -59,9 +70,11 @@ describe("AnalysisSurface", () => {
     expect(html).toContain('data-analysis-status="available"');
     expect(html).toContain('data-run-identity="run-authoritative"');
     expect(html).toContain('data-state-identity="state-authoritative"');
-    expect(html).toContain("Population trajectory &amp; lineage ancestry");
+    expect(html).toContain("Scientific trajectories &amp; lineage ancestry");
     expect(html).toContain("Scientific time series");
     expect(html).toContain("model-biomass");
+    expect(html).toContain("model-resource");
+    expect(html.match(/data-chart-unit=/g) ?? []).toHaveLength(2);
     expect(html).toContain('data-motion="reduced"');
     expect(html).toContain("Source samples only · no invented intermediate values");
   });
@@ -81,5 +94,6 @@ describe("AnalysisSurface", () => {
     expect(html).toContain('data-state-identity="state-authoritative"');
     expect(html).toContain("Scientific time series");
     expect(html).toContain("model-biomass");
+    expect(html).toContain("model-resource");
   });
 });

@@ -91,6 +91,7 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 
 ## Authoritative analysis injection
 - `analysisView.ts` is the app-facing trust boundary for chart/ancestry records. It accepts explicit unit-bearing `ScientificSeriesInput` + `LineageAncestryInput` records and projects them only through the existing analysis helpers.
+- `analysisView.ts` groups scientific series into separate charts by exact supplied unit, preserving first unit appearance and series order. Unlike units are never normalized onto one axis, while same-unit series may share a chart.
 - The protocol-v4 **synthetic fixture authority branch** is not eligible analysis authority. Do not adapt `syntheticPopulation`, renderer density/glyphs, demo snapshots, or visual interpolation into this contract to make the panel look populated.
 - `AnalysisSurface.tsx` remains secondary/collapsed when data is available so the living dish stays the primary world; absent records render a visible unavailable state rather than fixture data.
 - Analysis records carry explicit run/state identity + simulation time. No source sample or lineage lifecycle record may claim a biological time later than its bound authoritative state.

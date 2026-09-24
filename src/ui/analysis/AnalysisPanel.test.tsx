@@ -58,7 +58,7 @@ const tree = buildLineageTree([
 describe("AnalysisPanel", () => {
   it("renders explicit units, simulation time, authoritative sample metadata and no-interpolation disclosure", () => {
     const html = renderToStaticMarkup(
-      <AnalysisPanel chart={chart} lineageTree={tree} motion="full" />,
+      <AnalysisPanel charts={[chart]} lineageTree={tree} motion="full" />,
     );
 
     expect(html).toContain("Scientific time series");
@@ -71,9 +71,36 @@ describe("AnalysisPanel", () => {
     expect(html).toContain("3 source samples");
   });
 
+  it("renders unit-separated chart cards without normalizing scientific units", () => {
+    const resourceChart = buildScientificChart(
+      [{
+        id: "resource",
+        label: "Remaining resource",
+        unit: "model-resource",
+        appearanceToken: "resource",
+        patternToken: "dash",
+        points: [
+          { timeHours: 0, value: 1 },
+          { timeHours: 2, value: 0.4 },
+        ],
+      }],
+      { maxPointsPerSeries: 20, zeroBaseline: true },
+    );
+
+    const html = renderToStaticMarkup(
+      <AnalysisPanel charts={[chart, resourceChart]} lineageTree={tree} motion="off" />,
+    );
+
+    expect(html.match(/data-chart-unit=/g) ?? []).toHaveLength(2);
+    expect(html).toContain('data-chart-unit="relative biomass"');
+    expect(html).toContain('data-chart-unit="model-resource"');
+    expect(html).toContain("Remaining resource");
+    expect(html.match(/Complete authoritative source samples/g) ?? []).toHaveLength(2);
+  });
+
   it("keeps series identity redundant beyond color", () => {
     const html = renderToStaticMarkup(
-      <AnalysisPanel chart={chart} lineageTree={tree} motion="reduced" />,
+      <AnalysisPanel charts={[chart]} lineageTree={tree} motion="reduced" />,
     );
 
     expect(html).toContain("Wild type");
@@ -86,7 +113,7 @@ describe("AnalysisPanel", () => {
 
   it("renders ancestry with text plus distinct extant/extinct geometry", () => {
     const html = renderToStaticMarkup(
-      <AnalysisPanel chart={chart} lineageTree={tree} motion="off" />,
+      <AnalysisPanel charts={[chart]} lineageTree={tree} motion="off" />,
     );
 
     expect(html).toContain("Lineage tree");
@@ -123,7 +150,7 @@ describe("AnalysisPanel", () => {
 
     const html = renderToStaticMarkup(
       <AnalysisPanel
-        chart={chart}
+        charts={[chart]}
         lineageTree={highContrastTree}
         motion="off"
       />,
@@ -155,7 +182,7 @@ describe("AnalysisPanel", () => {
     expect(denseChart.series[0]!.points).toHaveLength(4);
 
     const html = renderToStaticMarkup(
-      <AnalysisPanel chart={denseChart} lineageTree={tree} motion="off" />,
+      <AnalysisPanel charts={[denseChart]} lineageTree={tree} motion="off" />,
     );
 
     expect(html).toContain("Complete source data");
@@ -201,7 +228,7 @@ describe("AnalysisPanel", () => {
 
     const html = renderToStaticMarkup(
       <AnalysisPanel
-        chart={preciseChart}
+        charts={[preciseChart]}
         lineageTree={preciseTree}
         motion="off"
       />,
@@ -215,10 +242,10 @@ describe("AnalysisPanel", () => {
 
   it("projects shared motion policy without tying it to biological time", () => {
     const full = renderToStaticMarkup(
-      <AnalysisPanel chart={chart} lineageTree={tree} motion="full" />,
+      <AnalysisPanel charts={[chart]} lineageTree={tree} motion="full" />,
     );
     const off = renderToStaticMarkup(
-      <AnalysisPanel chart={chart} lineageTree={tree} motion="off" />,
+      <AnalysisPanel charts={[chart]} lineageTree={tree} motion="off" />,
     );
 
     expect(full).toContain('data-chart-treatment="animate"');
@@ -248,7 +275,7 @@ describe("AnalysisPanel", () => {
   it("renders a stable empty ancestry state without inventing lineage records", () => {
     const emptyTree = buildLineageTree([]);
     const html = renderToStaticMarkup(
-      <AnalysisPanel chart={chart} lineageTree={emptyTree} motion="full" />,
+      <AnalysisPanel charts={[chart]} lineageTree={emptyTree} motion="full" />,
     );
 
     expect(html).toContain("No authoritative lineage ancestry records yet.");

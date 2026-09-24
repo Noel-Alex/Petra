@@ -11,6 +11,7 @@ import {
 import { planSurfaceTransition } from "../ui/motion/semanticTransitions";
 import { ProvenancePanel } from "../ui/provenance/ProvenancePanel";
 import { DishViewport } from "./DishViewport";
+import { InterventionPalette } from "./InterventionPalette";
 import { AnalysisSurface } from "./AnalysisSurface";
 import type { AuthoritativeAnalysisRecords } from "./analysisView";
 import { buildFlagshipProvenanceView } from "./flagshipProvenance";
@@ -269,20 +270,10 @@ export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
       ) : null}
 
       <section className="petra-workspace" aria-label="Experiment workspace">
-        <aside className="petra-panel petra-panel--tools" aria-label="Interventions">
-          <p className="petra-kicker">Interventions</p>
-          <h2>Shape the environment</h2>
-          <div className="tool-stack">
-            <button type="button">Inoculate</button>
-            <button type="button">Antibiotic</button>
-            <button type="button">Nutrient</button>
-            <button type="button">Inspect</button>
-          </div>
-          <p className="panel-note">
-            Controls are shell-only in this checkpoint; authoritative commands
-            remain owned by the simulation worker.
-          </p>
-        </aside>
+        <InterventionPalette
+          motion={motionPreference}
+          runtimeStatus={experiment.view.status}
+        />
 
         <section className="dish-stage" aria-label="Petri dish viewport">
           <div className="dish-stage__halo" aria-hidden="true" />

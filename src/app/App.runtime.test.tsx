@@ -13,5 +13,10 @@ describe("App authoritative runtime boundary", () => {
     expect(html).toContain('id="petra-sources-trigger"');
     expect(html).toContain('aria-controls="petra-sources-panel"');
     expect(html).toContain('aria-expanded="false"');
+    expect(html).toContain('data-intervention-capability="runtime-unavailable"');
+    expect(html).toContain(
+      "Authoritative simulation is not connected. Intervention tools remain unavailable.",
+    );
+    expect(html).not.toContain("Controls are shell-only in this checkpoint");
   });
 });

@@ -39,8 +39,10 @@ export type WorkerPerformanceOutcome =
   | "transport-error"
   | "protocol-error";
 
+export const WORKER_SESSION_PERFORMANCE_SAMPLE_VERSION = 2 as const;
+
 export interface WorkerSessionPerformanceSample {
-  readonly version: 1;
+  readonly version: typeof WORKER_SESSION_PERFORMANCE_SAMPLE_VERSION;
   readonly completedAtMs: number;
   readonly requestType: WorkerRequest["type"];
   readonly commandType: SimulationCommand["type"] | null;
@@ -49,6 +51,17 @@ export interface WorkerSessionPerformanceSample {
   readonly queuedRequestsBehindAtDispatch: number;
   readonly requestPayloadBytes: number;
   readonly responsePayloadBytes: number | null;
+  /**
+   * Synchronous sender-side WorkerPort.post()/Worker.postMessage() wall time.
+   * This includes browser serialization/queueing work visible to the caller,
+   * but is not end-to-end transport latency or exact structured-clone cost.
+   */
+  readonly senderPostMessageCallMs: number | null;
+  /**
+   * Main-thread cost of cloning the accepted authoritative snapshot into
+   * WorkerSession-owned immutable state. This is local copy cost only.
+   */
+  readonly mainThreadSnapshotCloneMs: number | null;
   readonly roundTripMs: number;
   readonly workerExecutionMs: number | null;
   readonly workerExecutionMsPerTick: number | null;
@@ -82,6 +95,12 @@ interface ActivePerformanceMeasurement {
   readonly startedAtMs: number;
   readonly requestPayloadBytes: number;
   readonly queuedRequestsBehindAtDispatch: number;
+  readonly senderPostMessageCallMs: number | null;
+}
+
+interface PreparedSnapshot {
+  readonly snapshot: SimulationSnapshot;
+  readonly cloneDurationMs: number | null;
 }
 
 export class WorkerSession {
@@ -196,12 +215,15 @@ export class WorkerSession {
         startedAtMs: this.performanceOptions.now(),
         requestPayloadBytes,
         queuedRequestsBehindAtDispatch: this.queue.length,
+        senderPostMessageCallMs: null,
       };
     }
 
     try {
       this.port.post(outbound);
+      this.finishSenderPostMeasurement();
     } catch (error) {
+      this.finishSenderPostMeasurement();
       this.recordPerformance(null, "transport-error");
       this.fail(error instanceof Error ? error.message : String(error), pendingCommandId);
     }
@@ -246,8 +268,7 @@ export class WorkerSession {
         this.fail("Expected worker ready response after initialization", responseCommandId(response));
         return;
       }
-      this.recordPerformance(response, "success");
-      this.complete(response.snapshot);
+      this.acceptSuccessfulSnapshot(response, response.snapshot);
       return;
     }
 
@@ -269,13 +290,63 @@ export class WorkerSession {
       return;
     }
 
-    this.recordPerformance(response, "success");
-    this.complete(response.snapshot);
+    this.acceptSuccessfulSnapshot(response, response.snapshot);
+  }
+
+  private finishSenderPostMeasurement(): void {
+    const options = this.performanceOptions;
+    const measurement = this.activePerformance;
+    if (
+      options === null ||
+      measurement === null ||
+      measurement.senderPostMessageCallMs !== null
+    ) {
+      return;
+    }
+    this.activePerformance = {
+      ...measurement,
+      senderPostMessageCallMs: Math.max(0, options.now() - measurement.startedAtMs),
+    };
+  }
+
+  private prepareSnapshot(snapshot: SimulationSnapshot): PreparedSnapshot {
+    const options = this.performanceOptions;
+    const measurement = this.activePerformance;
+    if (options === null || measurement === null) {
+      return { snapshot: structuredClone(snapshot), cloneDurationMs: null };
+    }
+
+    const startedAtMs = options.now();
+    const cloned = structuredClone(snapshot);
+    return {
+      snapshot: cloned,
+      cloneDurationMs: Math.max(0, options.now() - startedAtMs),
+    };
+  }
+
+  private acceptSuccessfulSnapshot(
+    response: InstrumentedWorkerResponse,
+    snapshot: SimulationSnapshot,
+  ): void {
+    const completedAtMs =
+      this.performanceOptions !== null && this.activePerformance !== null
+        ? this.performanceOptions.now()
+        : null;
+    const prepared = this.prepareSnapshot(snapshot);
+    this.recordPerformance(response, "success", {
+      completedAtMs,
+      mainThreadSnapshotCloneMs: prepared.cloneDurationMs,
+    });
+    this.complete(prepared.snapshot);
   }
 
   private recordPerformance(
     response: InstrumentedWorkerResponse | null,
     outcome: WorkerPerformanceOutcome,
+    timing?: {
+      readonly completedAtMs: number | null;
+      readonly mainThreadSnapshotCloneMs: number | null;
+    },
   ): void {
     const active = this.active;
     const measurement = this.activePerformance;
@@ -283,7 +354,7 @@ export class WorkerSession {
     if (active === null || measurement === null || options === null) return;
 
     this.activePerformance = null;
-    const completedAtMs = options.now();
+    const completedAtMs = timing?.completedAtMs ?? options.now();
     const roundTripMs = Math.max(0, completedAtMs - measurement.startedAtMs);
     const workerExecutionMs =
       response?.performanceDiagnostics?.version ===
@@ -300,7 +371,7 @@ export class WorkerSession {
         ? response.snapshot.events.length
         : null;
     const sample: WorkerSessionPerformanceSample = {
-      version: 1,
+      version: WORKER_SESSION_PERFORMANCE_SAMPLE_VERSION,
       completedAtMs,
       requestType: active.type,
       commandType: command?.type ?? null,
@@ -313,6 +384,8 @@ export class WorkerSession {
         response === null
           ? null
           : estimateStructuredClonePayloadBytes(response),
+      senderPostMessageCallMs: measurement.senderPostMessageCallMs,
+      mainThreadSnapshotCloneMs: timing?.mainThreadSnapshotCloneMs ?? null,
       roundTripMs,
       workerExecutionMs,
       workerExecutionMsPerTick:
@@ -337,9 +410,8 @@ export class WorkerSession {
     }
   }
 
-  private complete(snapshot: SimulationSnapshot): void {
+  private complete(latestSnapshot: SimulationSnapshot): void {
     this.active = null;
-    const latestSnapshot = structuredClone(snapshot);
 
     if (this.queue.length === 0) {
       this.publish({

@@ -25,10 +25,23 @@ describe("App authoritative runtime boundary", () => {
       "Authoritative simulation is not connected. Intervention tools remain unavailable.",
     );
     expect(html).not.toContain("Controls are shell-only in this checkpoint");
+    expect(html).not.toContain('id="petra-presenter-trigger"');
+    expect(html).not.toContain('id="petra-presenter-mode"');
     expect(html).toContain('aria-keyshortcuts="Space"');
     expect(html).toContain('aria-keyshortcuts="1"');
     expect(html).toContain('aria-keyshortcuts="2"');
     expect(html).toContain('aria-keyshortcuts="3"');
+  });
+
+  it("keeps Presenter Mode behind an authoritative runtime identity", () => {
+    expect(appSource).toContain(
+      "presenterProjection.runIdentityKey === null ? null",
+    );
+    expect(appSource).toContain('id={PRESENTER_TRIGGER_ID}');
+    expect(appSource).toContain("<PresenterGuide");
+    expect(appSource).toContain(
+      "applyPresenterUserEvent(\n                  current,\n                  presenterProjection,",
+    );
   });
 
   it("checks runtime availability before dispatching global shortcuts", () => {

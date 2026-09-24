@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   CounterfactualForkController,
+  CounterfactualForkProvenanceError,
   replayCounterfactualFork,
   validateCounterfactualForkReplayBundle,
 } from '../../src/sim/counterfactual'
 import { SimulationEngine } from '../../src/sim/engine'
 import { createRunIdentity } from '../../src/sim/protocol'
+import { simulationSnapshotTraceHash } from '../../src/sim/snapshotTrace'
 
 const identity = createRunIdentity({
   scenarioId: 'synthetic-counterfactual-fixture',
@@ -76,6 +78,8 @@ describe('counterfactual fork authority', () => {
     })
 
     const bundle = fork.exportReplayBundle()
+    expect(bundle.schemaVersion).toBe(2)
+    expect(bundle.origin.parentEvents).toEqual(createParentSnapshot().events)
     validateCounterfactualForkReplayBundle(bundle)
 
     expect(replayCounterfactualFork(bundle)).toEqual(fork.snapshot())
@@ -95,6 +99,7 @@ describe('counterfactual fork authority', () => {
     parentSnapshot.checkpoint.syntheticPopulation = 999_999
     const bundle = fork.exportReplayBundle()
     bundle.origin.checkpoint.syntheticPopulation = 888_888
+    ;(bundle.origin.parentEvents[0] as { type: string }).type = 'mutated'
     ;(bundle.branches.left.commands[0] as { id: string }).id = 'mutated'
     const returned = fork.snapshot()
     returned.origin.checkpoint.syntheticPopulation = 777_777
@@ -104,6 +109,7 @@ describe('counterfactual fork authority', () => {
     expect(fresh.origin.checkpoint.syntheticPopulation).not.toBe(888_888)
     expect(fresh.origin.checkpoint.syntheticPopulation).not.toBe(777_777)
     expect(fresh.branches.left.commands[0]?.id).toBe('left-advance')
+    expect(fresh.origin.parentEvents[0]?.type).toBe('initialized')
   })
 
   it('rejects ambiguous branch identity, duplicate command IDs, and runtime restore/snapshot commands', () => {
@@ -144,6 +150,12 @@ describe('counterfactual fork authority', () => {
     ;(
       bundle.origin.checkpoint.identity as unknown as { engineVersion: string }
     ).engineVersion = 'petra-ts-core/0.0.9'
+    ;(
+      bundle.origin as unknown as { checkpointTraceHash: string }
+    ).checkpointTraceHash = simulationSnapshotTraceHash({
+      checkpoint: bundle.origin.checkpoint,
+      events: bundle.origin.parentEvents,
+    })
 
     expect(() => validateCounterfactualForkReplayBundle(bundle)).toThrow(
       /engine version .* is unsupported.*No migration is registered/i,
@@ -153,9 +165,52 @@ describe('counterfactual fork authority', () => {
     )
   })
 
+  it('rejects a forged parent trace before constructing branch authority', () => {
+    const first = createParentSnapshot()
+    const otherEngine = new SimulationEngine(identity)
+    otherEngine.execute({ id: 'different', type: 'synthetic-pulse', magnitude: 5 })
+    const second = otherEngine.snapshot()
+
+    first.traceHash = second.traceHash
+
+    expect(
+      () =>
+        new CounterfactualForkController({
+          sourceRunId: 'run-parent-forged',
+          parentSnapshot: first,
+          left: { branchId: 'left', label: 'Left' },
+          right: { branchId: 'right', label: 'Right' },
+        }),
+    ).toThrowError(
+      expect.objectContaining<Partial<CounterfactualForkProvenanceError>>({
+        code: 'counterfactual-parent-trace-mismatch',
+      }),
+    )
+  })
+
+  it('rejects replay bundles whose bundled parent events no longer verify the claimed trace', () => {
+    const bundle = createFork().exportReplayBundle()
+    ;(bundle.origin.parentEvents[0] as { type: string }).type = 'forged-event'
+
+    expect(() => validateCounterfactualForkReplayBundle(bundle)).toThrowError(
+      expect.objectContaining<Partial<CounterfactualForkProvenanceError>>({
+        code: 'counterfactual-parent-trace-mismatch',
+      }),
+    )
+    expect(() => replayCounterfactualFork(bundle)).toThrowError(
+      expect.objectContaining<Partial<CounterfactualForkProvenanceError>>({
+        code: 'counterfactual-parent-trace-mismatch',
+      }),
+    )
+  })
+
   it('refuses checkpoint payloads that cannot round-trip canonically through the engine', () => {
     const parentSnapshot = createParentSnapshot()
     parentSnapshot.checkpoint.simulationTimeHours += 1
+    parentSnapshot.traceHash = simulationSnapshotTraceHash({
+      checkpoint: parentSnapshot.checkpoint,
+      events: parentSnapshot.events,
+    })
 
     expect(
       () =>

@@ -14,6 +14,7 @@ Own React/browser orchestration around Petra's authoritative worker and presenta
 - `DishViewport.tsx` may choose/display source-provided render overlays and units, but it must not derive scientific units or fabricate authoritative snapshots. Until #42/#37 supplies a valid `DishRenderSnapshot`, the renderer demo fixture must remain visibly labelled visual-only.
 - Dish camera controls are presentation-only. The visible overview/reset action sends a declarative reset request into the renderer rather than storing Pixi objects in app state.
 - Escape inside the dish may reset camera overview only after active-tool, default-prevented, and editable-control paths have had first refusal; it must not override intervention cancellation or synthesize worker commands.
+- `flagshipProvenance.ts` is presentation-only: it may attach labels/value text to the versioned flagship scenario, but scenario identity, evidence classes, citation keys, transfer notes, limitations, and assumptions must come from authoritative scenario records. The Sources drawer must visibly distinguish this curated flagship evidence set from the current runtime's active scenario until #37 supplies authoritative scenario identity.
 
 ## Runtime rules
 - Do not emit the next queued request until the active request receives its expected authoritative response.

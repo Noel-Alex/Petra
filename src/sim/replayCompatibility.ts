@@ -247,7 +247,7 @@ function parseSerializedRunIdentity(value: unknown): SerializedRunIdentity | nul
 
 function stableStringify(value: unknown): string {
   if (value === null || typeof value !== 'object') {
-    return JSON.stringify(value)
+    return JSON.stringify(value) ?? 'undefined'
   }
   if (Array.isArray(value)) {
     return `[${value.map(stableStringify).join(',')}]`

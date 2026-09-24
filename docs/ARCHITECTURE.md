@@ -94,7 +94,7 @@ The end-to-end flagship update loop is still being composed under #37. Treat the
 
 `src/sim/ecology/**` reports `divisionBiomass` as **continuous aggregate biomass flux**. It is not an integer birth/division count.
 
-`src/sim/evolution/sampleDivisionMutations(divisions, ...)` consumes a **non-negative safe-integer count of reviewed discrete division/event opportunities**.
+`src/sim/evolution/sampleDivisionMutations(divisions, ..., policy)` consumes a **non-negative safe-integer count of reviewed discrete division/event opportunities** and requires an explicit versioned numerical sampling policy before the exact O(divisions) reference loop can run.
 
 Therefore:
 
@@ -102,7 +102,7 @@ Therefore:
 - do not invent a convenience biomass→birth conversion inside composition code;
 - the reviewed continuous-biomass → discrete-event bridge remains owned by #5/#37;
 - antibiotic concentration does not directly instruct mutation probability in the current model;
-- any accelerated mutation sampler must be statistically validated against the exact bounded reference path.
+- the landed policy-aware accelerator must remain statistically validated against the exact bounded reference path; switching exact budgets or accelerator version is replay-critical numerical configuration, not a biological retuning.
 
 See `src/sim/ecology/AGENTS.md` and `src/sim/evolution/AGENTS.md` for the binding local contracts.
 
@@ -126,6 +126,8 @@ Changing numerical operator order, stochastic draw order, or checkpoint semantic
 ## Performance rules
 
 - keep heavy simulation off the main UI thread;
+- stochastic count loops must be planned through the versioned sampling execution policy; safe-integer input alone never authorizes billions of exact Bernoulli/categorical trials;
+- sampler policy identity must enter authoritative configuration/checkpoint identity before mutation or phage accelerated sampling is wired into the composed runtime;
 - avoid unnecessary allocation in hot numerical loops;
 - reuse field/scratch buffers where practical;
 - transfer or downsample render state when measurements show copy cost matters;

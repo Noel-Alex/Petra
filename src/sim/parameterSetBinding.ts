@@ -130,3 +130,17 @@ export function assertComposedParameterSetBinding(
     )
   }
 }
+
+export function sameComposedParameterSetBinding(
+  left: ComposedParameterSetBinding | undefined,
+  right: ComposedParameterSetBinding | undefined,
+): boolean {
+  if (left === undefined || right === undefined) return left === right
+  return (
+    left.schemaVersion === right.schemaVersion &&
+    left.authority === right.authority &&
+    left.parameterSetId === right.parameterSetId &&
+    left.parameterSetVersion === right.parameterSetVersion &&
+    left.configurationFingerprint === right.configurationFingerprint
+  )
+}

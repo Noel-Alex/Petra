@@ -32,7 +32,7 @@ export type AnalysisSurfaceView =
   | {
       readonly status: "available";
       readonly identity: AuthoritativeAnalysisIdentity;
-      readonly chart: ScientificChartProjection;
+      readonly charts: readonly ScientificChartProjection[];
       readonly lineageTree: LineageTreeLayout;
     };
 
@@ -69,12 +69,31 @@ export function projectAuthoritativeAnalysis(
   return {
     status: "available",
     identity: records.identity,
-    chart: buildScientificChart(records.series, {
+    charts: buildScientificChartsByUnit(records.series),
+    lineageTree: buildLineageTree(records.lineages),
+  };
+}
+
+function buildScientificChartsByUnit(
+  series: readonly ScientificSeriesInput[],
+): readonly ScientificChartProjection[] {
+  const grouped = new Map<string, ScientificSeriesInput[]>();
+
+  for (const item of series) {
+    const existing = grouped.get(item.unit);
+    if (existing === undefined) {
+      grouped.set(item.unit, [item]);
+    } else {
+      existing.push(item);
+    }
+  }
+
+  return Array.from(grouped.values(), (unitSeries) =>
+    buildScientificChart(unitSeries, {
       maxPointsPerSeries: ANALYSIS_MAX_POINTS_PER_SERIES,
       zeroBaseline: true,
     }),
-    lineageTree: buildLineageTree(records.lineages),
-  };
+  );
 }
 
 function validateIdentity(identity: AuthoritativeAnalysisIdentity): void {

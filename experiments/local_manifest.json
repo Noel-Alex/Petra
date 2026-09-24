@@ -80,16 +80,16 @@
     },
     {
       "id": "ecology-calibration-sweep",
-      "description": "BLOCKED on #494: engineering-profile ecology target/sensitivity sweep.",
+      "description": "BLOCKED on #3: engineering-profile ecology target/sensitivity sweep.",
       "command": [
         "python",
         "experiments/blocked.py",
         "--experiment-id",
         "ecology-calibration-sweep",
         "--blocked-on",
-        "494",
+        "3",
         "--reason",
-        "Issue #494 must establish the executable engineering-profile calibration contract before this sweep can produce interpretable evidence."
+        "Issue #494 has landed the engineering execution profile; issue #3 must still land the executable flagship ecology path needed for an integrated calibration sweep."
       ],
       "issues": [
         3,
@@ -120,18 +120,16 @@
     },
     {
       "id": "phage-mechanism-statistics",
-      "description": "BLOCKED on #491 and #283: adsorption/infection/lysis statistical controls after Phase 10 integration.",
+      "description": "BLOCKED on #283: adsorption/infection/lysis statistical controls after Phase 10 integration.",
       "command": [
         "python",
         "experiments/blocked.py",
         "--experiment-id",
         "phage-mechanism-statistics",
         "--blocked-on",
-        "491",
-        "--blocked-on",
         "283",
         "--reason",
-        "Issues #491 and #283 must land executable Phase 10 phage integration and discrete burst/lysis bookkeeping before statistical controls are meaningful."
+        "Issue #491 has landed the infection multiplicity policy; issue #283 must still land discrete burst/lysis bookkeeping before statistical controls are meaningful."
       ],
       "issues": [
         12,

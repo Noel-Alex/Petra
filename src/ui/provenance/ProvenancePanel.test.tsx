@@ -92,6 +92,29 @@ describe("provenance panel", () => {
     expect(markup).toContain("No provenance records are available");
   });
 
+  it("renders accessible discovery controls with incomplete-record safety disclosure", () => {
+    const record = resolveScenarioProvenance({
+      id: "missing",
+      label: "Unclassified parameter",
+      record: {},
+      scenario: {},
+    });
+
+    const markup = renderToStaticMarkup(
+      <ProvenancePanel records={[record]} />,
+    );
+
+    expect(markup).toContain('role="search"');
+    expect(markup).toContain('type="search"');
+    expect(markup).toContain("Search provenance");
+    expect(markup).toContain("Evidence type");
+    expect(markup).toContain("All evidence");
+    expect(markup).toContain(
+      "Needs-provenance records always remain visible",
+    );
+    expect(markup).toContain("1 of 1 records shown");
+  });
+
   it("renders transferred mechanistic meaning as two distinct patterned badges", () => {
     const record = resolveScenarioProvenance({
       id: "drug-policy",

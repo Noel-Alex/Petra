@@ -22,7 +22,7 @@ This directory owns **presentation motion policy only**. It may decide how an al
 
 ## Panels and overlays
 
-Panel/overlay reveal/hide uses `MOTION.panel` only in full motion. Reduced/off motion settles immediately so UI chrome does not compete with the dish or create unnecessary movement.
+Panel/overlay reveal/hide uses `MOTION.panel` only in full motion. Reduced/off motion settles immediately so UI chrome does not compete with the dish or create unnecessary movement. `surfaceCss.ts` may project a surface plan into CSS syntax, but it must not choose a competing duration, easing, treatment, or lifecycle policy.
 
 ## Verification
 

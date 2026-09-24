@@ -32,10 +32,11 @@ export function App() {
     MotionPreference | undefined
   >();
 
-  const motionPreference = resolveMotionPreference({
-    explicit: motionOverride,
-    prefersReducedMotion: systemReduced,
-  });
+  const motionPreference = resolveMotionPreference(
+    motionOverride === undefined
+      ? { prefersReducedMotion: systemReduced }
+      : { explicit: motionOverride, prefersReducedMotion: systemReduced },
+  );
 
   const panelMotion = useMemo(
     () =>

@@ -47,7 +47,7 @@ export function buildFlagshipProvenanceView(
       scenario: context,
       valueText: `MIC ${genotype.mic_mg_L} mg/L · relative fitness ${genotype.relativeFitness}`,
       units: "MIC: mg/L; relative fitness: dimensionless",
-      uncertainty: formatGenotypeMeasurementUncertainty(
+      sourceUncertainty: buildGenotypeMeasurementUncertainty(
         genotype.measurementUncertainty,
       ),
     }),
@@ -131,16 +131,31 @@ export function buildFlagshipProvenanceView(
   };
 }
 
-function formatGenotypeMeasurementUncertainty(
+function buildGenotypeMeasurementUncertainty(
   uncertainty: FlagshipScenario["genotypes"][number]["measurementUncertainty"],
-): string {
+) {
   const micSteps = uncertainty.mic.plusMinusSteps;
   const experiments =
     uncertainty.relativeFitness.independentCompetitionExperiments;
 
-  return `MIC measurement margin ±${micSteps} half-doubling step${
-    micSteps === 1 ? "" : "s"
-  }; relative-fitness SD ${uncertainty.relativeFitness.standardDeviation} across ${experiments} independent competition experiment${
-    experiments === 1 ? "" : "s"
-  }.`;
+  return [
+    {
+      kind: "reported-margin" as const,
+      scope: "measurement" as const,
+      quantityLabel: "Ciprofloxacin MIC",
+      plusMinus: micSteps,
+      unit: micSteps === 1 ? "half-doubling step" : "half-doubling steps",
+    },
+    {
+      kind: "standard-deviation" as const,
+      scope: "measurement" as const,
+      quantityLabel: "Relative fitness",
+      value: uncertainty.relativeFitness.standardDeviation,
+      unit: "dimensionless",
+      supportingText:
+        String(experiments) +
+        " independent competition experiment" +
+        (experiments === 1 ? "" : "s"),
+    },
+  ];
 }

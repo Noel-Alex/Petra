@@ -5,9 +5,18 @@ import type { LineageRegistryCheckpoint } from './lineage'
 
 export const LINEAGE_ANALYSIS_SCHEMA_VERSION = 1 as const
 
+export interface CiprofloxacinGenotypeAnalysisEvidence {
+  readonly micMgPerL: number
+  readonly responseShift: {
+    readonly referenceGenotypeId: string
+    readonly micRatio: number
+  } | null
+}
+
 export interface GenotypeAnalysisEvidence {
   readonly genotypeId: string
   readonly label: string
+  readonly ciprofloxacin?: CiprofloxacinGenotypeAnalysisEvidence
   readonly sourceKeys: readonly string[]
   readonly assumptionKeys: readonly string[]
 }
@@ -24,6 +33,7 @@ export interface AuthoritativeLineageAnalysisRecord {
   readonly status: 'extant' | 'extinct'
   readonly abundanceModelBiomass: number
   readonly relativeFitness: number
+  readonly ciprofloxacin?: CiprofloxacinGenotypeAnalysisEvidence | null
   readonly sourceKeys: readonly string[]
   readonly assumptionKeys: readonly string[]
 }
@@ -102,9 +112,39 @@ export function projectAuthoritativeLineageAnalysis(args: {
         return key
       })
     }
+    let ciprofloxacin: CiprofloxacinGenotypeAnalysisEvidence | undefined
+    if (evidence.ciprofloxacin !== undefined) {
+      const phenotype = evidence.ciprofloxacin
+      if (!Number.isFinite(phenotype.micMgPerL) || phenotype.micMgPerL <= 0) {
+        throw new Error(`genotype evidence ${evidence.genotypeId} ciprofloxacin MIC must be finite and positive`)
+      }
+      if (phenotype.responseShift !== null) {
+        canonicalText(
+          `genotype evidence ${evidence.genotypeId} response reference genotype`,
+          phenotype.responseShift.referenceGenotypeId,
+        )
+        if (
+          !Number.isFinite(phenotype.responseShift.micRatio) ||
+          phenotype.responseShift.micRatio <= 0
+        ) {
+          throw new Error(
+            `genotype evidence ${evidence.genotypeId} response MIC ratio must be finite and positive`,
+          )
+        }
+      }
+      ciprofloxacin = {
+        micMgPerL: phenotype.micMgPerL,
+        responseShift:
+          phenotype.responseShift === null
+            ? null
+            : { ...phenotype.responseShift },
+      }
+    }
+
     evidenceByGenotype.set(evidence.genotypeId, {
       genotypeId: evidence.genotypeId,
       label: evidence.label,
+      ciprofloxacin,
       sourceKeys: validateKeys(
         `genotype evidence ${evidence.genotypeId} sourceKeys`,
         evidence.sourceKeys,
@@ -206,6 +246,16 @@ export function projectAuthoritativeLineageAnalysis(args: {
         evolutionGraph,
         record.genotypeId,
       ),
+      ciprofloxacin:
+        evidence.ciprofloxacin === undefined
+          ? null
+          : {
+              micMgPerL: evidence.ciprofloxacin.micMgPerL,
+              responseShift:
+                evidence.ciprofloxacin.responseShift === null
+                  ? null
+                  : { ...evidence.ciprofloxacin.responseShift },
+            },
       sourceKeys: [...evidence.sourceKeys],
       assumptionKeys: [...evidence.assumptionKeys],
     }) satisfies AuthoritativeLineageAnalysisRecord

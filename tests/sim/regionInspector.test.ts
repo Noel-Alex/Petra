@@ -54,6 +54,9 @@ describe('authoritative region inspector', () => {
       radius: 0.4,
     })
 
+    if (inspection.kind !== 'measured') {
+      throw new Error('expected a measured authoritative region inspection')
+    }
     expect(inspection.selectedCellCount).toBe(3)
     expect(inspection.totalResource).toBe(6)
     expect(inspection.totalBiomass).toBe(21)
@@ -81,9 +84,60 @@ describe('authoritative region inspector', () => {
       centerY: 0.5,
       radius: 1,
     })
+    if (inspection.kind !== 'measured') {
+      throw new Error('expected a measured whole-grid inspection')
+    }
     expect(inspection.selectedCellCount).toBe(5)
     expect(inspection.totalResource).toBe(16)
     expect(inspection.totalBiomass).toBe(35)
+  })
+
+  it('returns an explicit no-grid-coverage outcome instead of measured zeroes', () => {
+    const state = createComposedState(config)
+    const inspection = inspectAuthoritativeRegion(state, {
+      id: 'masked-center',
+      centerX: 0.5,
+      centerY: 0.75,
+      radius: 0.2,
+    })
+
+    expect(inspection).toEqual({
+      kind: 'no-grid-coverage',
+      selectionId: 'masked-center',
+      stateVersion: state.version,
+      configurationFingerprint: state.configurationFingerprint,
+    })
+    expect('selectedCellCount' in inspection).toBe(false)
+    expect('totalBiomass' in inspection).toBe(false)
+    expect('totalResource' in inspection).toBe(false)
+  })
+
+  it('preserves a real measured zero when at least one authoritative grid cell is covered', () => {
+    const state = createComposedState({
+      ...config,
+      initialResource: [0, 2, 3, 4, 0, 6],
+      initialLineageBiomass: [
+        [0, 2, 3, 4, 0, 6],
+        [0, 5, 4, 3, 0, 1],
+      ],
+    })
+    const inspection = inspectAuthoritativeRegion(state, {
+      id: 'covered-zero',
+      centerX: 1 / 6,
+      centerY: 0.25,
+      radius: 0.05,
+    })
+
+    if (inspection.kind !== 'measured') {
+      throw new Error('expected covered zero region to remain a measurement')
+    }
+    expect(inspection.selectedCellCount).toBe(1)
+    expect(inspection.totalResource).toBe(0)
+    expect(inspection.totalBiomass).toBe(0)
+    expect(inspection.lineageBiomass).toEqual([
+      { lineageId: 'ancestor', biomass: 0, fractionOfRegionBiomass: 0 },
+      { lineageId: 'variant', biomass: 0, fractionOfRegionBiomass: 0 },
+    ])
   })
 
   it('rejects invalid selection geometry rather than clamping or inventing it', () => {

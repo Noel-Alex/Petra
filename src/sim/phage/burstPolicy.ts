@@ -1,3 +1,9 @@
+import {
+  cohortLysisAtMinutes,
+  type MaturedLatentInfections,
+} from "./latentQueue";
+import type { PhageLifeHistoryResolution } from "./lifeHistory";
+
 export const PHAGE_BURST_POLICY_SCHEMA_VERSION = 1 as const;
 
 export const DETERMINISTIC_RESIDUAL_BURST_POLICY = Object.freeze({
@@ -35,6 +41,12 @@ export interface PhageLysisBurstResult {
   readonly state: PhageBurstPolicyState;
 }
 
+export interface AuthoritativePhageLysisBurstResult
+  extends PhageLysisBurstResult {
+  readonly sourceEvidenceClass: "measured" | "derived";
+  readonly sourceResolution: "exact" | "interpolated";
+}
+
 /**
  * Canonical replay/configuration identity for the currently supported burst
  * discretization policy.
@@ -61,12 +73,53 @@ export function createPhageBurstPolicyState(
 }
 
 /**
+ * Authority-bound lysis entrypoint for product/runtime composition.
+ *
+ * This accepts only the latent queue's already-matured cohort handoff and an
+ * in-domain reviewed life-history resolution. It refuses inconsistent counts,
+ * duplicate/out-of-order cohorts, or cohorts whose lysis boundary has not
+ * elapsed before delegating to the unchanged numerical residual-carry policy.
+ *
+ * Source evidence classification is retained on the result so downstream
+ * provenance can distinguish measured rows from derived interpolation.
+ */
+export function applyMaturedPhageBurst(
+  policy: PhageBurstPolicy,
+  state: PhageBurstPolicyState,
+  matured: MaturedLatentInfections,
+  lifeHistory: PhageLifeHistoryResolution,
+): AuthoritativePhageLysisBurstResult {
+  validateMaturedLatentInfections(matured);
+
+  if (lifeHistory.status === "out-of-domain") {
+    throw new RangeError(
+      "phage burst requires an in-domain life-history resolution",
+    );
+  }
+
+  const burst = applyDeterministicPhageBurst(policy, state, {
+    infectionCount: matured.infectionCount,
+    meanBurstPfuPerCell: lifeHistory.values.burstSizePfuPerCell,
+  });
+
+  return {
+    ...burst,
+    sourceEvidenceClass: lifeHistory.evidenceClass,
+    sourceResolution: lifeHistory.status,
+  };
+}
+
+/**
  * Convert one matured authoritative infection count into discrete progeny PFU.
  *
  * This deliberately does not sample a per-cell burst distribution: Petra has a
  * source-backed mean/SD for the T4/MG1655 pack, but no reviewed individual-burst
  * law. Instead, the policy treats infectionCount * meanBurstPfuPerCell as an
  * expectation and carries the fractional remainder into the next lysis batch.
+ *
+ * This is the low-level numerical primitive. Product/runtime composition should
+ * prefer applyMaturedPhageBurst so the mean comes from reviewed life-history
+ * authority and the infection count comes from a validated matured queue handoff.
  *
  * The caller remains responsible for atomically decrementing infected-host
  * state exactly once. This pure contract reports lysedInfections separately
@@ -167,6 +220,63 @@ export function validatePhageBurstPolicyState(
   validateResidual(state.residualExpectedPfu);
 }
 
+function validateMaturedLatentInfections(
+  matured: MaturedLatentInfections,
+): void {
+  finiteNonNegative("matured.throughMinutes", matured.throughMinutes);
+  nonNegativeSafeInteger("matured.infectionCount", matured.infectionCount);
+
+  let infectionCount = 0;
+  let previousLysisAtMinutes = -Infinity;
+  let previousSequence = -Infinity;
+  const sequences = new Set<number>();
+
+  for (const cohort of matured.cohorts) {
+    nonNegativeSafeInteger("matured cohort sequence", cohort.sequence);
+    positiveSafeInteger(
+      "matured cohort infectionCount",
+      cohort.infectionCount,
+    );
+
+    if (sequences.has(cohort.sequence)) {
+      throw new RangeError("matured latent cohort sequences must be unique");
+    }
+    sequences.add(cohort.sequence);
+
+    const lysisAtMinutes = cohortLysisAtMinutes(cohort);
+    if (lysisAtMinutes > matured.throughMinutes) {
+      throw new RangeError(
+        "matured latent cohort cannot be reported before its lysis boundary",
+      );
+    }
+    if (
+      lysisAtMinutes < previousLysisAtMinutes ||
+      (lysisAtMinutes === previousLysisAtMinutes &&
+        cohort.sequence < previousSequence)
+    ) {
+      throw new RangeError(
+        "matured latent cohorts must remain in deterministic maturity order",
+      );
+    }
+
+    infectionCount += cohort.infectionCount;
+    if (!Number.isSafeInteger(infectionCount)) {
+      throw new RangeError(
+        "matured latent infection count exceeds safe integer range",
+      );
+    }
+
+    previousLysisAtMinutes = lysisAtMinutes;
+    previousSequence = cohort.sequence;
+  }
+
+  if (infectionCount !== matured.infectionCount) {
+    throw new RangeError(
+      "matured latent infection count must equal the cohort count sum",
+    );
+  }
+}
+
 function validatePhageBurstPolicy(policy: PhageBurstPolicy): void {
   if (
     policy.schemaVersion !== PHAGE_BURST_POLICY_SCHEMA_VERSION ||
@@ -187,9 +297,21 @@ function validateResidual(value: number): void {
   }
 }
 
+function finiteNonNegative(name: string, value: number): void {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new RangeError(`${name} must be finite and non-negative`);
+  }
+}
+
 function nonNegativeSafeInteger(name: string, value: number): void {
   if (!Number.isSafeInteger(value) || value < 0) {
     throw new RangeError(`${name} must be a non-negative safe integer`);
+  }
+}
+
+function positiveSafeInteger(name: string, value: number): void {
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new RangeError(`${name} must be a positive safe integer`);
   }
 }
 

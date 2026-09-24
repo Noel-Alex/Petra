@@ -48,6 +48,6 @@ Pure render-model helpers get deterministic unit tests. Browser/GPU/FPS claims r
 - Field overlays are rendered only from source-provided fields and retain source label/unit metadata in the surrounding UI; renderer code must not synthesize scientific units.
 - Lineage identity uses both color and pattern/ring cues. Density marks and representative glyphs remain visual proxies.
 - Demo snapshots must be explicitly tagged as visual-only and dimensionless; they are never evidence, calibration, or a scientific preset.
-- Full motion may interpolate camera/presentation changes. Reduced/off motion resolves to immediate/static presentation while preserving all scientific state.
+- Full motion may interpolate camera/presentation changes. Camera interpolation must be elapsed-time based and consume the shared Petra navigational motion token supplied by the app adapter; do not use frame-count-dependent blend constants. Reduced/off motion resolves to immediate/static presentation while preserving all scientific state.
 - Keep the adapter compatible with mock snapshots so visual work can proceed independently of worker integration. Authoritative browser wiring belongs to the runtime integration issue, not this subtree.
 

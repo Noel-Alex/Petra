@@ -3,6 +3,8 @@ import type { DishRenderSnapshot } from "../render/model";
 import { PixiDish } from "../render/pixi/PixiDish";
 import { createRendererDemoSnapshot } from "../render/pixi/demoSnapshot";
 import type { RendererMotionMode } from "../render/pixi/renderer";
+import { resolveMotion } from "../ui/motion/policy";
+import { MOTION } from "../ui/motion/tokens";
 import {
   defaultDishOverlayId,
   resolveDishOverlay,
@@ -28,6 +30,10 @@ export function DishViewport({
   );
   const resolvedOverlayId = activeOverlay?.id ?? null;
   const usingDemo = snapshot === null || snapshot === undefined;
+  const cameraTreatment = resolveMotion("full", {
+    kind: "navigational",
+    durationMs: MOTION.cameraFocus.durationMs,
+  });
 
   return (
     <div
@@ -38,6 +44,10 @@ export function DishViewport({
         <PixiDish
           snapshot={snapshot}
           motion={motion}
+          cameraMotion={{
+            durationMs: cameraTreatment.durationMs,
+            easing: MOTION.cameraFocus.easing,
+          }}
           overlayId={resolvedOverlayId}
           className="dish-renderer-canvas"
           ariaLabel={

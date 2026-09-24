@@ -9,18 +9,20 @@ import {
 
 const requirements: SurrogatePromotionRequirements = {
   splitPolicyVersion: "trajectory-group-v1",
+  splitCoveragePolicyVersion: "held-out-group-coverage-v1",
   heldOutSplit: "test",
   targetIds: ["population", "resistantFraction"],
 };
 
 const goodEvidence: SurrogateBenchmarkEvidence = {
-  schemaVersion: "surrogate-benchmark-evidence-v1",
+  schemaVersion: "surrogate-benchmark-evidence-v2",
   modelId: "aggregate-surrogate",
   modelVersion: "1",
   baselineId: "mean-by-scenario-v1",
   datasetVersion: "mechanistic-v1",
   engineVersion: "engine-a",
   splitPolicyVersion: "trajectory-group-v1",
+  splitCoveragePolicyVersion: "held-out-group-coverage-v1",
   heldOutSplit: "test",
   candidate: {
     population: { mae: 1, rmse: 1.2, count: 2 },
@@ -121,6 +123,25 @@ describe("surrogate held-out benchmarks", () => {
       "engine-version-mismatch",
       "baseline-not-beaten",
     ]);
+  });
+
+  it("rejects benchmark evidence from a different split coverage policy", () => {
+    const assessment = assessSurrogatePromotion({
+      evidence: {
+        ...goodEvidence,
+        splitCoveragePolicyVersion: "held-out-group-coverage-v0",
+      },
+      requirements,
+      expectedModelId: "aggregate-surrogate",
+      expectedModelVersion: "1",
+      expectedDatasetVersion: "mechanistic-v1",
+      expectedEngineVersion: "engine-a",
+    });
+
+    expect(assessment.eligible).toBe(false);
+    expect(assessment.issues.map((issue) => issue.kind)).toContain(
+      "split-coverage-policy-mismatch",
+    );
   });
 
   it("rejects target coverage and evaluation-count mismatches", () => {

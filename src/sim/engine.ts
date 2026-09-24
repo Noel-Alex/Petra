@@ -1,4 +1,8 @@
 import { SimulationRng } from './rng'
+import {
+  simulationSnapshotTraceHash,
+  stableReplayStringify,
+} from './snapshotTrace'
 import type {
   RunIdentity,
   SimulationCheckpoint,
@@ -8,27 +12,6 @@ import type {
 } from './protocol'
 
 const HOURS_PER_TICK = 1 / 60
-
-function stableStringify(value: unknown): string {
-  if (value === null || typeof value !== 'object') return JSON.stringify(value)
-  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`
-  const object = value as Record<string, unknown>
-  return `{${Object.keys(object)
-    .sort()
-    .map((key) => `${JSON.stringify(key)}:${stableStringify(object[key])}`)
-    .join(',')}}`
-}
-
-/** FNV-1a 32-bit trace checksum: a regression identity, not a security hash. */
-function traceHash(value: unknown): string {
-  const text = stableStringify(value)
-  let hash = 0x811c9dc5
-  for (let index = 0; index < text.length; index += 1) {
-    hash ^= text.charCodeAt(index)
-    hash = Math.imul(hash, 0x01000193) >>> 0
-  }
-  return hash.toString(16).padStart(8, '0')
-}
 
 function nextSafeNonNegativeInteger(
   name: string,
@@ -161,7 +144,11 @@ export class SimulationEngine {
       commandCount: this.commandCount,
     }
     const events = this.events.map((event) => ({ ...event }))
-    return { checkpoint, events, traceHash: traceHash({ checkpoint, events }) }
+    return {
+      checkpoint,
+      events,
+      traceHash: simulationSnapshotTraceHash({ checkpoint, events }),
+    }
   }
 
   private currentSimulationTimeHours(): number {
@@ -180,7 +167,10 @@ export class SimulationEngine {
   }
 
   private restore(checkpoint: SimulationCheckpoint): void {
-    if (stableStringify(checkpoint.identity) !== stableStringify(this.identity)) {
+    if (
+      stableReplayStringify(checkpoint.identity) !==
+      stableReplayStringify(this.identity)
+    ) {
       throw new Error('Cannot restore a checkpoint from a different run identity')
     }
 

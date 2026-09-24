@@ -111,3 +111,11 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - The caller stores the returned sequence + event-id cursor per run identity so React re-renders do not re-announce accepted events. A run/branch identity change must reset that cursor explicitly.
 - Spoken narration is independent of full/reduced/off motion and of animation stagger/wall time.
 - `CausalAnnouncementRegion.tsx` is a stable `role=status`, polite, atomic adapter. Keep it mounted; update its planned text rather than creating/removing many live regions.
+
+
+## Authoritative region inspector presentation
+- `regionInspectorState.ts` owns the framework-neutral presentation lifecycle for authoritative local-region queries; React/Pixi adapters must not invent a parallel stale/pending model.
+- A changed selection immediately invalidates the semantic ownership of the previous readout. Old values may remain visible only in an explicit `stale`/error-with-stale-readout state that carries the old readout's selection identity separately from the newly requested selection.
+- Async results/errors for superseded selection IDs are ignored rather than overwriting current scientific UI state.
+- `ready` values must come from the authoritative simulation region projection. Renderer density, glyphs, interpolation, camera state, and demo fixtures are never acceptable substitutes.
+- Until runtime #37/#42 supplies exact run/tick/simulation-time identity, this state machine preserves selection + composed-state identity only; adapters must not fabricate a biological timestamp.

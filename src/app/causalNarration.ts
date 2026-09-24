@@ -6,6 +6,7 @@ import {
   type CausalAnnouncementPlan,
 } from "../ui/motion/announcements";
 import type { CausalEventBurstItem } from "../ui/motion/scheduler";
+import { runIdentityKey } from "./runIdentityKey";
 
 export interface AuthoritativeCausalEventStream {
   /** Exact active simulation run identity supplied by runtime authority. */
@@ -98,15 +99,7 @@ export function advanceCausalNarrationSession(
 }
 
 export function causalRunIdentityKey(identity: RunIdentity): string {
-  return JSON.stringify([
-    identity.engineVersion,
-    identity.protocolVersion,
-    identity.scenarioId,
-    identity.scenarioVersion,
-    identity.parameterSetId,
-    identity.parameterSetVersion,
-    identity.seed,
-  ]);
+  return runIdentityKey(identity);
 }
 
 /**

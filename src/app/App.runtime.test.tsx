@@ -29,6 +29,20 @@ describe("App authoritative runtime boundary", () => {
     expect(html).toContain('aria-keyshortcuts="1"');
     expect(html).toContain('aria-keyshortcuts="2"');
     expect(html).toContain('aria-keyshortcuts="3"');
+    expect(html).not.toContain('id="petra-presenter-trigger"');
+    expect(html).not.toContain('id="petra-presenter-mode"');
+  });
+
+  it("wires Presenter Mode through the honest runtime adapter without default authority", () => {
+    expect(appSource).toContain(
+      "projectPresenterRuntime(experiment.state, provenance.scenario)",
+    );
+    expect(appSource).toContain('id={PRESENTER_TRIGGER_ID}');
+    expect(appSource).toContain("<PresenterGuide");
+    expect(appSource).toContain("applyPresenterUserEvent(");
+    expect(appSource).toContain(
+      'event.type === "bind-run" || event.type === "evidence"',
+    );
   });
 
   it("checks runtime availability before dispatching global shortcuts", () => {

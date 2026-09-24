@@ -1,4 +1,4 @@
-import type { RunIdentity, SimulationEvent } from "../sim/protocol";
+import type { SimulationEvent } from "../sim/protocol";
 import {
   initialOnboardingState,
   reduceOnboarding,
@@ -7,6 +7,7 @@ import {
   type ScientificGate,
 } from "../ui/onboarding/story";
 import type { ExperimentRuntimeState } from "./experimentRuntime";
+import { runIdentityKey as serializeRunIdentity } from "./runIdentityKey";
 
 export type OnboardingUserAction = Extract<
   OnboardingEvent,
@@ -140,14 +141,3 @@ export function applyOnboardingUserAction(
   };
 }
 
-function serializeRunIdentity(identity: RunIdentity): string {
-  return JSON.stringify([
-    identity.engineVersion,
-    identity.protocolVersion,
-    identity.scenarioId,
-    identity.scenarioVersion,
-    identity.parameterSetId,
-    identity.parameterSetVersion,
-    identity.seed,
-  ]);
-}

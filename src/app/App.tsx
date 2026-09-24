@@ -12,6 +12,7 @@ import {
 import { resolveDishAmbient } from "../ui/motion/dishAmbient";
 import { planSurfaceTransition } from "../ui/motion/semanticTransitions";
 import { OnboardingGuide } from "../ui/onboarding/OnboardingGuide";
+import { PresenterGuide } from "../ui/demo/PresenterGuide";
 import { ProvenancePanel } from "../ui/provenance/ProvenancePanel";
 import { DishViewport } from "./DishViewport";
 import { CausalNarrationMount } from "./CausalNarrationMount";
@@ -27,6 +28,12 @@ import {
   projectOnboardingRuntime,
   reconcileOnboardingRuntimeSession,
 } from "./onboardingRuntime";
+import {
+  applyPresenterUserEvent,
+  createPresenterRuntimeSession,
+  projectPresenterRuntime,
+  reconcilePresenterRuntimeSession,
+} from "./presenterRuntime";
 import {
   canDispatchAppShortcut,
   planAppKeyboardShortcut,
@@ -80,11 +87,18 @@ export interface AppProps {
 }
 
 const SOURCES_TRIGGER_ID = "petra-sources-trigger";
+const PRESENTER_TRIGGER_ID = "petra-presenter-trigger";
+const PRESENTER_PANEL_ID = "petra-presenter-mode";
 
 
 function focusSourcesTrigger(): void {
   if (typeof document === "undefined") return;
   document.getElementById(SOURCES_TRIGGER_ID)?.focus();
+}
+
+function focusPresenterTrigger(): void {
+  if (typeof document === "undefined") return;
+  document.getElementById(PRESENTER_TRIGGER_ID)?.focus();
 }
 
 export function App({
@@ -122,11 +136,37 @@ export function App({
 
   const provenance = useMemo(() => buildFlagshipProvenanceView(), []);
 
+  const presenterProjection = useMemo(
+    () => projectPresenterRuntime(experiment.state, provenance.scenario),
+    [experiment.state, provenance.scenario],
+  );
+  const [presenterSession, setPresenterSession] = useState(() =>
+    createPresenterRuntimeSession(presenterProjection),
+  );
+  const synchronizedPresenterSession = useMemo(
+    () =>
+      reconcilePresenterRuntimeSession(
+        presenterSession,
+        presenterProjection,
+      ),
+    [presenterProjection, presenterSession],
+  );
+  const [presenterOpen, setPresenterOpen] = useState(false);
+
   useEffect(() => {
     setOnboardingSession((current) =>
       reconcileOnboardingRuntimeSession(current, onboardingProjection),
     );
   }, [onboardingProjection]);
+
+  useEffect(() => {
+    setPresenterSession((current) =>
+      reconcilePresenterRuntimeSession(current, presenterProjection),
+    );
+    if (presenterProjection.runIdentityKey === null) {
+      setPresenterOpen(false);
+    }
+  }, [presenterProjection]);
 
   const motionPreference = resolveMotionSetting({
     setting: motionSetting,
@@ -164,6 +204,11 @@ export function App({
     focusSourcesTrigger();
   };
 
+  const closePresenter = () => {
+    setPresenterOpen(false);
+    focusPresenterTrigger();
+  };
+
   useEffect(() => {
     const delayMs = sourcesExitDelayMs(sourcesLifecycle, hideSourcesPlan);
     if (delayMs === null) return;
@@ -195,6 +240,10 @@ export function App({
   const panelMotion = useMemo(
     () => surfaceMotionCss(activeSourcesPlan),
     [activeSourcesPlan],
+  );
+  const presenterMotion = useMemo(
+    () => surfaceMotionCss(showSourcesPlan),
+    [showSourcesPlan],
   );
 
   return (
@@ -288,6 +337,18 @@ export function App({
           >
             {sourcesLifecycle.requestedOpen ? "Close sources" : "Sources"}
           </PetraCompactAction>
+          {presenterProjection.runIdentityKey === null ? null : (
+            <PetraCompactAction
+              id={PRESENTER_TRIGGER_ID}
+              motionPreference={motionPreference}
+              className="ghost-button"
+              aria-expanded={presenterOpen}
+              aria-controls={PRESENTER_PANEL_ID}
+              onClick={() => setPresenterOpen((open) => !open)}
+            >
+              {presenterOpen ? "Hide presenter" : "Presenter mode"}
+            </PetraCompactAction>
+          )}
         </div>
       </header>
 
@@ -328,6 +389,54 @@ export function App({
             assumptions={provenance.assumptions}
             title="Flagship sources & assumptions"
             motionPreference={motionPreference}
+          />
+        </section>
+      ) : null}
+
+      {presenterOpen &&
+      synchronizedPresenterSession.state.runIdentity !== null ? (
+        <section
+          id={PRESENTER_PANEL_ID}
+          className="presenter-shell"
+          aria-label="Expo presenter mode"
+          data-transition-treatment={presenterMotion.treatment}
+          style={{
+            "--presenter-shell-motion-ms": presenterMotion.duration,
+            "--presenter-shell-easing": presenterMotion.easing,
+          } as CSSProperties}
+        >
+          <div className="presenter-shell__chrome">
+            <div className="presenter-shell__context">
+              <p className="petra-kicker">Presenter</p>
+              <strong>Bound to the current authoritative run.</strong>
+              <span>
+                Only verified evidence gates advance the story. Unsupported
+                science remains visibly blocked.
+              </span>
+            </div>
+            <PetraCompactAction
+              motionPreference={motionPreference}
+              className="ghost-button"
+              onClick={closePresenter}
+            >
+              Close presenter
+            </PetraCompactAction>
+          </div>
+          <PresenterGuide
+            state={synchronizedPresenterSession.state}
+            motionPreference={motionPreference}
+            onEvent={(event) => {
+              if (event.type === "bind-run" || event.type === "evidence") {
+                return;
+              }
+              setPresenterSession((current) =>
+                applyPresenterUserEvent(
+                  current,
+                  presenterProjection,
+                  event,
+                ),
+              );
+            }}
           />
         </section>
       ) : null}

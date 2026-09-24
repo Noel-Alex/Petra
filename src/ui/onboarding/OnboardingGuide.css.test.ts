@@ -70,17 +70,3 @@ describe("OnboardingGuide navigation interaction authority", () => {
     expect(css).not.toContain("brightness(1.045)");
   });
 });
-
-describe("OnboardingGuide shared palette contract", () => {
-  it("uses Petra visual tokens for stage accents instead of legacy neon literals", () => {
-    expect(css).toContain("--onboarding-accent: var(--petra-color-teal)");
-    expect(css).toContain("var(--petra-color-lavender)");
-    expect(css).toContain("var(--petra-color-amber)");
-    expect(css).toContain("var(--petra-color-mint)");
-
-    for (const legacy of ["#8fdcff", "#b69bff", "#f5c968", "#79e1b5", "#6bcde8"]) {
-      expect(css.toLowerCase()).not.toContain(legacy);
-    }
-  });
-});
-

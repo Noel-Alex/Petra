@@ -24,7 +24,7 @@
 - Lineage creation/extinction is simulation authority. React, Pixi, renderer samples, animation callbacks, story beats, and UI events may display authoritative lineage events but cannot create or delete biological lineages.
 - Parent lineage identity, genotype, origin time/location, mutation class, and extinction time are authoritative lineage metadata.
 - Current lineage IDs are deterministic from creation order. Creation order therefore affects replay identity.
-- Any authoritative checkpoint that includes `LineageRegistry` semantics must preserve ancestry/extinction/event order **and the next lineage-ID allocation state**. Restoring only visible records while resetting the allocator would corrupt future identity.
+- `LineageRegistry.checkpoint()` / `LineageRegistry.restore()` own the versioned serializable ancestry/extinction/event + next-ID allocator boundary. Restoring only visible records while resetting the allocator would corrupt future identity.
 - Presentation layers may aggregate or sample lineages visually, but must not imply decorative glyph count equals simulated cell count.
 
 ## Scientific provenance
@@ -33,7 +33,7 @@
 - Selection changes frequencies among variants; it does not choose useful mutations.
 
 ## Verification
-Deterministic tests for this subtree should cover zero opportunities, probability bounds/exclusivity, mutant-count ≤ opportunities, identical-seed sequence replay, parent/lineage validation, extinction ordering, and future checkpoint continuation once lineage checkpointing is implemented.
+Deterministic tests for this subtree should cover zero opportunities, probability bounds/exclusivity, mutant-count ≤ opportunities, identical-seed sequence replay, parent/lineage validation, extinction ordering, checkpoint isolation, allocator round-trip, corrupted-checkpoint rejection, and post-restore lineage/event continuation.
 
 Any accelerated sampler additionally requires many-seed distribution comparison against the exact bounded reference path.
 

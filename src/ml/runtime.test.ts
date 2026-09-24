@@ -39,6 +39,7 @@ describe("surrogate runtime safety gates", () => {
     expect(
       resolveExecutionMode({
         requested: "mechanistic",
+        activeEngineVersion: "engine-a",
         emulatedFeatureEnabled: false,
         model: { ...model, promotionStatus: "experimental" },
         input: {
@@ -57,6 +58,7 @@ describe("surrogate runtime safety gates", () => {
     expect(
       resolveExecutionMode({
         requested: "emulated",
+        activeEngineVersion: "engine-a",
         emulatedFeatureEnabled: false,
         model,
         input: inDomain,
@@ -72,6 +74,7 @@ describe("surrogate runtime safety gates", () => {
     expect(
       resolveExecutionMode({
         requested: "emulated",
+        activeEngineVersion: "engine-a",
         emulatedFeatureEnabled: true,
         model: { ...model, promotionStatus: "experimental" },
         input: inDomain,
@@ -83,9 +86,26 @@ describe("surrogate runtime safety gates", () => {
     });
   });
 
+  it("refuses a model trained against a different engine version", () => {
+    expect(
+      resolveExecutionMode({
+        requested: "emulated",
+        activeEngineVersion: "engine-b",
+        emulatedFeatureEnabled: true,
+        model,
+        input: inDomain,
+      }),
+    ).toMatchObject({
+      mode: "mechanistic",
+      requested: "emulated",
+      refusalReason: "engine-version-mismatch",
+    });
+  });
+
   it("refuses out-of-domain inputs instead of silently extrapolating", () => {
     const decision = resolveExecutionMode({
       requested: "emulated",
+      activeEngineVersion: "engine-a",
       emulatedFeatureEnabled: true,
       model,
       input: {
@@ -134,6 +154,7 @@ describe("surrogate runtime safety gates", () => {
     expect(
       resolveExecutionMode({
         requested: "emulated",
+        activeEngineVersion: "engine-a",
         emulatedFeatureEnabled: true,
         model,
         input: inDomain,

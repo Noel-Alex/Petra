@@ -1,12 +1,17 @@
 import { SimulationEngine } from './engine'
 import { assertReplayArtifactUsesCurrentRuntime } from './replayCompatibility'
+import {
+  SnapshotTraceMismatchError,
+  assertSimulationSnapshotTrace,
+} from './snapshotTrace'
 import type {
   SimulationCommand,
+  SimulationEvent,
   SyntheticSimulationCheckpoint,
   SyntheticSimulationSnapshot,
 } from './protocol'
 
-export const COUNTERFACTUAL_FORK_SCHEMA_VERSION = 1 as const
+export const COUNTERFACTUAL_FORK_SCHEMA_VERSION = 2 as const
 
 const INTERNAL_RESTORE_COMMAND_ID = '__petra_counterfactual_fork_restore__'
 
@@ -22,6 +27,26 @@ export interface CounterfactualForkOrigin {
   readonly sourceRunId: string
   readonly checkpointTraceHash: string
   readonly checkpoint: SyntheticSimulationCheckpoint
+  /** Exact parent event payload required to independently verify trace ancestry. */
+  readonly parentEvents: readonly SimulationEvent[]
+}
+
+export class CounterfactualForkProvenanceError extends Error {
+  readonly code = 'counterfactual-parent-trace-mismatch' as const
+  readonly expectedTraceHash: string
+  readonly actualTraceHash: string
+
+  constructor(args: {
+    readonly expectedTraceHash: string
+    readonly actualTraceHash: string
+  }) {
+    super(
+      `counterfactual parent trace provenance mismatch: expected ${args.expectedTraceHash}, received ${args.actualTraceHash}`,
+    )
+    this.name = 'CounterfactualForkProvenanceError'
+    this.expectedTraceHash = args.expectedTraceHash
+    this.actualTraceHash = args.actualTraceHash
+  }
 }
 
 export interface CounterfactualReplayBranch {
@@ -78,6 +103,7 @@ export class CounterfactualForkController {
       throw new Error('counterfactual branch IDs must be distinct')
     }
 
+    validateParentSnapshotTrace(args.parentSnapshot)
     const checkpoint = structuredClone(args.parentSnapshot.checkpoint)
     validateCheckpointForFork(checkpoint)
 
@@ -85,6 +111,9 @@ export class CounterfactualForkController {
       sourceRunId: args.sourceRunId,
       checkpointTraceHash: args.parentSnapshot.traceHash,
       checkpoint,
+      parentEvents: args.parentSnapshot.events.map((event) =>
+        structuredClone(event),
+      ),
     }
     this.branches = {
       left: createBranchRuntime(args.left, checkpoint),
@@ -139,7 +168,9 @@ export function replayCounterfactualFork(
 
   const parentSnapshot: SyntheticSimulationSnapshot = {
     checkpoint: structuredClone(bundle.origin.checkpoint),
-    events: [],
+    events: bundle.origin.parentEvents.map((event) =>
+      structuredClone(event),
+    ),
     traceHash: bundle.origin.checkpointTraceHash,
   }
   const controller = new CounterfactualForkController({
@@ -177,11 +208,35 @@ export function validateCounterfactualForkReplayBundle(
 
   assertNonEmpty(bundle.origin.sourceRunId, 'sourceRunId')
   assertNonEmpty(bundle.origin.checkpointTraceHash, 'parent checkpoint trace hash')
+  if (!Array.isArray(bundle.origin.parentEvents)) {
+    throw new Error('counterfactual parent events must be an array')
+  }
+  validateParentSnapshotTrace({
+    checkpoint: bundle.origin.checkpoint,
+    events: bundle.origin.parentEvents,
+    traceHash: bundle.origin.checkpointTraceHash,
+  })
   validateCheckpointForFork(bundle.origin.checkpoint)
   validateReplayBranch(bundle.branches.left, 'left')
   validateReplayBranch(bundle.branches.right, 'right')
   if (bundle.branches.left.branchId === bundle.branches.right.branchId) {
     throw new Error('counterfactual branch IDs must be distinct')
+  }
+}
+
+function validateParentSnapshotTrace(
+  snapshot: SyntheticSimulationSnapshot,
+): void {
+  try {
+    assertSimulationSnapshotTrace(snapshot)
+  } catch (error) {
+    if (error instanceof SnapshotTraceMismatchError) {
+      throw new CounterfactualForkProvenanceError({
+        expectedTraceHash: error.expectedTraceHash,
+        actualTraceHash: error.actualTraceHash,
+      })
+    }
+    throw error
   }
 }
 
@@ -303,6 +358,9 @@ function cloneOrigin(origin: CounterfactualForkOrigin): CounterfactualForkOrigin
     sourceRunId: origin.sourceRunId,
     checkpointTraceHash: origin.checkpointTraceHash,
     checkpoint: structuredClone(origin.checkpoint),
+    parentEvents: origin.parentEvents.map((event) =>
+      structuredClone(event),
+    ),
   }
 }
 

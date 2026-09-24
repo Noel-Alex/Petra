@@ -26,7 +26,7 @@ export interface PetraCompactActionProps
  * Presentation only: callers retain command/science authority.
  */
 export function PetraCompactAction({
-  selected = false,
+  selected,
   motionPreference,
   disabled,
   className,
@@ -41,10 +41,11 @@ export function PetraCompactAction({
 }: PetraCompactActionProps): ReactElement {
   const [interaction, setInteraction] = useState(createActionInteractionState);
 
+  const isSelected = selected === true;
   const semanticState = resolveActionMicroInteractionState({
     interaction,
     disabled: disabled === true,
-    selected,
+    selected: isSelected,
   });
   const presentation = resolveMicroInteraction(semanticState, motionPreference);
 
@@ -64,7 +65,7 @@ export function PetraCompactAction({
       className={["petra-compact-action", className].filter(Boolean).join(" ")}
       data-emphasis={presentation.emphasis}
       data-motion={motionPreference}
-      aria-pressed={selected ? true : buttonProps["aria-pressed"]}
+      aria-pressed={selected === undefined ? buttonProps["aria-pressed"] : selected}
       style={style}
       onPointerEnter={(event) => {
         if (!disabled) {

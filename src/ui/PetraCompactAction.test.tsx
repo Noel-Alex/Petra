@@ -33,6 +33,27 @@ describe("PetraCompactAction motion projection", () => {
     expect(html).toContain("--petra-compact-action-scale:1");
   });
 
+  it("projects explicit unselected toggle semantics", () => {
+    const html = renderToStaticMarkup(
+      <PetraCompactAction motionPreference="off" selected={false}>
+        4×
+      </PetraCompactAction>,
+    );
+
+    expect(html).toContain('aria-pressed="false"');
+    expect(html).toContain('data-emphasis="rest"');
+  });
+
+  it("preserves caller-owned aria-pressed when selected is omitted", () => {
+    const html = renderToStaticMarkup(
+      <PetraCompactAction motionPreference="off" aria-pressed="mixed">
+        Compare
+      </PetraCompactAction>,
+    );
+
+    expect(html).toContain('aria-pressed="mixed"');
+  });
+
   it("makes off-mode controls static while preserving disabled state", () => {
     const html = renderToStaticMarkup(
       <PetraCompactAction motionPreference="off" disabled>

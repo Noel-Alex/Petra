@@ -253,7 +253,10 @@ export function commitPopulationBackedInfections(
   populationState: DiscretePopulationAuthorityState,
   config: DiscretePopulationAuthorityConfig,
   plan: PopulationBackedInfectionPlan,
-  lifeHistoryIdentities: readonly PhageLifeHistoryIdentity[],
+  args: {
+    readonly infectedAtMinutes: number;
+    readonly lifeHistoryIdentities: readonly PhageLifeHistoryIdentity[];
+  },
   infectionPolicy: PhageProductiveInfectionPolicy =
     SINGLE_HIT_UNIQUE_HOST_POLICY,
   releasePolicy: PhageLocalReleasePolicy = LOCAL_LYSIS_RELEASE_POLICY,
@@ -283,10 +286,22 @@ export function commitPopulationBackedInfections(
   if (plan.infectionPolicyIdentity !== state.infectionPolicyIdentity) {
     throw new Error("population-backed infection plan policy identity mismatch");
   }
-  if (!Array.isArray(lifeHistoryIdentities)) {
+  if (
+    typeof args.infectedAtMinutes !== "number" ||
+    !Number.isFinite(args.infectedAtMinutes) ||
+    args.infectedAtMinutes < 0
+  ) {
+    throw new RangeError("infectedAtMinutes must be finite and non-negative");
+  }
+  if (args.infectedAtMinutes !== lysisTransactionState.latentQueue.currentTimeMinutes) {
+    throw new Error(
+      "infectedAtMinutes must equal the latent queue current authoritative time",
+    );
+  }
+  if (!Array.isArray(args.lifeHistoryIdentities)) {
     throw new TypeError("lifeHistoryIdentities must be an array");
   }
-  if (lifeHistoryIdentities.length !== plan.targets.length) {
+  if (args.lifeHistoryIdentities.length !== plan.targets.length) {
     throw new Error(
       "lifeHistoryIdentities must align one-to-one with infection plan targets",
     );
@@ -301,11 +316,11 @@ export function commitPopulationBackedInfections(
     if (!Object.prototype.hasOwnProperty.call(plan.targets, index)) {
       throw new TypeError("population-backed infection plan targets must be dense");
     }
-    if (!Object.prototype.hasOwnProperty.call(lifeHistoryIdentities, index)) {
+    if (!Object.prototype.hasOwnProperty.call(args.lifeHistoryIdentities, index)) {
       throw new TypeError("lifeHistoryIdentities must be dense");
     }
     const target = plan.targets[index]!;
-    const lifeHistoryIdentity = lifeHistoryIdentities[index]!;
+    const lifeHistoryIdentity = args.lifeHistoryIdentities[index]!;
     validatePhageLifeHistoryIdentity(lifeHistoryIdentity);
 
     validateCellIndex("infection plan target cellIndex", target.cellIndex, config);
@@ -350,7 +365,7 @@ export function commitPopulationBackedInfections(
     const sequence = latentQueue.nextSequence;
     latentQueue = scheduleLatentInfections(latentQueue, {
       infectionCount: target.productiveInfections,
-      infectedAtMinutes: latentQueue.currentTimeMinutes,
+      infectedAtMinutes: args.infectedAtMinutes,
       lifeHistoryIdentity,
     });
     cohortTargets.push({

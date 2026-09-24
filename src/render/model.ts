@@ -1,9 +1,11 @@
+import { isLineagePatternToken, type LineagePatternToken } from "./lineagePatterns";
+
 export type SemanticZoomLevel = "dish" | "colony" | "representative-cell";
 
 export type OverlayKind = "nutrient" | "antibiotic" | "net-growth" | "lineage" | "phage" | "biomass" | "event" | "uncertainty";
 
 export interface RenderField { readonly id: string; readonly kind: OverlayKind; readonly label: string; readonly unit: string; readonly width: number; readonly height: number; readonly values: Float32Array; readonly minimum: number; readonly maximum: number; }
-export interface RenderLineage { readonly id: string; readonly label: string; readonly appearanceToken: string; readonly patternToken: string; readonly density: Float32Array; }
+export interface RenderLineage { readonly id: string; readonly label: string; readonly appearanceToken: string; readonly patternToken: LineagePatternToken; readonly density: Float32Array; }
 export interface RenderEvent { readonly id: string; readonly kind: string; readonly simulationTimeHours: number; readonly x: number; readonly y: number; readonly lineageId?: string; readonly label: string; }
 export interface DishRenderSnapshot { readonly snapshotId: string; readonly simulationTimeHours: number; readonly gridWidth: number; readonly gridHeight: number; readonly dishMask: Uint8Array; readonly biomass: Float32Array; readonly fields: readonly RenderField[]; readonly lineages: readonly RenderLineage[]; readonly events: readonly RenderEvent[]; }
 export interface CameraView { readonly centerX: number; readonly centerY: number; readonly zoom: number; }
@@ -33,7 +35,8 @@ export function validateRenderSnapshot(snapshot: DishRenderSnapshot): void {
   }
   const lineageIds = new Set<string>();
   for (const lineage of snapshot.lineages) {
-    if (!lineage.id || !lineage.label || !lineage.appearanceToken || !lineage.patternToken) throw new TypeError("render lineages require identity and color-independent pattern metadata");
+    if (!lineage.id || !lineage.label || !lineage.appearanceToken) throw new TypeError("render lineages require identity and color-independent pattern metadata");
+    if (!isLineagePatternToken(lineage.patternToken)) throw new RangeError(`unsupported lineage pattern token: ${String(lineage.patternToken)}`);
     if (lineageIds.has(lineage.id)) throw new RangeError(`duplicate lineage id: ${lineage.id}`); lineageIds.add(lineage.id);
     assertLength(`lineage ${lineage.id}`, lineage.density.length, cells); assertFiniteNonNegativeArray(`lineage ${lineage.id}`, lineage.density);
   }

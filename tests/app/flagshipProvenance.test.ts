@@ -13,12 +13,20 @@ describe("flagship provenance presentation projection", () => {
     });
   });
 
-  it("resolves every exposed flagship record without inventing fallback evidence", () => {
+  it("keeps missing presentation classification visible instead of inventing fallback evidence", () => {
     const view = buildFlagshipProvenanceView();
+    const incomplete = view.records.filter(
+      (record) => record.status === "needs-provenance",
+    );
 
     expect(view.records.length).toBeGreaterThan(1);
-    expect(view.records.every((record) => record.status === "complete")).toBe(true);
-    expect(view.records.every((record) => record.rawClassification !== null)).toBe(true);
+    expect(incomplete.map((record) => record.id)).toEqual([
+      "drug-reference-pd:regoes-cab1-ciprofloxacin",
+    ]);
+    expect(incomplete[0]?.rawClassification).toBeNull();
+    expect(incomplete[0]?.problems[0]).toContain(
+      "an explicit evidence classification is required",
+    );
   });
 
   it("exposes the baseline composed parameter set as engineering authority", () => {
@@ -32,6 +40,42 @@ describe("flagship provenance presentation projection", () => {
     expect(parameterSet?.sourceKeys).toEqual([]);
     expect(parameterSet?.presentation?.limitation).toContain(
       "not a physical culture calibration",
+    );
+  });
+
+  it("exposes the unbound limiting-resource context as engineering model units", () => {
+    const view = buildFlagshipProvenanceView();
+    const resourceContext = view.records.find((record) =>
+      record.id.startsWith("resource-context:"),
+    );
+
+    expect(resourceContext?.status).toBe("complete");
+    expect(resourceContext?.rawClassification).toBe("engineering");
+    expect(resourceContext?.sourceKeys).toEqual([]);
+    expect(resourceContext?.presentation?.valueText).toContain(
+      "dimensionless_model_resource",
+    );
+    expect(resourceContext?.presentation?.units).toBe("model-resource");
+    expect(resourceContext?.presentation?.limitation).toContain(
+      "must not be labelled glucose",
+    );
+  });
+
+  it("shows the Regoes reference-PD values and source while refusing to guess their evidence class", () => {
+    const view = buildFlagshipProvenanceView();
+    const referencePd = view.records.find(
+      (record) => record.id === "drug-reference-pd:regoes-cab1-ciprofloxacin",
+    );
+
+    expect(referencePd?.status).toBe("needs-provenance");
+    expect(referencePd?.rawClassification).toBeNull();
+    expect(referencePd?.sourceKeys).toEqual(["regoes_2004"]);
+    expect(referencePd?.sources[0]).toMatchObject({
+      id: "regoes_2004",
+      href: "https://doi.org/10.1128/AAC.48.10.3670-3676.2004",
+    });
+    expect(referencePd?.problems[0]).toContain(
+      "an explicit evidence classification is required",
     );
   });
 

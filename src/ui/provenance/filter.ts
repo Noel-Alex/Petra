@@ -120,16 +120,25 @@ function searchableText(record: ScenarioProvenanceResolution): string {
 }
 
 function normalize(value: string): string {
-  return value.trim().toLocaleLowerCase();
+  return value.trim().toLowerCase();
+}
+
+export function parseProvenanceEvidenceFilter(
+  value: string,
+): ProvenanceEvidenceFilter {
+  const option = PROVENANCE_EVIDENCE_FILTERS.find(
+    (candidate) => candidate.value === value,
+  );
+  if (option === undefined) {
+    throw new RangeError(
+      `unknown provenance evidence filter: ${String(value)}`,
+    );
+  }
+  return option.value;
 }
 
 function assertEvidenceFilter(
   value: ProvenanceEvidenceFilter,
 ): ProvenanceEvidenceFilter {
-  if (!PROVENANCE_EVIDENCE_FILTERS.some((option) => option.value === value)) {
-    throw new RangeError(
-      `unknown provenance evidence filter: ${String(value)}`,
-    );
-  }
-  return value;
+  return parseProvenanceEvidenceFilter(value);
 }

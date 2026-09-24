@@ -28,7 +28,10 @@ A green source-test run is **not** browser, GPU, frame-time/device, or experimen
 - high nutrient / no drug -> approximately exponential early growth;
 - nutrient depletion slows growth;
 - `S = K_s` -> Monod multiplier approximately 0.5;
-- increasing local nutrient cannot decrease the Monod growth term.
+- increasing local nutrient cannot decrease the Monod growth term;
+- measured/curated relative-fitness ordering is preserved in a controlled resource-rich comparison;
+- finite non-negative first-order death hazards never remove more than available pre-step biomass;
+- continuous division-biomass flux is never mislabeled or implicitly rounded into integer mutation opportunities.
 
 ## Temperature tests
 

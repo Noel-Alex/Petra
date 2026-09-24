@@ -1,7 +1,14 @@
-/** Numerical fixture only: these compact values exercise Monod/yield/capacity
- * invariants and are not E. coli biological constants or a flagship preset. */
+/** Numerical fixture only: these compact values exercise Monod/yield/capacity,
+ * relative-fitness, and bounded-loss invariants. They are not E. coli biological
+ * constants and are not the flagship preset. */
 import { describe, expect, it } from 'vitest'
-import { monod, stepEcology, type EcologyState, type GrowthParameters } from './growth'
+import {
+  monod,
+  stepEcology,
+  type EcologyState,
+  type GrowthParameters,
+  type LineageEcologyParameters,
+} from './growth'
 
 const params: GrowthParameters = {
   maxDivisionRate: 1,
@@ -17,8 +24,12 @@ function state(resource: number, lineages: number[]): EcologyState {
     height: 1,
     mask: new Uint8Array([1]),
     resource: new Float32Array([resource]),
-    lineages: lineages.map((x) => new Float32Array([x])),
+    lineages: lineages.map((amount) => new Float32Array([amount])),
   }
+}
+
+function neutral(lineageCount: number): LineageEcologyParameters[] {
+  return Array.from({ length: lineageCount }, () => ({ relativeFitness: 1, deathHazardPerTime: 0 }))
 }
 
 describe('Monod resource response', () => {
@@ -36,34 +47,38 @@ describe('Monod resource response', () => {
 describe('resource-limited ecology step', () => {
   it('creates no biomass from zero resource', () => {
     const s = state(0, [10])
-    const metrics = stepEcology(s, params, 1)
+    const result = stepEcology(s, params, neutral(1), 1)
     expect(s.lineages[0]![0]).toBe(10)
-    expect(metrics.divisions).toBe(0)
-    expect(metrics.resourceConsumed).toBe(0)
+    expect(result.metrics.divisionBiomass).toBe(0)
+    expect(result.metrics.resourceConsumed).toBe(0)
+    expect(result.fluxes.divisionBiomass[0]![0]).toBe(0)
   })
 
   it('obeys yield when resource is the limiting factor', () => {
     const s = state(1, [50])
-    const metrics = stepEcology(s, { ...params, maxDivisionRate: 100 }, 0.1)
-    expect(metrics.divisions).toBeCloseTo(2, 6)
-    expect(metrics.resourceConsumed).toBeCloseTo(1, 6)
+    const result = stepEcology(s, { ...params, maxDivisionRate: 100 }, neutral(1), 0.1)
+    expect(result.metrics.divisionBiomass).toBeCloseTo(2, 6)
+    expect(result.metrics.resourceConsumed).toBeCloseTo(1, 6)
+    expect(result.fluxes.divisionBiomass[0]![0]).toBeCloseTo(2, 6)
     expect(s.resource[0]).toBeCloseTo(0, 6)
   })
 
   it('never grows beyond local capacity', () => {
     const s = state(100, [99])
-    stepEcology(s, params, 1)
+    stepEcology(s, params, neutral(1), 1)
     expect(s.lineages[0]![0]).toBeCloseTo(100, 5)
   })
 
   it('allocates a shared limiting resource proportionally regardless of lineage ordering', () => {
     const a = state(1, [10, 30])
     const b = state(1, [30, 10])
-    stepEcology(a, { ...params, maxDivisionRate: 100 }, 0.1)
-    stepEcology(b, { ...params, maxDivisionRate: 100 }, 0.1)
+    const aResult = stepEcology(a, { ...params, maxDivisionRate: 100 }, neutral(2), 0.1)
+    const bResult = stepEcology(b, { ...params, maxDivisionRate: 100 }, neutral(2), 0.1)
+
     expect(a.lineages[0]![0]).toBeCloseTo(b.lineages[1]![0]!, 5)
     expect(a.lineages[1]![0]).toBeCloseTo(b.lineages[0]![0]!, 5)
     expect(a.resource[0]).toBeCloseTo(b.resource[0]!, 6)
+    expect(aResult.metrics.divisionBiomass).toBeCloseTo(bResult.metrics.divisionBiomass, 6)
   })
 
   it('conserves biomass during the coarse spread step', () => {
@@ -74,12 +89,103 @@ describe('resource-limited ecology step', () => {
       resource: new Float32Array(9),
       lineages: [new Float32Array([0, 0, 0, 0, 10, 0, 0, 0, 0])],
     }
-    const metrics = stepEcology(s, { ...params, maxDivisionRate: 0, spreadRate: 0.1 }, 1)
-    expect(metrics.totalBiomass).toBeCloseTo(10, 5)
+    const result = stepEcology(s, { ...params, maxDivisionRate: 0, spreadRate: 0.1 }, neutral(1), 1)
+    expect(result.metrics.totalBiomass).toBeCloseTo(10, 5)
     expect(s.lineages[0]![4]).toBeCloseTo(6, 5)
     expect(s.lineages[0]![1]).toBeCloseTo(1, 5)
     expect(s.lineages[0]![3]).toBeCloseTo(1, 5)
     expect(s.lineages[0]![5]).toBeCloseTo(1, 5)
     expect(s.lineages[0]![7]).toBeCloseTo(1, 5)
+  })
+
+  it('approaches exponential early growth when resource and capacity are non-limiting', () => {
+    const s = state(1_000_000, [1])
+    const p = { ...params, halfSaturation: 1, biomassYield: 1_000_000_000, localCapacity: 1_000_000 }
+    for (let step = 0; step < 1_000; step += 1) {
+      stepEcology(s, p, neutral(1), 0.001)
+    }
+    expect(s.lineages[0]![0]).toBeCloseTo(Math.E, 2)
+  })
+
+  it('reduces per-biomass division flux as nutrient is depleted', () => {
+    const s = state(2, [10])
+    const p = { ...params, biomassYield: 1, localCapacity: 1_000 }
+
+    const firstBiomass = s.lineages[0]![0]!
+    const first = stepEcology(s, p, neutral(1), 0.2)
+    const firstSpecific = first.metrics.divisionBiomass / firstBiomass
+    const resourceAfterFirst = s.resource[0]!
+
+    const secondBiomass = s.lineages[0]![0]!
+    const second = stepEcology(s, p, neutral(1), 0.2)
+    const secondSpecific = second.metrics.divisionBiomass / secondBiomass
+
+    expect(resourceAfterFirst).toBeLessThan(2)
+    expect(secondSpecific).toBeLessThan(firstSpecific)
+  })
+
+  it('applies lineage relative fitness to division demand before shared limiting allocation', () => {
+    const s = state(1_000, [10, 10])
+    const kinetics: LineageEcologyParameters[] = [
+      { relativeFitness: 1, deathHazardPerTime: 0 },
+      { relativeFitness: 0.5, deathHazardPerTime: 0 },
+    ]
+    const result = stepEcology(s, { ...params, localCapacity: 1_000 }, kinetics, 0.1)
+
+    expect(result.fluxes.divisionBiomass[0]![0]).toBeCloseTo(2 * result.fluxes.divisionBiomass[1]![0]!, 5)
+  })
+
+  it('books first-order death separately and never removes more than pre-step biomass', () => {
+    const halfLife = state(0, [10])
+    const halfLifeResult = stepEcology(
+      halfLife,
+      params,
+      [{ relativeFitness: 1, deathHazardPerTime: Math.log(2) }],
+      1,
+    )
+    expect(halfLifeResult.metrics.divisionBiomass).toBe(0)
+    expect(halfLifeResult.metrics.deathBiomass).toBeCloseTo(5, 6)
+    expect(halfLifeResult.fluxes.deathBiomass[0]![0]).toBeCloseTo(5, 6)
+    expect(halfLife.lineages[0]![0]).toBeCloseTo(5, 6)
+
+    const extreme = state(0, [10])
+    const extremeResult = stepEcology(
+      extreme,
+      params,
+      [{ relativeFitness: 1, deathHazardPerTime: 1_000_000 }],
+      1,
+    )
+    expect(extremeResult.metrics.deathBiomass).toBeLessThanOrEqual(10)
+    expect(extreme.lineages[0]![0]).toBeGreaterThanOrEqual(0)
+  })
+
+  it('supports spatial death-hazard fields without hiding their caller-owned origin', () => {
+    const s: EcologyState = {
+      width: 2,
+      height: 1,
+      mask: new Uint8Array([1, 1]),
+      resource: new Float32Array([0, 0]),
+      lineages: [new Float32Array([10, 10])],
+    }
+    const result = stepEcology(
+      s,
+      params,
+      [{ relativeFitness: 1, deathHazardPerTime: new Float32Array([0, Math.log(2)]) }],
+      1,
+    )
+
+    expect(result.fluxes.deathBiomass[0]![0]).toBe(0)
+    expect(result.fluxes.deathBiomass[0]![1]).toBeCloseTo(5, 6)
+    expect(s.lineages[0]![0]).toBe(10)
+    expect(s.lineages[0]![1]).toBeCloseTo(5, 6)
+  })
+
+  it('rejects invalid lineage kinetics and death fields', () => {
+    const s = state(1, [1])
+    expect(() => stepEcology(s, params, [], 1)).toThrow(/one entry per lineage/)
+    expect(() => stepEcology(s, params, [{ relativeFitness: -1, deathHazardPerTime: 0 }], 1)).toThrow(/relativeFitness/)
+    expect(() =>
+      stepEcology(s, params, [{ relativeFitness: 1, deathHazardPerTime: new Float32Array([Number.NaN]) }], 1),
+    ).toThrow(/deathHazardPerTime/)
   })
 })

@@ -1,29 +1,40 @@
 # Ecology kernel
 
-This directory turns resource availability into deterministic **potential division biomass** before later stochastic mutation/death channels are composed.
+This directory turns resource availability into deterministic **continuous biomass fluxes** for local growth/division, death/loss, and coarse colony-front spread.
 
 ## Current slice
 
 `growth.ts` provides:
 - Monod response `S / (K_s + S)`;
+- genotype/lineage relative-fitness scaling of division demand;
 - simultaneous proportional allocation of shared resource across lineages;
 - biomass yield accounting;
 - local-capacity limiting;
+- explicit per-lineage/per-cell division-biomass and death-biomass ledgers;
+- bounded first-order death hazards, uniform or spatial;
 - conservative four-neighbour effective colony spread;
-- aggregate division/resource/biomass metrics.
+- aggregate flux/resource/biomass metrics.
 
-All numeric parameters are passed by the scenario layer. This module intentionally contains **no E. coli constant** and no physical grid calibration.
+All numeric parameters are passed by the scenario/composition layer. This module intentionally contains **no E. coli constant** and no ciprofloxacin-specific value.
 
 ## Authority boundaries
 
-`maxDivisionRate`, `halfSaturation`, and `biomassYield` require biological provenance in a Science-Mode preset. `localCapacity` and `spreadRate` may be calibrated/engineering parameters but must be labeled as such. The spread operator is an effective colony-front approximation, **not bacterial motility or single-cell mechanics**.
+`maxDivisionRate`, `halfSaturation`, `biomassYield`, and lineage `relativeFitness` require biological provenance in a Science-Mode preset. `localCapacity` and `spreadRate` may be calibrated/engineering parameters but must be labeled as such. The spread operator is an effective colony-front approximation, **not bacterial motility or single-cell mechanics**.
 
-Growth demand is computed for every lineage from the same pre-step local state. If resource or capacity is limiting, all potential divisions are scaled proportionally. This prevents lineage array order from deciding which lineage gets first access to resource.
+`deathHazardPerTime` is an input contract, not a hidden stress model. The caller must identify the mechanism and provenance that produced it. For the ciprofloxacin flagship, Issue #4 owns the resource×drug composition that will derive spatial loss pressure from the documented Regoes/MIC policy.
 
-## Still required for Issue #3
+Division demand and death are computed from the same pre-step biomass. Death uses the exact constant-hazard survival fraction `1 - exp(-h * dt)`, which prevents a finite non-negative first-order hazard from deleting more than the available pre-step biomass. Same-step death does not create extra growth capacity until the next step; that operator-order policy is deterministic and should be versioned if changed.
 
-This bounded slice deliberately does not yet add a biological death channel: basal/stress death needs an explicit scenario composition rule, and antibiotic killing belongs with the pharmacodynamic work in Issue #4. Before Issue #3 closes, integrate separate division/death bookkeeping with the authoritative engine state and choose/provenance the flagship growth/resource parameters. Mutation in Issue #5 must consume the **division** count, not net population change.
+## Mutation boundary
+
+The division ledger is **continuous biomass production**, not an integer count of cell-division events. It must not be passed directly to `sampleDivisionMutations`, whose input is an integer event count.
+
+Issue #5 therefore still needs a reviewed bridge from Petra's aggregate population units to discrete/accelerated mutation opportunities (for example, an explicitly defined cell-equivalent scale or a statistically validated aggregate event sampler). This boundary is deliberate: Petra must not manufacture integer births by rounding an unlabeled biomass quantity.
+
+## Remaining Issue #3 integration
+
+The kernel now separates division and death fluxes and accepts relative fitness. Before #3 can fully close, the authoritative engine/scenario layer still needs to own this state and load a defensible flagship growth/resource parameter set or transparently calibrated/engineering replacements. Do not invent source-looking physical constants to make the demo move.
 
 ## Verification
 
-`growth.test.ts` covers the half-saturation identity, zero-resource no-growth, resource/yield limiting, capacity limiting, lineage-order independence, and spread mass conservation. These tests require executable TypeScript/Vitest verification before merge; source presence is not runtime evidence.
+`growth.test.ts` covers the Monod half-saturation identity, zero-resource behavior, yield/capacity limiting, lineage-order independence, high-resource early exponential behavior, nutrient-depletion slowdown, relative-fitness scaling, bounded death bookkeeping, spatial death fields, and spread mass conservation. Run the repository-level `python tools/verify.py premerge` gate for executable evidence.

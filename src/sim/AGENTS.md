@@ -16,4 +16,4 @@
 At minimum, test identical-seed/command replay, RNG state round-trip, checkpoint continuation, invalid cross-run restore, and validation of command bounds. Scientific mechanisms add their own invariants/fixtures.
 
 ## Child DOX index
-None yet.
+- `ecology/AGENTS.md` — resource-limited biomass flux, loss-hazard, and event-boundary contract.

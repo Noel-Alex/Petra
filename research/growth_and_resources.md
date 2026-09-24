@@ -53,6 +53,14 @@ If two strains consume the same local nutrient, competition emerges from:
 
 Mechanistic consumer-resource models provide a cleaner biological interpretation than unexplained pairwise coefficients.
 
+## Aggregate flux and loss implementation boundary
+
+Petra's current ecology kernel represents lineage state as continuous aggregate biomass/density channels. Resource-limited growth therefore produces a **continuous division-biomass flux**, not an integer cell-division event count. This distinction matters for evolution: an exact mutation sampler that accepts integer divisions cannot consume aggregate biomass gain by implicit rounding. A later event bridge must define the population unit and validate its stochastic approximation.
+
+The ecology kernel may also accept a non-negative first-order death/loss hazard and integrate the constant-hazard survival fraction over a numerical step. That hazard is a **composition input**, not a biological claim by itself. In particular, ciprofloxacin-associated loss must be derived by the flagship pharmacodynamic/resource composition policy rather than assigning a universal death constant here.
+
+Marcusson genotype relative-fitness values can enter Petra as a multiplier on local division demand, but doing so is a cross-study/mechanistic composition choice. Preserve the assay/background provenance and do not describe the multiplier as a directly measured spatial Monod growth curve.
+
 ## Temperature
 
 Temperature should not be a linear “growth boost” slider.

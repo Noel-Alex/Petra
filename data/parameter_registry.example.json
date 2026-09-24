@@ -45,7 +45,7 @@
     },
     {
       "key": "genotype.WT.relative_fitness",
-      "value": 1.0,
+      "value": 1,
       "units": "relative",
       "source": "10.1371/journal.ppat.1000541",
       "evidence_tier": "A"
@@ -78,5 +78,42 @@
     "The reference pharmacodynamic curve and the MG1655 genotype table come from different experimental systems.",
     "Before calling the combined scenario quantitatively calibrated, normalize/fit the PD response to the selected genotype MICs and verify rate conventions.",
     "Spatial diffusion and colony-dispersal coefficients remain scenario-calibration parameters until source-matched values are chosen."
+  ],
+  "unbound_requirements": [
+    {
+      "key": "growth.max_division_rate",
+      "required_for": "flagship_authoritative_ecology",
+      "status": "UNBOUND",
+      "evidence_class_required": "measured_or_transparently_calibrated",
+      "notes": "Do not substitute the Regoes CAB1 drug-free log10 density slope without an explicit, unit-consistent composition decision."
+    },
+    {
+      "key": "growth.monod_half_saturation",
+      "required_for": "flagship_authoritative_ecology",
+      "status": "UNBOUND",
+      "evidence_class_required": "measured_or_transparently_calibrated",
+      "notes": "Must match the chosen limiting-resource definition and concentration units."
+    },
+    {
+      "key": "growth.biomass_yield",
+      "required_for": "flagship_authoritative_ecology",
+      "status": "UNBOUND",
+      "evidence_class_required": "measured_or_transparently_calibrated",
+      "notes": "Required to connect resource consumption to biomass production."
+    },
+    {
+      "key": "space.local_capacity_and_spread",
+      "required_for": "flagship_authoritative_ecology",
+      "status": "UNBOUND",
+      "evidence_class_required": "calibrated_or_engineering",
+      "notes": "Coarse spatial approximation; must remain visibly distinct from physical single-cell measurements."
+    },
+    {
+      "key": "ecology.death_hazard",
+      "required_for": "mechanism_specific_loss",
+      "status": "COMPOSED_NOT_GLOBAL",
+      "evidence_class_required": "mechanism_specific",
+      "notes": "No universal default is implied. Ciprofloxacin-associated loss must be derived from the named pharmacodynamic/resource composition policy."
+    }
   ]
 }

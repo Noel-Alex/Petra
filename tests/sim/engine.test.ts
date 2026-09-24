@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { SimulationEngine } from '../../src/sim/engine'
-import { createRunIdentity } from '../../src/sim/protocol'
+import { createRunIdentity, type SimulationCheckpoint } from '../../src/sim/protocol'
 import { SimulationRng } from '../../src/sim/rng'
 
 const identity = createRunIdentity({
@@ -137,6 +137,127 @@ describe('SimulationEngine replay substrate', () => {
     const other = new SimulationEngine({ ...identity, seed: identity.seed + 1 })
 
     expect(() => other.execute({ id: 'restore', type: 'restore', checkpoint })).toThrow(/different run identity/)
+  })
+
+  it('rejects malformed checkpoint scalars without mutating live state', () => {
+    const engine = new SimulationEngine(identity)
+    engine.execute({ id: 'warmup', type: 'advance', ticks: 60 })
+    engine.execute({ id: 'pulse', type: 'synthetic-pulse', magnitude: 12 })
+    const before = engine.snapshot()
+
+    const cases: Array<{
+      name: string
+      mutate: (checkpoint: SimulationCheckpoint) => void
+      error: RegExp
+    }> = [
+      {
+        name: 'negative tick',
+        mutate: (checkpoint) => {
+          checkpoint.tick = -1
+        },
+        error: /checkpoint\.tick must be a non-negative safe integer/,
+      },
+      {
+        name: 'fractional tick',
+        mutate: (checkpoint) => {
+          checkpoint.tick = 1.5
+        },
+        error: /checkpoint\.tick must be a non-negative safe integer/,
+      },
+      {
+        name: 'unsafe tick',
+        mutate: (checkpoint) => {
+          checkpoint.tick = Number.MAX_SAFE_INTEGER + 1
+        },
+        error: /checkpoint\.tick must be a non-negative safe integer/,
+      },
+      {
+        name: 'negative command count',
+        mutate: (checkpoint) => {
+          checkpoint.commandCount = -1
+        },
+        error: /checkpoint\.commandCount must be a non-negative safe integer/,
+      },
+      {
+        name: 'fractional command count',
+        mutate: (checkpoint) => {
+          checkpoint.commandCount = 0.5
+        },
+        error: /checkpoint\.commandCount must be a non-negative safe integer/,
+      },
+      {
+        name: 'unsafe command count',
+        mutate: (checkpoint) => {
+          checkpoint.commandCount = Number.MAX_SAFE_INTEGER + 1
+        },
+        error: /checkpoint\.commandCount must be a non-negative safe integer/,
+      },
+      {
+        name: 'negative synthetic population',
+        mutate: (checkpoint) => {
+          checkpoint.syntheticPopulation = -1
+        },
+        error: /checkpoint\.syntheticPopulation must be finite and non-negative/,
+      },
+      {
+        name: 'non-finite synthetic population',
+        mutate: (checkpoint) => {
+          checkpoint.syntheticPopulation = Number.POSITIVE_INFINITY
+        },
+        error: /checkpoint\.syntheticPopulation must be finite and non-negative/,
+      },
+      {
+        name: 'negative simulation time',
+        mutate: (checkpoint) => {
+          checkpoint.simulationTimeHours = -1
+        },
+        error: /checkpoint\.simulationTimeHours must be finite, non-negative, and exactly match checkpoint\.tick/,
+      },
+      {
+        name: 'non-finite simulation time',
+        mutate: (checkpoint) => {
+          checkpoint.simulationTimeHours = Number.NaN
+        },
+        error: /checkpoint\.simulationTimeHours must be finite, non-negative, and exactly match checkpoint\.tick/,
+      },
+      {
+        name: 'tick/time mismatch',
+        mutate: (checkpoint) => {
+          checkpoint.simulationTimeHours += 0.25
+        },
+        error: /checkpoint\.simulationTimeHours must be finite, non-negative, and exactly match checkpoint\.tick/,
+      },
+    ]
+
+    for (const testCase of cases) {
+      const checkpoint = structuredClone(before.checkpoint)
+      testCase.mutate(checkpoint)
+
+      expect(
+        () => engine.execute({ id: `invalid-${testCase.name}`, type: 'restore', checkpoint }),
+        testCase.name,
+      ).toThrow(testCase.error)
+      expect(engine.snapshot(), testCase.name).toEqual(before)
+    }
+  })
+
+  it('validates replacement RNG before committing any restored fields or events', () => {
+    const engine = new SimulationEngine(identity)
+    engine.execute({ id: 'warmup', type: 'advance', ticks: 30 })
+    engine.execute({ id: 'pulse', type: 'synthetic-pulse', magnitude: 7 })
+    const before = engine.snapshot()
+    const checkpoint = structuredClone(before.checkpoint)
+
+    checkpoint.tick += 30
+    checkpoint.simulationTimeHours = checkpoint.tick / 60
+    checkpoint.syntheticPopulation += 100
+    checkpoint.commandCount += 5
+    checkpoint.rngState = [0, 0, 0, 0]
+
+    expect(() => engine.execute({ id: 'invalid-rng-restore', type: 'restore', checkpoint })).toThrow(
+      /cannot be all zero/,
+    )
+    expect(engine.snapshot()).toEqual(before)
   })
 
   it('remains finite, non-negative, and replay-identical through a long synthetic soak', () => {

@@ -19,6 +19,11 @@ export interface SweepParameterPoint {
   readonly parameterSetHash: string;
 }
 
+export interface SweepRunCondition {
+  readonly id: string;
+  readonly fingerprint: string;
+}
+
 export interface SweepInterventionFamily {
   readonly id: string;
   readonly fingerprint: string;
@@ -82,6 +87,7 @@ export interface MechanisticSweepDefinition {
   readonly normalizationProfileId: string;
   readonly datasetSchema: MechanisticDatasetSchemaIdentity;
   readonly parameterPoints: readonly SweepParameterPoint[];
+  readonly runConditions: readonly SweepRunCondition[];
   readonly interventionFamilies: readonly SweepInterventionFamily[];
   readonly seeds: readonly number[];
   readonly maxTrajectories: number;
@@ -95,6 +101,7 @@ export interface MechanisticSweepTask {
   readonly normalizationProfileId: string;
   readonly datasetSchema: MechanisticDatasetSchemaIdentity;
   readonly parameterPointId: string;
+  readonly runConditionId: string;
   readonly interventionFamilyId: string;
   readonly split: DatasetSplit;
   readonly trajectory: TrajectoryIdentity;
@@ -123,6 +130,8 @@ export interface SweepManifestTrajectory {
   readonly taskId: string;
   readonly split: DatasetSplit;
   readonly parameterPointId: string;
+  readonly runConditionId: string;
+  readonly runConditionFingerprint: string;
   readonly interventionFamilyId: string;
   readonly seed: number;
   readonly splitGroupKey: string;
@@ -130,7 +139,7 @@ export interface SweepManifestTrajectory {
 }
 
 export interface MechanisticSweepManifest {
-  readonly schemaVersion: "petra-ml-sweep-manifest-v4";
+  readonly schemaVersion: "petra-ml-sweep-manifest-v5";
   readonly planVersion: string;
   readonly datasetVersion: string;
   readonly engineVersion: string;
@@ -152,8 +161,9 @@ export interface MechanisticSweepManifest {
  *
  * This function never produces biological samples and never runs a surrogate.
  * It only creates leakage-safe, reproducible work identities for a later
- * mechanistic runner. The parameter/intervention combination is the split
- * boundary; every seed replica in that group therefore stays in one split.
+ * mechanistic runner. Mechanism parameters, run condition and intervention
+ * schedule form the split boundary; every seed replica in that group therefore
+ * stays in one split.
  */
 export function planMechanisticSweep(
   definition: MechanisticSweepDefinition,
@@ -168,7 +178,9 @@ export function planMechanisticSweep(
   const datasetSchemaIdentityKey = mechanisticDatasetSchemaKey(datasetSchema);
 
   const groupCount =
-    definition.parameterPoints.length * definition.interventionFamilies.length;
+    definition.parameterPoints.length *
+    definition.runConditions.length *
+    definition.interventionFamilies.length;
   const trajectoryCount = groupCount * definition.seeds.length;
 
   if (!Number.isSafeInteger(trajectoryCount)) {
@@ -184,6 +196,7 @@ export function planMechanisticSweep(
   const splitTrajectoryCounts = emptySplitCounts();
   const groups: Array<{
     readonly parameterPoint: SweepParameterPoint;
+    readonly runCondition: SweepRunCondition;
     readonly interventionFamily: SweepInterventionFamily;
     readonly group: DatasetGroupIdentity;
     readonly split: DatasetSplit;
@@ -191,25 +204,29 @@ export function planMechanisticSweep(
   }> = [];
 
   for (const parameterPoint of definition.parameterPoints) {
-    for (const interventionFamily of definition.interventionFamilies) {
-      const group: DatasetGroupIdentity = {
-        engineVersion: definition.engineVersion,
-        parameterSetHash: parameterPoint.parameterSetHash,
-        scenarioId: definition.scenarioId,
-        scenarioVersion: definition.scenarioVersion,
-        groupId: interventionGroupId(interventionFamily.fingerprint),
-      };
-      const split = assignDatasetSplit(group, splitPolicy);
-      const groupKey = splitGroupKey(group);
-      splitGroupCounts[split] += 1;
-      splitTrajectoryCounts[split] += definition.seeds.length;
-      groups.push({
-        parameterPoint,
-        interventionFamily,
-        group,
-        split,
-        groupKey,
-      });
+    for (const runCondition of definition.runConditions) {
+      for (const interventionFamily of definition.interventionFamilies) {
+        const group: DatasetGroupIdentity = {
+          engineVersion: definition.engineVersion,
+          parameterSetHash: parameterPoint.parameterSetHash,
+          scenarioId: definition.scenarioId,
+          scenarioVersion: definition.scenarioVersion,
+          runConditionFingerprint: runCondition.fingerprint,
+          groupId: interventionGroupId(interventionFamily.fingerprint),
+        };
+        const split = assignDatasetSplit(group, splitPolicy);
+        const groupKey = splitGroupKey(group);
+        splitGroupCounts[split] += 1;
+        splitTrajectoryCounts[split] += definition.seeds.length;
+        groups.push({
+          parameterPoint,
+          runCondition,
+          interventionFamily,
+          group,
+          split,
+          groupKey,
+        });
+      }
     }
   }
 
@@ -222,8 +239,14 @@ export function planMechanisticSweep(
   const tasks: MechanisticSweepTask[] = [];
 
   for (const plannedGroup of groups) {
-    const { parameterPoint, interventionFamily, group, split, groupKey } =
-      plannedGroup;
+    const {
+      parameterPoint,
+      runCondition,
+      interventionFamily,
+      group,
+      split,
+      groupKey,
+    } = plannedGroup;
 
     for (const seed of definition.seeds) {
       const trajectory: TrajectoryIdentity = {
@@ -243,6 +266,7 @@ export function planMechanisticSweep(
         normalizationProfileId: definition.normalizationProfileId,
         datasetSchema,
         parameterPointId: parameterPoint.id,
+        runConditionId: runCondition.id,
         interventionFamilyId: interventionFamily.id,
         split,
         trajectory,
@@ -276,7 +300,7 @@ export function buildMechanisticSweepManifest(
   const splitCounts = { ...plan.splitTrajectoryCounts };
 
   return {
-    schemaVersion: "petra-ml-sweep-manifest-v4",
+    schemaVersion: "petra-ml-sweep-manifest-v5",
     planVersion: plan.planVersion,
     datasetVersion: plan.datasetVersion,
     engineVersion: plan.engineVersion,
@@ -294,6 +318,8 @@ export function buildMechanisticSweepManifest(
       taskId: task.taskId,
       split: task.split,
       parameterPointId: task.parameterPointId,
+      runConditionId: task.runConditionId,
+      runConditionFingerprint: task.trajectory.group.runConditionFingerprint,
       interventionFamilyId: task.interventionFamilyId,
       seed: task.trajectory.seed,
       splitGroupKey: task.splitGroupKey,
@@ -382,6 +408,9 @@ function validateSweepDefinition(definition: MechanisticSweepDefinition): void {
   if (definition.parameterPoints.length === 0) {
     throw new RangeError("mechanistic sweep requires at least one parameter point");
   }
+  if (definition.runConditions.length === 0) {
+    throw new RangeError("mechanistic sweep requires at least one run condition");
+  }
   if (definition.interventionFamilies.length === 0) {
     throw new RangeError("mechanistic sweep requires at least one intervention family");
   }
@@ -404,6 +433,22 @@ function validateSweepDefinition(definition: MechanisticSweepDefinition): void {
       return point.parameterSetHash;
     },
     "parameterSetHash",
+  );
+  assertUnique(
+    definition.runConditions,
+    (condition) => {
+      requireNonEmpty("run condition id", condition.id);
+      return condition.id;
+    },
+    "run condition id",
+  );
+  assertUnique(
+    definition.runConditions,
+    (condition) => {
+      requireNonEmpty("run condition fingerprint", condition.fingerprint);
+      return condition.fingerprint;
+    },
+    "run condition fingerprint",
   );
   assertUnique(
     definition.interventionFamilies,

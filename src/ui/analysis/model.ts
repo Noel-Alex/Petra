@@ -414,6 +414,11 @@ function validatePoints(points: readonly ScientificSeriesPoint[]): void {
     if (!Number.isFinite(point.value)) {
       throw new RangeError("series values must be finite");
     }
+    if (point.timeHours === previousTime) {
+      throw new RangeError(
+        "series points must have unique simulation timestamps",
+      );
+    }
     if (point.timeHours < previousTime) {
       throw new RangeError("series points must be ordered by simulation time");
     }

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { SimulationRng } from "../rng";
+import {
+  SAMPLING_EXECUTION_POLICY_SCHEMA_VERSION,
+  SamplingPolicyRefusalError,
+  type SamplingExecutionPolicy,
+} from "../samplingPolicy";
 import { resolveT4Transport } from "./transport";
 import {
   PHAGE_SPATIAL_UNIT_BRIDGE_SCHEMA_VERSION,
@@ -13,6 +18,7 @@ import {
   modelBiomassToCellEquivalents,
   phageSpatialUnitBridgeIdentity,
   resolvePhageAdsorptionExposure,
+  sampleAdsorbedPfuWithPolicy,
   sampleExactAdsorbedPfu,
   validatePhageSpatialUnitBridge,
   type PhageSpatialUnitBridge,
@@ -199,5 +205,127 @@ describe("phage spatial unit bridge", () => {
     expect(() =>
       sampleExactAdsorbedPfu(1.5, 0.2, new SimulationRng(1)),
     ).toThrow(/safe integer/);
+  });
+});
+
+
+function adsorptionSamplingPolicy(
+  overrides: Partial<SamplingExecutionPolicy> = {},
+): SamplingExecutionPolicy {
+  return {
+    schemaVersion: SAMPLING_EXECUTION_POLICY_SCHEMA_VERSION,
+    id: "synthetic-phage-sampling-policy",
+    exactTrialLimit: 100,
+    acceleration: "exact-sparse-binomial-v1",
+    maximumExpectedAcceleratedDraws: 2_000,
+    maximumAcceleratedDraws: 4_000,
+    ...overrides,
+  };
+}
+
+describe("policy-bounded phage adsorption sampling", () => {
+  it("preserves exact reference output and RNG state below the exact budget", () => {
+    const directRng = new SimulationRng(44);
+    const policyRng = new SimulationRng(44);
+    const direct = sampleExactAdsorbedPfu(100, 0.2, directRng);
+    const bounded = sampleAdsorbedPfuWithPolicy(
+      100,
+      0.2,
+      policyRng,
+      adsorptionSamplingPolicy(),
+    );
+
+    expect(bounded.adsorbedPfu).toBe(direct);
+    expect(bounded.diagnostics.mode).toBe("exact-reference");
+    expect(policyRng.snapshot()).toEqual(directRng.snapshot());
+  });
+
+  it("samples billion-PFU rare adsorption in bounded sparse work", () => {
+    const freePfu = 1_000_000_000;
+    const sample = sampleAdsorbedPfuWithPolicy(
+      freePfu,
+      1e-8,
+      new SimulationRng(2026),
+      adsorptionSamplingPolicy(),
+    );
+
+    expect(sample.diagnostics.mode).toBe("exact-sparse-binomial");
+    expect(sample.diagnostics.rngDraws).toBeLessThan(100);
+    expect(sample.adsorbedPfu).toBeGreaterThanOrEqual(0);
+    expect(sample.adsorbedPfu).toBeLessThanOrEqual(freePfu);
+  });
+
+  it("preserves exact zero/one limits for large PFU counts", () => {
+    const freePfu = 1_000_000_000;
+    expect(
+      sampleAdsorbedPfuWithPolicy(
+        freePfu,
+        0,
+        new SimulationRng(1),
+        adsorptionSamplingPolicy(),
+      ).adsorbedPfu,
+    ).toBe(0);
+    expect(
+      sampleAdsorbedPfuWithPolicy(
+        freePfu,
+        1,
+        new SimulationRng(1),
+        adsorptionSamplingPolicy(),
+      ).adsorbedPfu,
+    ).toBe(freePfu);
+  });
+
+  it("refuses unsupported large-count regimes without consuming caller RNG", () => {
+    const rng = new SimulationRng(123);
+    const before = rng.snapshot();
+
+    expect(() =>
+      sampleAdsorbedPfuWithPolicy(
+        1_000_000,
+        0.5,
+        rng,
+        adsorptionSamplingPolicy({
+          maximumExpectedAcceleratedDraws: 100,
+          maximumAcceleratedDraws: 200,
+        }),
+      ),
+    ).toThrow(SamplingPolicyRefusalError);
+    expect(rng.snapshot()).toEqual(before);
+  });
+
+  it("matches the exact reference distribution over deterministic seeds", () => {
+    const freePfu = 300;
+    const probability = 0.02;
+    const seeds = 3_000;
+    let exactTotal = 0;
+    let acceleratedTotal = 0;
+    let exactTail = 0;
+    let acceleratedTail = 0;
+    const acceleratedPolicy = adsorptionSamplingPolicy({ exactTrialLimit: 0 });
+
+    for (let seed = 1; seed <= seeds; seed += 1) {
+      const exact = sampleExactAdsorbedPfu(
+        freePfu,
+        probability,
+        new SimulationRng(seed),
+      );
+      const accelerated = sampleAdsorbedPfuWithPolicy(
+        freePfu,
+        probability,
+        new SimulationRng(seed),
+        acceleratedPolicy,
+      ).adsorbedPfu;
+      exactTotal += exact;
+      acceleratedTotal += accelerated;
+      if (exact >= 11) exactTail += 1;
+      if (accelerated >= 11) acceleratedTail += 1;
+    }
+
+    expect(
+      Math.abs(acceleratedTotal / seeds - exactTotal / seeds),
+    ).toBeLessThan(0.2);
+    expect(
+      Math.abs(acceleratedTail / seeds - exactTail / seeds),
+    ).toBeLessThan(0.02);
   });
 });

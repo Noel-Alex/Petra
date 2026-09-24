@@ -316,7 +316,14 @@ export function createComposedState(
   }
 }
 
-function validateStateAgainstConfig(
+/**
+ * Single scientific-state validation authority for a composed state/config pair.
+ *
+ * This owns replay-critical scientific invariants shared by direct continuation
+ * and checkpoint restore. Run identity, tick/time, command counters, events and
+ * aggregate checkpoint metrics remain transport/runtime concerns.
+ */
+export function validateComposedStateAgainstConfig(
   state: ComposedSimulationState,
   config: ComposedSimulationConfig,
 ): void {
@@ -406,8 +413,7 @@ export function stepComposedState(
   state: ComposedSimulationState,
   config: ComposedSimulationConfig,
 ): ComposedMetrics {
-  validateConfig(config)
-  validateStateAgainstConfig(state, config)
+  validateComposedStateAgainstConfig(state, config)
 
   const ecology = asEcologyState(state)
   const fitness = lineageFitness(config)

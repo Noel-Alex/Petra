@@ -927,3 +927,75 @@ button:hover {
     text-align: left;
   }
 }
+
+
+/* Dish-first focus mode: presentation-only shell choreography.
+ * Scientific state, playback, and timeline authority remain unchanged.
+ */
+.petra-app {
+  --focus-motion-ms: 0ms;
+  --focus-motion-easing: linear;
+}
+
+.petra-workspace {
+  transition: grid-template-columns var(--focus-motion-ms)
+    var(--focus-motion-easing);
+}
+
+.dish-stage {
+  transition: min-height var(--focus-motion-ms) var(--focus-motion-easing);
+}
+
+.petra-app[data-focus-mode="focus"] .petra-workspace {
+  grid-template-columns:
+    minmax(0, 0fr)
+    minmax(22rem, 1fr)
+    minmax(0, 0fr);
+}
+
+.petra-app[data-focus-mode="focus"] .petra-panel {
+  min-width: 0;
+  overflow: hidden;
+  padding-inline: 0;
+  border-inline-width: 0;
+  opacity: 0;
+  transform: scale(0.985);
+  pointer-events: none;
+}
+
+.petra-app[data-focus-mode="focus"] .dish-stage {
+  min-height: clamp(38rem, 74vh, 58rem);
+}
+
+.petra-app[data-focus-treatment="crossfade"] .petra-panel {
+  transform: none;
+}
+
+.petra-app[data-focus-treatment="instant"] .petra-workspace,
+.petra-app[data-focus-treatment="instant"] .dish-stage,
+.petra-app[data-focus-treatment="instant"] .petra-panel {
+  transition-duration: 0ms;
+}
+
+.timeline-focus-summary {
+  flex: 1 1 20rem;
+  min-width: min(18rem, 100%);
+  margin: 0;
+  text-align: center;
+  font-size: var(--petra-type-metadata);
+  line-height: 1.4;
+}
+
+@media (max-width: 980px) {
+  .petra-app[data-focus-mode="focus"] .petra-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .petra-app[data-focus-mode="focus"] .petra-panel {
+    display: none;
+  }
+
+  .petra-app[data-focus-mode="focus"] .dish-stage {
+    min-height: clamp(30rem, 68vh, 48rem);
+  }
+}

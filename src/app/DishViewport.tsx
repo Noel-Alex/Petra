@@ -162,7 +162,7 @@ export function DishViewport({
       <p className="dish-interaction-hint" id={interactionHintId}>
         Pointer: wheel to zoom · drag while zoomed · double-click to focus.
         Touch: drag while zoomed · pinch to zoom. Keyboard: +/− zoom · arrow
-        keys pan · Home or 0 reset.
+        keys pan · Home, 0, Escape, or Dish resets overview.
       </p>
       {usingDemo ? (
         <p className="dish-demo-disclosure">

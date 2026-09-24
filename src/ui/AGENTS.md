@@ -38,6 +38,9 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Persist the user's in-app motion choice as `system | full | reduced | off`; adapters resolve `system` against the current OS preference rather than copying that logic into components.
 - Onboarding/story components consume `src/ui/motion/onboarding.ts` as deterministic story state. Timers, scroll position, and animation callbacks may present a transition, but they must not become the source of scientific story order.
 - React/Motion and renderer adapters should translate resolved treatments/tokens into library-specific props; they should not invent competing easing/duration constants for the same semantic event.
+- Authoritative scientific events map through `src/ui/motion/events.ts`: adapters may render its cues, but animation callbacks/timers must never synthesize simulator events.
+- Causal event choreography preserves the user's current camera by default; attention-stealing camera motion requires a separate explicit navigation action.
+- Event cue timing is presentation wall time only. Never label a motion-token duration as mutation, selection, depletion, infection, or drug-response duration.
 
 
 ## Counterfactual compare semantics

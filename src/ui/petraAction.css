@@ -1,0 +1,101 @@
+.petra-action {
+  --petra-action-duration: 160ms;
+  --petra-action-y: 0rem;
+  --petra-action-scale: 1;
+  width: 100%;
+  min-height: 3.25rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.72rem;
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 1rem;
+  padding: 0.72rem 0.82rem;
+  background: color-mix(in srgb, currentColor 5%, transparent);
+  color: inherit;
+  text-align: left;
+  touch-action: manipulation;
+  transform: translateY(var(--petra-action-y)) scale(var(--petra-action-scale));
+  transition:
+    transform var(--petra-action-duration) cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color var(--petra-action-duration) cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color var(--petra-action-duration) cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow var(--petra-action-duration) cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.petra-action[data-emphasis="hover"],
+.petra-action[data-emphasis="focus"] {
+  border-color: color-mix(in srgb, currentColor 35%, transparent);
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.petra-action[data-emphasis="focus"] {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.petra-action[data-emphasis="press"] {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.petra-action[data-emphasis="selected"] {
+  border-color: color-mix(in srgb, currentColor 48%, transparent);
+  background: color-mix(in srgb, currentColor 11%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 15%, transparent);
+}
+
+.petra-action[data-emphasis="disabled"] {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.petra-action__icon {
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.7rem;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.petra-action__copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.14rem;
+}
+
+.petra-action__copy strong,
+.petra-action__copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.petra-action__copy span {
+  font-size: 0.78rem;
+  line-height: 1.25;
+  opacity: 0.68;
+}
+
+.petra-action__trailing {
+  justify-self: end;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.72;
+}
+
+.petra-action[data-motion="off"] {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .petra-action[data-motion="reduced"],
+  .petra-action[data-motion="off"] {
+    transition-property: border-color, background-color, box-shadow;
+  }
+}
+
+@media (hover: none) {
+  .petra-action[data-emphasis="hover"] {
+    border-color: color-mix(in srgb, currentColor 14%, transparent);
+    background: color-mix(in srgb, currentColor 5%, transparent);
+  }
+}

@@ -1,0 +1,132 @@
+.timeline-history-shell {
+  flex: 1 1 24rem;
+  min-width: min(24rem, 100%);
+  max-width: 42rem;
+  display: grid;
+  gap: 0.38rem;
+}
+
+.timeline-history-shell .timeline-events {
+  min-width: 0;
+  max-width: none;
+  width: 100%;
+}
+
+.timeline-history {
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.timeline-history > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 2.35rem;
+  padding: 0.48rem 0.62rem;
+  border-radius: inherit;
+  color: #c8d4e4;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+  list-style-position: inside;
+}
+
+.timeline-history > summary:hover {
+  background: rgba(143, 220, 255, 0.045);
+}
+
+.timeline-history > summary:focus-visible,
+.timeline-history__scroll:focus-visible {
+  outline: 3px solid var(--petra-focus-ring);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 1px var(--petra-focus-edge);
+}
+
+.timeline-history[open] > summary {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.timeline-history__count {
+  margin: 0;
+  color: #8d9bae;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.timeline-history__scroll {
+  max-height: min(19rem, 42vh);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.timeline-history__events {
+  display: grid;
+  gap: 0.28rem;
+  margin: 0;
+  padding: 0.5rem;
+  list-style: none;
+}
+
+.timeline-history__event {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.8rem;
+  align-items: start;
+  padding: 0.52rem 0.58rem;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.025);
+  color: #bdc8d8;
+  font-size: 0.75rem;
+}
+
+.timeline-history__event-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.12rem;
+}
+
+.timeline-history__event-copy > span {
+  overflow-wrap: anywhere;
+}
+
+.timeline-history__event-copy small {
+  color: #8391a5;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.timeline-history__time {
+  flex: 0 0 auto;
+  color: #8998ad;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+  .timeline-history-shell {
+    order: 3;
+    flex-basis: 100%;
+    max-width: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .timeline-history > summary {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .timeline-history__event {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+}

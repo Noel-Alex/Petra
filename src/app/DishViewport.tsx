@@ -30,7 +30,7 @@ export function DishViewport({
   );
   const resolvedOverlayId = activeOverlay?.id ?? null;
   const usingDemo = snapshot === null || snapshot === undefined;
-  const cameraTreatment = resolveMotion(motion, {
+  const cameraTreatment = resolveMotion("full", {
     kind: "navigational",
     durationMs: MOTION.cameraFocus.durationMs,
   });

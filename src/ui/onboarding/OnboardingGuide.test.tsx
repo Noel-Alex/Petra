@@ -26,6 +26,13 @@ describe("OnboardingGuide", () => {
     expect(html).toContain("Selection");
     expect(html).toContain("Experiment");
     expect(html).toContain('data-motion-treatment="animate"');
+    expect(html).toContain('data-ambient-motion="animate"');
+    expect(html).toContain("--onboarding-ambient-primary-ms:8000ms");
+    expect(html).toContain("--onboarding-ambient-secondary-ms:11000ms");
+    expect(html).toContain("--onboarding-focus-orbit-ms:12000ms");
+    expect(html).toContain(
+      "--onboarding-ambient-primary-easing:cubic-bezier(0.42, 0, 0.58, 1)",
+    );
   });
 
   it("visibly locks a causal stage until canonical scientific state is satisfied", () => {
@@ -61,6 +68,10 @@ describe("OnboardingGuide", () => {
 
     expect(ready).toContain("Authoritative gate satisfied");
     expect(ready).toContain('data-motion-treatment="crossfade"');
+    expect(ready).toContain('data-ambient-motion="static"');
+    expect(ready).toContain("--onboarding-ambient-primary-ms:0ms");
+    expect(ready).toContain("--onboarding-ambient-secondary-ms:0ms");
+    expect(ready).toContain("--onboarding-focus-orbit-ms:0ms");
     expect(ready).not.toMatch(/<button[^>]*disabled=""[^>]*>Continue<\/button>/);
   });
 

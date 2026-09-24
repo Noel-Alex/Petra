@@ -106,6 +106,25 @@ describe("onboarding story", () => {
     expect(off.motion.durationMs).toBe(0);
   });
 
+  it("projects ambient loop authority without coupling it to story gates", () => {
+    const state = initialOnboardingState();
+
+    const full = resolveOnboardingPresentation(state, "full");
+    expect(full.ambient.primaryDrift.motion.durationMs).toBe(8_000);
+    expect(full.ambient.secondaryDrift.motion.durationMs).toBe(11_000);
+    expect(full.ambient.focusOrbit.motion.durationMs).toBe(12_000);
+    expect(full.ambient.primaryDrift.motion.loops).toBe(true);
+
+    const reduced = resolveOnboardingPresentation(state, "reduced");
+    expect(reduced.ambient.primaryDrift.motion.durationMs).toBe(0);
+    expect(reduced.ambient.secondaryDrift.motion.durationMs).toBe(0);
+    expect(reduced.ambient.focusOrbit.motion.durationMs).toBe(0);
+    expect(reduced.ambient.primaryDrift.motion.loops).toBe(false);
+
+    expect(currentStage(state).id).toBe("ecosystem");
+    expect(canContinue(state)).toBe(true);
+  });
+
   it("reset restores a clean replayable story", () => {
     let state = initialOnboardingState();
     state = reduceOnboarding(state, {

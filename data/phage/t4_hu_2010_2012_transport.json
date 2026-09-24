@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "t4_hu_2010_2012_transport",
   "phage": {
     "name": "T4"
@@ -18,6 +18,16 @@
       "key": "hu_2012_t4_biofilm_diffusion",
       "label": "Hu, Miyanaga & Tanji (2012)",
       "doi": "10.1002/btpr.742"
+    },
+    {
+      "key": "lisac_2022_t4_mg1655_biofilm",
+      "label": "Lisac, Birsa & Podgornik (2022)",
+      "doi": "10.1111/1751-7915.14079"
+    },
+    {
+      "key": "lisac_podgornik_2025_t4_starvation",
+      "label": "Lisac & Podgornik (2025)",
+      "doi": "10.1186/s12985-025-02934-0"
     }
   ],
   "measurements": [
@@ -74,6 +84,16 @@
     "freePhageLoss": {
       "status": "unbound",
       "limitation": "No compatible general environmental T4 free-phage loss constant is bound for this Petra matrix. Nabergoj's zero-loss model term is not promoted to a measured spatial decay constant."
+    },
+    "livingHostTransport": {
+      "status": "out-of-domain",
+      "evidenceClass": null,
+      "basisSourceKeys": [
+        "hu_2012_t4_biofilm_diffusion",
+        "lisac_2022_t4_mg1655_biofilm",
+        "lisac_podgornik_2025_t4_starvation"
+      ],
+      "limitation": "No passive scalar living-host T4 diffusion coefficient is bound. Hu 2012 shows apparent transport changes with adsorption and phage proliferation, while exact-pair MG1655/T4 biofilm and starvation studies couple phage movement/output to infection, lysis, and host physiology. Petra therefore keeps host-bearing physical transport out of domain instead of substituting the dead-host coefficient or treating propagation-enhanced apparent transport as diffusion."
     }
   }
 }

@@ -1,3 +1,4 @@
+import { gridCellCenter } from "../gridGeometry";
 import type { DishRenderSnapshot } from "../model";
 
 /**
@@ -21,8 +22,9 @@ export function createRendererDemoSnapshot(size = 48): DishRenderSnapshot {
   for (let row = 0; row < size; row += 1) {
     for (let column = 0; column < size; column += 1) {
       const index = row * size + column;
-      const x = column / (size - 1);
-      const y = row / (size - 1);
+      const center = gridCellCenter(index, size, size);
+      const x = center.x;
+      const y = center.y;
       const dx = x - 0.5;
       const dy = y - 0.5;
       const inside = dx * dx + dy * dy <= 0.245;

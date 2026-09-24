@@ -33,9 +33,13 @@ The division ledger is **continuous biomass production**, not an integer count o
 
 Issue #5 therefore still needs a reviewed bridge from Petra's aggregate population units to discrete/accelerated mutation opportunities (for example, an explicitly defined cell-equivalent scale or a statistically validated aggregate event sampler). This boundary is deliberate: Petra must not manufacture integer births by rounding an unlabeled biomass quantity.
 
-## Remaining Issue #3 integration
+## Issue #3 completion boundary
 
-The kernel now separates division and death fluxes and accepts relative fitness. Before #3 can fully close, the authoritative engine/scenario layer still needs to own this state and load a defensible flagship growth/resource parameter set or transparently calibrated/engineering replacements. Do not invent source-looking physical constants to make the demo move.
+Issue #3's ecology mechanism and integration gates are now complete. The authoritative composed simulation owns and checkpoints the resource/lineage state consumed by this kernel, and the bundled flagship resolves its runnable growth inputs through a versioned **engineering** execution profile with model-resource/model-biomass units, explicit behavioral targets, and visible limitations.
+
+This does **not** turn the flagship into a physically calibrated MG1655 Monod system. Its physical limiting-resource identity/concentration/biomass mapping remains explicitly UNBOUND, and the shared Science Mode admission gate therefore keeps that research scenario experimental. A future source-compatible physical parameter pack is a new scenario/data calibration task, not unfinished Issue #3 kernel work.
+
+The continuous-division-flux → discrete mutation-opportunity boundary is likewise owned separately by the shared population/evolution authority (#562/#5); it must not be reopened as ecology rounding logic.
 
 ## Verification
 

@@ -10,9 +10,11 @@ Own framework-neutral presentation of authoritative scientific/source provenance
 - Scenario-wide transfer assumptions remain scenario-wide disclosures unless the data layer explicitly links one to a particular parameter/mechanism. UI adapters must not silently turn a general assumption into a field-specific transfer note.
 - Unknown domain classifications (for example a mutation-target provenance vocabulary not represented by `EvidenceClass`) remain `needs-provenance` until the science/data layer defines the mapping.
 - React components consume resolved presentations/resolutions; they do not implement parallel classification logic.
+- `ProvenancePanel.tsx` may display authoritative declared sources even when classification is incomplete, but it must not convert those sources into an evidence badge.
+- Shared icon geometry comes from `src/ui/icons/spec.ts` via the thin `PetraIcon.tsx` adapter; provenance components must not invent a second icon vocabulary.
 
 ## Accessibility
-- Critical evidence meaning uses text labels plus icon and non-color pattern tokens.
+- Critical evidence meaning uses text labels plus icon and **visibly distinct** non-color pattern tokens; `data-pattern` metadata alone is not sufficient without a rendered pattern treatment.
 - `needs-provenance` must be visible in text and must not degrade into a reassuring neutral badge.
 - Sources/assumptions panels must remain keyboard/focus operable; motion is presentation-only.
 

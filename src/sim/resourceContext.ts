@@ -71,6 +71,15 @@ const EVIDENCE_CLASSES = new Set<ResourceContextEvidenceClass>([
   "transferred_mechanistic_approximation",
 ]);
 
+const SOURCE_REQUIRED_EVIDENCE_CLASSES =
+  new Set<ResourceContextEvidenceClass>([
+    "measured",
+    "derived",
+    "transferred",
+    "mechanistic_approximation",
+    "transferred_mechanistic_approximation",
+  ]);
+
 /**
  * Validates and isolates scenario resource metadata before it enters simulation
  * composition. The returned value is immutable and contains no live JSON refs.
@@ -182,6 +191,8 @@ export function resourceContextIdentity(
 }
 
 function validateSemanticContract(context: ScenarioResourceContext): void {
+  validateProvenanceContract(context.provenance);
+
   if (context.bindingStatus === "unbound") {
     if (context.representation !== "dimensionless_model_resource") {
       throw new Error(
@@ -219,6 +230,52 @@ function validateSemanticContract(context: ScenarioResourceContext): void {
         "physical resource context cannot use model-resource concentration units",
       );
     }
+  }
+}
+
+function validateProvenanceContract(
+  provenance: ResourceContextProvenance,
+): void {
+  const sourceCount =
+    (provenance.citation === undefined ? 0 : 1) +
+    (provenance.citations?.length ?? 0);
+
+  if (
+    SOURCE_REQUIRED_EVIDENCE_CLASSES.has(provenance.classification) &&
+    sourceCount === 0
+  ) {
+    throw new Error(
+      `resourceContext.provenance requires at least one citation key for ${provenance.classification}`,
+    );
+  }
+
+  if (
+    (provenance.classification === "transferred" ||
+      provenance.classification === "transferred_mechanistic_approximation") &&
+    provenance.transferNote === undefined
+  ) {
+    throw new Error(
+      "resourceContext.provenance.transferNote is required for transferred evidence",
+    );
+  }
+
+  if (
+    (provenance.classification === "mechanistic_approximation" ||
+      provenance.classification === "transferred_mechanistic_approximation") &&
+    provenance.limitation === undefined
+  ) {
+    throw new Error(
+      "resourceContext.provenance.limitation is required for model approximations",
+    );
+  }
+
+  if (
+    provenance.classification === "derived" &&
+    provenance.transformation === undefined
+  ) {
+    throw new Error(
+      "resourceContext.provenance.transformation is required for derived evidence",
+    );
   }
 }
 

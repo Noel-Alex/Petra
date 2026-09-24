@@ -66,6 +66,9 @@ describe("provenance panel", () => {
     expect(markup).toContain(
       "Provenance incomplete: an explicit evidence classification is required.",
     );
+    expect(markup).toContain("Declared sources");
+    expect(markup).toContain("Marcusson et al. 2009");
+    expect(markup).toContain("DOI: 10.1371/journal.ppat.1000541");
     expect(markup).toContain("0 complete · 1 need provenance");
     expect(markup).not.toContain("Measured evidence");
   });

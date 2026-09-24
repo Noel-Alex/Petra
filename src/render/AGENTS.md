@@ -37,6 +37,15 @@ Critical lineage/state distinctions require a non-color cue. Reduced-motion mode
 
 The contract in this directory must remain usable without PixiJS. Pixi/WebGL adapters consume these types/helpers; domain/UI code should not depend on Pixi scene objects.
 
+## Pixi adapter
+
+- `src/render/pixiScene.ts` is an adapter over `DishRenderSnapshot`; Pixi objects never cross into simulation/domain state.
+- React owns mount/unmount and passes snapshots/motion preference. The scene controller owns camera transforms and rendering only.
+- The renderer fixture is explicitly synthetic and presentation-only. Replace it with authoritative #42/#37 snapshots without changing scene semantics.
+- Pan/zoom operate on `CameraView`; semantic zoom controls representation density, not biology.
+- Keep one Pixi `Application` per mounted dish unless profiling demonstrates a different lifecycle is materially better.
+- Prefer stable aggregated primitives at dish scale and bounded representative glyphs at colony scale.
+
 ## Verification
 
-Pure render-model helpers get deterministic unit tests. Browser/GPU/FPS claims require actual browser/device measurements and must not be inferred from source review.
+Pure render-model/camera helpers get deterministic unit tests. Browser/GPU/FPS claims require actual browser/device measurements and must not be inferred from source review. Hosted CI is currently disabled by repository policy; route browser/performance evidence through the local experiment runner.

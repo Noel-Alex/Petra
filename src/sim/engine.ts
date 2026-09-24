@@ -1,10 +1,10 @@
 import { SimulationRng } from './rng'
 import type {
   RunIdentity,
-  SimulationCheckpoint,
   SimulationCommand,
   SimulationEvent,
-  SimulationSnapshot,
+  SyntheticSimulationCheckpoint,
+  SyntheticSimulationSnapshot,
 } from './protocol'
 
 const HOURS_PER_TICK = 1 / 60
@@ -51,7 +51,7 @@ function finiteNonNegativeResult(name: string, value: number): number {
   return value
 }
 
-function assertCheckpointScalarInvariants(checkpoint: SimulationCheckpoint): void {
+function assertCheckpointScalarInvariants(checkpoint: SyntheticSimulationCheckpoint): void {
   if (!Number.isSafeInteger(checkpoint.tick) || checkpoint.tick < 0) {
     throw new Error('checkpoint.tick must be a non-negative safe integer')
   }
@@ -86,8 +86,11 @@ export class SimulationEngine {
     this.pushEvent({ type: 'initialized' })
   }
 
-  execute(command: SimulationCommand): SimulationSnapshot {
+  execute(command: SimulationCommand): SyntheticSimulationSnapshot {
     if (command.type === 'restore') {
+      if (command.checkpoint.authority === 'composed') {
+        throw new Error('Cannot restore a composed checkpoint into synthetic authority')
+      }
       this.restore(command.checkpoint)
       this.pushEvent({ type: 'restored', commandId: command.id })
       return this.snapshot()
@@ -151,8 +154,8 @@ export class SimulationEngine {
     return this.snapshot()
   }
 
-  snapshot(): SimulationSnapshot {
-    const checkpoint: SimulationCheckpoint = {
+  snapshot(): SyntheticSimulationSnapshot {
+    const checkpoint: SyntheticSimulationCheckpoint = {
       identity: structuredClone(this.identity),
       tick: this.tick,
       simulationTimeHours: this.currentSimulationTimeHours(),
@@ -179,7 +182,7 @@ export class SimulationEngine {
     })
   }
 
-  private restore(checkpoint: SimulationCheckpoint): void {
+  private restore(checkpoint: SyntheticSimulationCheckpoint): void {
     if (stableStringify(checkpoint.identity) !== stableStringify(this.identity)) {
       throw new Error('Cannot restore a checkpoint from a different run identity')
     }

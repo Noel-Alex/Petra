@@ -118,6 +118,17 @@ function validate(
       }
     }
   }
+
+  // State arrays are caller-owned and mutable. Validate every in-domain value
+  // before the step mutates resource or lineage channels so malformed input
+  // cannot leave a partially applied scientific state behind after throwing.
+  for (let index = 0; index < n; index += 1) {
+    if (state.mask[index] === 0) continue
+    finiteNonNegative('resource concentration', state.resource[index]!)
+    for (let lineageIndex = 0; lineageIndex < state.lineages.length; lineageIndex += 1) {
+      finiteNonNegative('lineage biomass', state.lineages[lineageIndex]![index]!)
+    }
+  }
 }
 
 /**

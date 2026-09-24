@@ -10,6 +10,7 @@ import {
   synchronizeCompareCursor,
   type CounterfactualBranch,
 } from "../counterfactual";
+import { PetraCompactAction } from "../PetraCompactAction";
 import type { MotionPreference } from "../motion/policy";
 import {
   normalizeSwipePercent,
@@ -124,20 +125,22 @@ export function CounterfactualCompare({
           role="group"
           aria-label="Comparison layout"
         >
-          <button
-            type="button"
-            aria-pressed={mode === "side-by-side"}
+          <PetraCompactAction
+            className="petra-compare__mode-action"
+            motionPreference={motionPreference}
+            selected={mode === "side-by-side"}
             onClick={() => setMode("side-by-side")}
           >
             Side by side
-          </button>
-          <button
-            type="button"
-            aria-pressed={mode === "swipe"}
+          </PetraCompactAction>
+          <PetraCompactAction
+            className="petra-compare__mode-action"
+            motionPreference={motionPreference}
+            selected={mode === "swipe"}
             onClick={() => setMode("swipe")}
           >
             Swipe
-          </button>
+          </PetraCompactAction>
         </div>
       </header>
 

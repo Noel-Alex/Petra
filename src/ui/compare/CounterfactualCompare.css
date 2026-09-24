@@ -379,3 +379,52 @@
   }
 }
 
+
+
+.petra-compare__surface[data-surface-status="mismatch"] {
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      rgba(255, 195, 107, 0.035) 0 0.55rem,
+      transparent 0.55rem 1.1rem
+    ),
+    rgba(9, 21, 39, 0.78);
+}
+
+.petra-compare__surface-warning {
+  width: min(25rem, 100%);
+  height: auto !important;
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(255, 195, 107, 0.28);
+  border-radius: 16px;
+  background: rgba(35, 26, 13, 0.72);
+  color: #f7d79b;
+}
+
+.petra-compare__surface-warning strong {
+  color: #ffe9bf;
+}
+
+.petra-compare__surface-warning span,
+.petra-compare__surface-warning small {
+  line-height: 1.45;
+}
+
+.petra-compare__surface-warning span {
+  color: #dcc9a7;
+  font-size: var(--petra-type-metadata);
+}
+
+.petra-compare__surface-warning small {
+  color: #aa9a80;
+  font-size: var(--petra-type-caption);
+}
+
+.petra-compare__surface-mismatch {
+  color: #ffc36b;
+}

@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "id": "t4-dsm4505_ecoli-k12-mg1655-dsm18039_nabergoj-2018",
+  "source": {
+    "key": "nabergoj_2018_t4_mg1655",
+    "label": "Nabergoj, Modic & Podgornik (2018)",
+    "doi": "10.1002/mbo3.558"
+  },
+  "phage": {
+    "name": "T4",
+    "collectionId": "DSM 4505"
+  },
+  "host": {
+    "species": "Escherichia coli",
+    "background": "K-12 MG1655",
+    "collectionId": "DSM 18039"
+  },
+  "context": {
+    "culture": "aerobic continuous culture (chemostat)",
+    "medium": "low-salt LB",
+    "mediumCompositionGPerL": {
+      "tryptone": 10,
+      "sodiumChloride": 5,
+      "yeastExtract": 5
+    },
+    "pH": 7,
+    "temperatureC": 37
+  },
+  "measuredDomain": {
+    "growthRatePerHourMin": 0.06,
+    "growthRatePerHourMax": 0.98
+  },
+  "units": {
+    "growthRate": "h^-1",
+    "adsorptionConstant": "mL min^-1",
+    "latentPeriod": "min",
+    "burstSize": "PFU cell^-1"
+  },
+  "provenance": {
+    "classification": "measured",
+    "limitation": "Measured in homogeneous chemostat culture; mapping to Petra local spatial growth is a transferred mechanistic approximation."
+  },
+  "rows": [
+    {
+      "growthRatePerHour": 0.06,
+      "adsorptionConstantMlPerMin": 2.6e-9,
+      "adsorptionConstantSdMlPerMin": 2.4e-10,
+      "latentPeriodMinutes": 80,
+      "latentPeriodSdMinutes": 4,
+      "burstSizePfuPerCell": 8,
+      "burstSizeSdPfuPerCell": 2
+    },
+    {
+      "growthRatePerHour": 0.13,
+      "adsorptionConstantMlPerMin": 2e-9,
+      "adsorptionConstantSdMlPerMin": 1.2e-10,
+      "latentPeriodMinutes": 60,
+      "latentPeriodSdMinutes": 4,
+      "burstSizePfuPerCell": 13,
+      "burstSizeSdPfuPerCell": 3
+    },
+    {
+      "growthRatePerHour": 0.26,
+      "adsorptionConstantMlPerMin": 1.1e-9,
+      "adsorptionConstantSdMlPerMin": 1.9e-10,
+      "latentPeriodMinutes": 41,
+      "latentPeriodSdMinutes": 1,
+      "burstSizePfuPerCell": 20,
+      "burstSizeSdPfuPerCell": 5
+    },
+    {
+      "growthRatePerHour": 0.5,
+      "adsorptionConstantMlPerMin": 8.1e-10,
+      "adsorptionConstantSdMlPerMin": 4e-11,
+      "latentPeriodMinutes": 36,
+      "latentPeriodSdMinutes": 4,
+      "burstSizePfuPerCell": 33,
+      "burstSizeSdPfuPerCell": 6
+    },
+    {
+      "growthRatePerHour": 0.6,
+      "adsorptionConstantMlPerMin": 5.3e-10,
+      "adsorptionConstantSdMlPerMin": 4e-11,
+      "latentPeriodMinutes": 31,
+      "latentPeriodSdMinutes": 3,
+      "burstSizePfuPerCell": 59,
+      "burstSizeSdPfuPerCell": 3
+    },
+    {
+      "growthRatePerHour": 0.73,
+      "adsorptionConstantMlPerMin": 4.2e-10,
+      "adsorptionConstantSdMlPerMin": 7e-11,
+      "latentPeriodMinutes": 29,
+      "latentPeriodSdMinutes": 3,
+      "burstSizePfuPerCell": 66,
+      "burstSizeSdPfuPerCell": 7
+    },
+    {
+      "growthRatePerHour": 0.82,
+      "adsorptionConstantMlPerMin": 5e-10,
+      "adsorptionConstantSdMlPerMin": 5e-11,
+      "latentPeriodMinutes": 27,
+      "latentPeriodSdMinutes": 1,
+      "burstSizePfuPerCell": 75,
+      "burstSizeSdPfuPerCell": 4
+    },
+    {
+      "growthRatePerHour": 0.98,
+      "adsorptionConstantMlPerMin": 5.2e-10,
+      "adsorptionConstantSdMlPerMin": 4e-11,
+      "latentPeriodMinutes": 27,
+      "latentPeriodSdMinutes": 1,
+      "burstSizePfuPerCell": 89,
+      "burstSizeSdPfuPerCell": 4
+    }
+  ]
+}

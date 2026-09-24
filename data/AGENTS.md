@@ -23,7 +23,7 @@ Prefer normalized IDs and source keys so UI, simulator, validation, and explanat
 JSON must parse; schemas/presets must pass the repository verifier. Science-mode presets must contain citations for measured/transferred values.
 
 ## Child DOX index
-No child contracts yet.
+- `phage/AGENTS.md` — canonical published phage evidence, measured-row integrity, and unresolved unit/transport boundaries.
 
 ## Record-level presentation provenance
 - Science records exposed to UI may carry a nested `provenance` object with an explicit presentation evidence classification, source key(s), and any record-specific context/transfer/calibration/limitation metadata.

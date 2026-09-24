@@ -1,4 +1,4 @@
-import { SimulationRng, type RngState } from "./rng";
+import { SimulationRng } from "./rng";
 
 export const SAMPLING_EXECUTION_POLICY_SCHEMA_VERSION = 1 as const;
 export const EXACT_SPARSE_BINOMIAL_ALGORITHM_VERSION = 1 as const;
@@ -215,10 +215,6 @@ export function runSamplingTransaction<T>(
   const value = operation(transactionRng);
   rng.restore(transactionRng.snapshot());
   return value;
-}
-
-export function rngStateEqual(left: RngState, right: RngState): boolean {
-  return left.every((value, index) => value === right[index]);
 }
 
 function consumeDraw(

@@ -30,3 +30,12 @@ Pure motion-policy helpers must have deterministic unit tests. Browser animation
 - Persist the user's in-app motion choice as `system | full | reduced | off`; adapters resolve `system` against the current OS preference rather than copying that logic into components.
 - Onboarding/story components consume `src/ui/motion/onboarding.ts` as deterministic story state. Timers, scroll position, and animation callbacks may present a transition, but they must not become the source of scientific story order.
 - React/Motion and renderer adapters should translate resolved treatments/tokens into library-specific props; they should not invent competing easing/duration constants for the same semantic event.
+
+
+## Counterfactual compare semantics
+- Compare/fork presentation consumes authoritative fork metadata and command streams; it never performs simulation mutation itself.
+- Two branches may be described as a causal counterfactual pair only when their exact fork origin matches (run identity/checkpoint fingerprint/tick/time/command count).
+- UI must distinguish intervention divergence from stochastic seed divergence. If both differ, disclose both rather than attributing the difference to one cause.
+- Side-by-side/swipe views synchronize biological simulation time, not animation wall time, and visibly handle a branch that has not simulated as far as the other.
+- Trajectory differences default to shared authoritative sample times. Any later interpolation/smoothing is a chart-layer presentation choice and must be labelled.
+- Export/share adapters should preserve fork origin, seed, ordered post-fork command identity, and provenance needed to replay the comparison.

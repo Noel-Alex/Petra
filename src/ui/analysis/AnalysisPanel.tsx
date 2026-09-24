@@ -4,6 +4,7 @@ import {
   type ReactElement,
 } from "react";
 
+import { petraVisualColorCssVariableName } from "../../design/visualTokens";
 import type { MotionPreference } from "../motion/policy";
 import { keepAnalysisDataScrollKeyLocal } from "./analysisKeyboard";
 import {
@@ -542,13 +543,22 @@ function LineageNode({
   readonly x: number;
   readonly y: number;
 }): ReactElement {
+  const identityStyle = {
+    "--analysis-lineage-color": `var(${petraVisualColorCssVariableName(node.colorToken)})`,
+    "--analysis-lineage-stroke-scale": node.strokeWidthScale,
+  } as CSSProperties;
+
   return (
     <g
       className="analysis-lineage__node"
       data-lineage-id={node.lineageId}
       data-lineage-status={node.status}
+      data-lineage-appearance={node.appearanceToken}
+      data-lineage-pattern={node.patternToken}
+      data-contrast-mode={node.contrastMode}
       role="img"
       aria-label={node.ariaLabel}
+      style={identityStyle}
       transform={`translate(${x} ${y})`}
     >
       {node.status === "extant" ? (

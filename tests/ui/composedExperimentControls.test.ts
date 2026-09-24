@@ -88,6 +88,9 @@ describe('composed experiment-control lifecycle', () => {
       const request = firstInitialize(action)
       expect(request.composedConfig).toEqual(composedConfig)
       expect(request.composedConfig).not.toBe(composedConfig)
+      expect(request.identity.parameterSetBinding).toEqual(
+        identity.parameterSetBinding,
+      )
     }
   })
 

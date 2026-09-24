@@ -1,0 +1,47 @@
+.petra-compact-action {
+  --petra-compact-action-duration: 0ms;
+  --petra-compact-action-easing: ease;
+  --petra-compact-action-y: 0rem;
+  --petra-compact-action-scale: 1;
+  touch-action: manipulation;
+  transform:
+    translateY(var(--petra-compact-action-y))
+    scale(var(--petra-compact-action-scale));
+  transition:
+    transform var(--petra-compact-action-duration) var(--petra-compact-action-easing),
+    border-color var(--petra-compact-action-duration) var(--petra-compact-action-easing),
+    background-color var(--petra-compact-action-duration) var(--petra-compact-action-easing),
+    box-shadow var(--petra-compact-action-duration) var(--petra-compact-action-easing);
+}
+
+.petra-compact-action[data-emphasis="hover"],
+.petra-compact-action[data-emphasis="focus"] {
+  border-color: color-mix(in srgb, currentColor 35%, transparent);
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.petra-compact-action[data-emphasis="press"] {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.petra-compact-action[data-emphasis="selected"] {
+  border-color: color-mix(in srgb, currentColor 48%, transparent);
+  background: color-mix(in srgb, currentColor 11%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 15%, transparent);
+}
+
+.petra-compact-action[data-emphasis="disabled"] {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.petra-compact-action[data-motion="off"] {
+  transition: none;
+}
+
+@media (hover: none) {
+  .petra-compact-action[data-emphasis="hover"] {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.06);
+  }
+}

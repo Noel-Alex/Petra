@@ -846,13 +846,16 @@ def scenario_contracts() -> int:
         grid_size = defaults.get("gridSize")
         radius = defaults.get("dishRadiusCells")
         lineages = composed_set.get("lineages")
-        lineage_ids = {
-            lineage.get("id")
-            for lineage in lineages
+        lineage_ids = (
+            {
+                lineage.get("id")
+                for lineage in lineages
+                if isinstance(lineage, dict)
+                and _nonempty_string(lineage.get("id"))
+            }
             if isinstance(lineages, list)
-            for lineage in lineages
-            if isinstance(lineage, dict) and _nonempty_string(lineage.get("id"))
-        } if isinstance(lineages, list) else set()
+            else set()
+        )
 
         inocula = preset.get("inocula")
         if not isinstance(inocula, list):

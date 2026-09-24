@@ -307,6 +307,28 @@ export class ComposedSimulationEngine {
       )
     }
 
+    if (command.type === 'apply-ciprofloxacin-uniform') {
+      if (this.config.ciprofloxacin === undefined) {
+        throw new Error('ciprofloxacin intervention is unavailable for this composed configuration')
+      }
+      finiteNonNegative('ciprofloxacin concentrationMgL', command.concentrationMgL)
+      if (!Number.isSafeInteger(this.commandCount + 1)) {
+        throw new Error('ciprofloxacin intervention would exceed the safe integer command-count domain')
+      }
+      const workingState = cloneComposedState(this.state)
+      workingState.ciprofloxacinMgL = workingState.mask.map((inside) =>
+        inside === 1 ? command.concentrationMgL : 0,
+      )
+      this.state = workingState
+      this.commandCount += 1
+      this.pushEvent({
+        type: 'ciprofloxacin-applied',
+        commandId: command.id,
+        value: command.concentrationMgL,
+      })
+      return this.snapshot()
+    }
+
     if (!Number.isSafeInteger(command.ticks) || command.ticks < 0) {
       throw new Error('advance.ticks must be a non-negative safe integer')
     }

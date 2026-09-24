@@ -3,6 +3,7 @@
   --petra-compact-action-easing: ease;
   --petra-compact-action-y: 0rem;
   --petra-compact-action-scale: 1;
+  min-height: 2.75rem;
   touch-action: manipulation;
   transform:
     translateY(var(--petra-compact-action-y))

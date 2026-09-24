@@ -15,13 +15,14 @@ The frontend explains and controls the model. It does not become the model.
 
 ## Current implementation boundary
 
-Current `main` contains tested mechanism-level pieces—spatial fields, ecology, ciprofloxacin pharmacodynamic composition, mutation/lineage helpers, render contracts, UI planning, and worker/replay infrastructure—but the flagship mechanisms are **not yet one fully composed authoritative browser state**.
+Current `main` contains tested mechanism-level pieces—spatial fields, ecology, ciprofloxacin pharmacodynamic composition, mutation/lineage helpers, render contracts, UI planning, and worker/replay infrastructure. #37 now adds an explicit worker-facing composed ecology capability, but the flagship preset is **not yet auto-instantiated as a quantitative biological run** because its physical Monod/yield binding remains intentionally unbound.
 
-Issue #37 owns that composition and the migration away from the synthetic worker scaffold. Until that lands:
+The worker therefore has two explicit paths:
 
-- `src/sim/protocol.ts` protocol v2 is infrastructure/replay scaffolding, not the flagship biological protocol;
-- `syntheticPopulation` and `synthetic-pulse` are explicitly synthetic fixtures and must never be presented or adapted as real biology/interventions;
-- product UI must not invent scientific readouts when authoritative state is unavailable;
+- protocol v3 initialization may carry a caller-supplied, already-authoritative `ComposedSimulationConfig`, producing genotype-aware composed checkpoints/metrics;
+- omitting that config retains the synthetic infrastructure fixture for narrow replay/transport tests only;
+- `syntheticPopulation` and `synthetic-pulse` must never be presented or adapted as real biology/interventions;
+- product UI must not invent a composed config or scientific readouts merely to populate the expo shell;
 - renderer demo fixtures remain presentation-only and visibly disclosed.
 
 ## Domain and state layout
@@ -40,13 +41,13 @@ Lineages use compact metadata plus aggregate spatial biomass/density channels. A
 
 ## Worker protocol
 
-### Implemented protocol v2 on current main
+### Implemented protocol v3 composed-capability boundary
 
 The current versioned types in `src/sim/protocol.ts` define:
 
 Main → worker:
 
-- `initialize` with a versioned `RunIdentity`;
+- `initialize` with a versioned `RunIdentity` and optional explicit `ComposedSimulationConfig`;
 - `command` carrying one of:
   - `advance`;
   - `synthetic-pulse` (**infrastructure fixture only**);
@@ -61,7 +62,7 @@ Worker → main:
 - `snapshot`;
 - `error`.
 
-The current checkpoint contains synthetic infrastructure state. Do not translate real inoculation, nutrient, or antibiotic interactions into `synthetic-pulse`.
+Snapshots are authority-tagged: synthetic checkpoints retain the infrastructure fixture, while composed checkpoints contain deep-copied composed state plus aggregate metrics and ordered lineage/genotype identity. Composed mode rejects `synthetic-pulse`. Do not translate real inoculation, nutrient, or antibiotic interactions into that fixture command.
 
 ### Target flagship protocol
 

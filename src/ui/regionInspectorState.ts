@@ -1,4 +1,8 @@
-import type { AuthoritativeRegionInspection } from "../sim/regionInspector";
+import type {
+  AuthoritativeRegionInspection,
+  AuthoritativeRegionNoGridCoverage,
+  AuthoritativeRegionReadout,
+} from "../sim/regionInspector";
 
 export type RegionInspectorPresentationState =
   | Readonly<{
@@ -12,18 +16,23 @@ export type RegionInspectorPresentationState =
   | Readonly<{
       status: "stale";
       requestedSelectionId: string;
-      readout: AuthoritativeRegionInspection;
+      readout: AuthoritativeRegionReadout;
     }>
   | Readonly<{
       status: "ready";
       selectionId: string;
-      readout: AuthoritativeRegionInspection;
+      readout: AuthoritativeRegionReadout;
+    }>
+  | Readonly<{
+      status: "no-grid-coverage";
+      selectionId: string;
+      outcome: AuthoritativeRegionNoGridCoverage;
     }>
   | Readonly<{
       status: "error";
       selectionId: string | null;
       message: string;
-      staleReadout: AuthoritativeRegionInspection | null;
+      staleReadout: AuthoritativeRegionReadout | null;
     }>;
 
 export interface RegionInspectionAcceptance {
@@ -46,6 +55,9 @@ export function unavailableRegionInspector(
  * If a prior scientific readout exists it may remain visible only as an
  * explicitly stale readout carrying its original selection identity. This
  * prevents a new selection from silently inheriting the old values.
+ *
+ * A prior no-grid-coverage outcome is not a scientific readout and is not
+ * retained as stale data for a different selection.
  */
 export function beginRegionInspection(
   current: RegionInspectorPresentationState,
@@ -72,20 +84,31 @@ export function beginRegionInspection(
 }
 
 /**
- * Accepts only a readout for the currently requested selection.
+ * Accepts only an outcome for the currently requested selection.
  * Superseded async responses are ignored deterministically rather than
  * overwriting the visible inspector with stale scientific state.
  */
 export function acceptRegionInspection(
   current: RegionInspectorPresentationState,
-  readout: AuthoritativeRegionInspection,
+  inspection: AuthoritativeRegionInspection,
 ): RegionInspectionAcceptance {
   const requestedSelectionId = activeSelectionId(current);
   if (
     requestedSelectionId === null ||
-    readout.selectionId !== requestedSelectionId
+    inspection.selectionId !== requestedSelectionId
   ) {
     return { accepted: false, state: current };
+  }
+
+  if (inspection.coverage === "no-grid-coverage") {
+    return {
+      accepted: true,
+      state: {
+        status: "no-grid-coverage",
+        selectionId: requestedSelectionId,
+        outcome: inspection,
+      },
+    };
   }
 
   return {
@@ -93,7 +116,7 @@ export function acceptRegionInspection(
     state: {
       status: "ready",
       selectionId: requestedSelectionId,
-      readout,
+      readout: inspection,
     },
   };
 }
@@ -134,6 +157,7 @@ export function activeSelectionId(
   switch (state.status) {
     case "pending":
     case "ready":
+    case "no-grid-coverage":
       return state.selectionId;
     case "stale":
       return state.requestedSelectionId;
@@ -146,7 +170,7 @@ export function activeSelectionId(
 
 export function visibleReadout(
   state: RegionInspectorPresentationState,
-): AuthoritativeRegionInspection | null {
+): AuthoritativeRegionReadout | null {
   switch (state.status) {
     case "ready":
     case "stale":
@@ -154,6 +178,7 @@ export function visibleReadout(
     case "error":
       return state.staleReadout;
     case "pending":
+    case "no-grid-coverage":
     case "unavailable":
       return null;
   }

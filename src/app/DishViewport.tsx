@@ -29,6 +29,10 @@ import {
   dishEscapeAllowsFirstRefusal,
 } from "./dishKeyboard";
 import { resolveDishCameraMotion } from "./dishCameraMotion";
+import {
+  INITIAL_DISH_RENDER_SOURCE_STATE,
+  resolveDishRenderSource,
+} from "./dishRenderSource";
 
 export interface DishViewportProps {
   readonly motion: RendererMotionMode;

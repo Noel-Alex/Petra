@@ -30,5 +30,6 @@ Unit/determinism tests for the core, reference-vs-accelerated numerical comparis
 - [`sim/AGENTS.md`](sim/AGENTS.md) — authoritative simulation state, deterministic RNG, replay/checkpoint, and mechanism-core contracts.
 - [`ui/AGENTS.md`](ui/AGENTS.md) — accessible motion, experiment controls, keyboard semantics, replay planning, and scientific timeline presentation.
 - [`app/AGENTS.md`](app/AGENTS.md) — React/browser orchestration, worker-session lifecycle, request correlation, and runtime integration boundaries.
+- [`app/AGENTS.md`](app/AGENTS.md) — React/browser orchestration, worker-session lifecycle, request correlation, and runtime integration boundaries.
 - [`render/AGENTS.md`](render/AGENTS.md) — presentation-only render snapshots, semantic zoom, LOD, and renderer authority boundaries.
 - [`ml/AGENTS.md`](ml/AGENTS.md) — leakage-safe mechanistic datasets, surrogate promotion/OOD gates, and emulated-mode authority boundaries.

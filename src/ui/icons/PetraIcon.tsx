@@ -45,10 +45,23 @@ export function PetraIcon({
         ? { "aria-hidden": true }
         : { role: "img", "aria-label": accessibleLabel })}
     >
+      <PetraIconGeometry name={name} />
+    </svg>
+  );
+}
+
+export function PetraIconGeometry({
+  name,
+}: {
+  readonly name: PetraIconName;
+}): ReactElement {
+  const spec = iconSpec(name);
+  return (
+    <>
       {spec.primitives.map((primitive, index) =>
         renderPrimitive(primitive, index),
       )}
-    </svg>
+    </>
   );
 }
 

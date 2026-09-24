@@ -8,9 +8,11 @@ import rendererSource from "../render/pixi/renderer.ts?raw";
 describe("shared visual-token integration", () => {
   it("installs the TypeScript token authority before React mounts", () => {
     expect(mainSource).toContain("applyPetraVisualCssVariables");
-    expect(mainSource.indexOf("applyPetraVisualCssVariables(")).toBeLessThan(
-      mainSource.indexOf("createRoot(root).render"),
-    );
+    expect(
+      mainSource.indexOf(
+        "applyPetraVisualCssVariables(document.documentElement.style)",
+      ),
+    ).toBeLessThan(mainSource.indexOf("createRoot(root).render"));
     expect(mainSource).toContain('./app/visualTheme.css');
   });
 

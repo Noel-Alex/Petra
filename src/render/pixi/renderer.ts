@@ -1,4 +1,5 @@
 import { Application, Container, Graphics } from "pixi.js";
+import { petraVisualColor } from "../../design/visualTokens";
 import { gridCellCenter } from "../gridGeometry";
 import { sampleRepresentativeGlyphs } from "../lod";
 import { resolveLineageAppearance } from "../lineageAppearance";
@@ -99,7 +100,12 @@ export interface PixiDishRenderer {
   destroy(): void;
 }
 
-const LINEAGE_PATTERN_COLOR = 0xf4f7fb;
+const LINEAGE_PATTERN_COLOR = petraVisualColor("cream");
+const DISH_PLATE_COLOR = petraVisualColor("ink");
+const DISH_RIM_COLOR = petraVisualColor("creamMuted");
+const DISH_HIGHLIGHT_COLOR = petraVisualColor("cream");
+const DISH_GLYPH_EDGE_COLOR = petraVisualColor("inkDeep");
+const DISH_ACCENT_COLOR = petraVisualColor("teal");
 
 type ClientCoordinateEvent = Pick<MouseEvent, "clientX" | "clientY">;
 
@@ -621,14 +627,14 @@ function drawScene(args: {
 
   plateLayer
     .circle(centerX, centerY, radius)
-    .fill({ color: 0x0b1f33, alpha: 0.98 })
-    .stroke({ color: 0xbcecff, alpha: 0.62, width: Math.max(1.5, dishSize * 0.006) });
+    .fill({ color: DISH_PLATE_COLOR, alpha: 0.98 })
+    .stroke({ color: DISH_RIM_COLOR, alpha: 0.62, width: Math.max(1.5, dishSize * 0.006) });
   plateLayer
     .circle(centerX - radius * 0.12, centerY - radius * 0.14, radius * 0.91)
-    .stroke({ color: 0xffffff, alpha: 0.055, width: Math.max(1, dishSize * 0.012) });
+    .stroke({ color: DISH_HIGHLIGHT_COLOR, alpha: 0.055, width: Math.max(1, dishSize * 0.012) });
   plateLayer
     .circle(centerX - radius * 0.2, centerY - radius * 0.23, radius * 0.72)
-    .stroke({ color: 0xffffff, alpha: 0.035, width: Math.max(1, dishSize * 0.02) });
+    .stroke({ color: DISH_HIGHLIGHT_COLOR, alpha: 0.035, width: Math.max(1, dishSize * 0.02) });
 
   const overlay =
     overlayId === null
@@ -680,7 +686,7 @@ function drawScene(args: {
       glyphLayer
         .circle(point.x, point.y, glyphRadius)
         .fill({ color, alpha: 0.88 })
-        .stroke({ color: 0x07111f, alpha: 0.75, width: 1.2 });
+        .stroke({ color: DISH_GLYPH_EDGE_COLOR, alpha: 0.75, width: 1.2 });
 
       drawLineagePatternRings(
         glyphLayer,
@@ -696,7 +702,7 @@ function drawScene(args: {
   const accentAlpha = motion === "off" ? 0.12 : 0.16;
   accentLayer
     .circle(centerX, centerY, radius * 0.985)
-    .stroke({ color: 0x8fdcff, alpha: accentAlpha, width: Math.max(1, dishSize * 0.003) });
+    .stroke({ color: DISH_ACCENT_COLOR, alpha: accentAlpha, width: Math.max(1, dishSize * 0.003) });
 }
 
 function drawField(

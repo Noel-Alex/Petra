@@ -81,3 +81,9 @@ Pure render-model helpers get deterministic unit tests. Browser/GPU/FPS claims r
 - Exact keyframes remain authoritative. Values between compatible keyframes are explicitly `presentation-only` and reuse `visualInterpolation.ts` through normalized progress so replay output is independent of frame cadence.
 - Snapshot history must have unique snapshot IDs and strictly increasing authoritative simulation times. Ambiguous same-time keyframes fail closed until runtime authority supplies a stronger ordering identity; adapters must not silently sort, deduplicate, or use array order as scientific authority.
 - When interpolation is disabled or the visual-compatibility planner rejects a pair, replay snaps to the previous authoritative keyframe rather than showing future state early or fabricating a morph.
+
+
+## Shared visual-token consumption
+- Pixi vessel chrome and stable lineage appearance colors consume `src/design/visualTokens.ts`; renderer code must not grow a parallel electric/neon palette.
+- Existing lineage `appearanceToken` IDs and schema identity remain stable across palette refinement. Color remains presentation reinforcement only and must continue to pair with lineage pattern geometry.
+- `src/design/vectorPrimitives.ts` provides renderer-neutral normalized geometry for future organism/field/interaction adapters. A renderer may associate rod/bud/hyphal silhouettes with biology only when authoritative organism-kind evidence exists; color, array order, density, or lineage ID must never be used to guess the organism shape.

@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import { createComposedState, type ComposedSimulationConfig } from '../../src/sim/authoritative'
+import type { CuratedMutationGraph } from '../../src/sim/evolution/graph'
 import { inspectAuthoritativeRegion, selectedRegionCellIndices } from '../../src/sim/regionInspector'
+
+const evolutionGraph: CuratedMutationGraph = {
+  scenarioId: 'region-test',
+  scenarioVersion: '1',
+  genotypes: [
+    { id: 'WT', relativeFitness: 1, sourceOrder: 0 },
+    { id: 'VAR', relativeFitness: 1, sourceOrder: 1 },
+  ],
+  transitions: [],
+}
 
 const config: ComposedSimulationConfig = {
   width: 3,
@@ -18,9 +29,11 @@ const config: ComposedSimulationConfig = {
     localCapacity: 100,
     spreadRate: 0,
   },
+  evolutionGraph,
+  evolutionScenario: { scenarioId: 'region-test', scenarioVersion: '1' },
   lineages: [
-    { id: 'ancestor', relativeFitness: 1, deathHazardPerHour: 0 },
-    { id: 'variant', relativeFitness: 1, deathHazardPerHour: 0 },
+    { id: 'ancestor', genotypeId: 'WT', deathHazardPerHour: 0 },
+    { id: 'variant', genotypeId: 'VAR', deathHazardPerHour: 0 },
   ],
   hoursPerTick: 0.01,
 }

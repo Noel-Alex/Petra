@@ -1,9 +1,9 @@
 import {
-  PROTOCOL_VERSION,
   type SimulationSnapshot,
   type WorkerRequest,
   type WorkerResponse,
 } from "../sim/protocol";
+import { parseWorkerResponse } from "../sim/protocolRuntime";
 
 export type WorkerSessionPhase =
   | "idle"
@@ -22,7 +22,7 @@ export interface WorkerSessionState {
 }
 
 export interface WorkerPortHandlers {
-  readonly message: (response: WorkerResponse) => void;
+  readonly message: (response: unknown) => void;
   readonly error: (message: string) => void;
 }
 
@@ -129,17 +129,16 @@ export class WorkerSession {
     }
   }
 
-  private handleResponse(response: WorkerResponse): void {
+  private handleResponse(payload: unknown): void {
     if (this.current.phase === "disposed") return;
 
-    if (response.protocolVersion !== PROTOCOL_VERSION) {
-      this.fail(
-        `Worker protocol mismatch: expected ${PROTOCOL_VERSION}, received ${response.protocolVersion}`,
-        responseCommandId(response),
-      );
+    const parsed = parseWorkerResponse(payload);
+    if (!parsed.ok) {
+      this.fail(parsed.error, this.activeCommandId());
       return;
     }
 
+    const response = parsed.value;
     const active = this.active;
     if (active === null) {
       this.fail("Received a worker response with no pending request", responseCommandId(response));
@@ -251,7 +250,7 @@ export function createBrowserWorkerPort(worker: Worker): WorkerPort {
       worker.postMessage(request);
     },
     subscribe(handlers) {
-      const onMessage = (event: MessageEvent<WorkerResponse>) => {
+      const onMessage = (event: MessageEvent<unknown>) => {
         handlers.message(event.data);
       };
       const onError = (event: ErrorEvent) => {

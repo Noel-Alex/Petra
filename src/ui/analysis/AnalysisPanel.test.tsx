@@ -288,4 +288,51 @@ describe("AnalysisPanel", () => {
     expect(analysisCss).not.toContain("min-width: 2.75rem");
   });
 
+  it("renders supplied authoritative lineage detail and labels ancestry-only gaps without inference", () => {
+    const detailedTree = buildLineageTree([
+      {
+        lineageId: "D1",
+        parentLineageId: null,
+        genotypeId: "gyrA-S83L",
+        createdAtHours: 0,
+        extinctAtHours: null,
+        scientificDetail: {
+          genotypeLabel: "GyrA S83L",
+          originCellIndex: 42,
+          mutationClass: "target-site",
+          abundanceModelBiomass: 1.23456789,
+          relativeFitness: 0.91,
+          sourceKeys: ["source:marcusson-2009"],
+          assumptionKeys: ["assumption:cross-context"],
+        },
+      },
+      {
+        lineageId: "D2",
+        parentLineageId: "D1",
+        genotypeId: "unclassified",
+        createdAtHours: 1,
+        extinctAtHours: null,
+      },
+    ]);
+
+    const html = renderToStaticMarkup(
+      <AnalysisPanel charts={[chart]} lineageTree={detailedTree} motion="off" />,
+    );
+
+    expect(html).toContain("Genotype label");
+    expect(html).toContain("Abundance");
+    expect(html).toContain("Relative fitness");
+    expect(html).toContain("Origin cell");
+    expect(html).toContain("Mutation class");
+    expect(html).toContain("Source keys");
+    expect(html).toContain("Assumption keys");
+    expect(html).toContain("GyrA S83L");
+    expect(html).toContain("1.23456789 model-biomass");
+    expect(html).toContain("0.91");
+    expect(html).toContain("target-site");
+    expect(html).toContain("source:marcusson-2009");
+    expect(html).toContain("assumption:cross-context");
+    expect(html).toContain("Not supplied");
+  });
+
 });

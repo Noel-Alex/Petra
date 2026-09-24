@@ -1,3 +1,4 @@
+import type { AuthoritativeLineageAnalysis } from "../sim/evolution/analysis";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -168,4 +169,140 @@ describe("authoritative analysis app projection", () => {
       }),
     ).toThrow(/created after its authoritative state time/);
   });
+  it("preserves the full #665 lineage analysis detail instead of collapsing it to ancestry", () => {
+    const input = records();
+    const lineageAnalysis: AuthoritativeLineageAnalysis = {
+      schemaVersion: 1,
+      identity: {} as AuthoritativeLineageAnalysis["identity"],
+      configurationFingerprint: "fixture-config",
+      simulationTimeHours: 2,
+      records: [
+        {
+          lineageId: "ancestor",
+          parentLineageId: null,
+          genotypeId: "ancestor-genotype",
+          genotypeLabel: "Ancestor genotype",
+          createdAtHours: 0,
+          extinctAtHours: null,
+          originCellIndex: 17,
+          mutationClass: null,
+          status: "extant",
+          abundanceModelBiomass: 3.25,
+          relativeFitness: 1,
+          sourceKeys: ["source:ancestor"],
+          assumptionKeys: ["assumption:context"],
+        },
+      ],
+    };
+
+    const view = projectAuthoritativeAnalysis({
+      identity: input.identity,
+      series: input.series,
+      lineageAnalysis,
+    });
+    expect(view.status).toBe("available");
+    if (view.status !== "available") return;
+
+    expect(view.lineageTree.nodes[0]?.scientificDetail).toEqual({
+      genotypeLabel: "Ancestor genotype",
+      originCellIndex: 17,
+      mutationClass: null,
+      abundanceModelBiomass: 3.25,
+      relativeFitness: 1,
+      sourceKeys: ["source:ancestor"],
+      assumptionKeys: ["assumption:context"],
+    });
+  });
+
+  it("refuses rich lineage detail on the generic ancestry-only app seam", () => {
+    const input = records();
+    const invalid = {
+      ...input,
+      lineages: [{
+        lineageId: "ancestor",
+        parentLineageId: null,
+        genotypeId: "ancestor-genotype",
+        createdAtHours: 0,
+        extinctAtHours: null,
+        scientificDetail: {
+          genotypeLabel: "Hand-authored label",
+          originCellIndex: null,
+          mutationClass: null,
+          abundanceModelBiomass: 99,
+          relativeFitness: 99,
+          sourceKeys: ["invented"],
+          assumptionKeys: [],
+        },
+      }],
+    } as unknown as AuthoritativeAnalysisRecords;
+
+    expect(() => projectAuthoritativeAnalysis(invalid)).toThrow(
+      /requires full authoritative lineageAnalysis/,
+    );
+  });
+
+  it("requires exactly one lineage source and exact full-analysis time/lifecycle identity", () => {
+    const input = records();
+    expect(() =>
+      projectAuthoritativeAnalysis({
+        identity: input.identity,
+        series: input.series,
+      }),
+    ).toThrow(/exactly one lineage source/);
+
+    expect(() =>
+      projectAuthoritativeAnalysis({
+        ...input,
+        lineageAnalysis: {
+          schemaVersion: 1,
+          identity: {} as AuthoritativeLineageAnalysis["identity"],
+          configurationFingerprint: "fixture-config",
+          simulationTimeHours: 2,
+          records: [],
+        },
+      }),
+    ).toThrow(/exactly one lineage source/);
+
+    const analysis: AuthoritativeLineageAnalysis = {
+      schemaVersion: 1,
+      identity: {} as AuthoritativeLineageAnalysis["identity"],
+      configurationFingerprint: "fixture-config",
+      simulationTimeHours: 1.5,
+      records: [],
+    };
+    expect(() =>
+      projectAuthoritativeAnalysis({
+        identity: input.identity,
+        series: input.series,
+        lineageAnalysis: analysis,
+      }),
+    ).toThrow(/time does not match/);
+
+    expect(() =>
+      projectAuthoritativeAnalysis({
+        identity: input.identity,
+        series: input.series,
+        lineageAnalysis: {
+          ...analysis,
+          simulationTimeHours: 2,
+          records: [{
+            lineageId: "ancestor",
+            parentLineageId: null,
+            genotypeId: "ancestor-genotype",
+            genotypeLabel: "Ancestor genotype",
+            createdAtHours: 0,
+            extinctAtHours: null,
+            originCellIndex: null,
+            mutationClass: null,
+            status: "extinct",
+            abundanceModelBiomass: 0,
+            relativeFitness: 1,
+            sourceKeys: [],
+            assumptionKeys: [],
+          }],
+        },
+      }),
+    ).toThrow(/lifecycle status disagrees/);
+  });
+
 });

@@ -562,4 +562,92 @@ describe("lineage ancestry layout", () => {
       ]),
     ).toThrow(/cycle/);
   });
+  it("preserves supplied scientific detail without aliasing caller evidence arrays", () => {
+    const sourceKeys = ["source:gyrA"];
+    const assumptionKeys = ["assumption:transfer"];
+    const layout = buildLineageTree([{
+      lineageId: "detail",
+      parentLineageId: null,
+      genotypeId: "gyrA-S83L",
+      createdAtHours: 0,
+      extinctAtHours: null,
+      scientificDetail: {
+        genotypeLabel: "GyrA S83L",
+        originCellIndex: 17,
+        mutationClass: "target-site",
+        abundanceModelBiomass: 2.5,
+        relativeFitness: 0.91,
+        sourceKeys,
+        assumptionKeys,
+      },
+    }]);
+
+    const detail = layout.nodes[0]!.scientificDetail;
+    expect(detail).toEqual({
+      genotypeLabel: "GyrA S83L",
+      originCellIndex: 17,
+      mutationClass: "target-site",
+      abundanceModelBiomass: 2.5,
+      relativeFitness: 0.91,
+      sourceKeys: ["source:gyrA"],
+      assumptionKeys: ["assumption:transfer"],
+    });
+    expect(detail?.sourceKeys).not.toBe(sourceKeys);
+    expect(detail?.assumptionKeys).not.toBe(assumptionKeys);
+
+    sourceKeys[0] = "changed";
+    assumptionKeys[0] = "changed";
+    expect(detail?.sourceKeys).toEqual(["source:gyrA"]);
+    expect(detail?.assumptionKeys).toEqual(["assumption:transfer"]);
+  });
+
+  it("fails closed on malformed supplied lineage scientific detail", () => {
+    const base = {
+      lineageId: "detail",
+      parentLineageId: null,
+      genotypeId: "WT",
+      createdAtHours: 0,
+      extinctAtHours: null,
+      scientificDetail: {
+        genotypeLabel: "Wild type",
+        originCellIndex: 0,
+        mutationClass: null,
+        abundanceModelBiomass: 1,
+        relativeFitness: 1,
+        sourceKeys: ["source:wt"],
+        assumptionKeys: [],
+      },
+    } as const;
+
+    expect(() =>
+      buildLineageTree([{
+        ...base,
+        scientificDetail: {
+          ...base.scientificDetail,
+          abundanceModelBiomass: -1,
+        },
+      }]),
+    ).toThrow(/abundanceModelBiomass/);
+
+    expect(() =>
+      buildLineageTree([{
+        ...base,
+        scientificDetail: {
+          ...base.scientificDetail,
+          originCellIndex: 1.5,
+        },
+      }]),
+    ).toThrow(/originCellIndex/);
+
+    expect(() =>
+      buildLineageTree([{
+        ...base,
+        scientificDetail: {
+          ...base.scientificDetail,
+          sourceKeys: ["source:wt", "source:wt"],
+        },
+      }]),
+    ).toThrow(/duplicate key/);
+  });
+
 });

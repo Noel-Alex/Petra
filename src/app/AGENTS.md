@@ -92,7 +92,7 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Generic snapshot deltas are not semantic biological evidence. The adapter must not call a growth/division/diffusion phase merely because pixels changed; evidence-gated named phases remain owned by `src/ui/motion/dishVocabulary.ts`.
 
 ## Authoritative analysis injection
-- `analysisView.ts` is the app-facing trust boundary for chart/ancestry records. It accepts explicit unit-bearing `ScientificSeriesInput` + `LineageAncestryInput` records and projects them only through the existing analysis helpers.
+- `analysisView.ts` is the app-facing trust boundary for chart/lineage records. It accepts explicit unit-bearing `ScientificSeriesInput` plus exactly one lineage source: generic ancestry-only `LineageAncestryInput` records or the full `AuthoritativeLineageAnalysis` projection from simulation authority. Rich genotype-label/origin/mutation/abundance/fitness/source/assumption detail is accepted only through the full authoritative projection; generic ancestry injection must not manufacture it.
 - `analysisView.ts` groups scientific series into separate charts by exact supplied unit, preserving first unit appearance and series order. Unlike units are never normalized onto one axis, while same-unit series may share a chart.
 - The protocol-v4 **synthetic fixture authority branch** is not eligible analysis authority. Do not adapt `syntheticPopulation`, renderer density/glyphs, demo snapshots, or visual interpolation into this contract to make the panel look populated.
 - `AnalysisSurface.tsx` remains secondary/collapsed when data is available so the living dish stays the primary world; absent records render a visible unavailable state rather than fixture data.

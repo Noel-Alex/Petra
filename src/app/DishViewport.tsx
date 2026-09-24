@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import type { DishRenderSnapshot } from "../render/model";
 import { PixiDish } from "../render/pixi/PixiDish";
 import { createRendererDemoSnapshot } from "../render/pixi/demoSnapshot";
@@ -17,6 +17,7 @@ export function DishViewport({
   motion,
   snapshot,
 }: DishViewportProps) {
+  const interactionHintId = useId();
   const demoSnapshot = useMemo(() => createRendererDemoSnapshot(), []);
   const activeSnapshot = snapshot ?? demoSnapshot;
   const [requestedOverlayId, setRequestedOverlayId] = useState<string | null>(
@@ -45,6 +46,7 @@ export function DishViewport({
               ? "Interactive Petra Petri dish using clearly labelled visual demonstration data"
               : "Interactive Petra Petri dish from authoritative simulation state"
           }
+          ariaDescribedBy={interactionHintId}
         />
         <span className="dish-source-badge">
           {usingDemo ? "visual demo · not biology" : "authoritative snapshot"}
@@ -90,8 +92,9 @@ export function DishViewport({
         </div>
       </div>
 
-      <p className="dish-interaction-hint">
-        Wheel to zoom · drag while zoomed · double-click to focus
+      <p className="dish-interaction-hint" id={interactionHintId}>
+        Pointer: wheel to zoom · drag while zoomed · double-click to focus.
+        Keyboard: +/− zoom · arrow keys pan · Home or 0 reset.
       </p>
       {usingDemo ? (
         <p className="dish-demo-disclosure">

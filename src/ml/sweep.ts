@@ -9,6 +9,7 @@ import {
   type SplitPolicy,
   type TrajectoryIdentity,
 } from "./dataset";
+import { assertSimulationSeed } from "../sim/seed";
 
 export interface SweepParameterPoint {
   readonly id: string;
@@ -78,7 +79,7 @@ export interface MechanisticSweepDefinition {
   readonly normalizationProfileId: string;
   readonly parameterPoints: readonly SweepParameterPoint[];
   readonly interventionFamilies: readonly SweepInterventionFamily[];
-  readonly seeds: readonly string[];
+  readonly seeds: readonly number[];
   readonly maxTrajectories: number;
   readonly splitPolicy?: SplitPolicy;
   readonly splitCoveragePolicy?: SplitCoveragePolicy;
@@ -117,13 +118,13 @@ export interface SweepManifestTrajectory {
   readonly split: DatasetSplit;
   readonly parameterPointId: string;
   readonly interventionFamilyId: string;
-  readonly seed: string;
+  readonly seed: number;
   readonly splitGroupKey: string;
   readonly trajectoryKey: string;
 }
 
 export interface MechanisticSweepManifest {
-  readonly schemaVersion: "petra-ml-sweep-manifest-v2";
+  readonly schemaVersion: "petra-ml-sweep-manifest-v3";
   readonly planVersion: string;
   readonly datasetVersion: string;
   readonly engineVersion: string;
@@ -405,10 +406,7 @@ function validateSweepDefinition(definition: MechanisticSweepDefinition): void {
   );
   assertUnique(
     definition.seeds,
-    (seed) => {
-      requireNonEmpty("seed", seed);
-      return seed;
-    },
+    (seed) => String(assertSimulationSeed(seed)),
     "seed",
   );
 }

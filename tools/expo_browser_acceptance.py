@@ -25,6 +25,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from local_command import resolve_local_command
+
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT_DIR = Path(os.environ.get("PETRA_LOCAL_ARTIFACT_DIR", ROOT / ".petra_local" / "manual"))
 RESULT_JSON = Path(os.environ.get("PETRA_LOCAL_RESULT_JSON", ARTIFACT_DIR / "compact-result.json"))
@@ -1236,7 +1238,9 @@ def main() -> int:
 
     try:
         vite = subprocess.Popen(
-            ["npm", "run", "dev", "--", "--host", HOST, "--port", str(VITE_PORT), "--strictPort"],
+            resolve_local_command(
+                ["npm", "run", "dev", "--", "--host", HOST, "--port", str(VITE_PORT), "--strictPort"]
+            ),
             cwd=ROOT,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,

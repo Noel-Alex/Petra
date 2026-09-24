@@ -81,8 +81,21 @@ export function validateMechanisticSample<TInput, TTarget>(
 export function validateMechanisticDatasetSchemaIdentity(
   identity: MechanisticDatasetSchemaIdentity,
 ): void {
+  if (
+    identity === null ||
+    typeof identity !== "object" ||
+    Array.isArray(identity)
+  ) {
+    throw new TypeError("mechanistic dataset schema identity must be an object");
+  }
   if (identity.schemaVersion !== "mechanistic-dataset-schema-v1") {
     throw new RangeError("unsupported mechanistic dataset schema version");
+  }
+  if (typeof identity.inputSchemaVersion !== "string") {
+    throw new TypeError("inputSchemaVersion must be a string");
+  }
+  if (typeof identity.targetSchemaVersion !== "string") {
+    throw new TypeError("targetSchemaVersion must be a string");
   }
   requireNonEmpty("inputSchemaVersion", identity.inputSchemaVersion);
   requireNonEmpty("targetSchemaVersion", identity.targetSchemaVersion);

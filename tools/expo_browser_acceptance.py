@@ -286,13 +286,21 @@ def set_motion_setting(cdp: CDP, setting: str) -> bool:
     )
 
 
-def wait_for_app(cdp: CDP, timeout: float = 10.0) -> None:
+def wait_for_app(
+    cdp: CDP,
+    timeout: float = 10.0,
+    expected_url: str | None = None,
+) -> None:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        ready = cdp.eval(
-            """document.readyState === 'complete' &&
-               document.querySelector('.petra-app') !== null"""
-        )
+        ready_expression = """document.readyState === 'complete' &&
+          document.querySelector('.petra-app') !== null"""
+        if expected_url is not None:
+            ready_expression = (
+                "(" + ready_expression + ") && location.href === "
+                + json.dumps(expected_url)
+            )
+        ready = cdp.eval(ready_expression)
         if ready is True:
             return
         time.sleep(0.05)
@@ -348,8 +356,9 @@ def motion_pass(cdp: CDP) -> list[dict[str, Any]]:
     set_motion_setting(cdp, "reduced")
     time.sleep(0.1)
     before_reload = browser_motion_state(cdp, storage_key)
-    cdp.call("Page.reload", {"ignoreCache": True})
-    wait_for_app(cdp)
+    reload_url = f"{TARGET_URL}?qa-motion-reload=1"
+    cdp.call("Page.navigate", {"url": reload_url})
+    wait_for_app(cdp, expected_url=reload_url)
     time.sleep(0.15)
     after_reload = browser_motion_state(cdp, storage_key)
     checks.append(

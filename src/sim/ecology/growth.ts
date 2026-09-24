@@ -147,6 +147,10 @@ export function stepEcology(
   const lineageCount = state.lineages.length
   const divisionBiomass = Array.from({ length: lineageCount }, () => new Float64Array(n))
   const deathBiomass = Array.from({ length: lineageCount }, () => new Float64Array(n))
+  // Capacity reservation deliberately excludes same-step deaths: per the ecology
+  // operator contract, loss does not create reusable growth/spread capacity until
+  // the next step. Division biomass is added below as it is accepted.
+  const capacityOccupancy = new Float64Array(n)
 
   let totalDivisionBiomass = 0
   let totalDeathBiomass = 0
@@ -173,6 +177,7 @@ export function stepEcology(
       deathBiomass[lineageIndex]![index] = removed
       totalDeathBiomass += removed
     }
+    capacityOccupancy[index] = biomass
 
     if (resource === 0 || biomass === 0 || biomass >= p.localCapacity || dt === 0) continue
 
@@ -195,6 +200,7 @@ export function stepEcology(
       const channel = divisionBiomass[lineageIndex]!
       channel[index] = channel[index]! * scale
     }
+    capacityOccupancy[index] = capacityOccupancy[index]! + allowed
 
     const consumed = allowed / p.biomassYield
     state.resource[index] = Math.max(0, resource - consumed)
@@ -211,7 +217,7 @@ export function stepEcology(
     }
   }
 
-  if (p.spreadRate > 0 && dt > 0) spread(state, p.spreadRate * dt)
+  if (p.spreadRate > 0 && dt > 0) spread(state, p.spreadRate * dt, p.localCapacity, capacityOccupancy)
 
   let totalBiomass = 0
   let occupiedCells = 0
@@ -235,29 +241,76 @@ export function stepEcology(
   }
 }
 
-/** Conservative coarse colony-front spread. This is not single-cell motility. */
-function spread(state: EcologyState, fractionPerNeighbour: number): void {
+interface SpreadProposal {
+  lineageIndex: number
+  sourceIndex: number
+  destinationIndex: number
+  amount: number
+}
+
+/**
+ * Conservative coarse colony-front spread. This is not single-cell motility.
+ *
+ * All source→destination proposals are formed from one frozen state. A
+ * destination that cannot accept every proposal scales all incoming lineage and
+ * source fluxes by the same factor. Rejected biomass therefore remains at its
+ * source instead of being clipped, and no lineage receives first access merely
+ * because its channel was iterated first.
+ */
+function spread(
+  state: EcologyState,
+  fractionPerNeighbour: number,
+  localCapacity: number,
+  capacityOccupancy: Float64Array,
+): void {
   const { width, height, mask } = state
-  for (const lineage of state.lineages) {
-    const source = Float64Array.from(lineage)
-    const delta = new Float64Array(lineage.length)
+  const sources = state.lineages.map((lineage) => Float64Array.from(lineage))
+  const incomingDemand = new Float64Array(mask.length)
+  const proposals: SpreadProposal[] = []
+
+  for (let lineageIndex = 0; lineageIndex < sources.length; lineageIndex += 1) {
+    const source = sources[lineageIndex]!
     for (let y = 0; y < height; y += 1) {
       for (let x = 0; x < width; x += 1) {
-        const index = y * width + x
-        if (mask[index] === 0 || source[index] === 0) continue
+        const sourceIndex = y * width + x
+        if (mask[sourceIndex] === 0 || source[sourceIndex] === 0) continue
         const neighbours = [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]] as const
         for (const [nx, ny] of neighbours) {
           if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue
-          const neighbourIndex = ny * width + nx
-          if (mask[neighbourIndex] === 0) continue
-          const moved = source[index]! * fractionPerNeighbour
-          delta[index] = delta[index]! - moved
-          delta[neighbourIndex] = delta[neighbourIndex]! + moved
+          const destinationIndex = ny * width + nx
+          if (mask[destinationIndex] === 0) continue
+          const amount = source[sourceIndex]! * fractionPerNeighbour
+          proposals.push({ lineageIndex, sourceIndex, destinationIndex, amount })
+          incomingDemand[destinationIndex] = incomingDemand[destinationIndex]! + amount
         }
       }
     }
+  }
+
+  const acceptance = new Float64Array(mask.length)
+  for (let index = 0; index < mask.length; index += 1) {
+    const demand = incomingDemand[index]!
+    if (demand === 0 || mask[index] === 0) continue
+    const available = Math.max(0, localCapacity - capacityOccupancy[index]!)
+    acceptance[index] = Math.min(1, available / demand)
+  }
+
+  const deltas = state.lineages.map((lineage) => new Float64Array(lineage.length))
+  for (const proposal of proposals) {
+    const accepted = proposal.amount * acceptance[proposal.destinationIndex]!
+    const delta = deltas[proposal.lineageIndex]!
+    delta[proposal.sourceIndex] = delta[proposal.sourceIndex]! - accepted
+    delta[proposal.destinationIndex] = delta[proposal.destinationIndex]! + accepted
+  }
+
+  for (let lineageIndex = 0; lineageIndex < state.lineages.length; lineageIndex += 1) {
+    const lineage = state.lineages[lineageIndex]!
+    const source = sources[lineageIndex]!
+    const delta = deltas[lineageIndex]!
     for (let index = 0; index < lineage.length; index += 1) {
-      lineage[index] = Math.max(0, source[index]! + delta[index]!)
+      const next = source[index]! + delta[index]!
+      if (!Number.isFinite(next) || next < 0) throw new Error('spread flux became invalid')
+      lineage[index] = next
     }
   }
 }

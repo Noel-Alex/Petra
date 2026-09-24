@@ -29,7 +29,10 @@ import {
   retargetWheelZoomFromRendered,
   type CameraTransitionState,
 } from "./cameraInteraction";
-import { applyKeyboardCameraKey } from "./keyboardCamera";
+import {
+  applyKeyboardCameraKey,
+  keyboardCameraModifiersAllowInput,
+} from "./keyboardCamera";
 import {
   beginPointerGestureInDishAperture,
   createPointerGestureState,
@@ -355,6 +358,8 @@ export async function createPixiDishRenderer(
   };
 
   const onKeyDown = (event: KeyboardEvent) => {
+    if (!keyboardCameraModifiersAllowInput(event)) return;
+
     const result = applyKeyboardCameraKey(
       targetCamera,
       event.key,

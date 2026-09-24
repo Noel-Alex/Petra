@@ -48,12 +48,35 @@ describe('lineage registry', () => {
     expect(restored.eventLog()).toEqual(registry.eventLog())
   })
 
+  it('returns isolated projections from create, get, list, and eventLog', () => {
+    const registry = new LineageRegistry()
+    const created = registry.create({ parentLineageId: null, genotypeId: 'WT', createdAtHours: 0, originCellIndex: null, mutationClass: null })
+
+    ;(created as { extinctAtHours: number | null }).extinctAtHours = 9
+    const fetched = registry.get(created.lineageId)!
+    ;(fetched as { extinctAtHours: number | null }).extinctAtHours = 8
+    const listed = registry.list()[0]!
+    ;(listed as { extinctAtHours: number | null }).extinctAtHours = 7
+    const event = registry.eventLog()[0]!
+    ;(event as { timeHours: number }).timeHours = 6
+
+    expect(registry.get(created.lineageId)?.extinctAtHours).toBeNull()
+    expect(registry.list()[0]?.extinctAtHours).toBeNull()
+    expect(registry.eventLog()[0]?.timeHours).toBe(0)
+    expect(registry.checkpoint().records[0]?.extinctAtHours).toBeNull()
+    expect(registry.checkpoint().events[0]?.timeHours).toBe(0)
+
+    registry.markExtinct(created.lineageId, 1)
+    expect(registry.get(created.lineageId)?.extinctAtHours).toBe(1)
+    expect(registry.eventLog().map((item) => item.kind)).toEqual(['lineage-created', 'lineage-extinct'])
+  })
+
   it('returns a checkpoint isolated from live registry objects', () => {
     const registry = new LineageRegistry()
     registry.create({ parentLineageId: null, genotypeId: 'WT', createdAtHours: 0, originCellIndex: null, mutationClass: null })
 
     const checkpoint = registry.checkpoint()
-    checkpoint.records[0]!.extinctAtHours = 99
+    ;(checkpoint.records[0] as { extinctAtHours: number | null }).extinctAtHours = 99
     ;(checkpoint.events[0] as { timeHours: number }).timeHours = 99
 
     expect(registry.get('L1')?.extinctAtHours).toBeNull()

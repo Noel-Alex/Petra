@@ -153,6 +153,42 @@ describe('shared discrete population authority', () => {
     expect(moved.totalDivisionOpportunities).toBe(0)
   })
 
+  it('replays the same future division opportunities after checkpoint restore', () => {
+    const cfg = config({ width: 1, mask: [1] })
+    const initial = createDiscretePopulationAuthorityState(cfg, [[2]])
+    const first = advanceDiscretePopulationAuthority(initial, cfg, {
+      currentLineageBiomass: [[2.5]],
+      divisionBiomass: [new Float64Array([0.5])],
+    })
+    expect(first.totalDivisionOpportunities).toBe(0)
+    expect(first.state.divisionResidualCellEquivalents).toEqual([[0.25]])
+
+    const restored = restoreDiscretePopulationAuthorityState(
+      first.state,
+      cfg,
+      [[2.5]],
+    )
+    const originalContinuation = advanceDiscretePopulationAuthority(
+      first.state,
+      cfg,
+      {
+        currentLineageBiomass: [[4]],
+        divisionBiomass: [new Float64Array([1.5])],
+      },
+    )
+    const restoredContinuation = advanceDiscretePopulationAuthority(
+      restored,
+      cfg,
+      {
+        currentLineageBiomass: [[4]],
+        divisionBiomass: [new Float64Array([1.5])],
+      },
+    )
+
+    expect(restoredContinuation).toEqual(originalContinuation)
+    expect(restoredContinuation.divisionOpportunities).toEqual([[1]])
+  })
+
   it('plans whole-host removal atomically and cannot remove one host twice', () => {
     const cfg = config({ width: 1, mask: [1] })
     const initial = createDiscretePopulationAuthorityState(cfg, [[5]])

@@ -48,10 +48,17 @@ describe("SimulationRng checkpoint state integrity", () => {
     );
   });
 
-  it("rejects malformed length and the forbidden all-zero xoshiro state", () => {
+  it("rejects malformed length, sparse state, and the forbidden all-zero xoshiro state", () => {
     expect(
       () => new SimulationRng([1, 2, 3] as unknown as RngState),
     ).toThrow(/exactly four/);
+
+    const sparse = [1, 2, 3, 4] as unknown[];
+    delete sparse[2];
+    expect(
+      () => new SimulationRng(sparse as unknown as RngState),
+    ).toThrow(/word 2.*unsigned 32-bit integer/);
+
     expect(() => new SimulationRng([0, 0, 0, 0])).toThrow(/all zero/);
   });
 

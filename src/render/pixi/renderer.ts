@@ -1,4 +1,5 @@
 import { Application, Container, Graphics } from "pixi.js";
+import { gridCellCenter } from "../gridGeometry";
 import { sampleRepresentativeGlyphs } from "../lod";
 import { resolveLineageAppearance } from "../lineageAppearance";
 import { resolveLineagePattern, type LineagePatternToken } from "../lineagePatterns";
@@ -552,11 +553,14 @@ function drawField(
     const normalized = Math.max(0, Math.min(1, (value - field.minimum) / range));
     if (normalized < 0.025) continue;
 
-    const column = index % snapshot.gridWidth;
-    const row = Math.floor(index / snapshot.gridWidth);
+    const center = gridCellCenter(
+      index,
+      snapshot.gridWidth,
+      snapshot.gridHeight,
+    );
     const point = dishToScreen(
-      (column + 0.5) / snapshot.gridWidth,
-      (row + 0.5) / snapshot.gridHeight,
+      center.x,
+      center.y,
       camera,
       centerX,
       centerY,
@@ -598,11 +602,14 @@ function drawLineageDensity(
     if (snapshot.dishMask[index] !== 1) continue;
     const weight = lineage.density[index] ?? 0;
     if (weight <= maximum * 0.025) continue;
-    const column = index % snapshot.gridWidth;
-    const row = Math.floor(index / snapshot.gridWidth);
+    const center = gridCellCenter(
+      index,
+      snapshot.gridWidth,
+      snapshot.gridHeight,
+    );
     const point = dishToScreen(
-      (column + 0.5) / snapshot.gridWidth,
-      (row + 0.5) / snapshot.gridHeight,
+      center.x,
+      center.y,
       camera,
       centerX,
       centerY,

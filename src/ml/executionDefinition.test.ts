@@ -137,6 +137,24 @@ describe("mechanistic execution-definition provenance", () => {
     ).not.toBe(hash);
   });
 
+  it("refuses fixture parameter authority for authoritative ML execution", () => {
+    const fixtureBinding: ComposedParameterSetBinding = {
+      ...binding,
+      authority: "fixture",
+      parameterSetId: "fixture:ml-execution-fixture-parameters",
+    };
+
+    expect(mechanisticParameterSetHash(fixtureBinding)).not.toBe(
+      mechanisticParameterSetHash(binding),
+    );
+    expect(() =>
+      createMechanisticExecutionDefinition({
+        parameterSetBinding: fixtureBinding,
+        intervention: createNoInterventionExecutionDefinition("untreated"),
+      }),
+    ).toThrow(/require provenance parameter-set authority/);
+  });
+
   it("keeps no-intervention biology independent of presentation family naming", () => {
     const untreated = createNoInterventionExecutionDefinition("untreated");
     const control = createNoInterventionExecutionDefinition("control");

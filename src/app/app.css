@@ -953,11 +953,27 @@ button:hover {
 }
 
 .petra-app[data-dish-focus="focused"] .dish-stage {
+  /*
+   * Focus keeps renderer controls + semantic guidance mounted below the square
+   * frame. Short viewports and browser zoom therefore need a vertical escape
+   * hatch rather than clipping those still-reachable controls.
+   */
   min-height: min(76vh, 52rem);
+  min-height: min(76dvh, 52rem);
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable both-edges;
 }
 
 .petra-app[data-dish-focus="focused"] .dish-renderer-shell {
-  width: min(78vh, 50rem);
+  /*
+   * Size the square dish from remaining block space, not raw viewport height.
+   * The reserve covers persistent topbar/timeline/shell chrome, controls,
+   * semantic guidance, gaps, and focus outlines. vh is the compatibility
+   * fallback; dvh tracks the modern dynamic viewport.
+   */
+  width: min(50rem, 96%, max(12rem, calc(100vh - 24rem)));
+  width: min(50rem, 96%, max(12rem, calc(100dvh - 24rem)));
   max-width: 96%;
 }
 

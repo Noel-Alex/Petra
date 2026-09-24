@@ -1,3 +1,5 @@
+import { assertSimulationSeed } from "../sim/seed";
+
 export type DatasetSplit = "train" | "validation" | "test";
 
 export interface DatasetGroupIdentity {
@@ -14,7 +16,7 @@ export interface DatasetGroupIdentity {
 
 export interface TrajectoryIdentity {
   readonly group: DatasetGroupIdentity;
-  readonly seed: string;
+  readonly seed: number;
   readonly interventionFingerprint: string;
 }
 
@@ -48,7 +50,7 @@ export function validateMechanisticSample<TInput, TTarget>(
 ): void {
   requireNonEmpty("datasetVersion", sample.datasetVersion);
   validateGroupIdentity(sample.trajectory.group);
-  requireNonEmpty("seed", sample.trajectory.seed);
+  assertSimulationSeed(sample.trajectory.seed);
   requireNonEmpty(
     "interventionFingerprint",
     sample.trajectory.interventionFingerprint,
@@ -70,12 +72,12 @@ export function validateMechanisticSample<TInput, TTarget>(
 
 export function trajectoryKey(identity: TrajectoryIdentity): string {
   validateGroupIdentity(identity.group);
-  requireNonEmpty("seed", identity.seed);
+  assertSimulationSeed(identity.seed);
   requireNonEmpty("interventionFingerprint", identity.interventionFingerprint);
 
   return encodeParts([
     splitGroupKey(identity.group),
-    identity.seed,
+    String(identity.seed),
     identity.interventionFingerprint,
   ]);
 }

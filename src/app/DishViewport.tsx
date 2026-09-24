@@ -8,6 +8,9 @@ import {
 } from "react";
 import type { DishRenderSnapshot, SemanticZoomLevel } from "../render/model";
 import { PixiDish } from "../render/pixi/PixiDish";
+import type { NormalizedDishPoint } from "../ui/interventionPreview";
+import type { InterventionPlacementState } from "../ui/interventionPlacement";
+import { InterventionPlacementOverlay } from "./InterventionPlacementOverlay";
 import { createRendererDemoSnapshot } from "../render/pixi/demoSnapshot";
 import type { RendererMotionMode } from "../render/pixi/renderer";
 import { PetraCompactAction } from "../ui/PetraCompactAction";
@@ -48,6 +51,9 @@ export interface DishViewportProps {
    * or mutate authoritative simulation state.
    */
   readonly onEscapeBeforeOverview?: () => boolean;
+  /** Presentation-only target selection. Scientific application remains separate. */
+  readonly placement?: InterventionPlacementState | null;
+  readonly onPlacementPointChange?: (point: NormalizedDishPoint) => void;
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -65,6 +71,8 @@ export function DishViewport({
   snapshot,
   demoMode = false,
   onEscapeBeforeOverview,
+  placement = null,
+  onPlacementPointChange,
 }: DishViewportProps) {
   const interactionHintId = useId();
   const authoritativeSnapshot = snapshot ?? null;
@@ -123,6 +131,11 @@ export function DishViewport({
     if (renderEnabled) return;
     setSemanticGuide({ previous: "dish", current: "dish" });
   }, [renderEnabled]);
+
+  useEffect(() => {
+    if (placement?.phase !== "placing" || placement.tool === null) return;
+    setCameraResetSignal((signal) => signal + 1);
+  }, [placement?.phase, placement?.tool]);
 
   useEffect(() => {
     if (activeSnapshot === null) return;
@@ -205,6 +218,14 @@ export function DishViewport({
           }
           ariaDescribedBy={interactionHintId}
         />
+        {placement?.phase === "placing" && placement.tool !== null ? (
+          <InterventionPlacementOverlay
+            tool={placement.tool}
+            point={placement.point}
+            motion={motion}
+            onPointChange={onPlacementPointChange}
+          />
+        ) : null}
         <span className="dish-source-badge">
           {usingAuthoritative
             ? "authoritative snapshot"
@@ -317,9 +338,9 @@ export function DishViewport({
       />
 
       <p className="dish-interaction-hint" id={interactionHintId}>
-        Pointer: wheel to zoom · drag while zoomed · double-click to focus.
-        Touch: drag while zoomed · pinch to zoom. Keyboard: +/− zoom · arrow
-        keys pan · Home, 0, Escape, or Dish resets overview.
+        {placement?.phase === "placing"
+          ? "Placement preview: move or tap the target on the dish, or use the horizontal and vertical controls. Escape cancels. The target ring is presentation-only."
+          : "Pointer: wheel to zoom · drag while zoomed · double-click to focus. Touch: drag while zoomed · pinch to zoom. Keyboard: +/− zoom · arrow keys pan · Home, 0, Escape, or Dish resets overview."}
       </p>
       {usingDemo ? (
         <p className="dish-demo-disclosure">

@@ -108,3 +108,21 @@ describe("app shell resolved motion attribute", () => {
     expect(appCss).not.toContain("@media (prefers-reduced-motion: reduce)");
   });
 });
+
+
+describe("localized placement motion authority", () => {
+  it("fails static by default and never restores the abandoned bespoke loop timing", () => {
+    const overlay = ruleBody(".dish-placement-overlay");
+    const animated = ruleBody(
+      '.dish-placement-overlay[data-transition-treatment="animate"] .dish-placement-target',
+    );
+
+    expect(overlay).toContain("--placement-motion-ms: 0ms;");
+    expect(overlay).toContain("--placement-motion-easing: linear;");
+    expect(animated).toContain("var(--placement-motion-ms)");
+    expect(animated).toContain("var(--placement-motion-easing)");
+    expect(appCss).toContain("@keyframes petra-placement-target-reveal");
+    expect(appCss).not.toContain("petra-placement-ring-drift");
+    expect(appCss).not.toContain("4.8s linear infinite");
+  });
+});

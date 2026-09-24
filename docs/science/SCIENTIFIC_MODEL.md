@@ -110,6 +110,12 @@ Each mutation event records:
 
 Antibiotic exposure changes survival/relative growth; it does not instruct the simulator to generate a useful mutation.
 
+### Aggregate ecology event boundary
+
+The current spatial ecology kernel tracks continuous lineage biomass/density. Its per-step **division-biomass** and **death-biomass** ledgers are fluxes, not automatically discrete cell-event counts. Petra must not pass continuous division biomass directly to an integer mutation sampler or silently round it into births. A versioned bridge must define the population unit / stochastic approximation and be validated against the reference event sampler before it becomes authoritative.
+
+Generic first-order death hazards are mechanism inputs with units of inverse time. They are bounded numerically through the survival relation `1 - exp(-h Δt)`, but the value/source of `h` remains owned by the active mechanism and scenario. This numerical loss contract is not, by itself, a measured antibiotic-killing law.
+
 ## 6. Spatial expansion and competition
 
 Competition should emerge primarily from:

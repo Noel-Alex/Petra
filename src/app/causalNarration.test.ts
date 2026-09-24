@@ -184,6 +184,129 @@ describe("causal narration app authority boundary", () => {
   });
 
 
+  it("keeps accepted narration state silent across a temporary authority-stream gap", () => {
+    const accepted = advanceCausalNarrationSession(
+      createCausalNarrationSession(),
+      RUN_A,
+      stream(RUN_A, "run-a/main", [
+        {
+          id: "mutation-0",
+          sequence: 0,
+          eventKind: "mutation-observed",
+        },
+      ]),
+    );
+
+    const absent = advanceCausalNarrationSession(accepted, RUN_A, null);
+    expect(absent.plan.presentation).toBe("none");
+    expect(absent.plan.message).toBeNull();
+    expect(absent.cursor).toEqual(accepted.cursor);
+    expect(absent.acceptedEventCount).toBe(accepted.acceptedEventCount);
+    expect(absent.acceptedHistoryKey).toBe(accepted.acceptedHistoryKey);
+    expect(absent.streamIdentity).toBe(accepted.streamIdentity);
+
+    const restored = advanceCausalNarrationSession(
+      absent,
+      RUN_A,
+      stream(RUN_A, "run-a/main", [
+        {
+          id: "mutation-0",
+          sequence: 0,
+          eventKind: "mutation-observed",
+        },
+      ]),
+    );
+    expect(restored.plan.presentation).toBe("none");
+    expect(restored.cursor).toEqual(accepted.cursor);
+
+    const appended = advanceCausalNarrationSession(
+      restored,
+      RUN_A,
+      stream(RUN_A, "run-a/main", [
+        {
+          id: "mutation-0",
+          sequence: 0,
+          eventKind: "mutation-observed",
+        },
+        {
+          id: "lysis-1",
+          sequence: 1,
+          eventKind: "lysis-observed",
+        },
+      ]),
+    );
+    expect(appended.plan.presentation).toBe("specific");
+    expect(appended.plan.eventIds).toEqual(["lysis-1"]);
+    expect(appended.cursor).toEqual({ sequence: 1, eventId: "lysis-1" });
+  });
+
+  it("still rejects rewritten accepted history after an authority-stream gap", () => {
+    const accepted = advanceCausalNarrationSession(
+      createCausalNarrationSession(),
+      RUN_A,
+      stream(RUN_A, "run-a/main", [
+        {
+          id: "mutation-0",
+          sequence: 0,
+          eventKind: "mutation-observed",
+        },
+      ]),
+    );
+    const absent = advanceCausalNarrationSession(accepted, RUN_A, undefined);
+
+    expect(() =>
+      advanceCausalNarrationSession(
+        absent,
+        RUN_A,
+        stream(RUN_A, "run-a/main", [
+          {
+            id: "intervention-0",
+            sequence: 0,
+            eventKind: "intervention-applied",
+          },
+        ]),
+      ),
+    ).toThrow(/accepted history cannot be replaced/);
+
+    expect(() =>
+      advanceCausalNarrationSession(
+        absent,
+        RUN_A,
+        stream(RUN_A, "run-a/main", []),
+      ),
+    ).toThrow(/accepted history must remain present/);
+  });
+
+  it("keeps a previously accepted cursor intact while a stale foreign stream is ignored", () => {
+    const accepted = advanceCausalNarrationSession(
+      createCausalNarrationSession(),
+      RUN_A,
+      stream(RUN_A, "run-a/main", [
+        {
+          id: "mutation-0",
+          sequence: 0,
+          eventKind: "mutation-observed",
+        },
+      ]),
+    );
+
+    const ignored = advanceCausalNarrationSession(
+      accepted,
+      RUN_A,
+      stream(RUN_B, "run-b/main", [
+        {
+          id: "lysis-0",
+          sequence: 0,
+          eventKind: "lysis-observed",
+        },
+      ]),
+    );
+
+    expect(ignored.plan.presentation).toBe("none");
+    expect(ignored.cursor).toEqual(accepted.cursor);
+    expect(ignored.acceptedHistoryKey).toBe(accepted.acceptedHistoryKey);
+  });
+
   it("uses replay-relevant history rather than only the final frontier for React revisions", () => {
     const original = stream(RUN_A, "run-a/main", [
       {

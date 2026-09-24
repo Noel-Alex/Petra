@@ -127,3 +127,9 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - `InterventionPlacementOverlay.tsx` consumes `src/render/pixi/camera.ts` aperture geometry rather than repeating dish diameter assumptions. Pointer/touch outside the circular aperture is ignored.
 - Tool buttons may enable **placement preview** in ready/pending runtime states even while `InterventionCapabilityView.available` remains false. A visible disabled Apply gate and explanatory copy preserve that distinction until #37/#158 provides authoritative intervention schema/metadata.
 - Placement colors consume the shared Petra visual-token CSS variables locally; #458 does not own or fork the central visual theme.
+
+
+## Sources drawer visual-theme ownership
+- `sourcesDrawer.css` owns responsive drawer geometry and consumes shared Petra `--petra-color-*` / `--petra-rgb-*` variables for stable chrome. Do not introduce a drawer-local numeric hex/RGB/RGBA palette or blur-heavy glass treatment.
+- Theme work must preserve the non-modal disclosure contract, requested-visible vs exiting lifecycle, Escape/focus-restoration behavior, inert exit state, overscroll containment, and shared `--panel-motion-*` timing authority.
+- Provenance/source identity and evidence semantics remain upstream authority; the drawer palette may reinforce hierarchy but must never imply source quality or scientific confidence.

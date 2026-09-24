@@ -158,10 +158,11 @@ describe('Sandbox scenario selection authority', () => {
       }),
     ).toThrow(/does not match the selected scenario binding/)
 
+    const { parameterSetBinding: _binding, ...identityWithoutBinding } = identity
     expect(() =>
       projectSandboxActiveRun({
         scenarioKey: scenario.key,
-        identity: { ...identity, parameterSetBinding: undefined },
+        identity: identityWithoutBinding,
       }),
     ).toThrow(/provenance-owned parameter-set binding/)
   })

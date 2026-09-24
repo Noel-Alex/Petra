@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { resolveMotion } from "../ui/motion/policy";
 import {
   loadMotionSetting,
   parseMotionSetting,
@@ -7,7 +6,7 @@ import {
   saveMotionSetting,
   type MotionSetting,
 } from "../ui/motion/preference";
-import { MOTION } from "../ui/motion/tokens";
+import { planPanelCssTransition } from "../ui/motion/surfaceCss";
 import { DishViewport } from "./DishViewport";
 
 function useSystemReducedMotion(): boolean {
@@ -46,11 +45,7 @@ export function App() {
   });
 
   const panelMotion = useMemo(
-    () =>
-      resolveMotion(motionPreference, {
-        kind: "navigational",
-        durationMs: MOTION.panel.durationMs,
-      }),
+    () => planPanelCssTransition(motionPreference),
     [motionPreference],
   );
 
@@ -58,7 +53,13 @@ export function App() {
     <main
       className="petra-app"
       data-motion={motionPreference}
-      style={{ "--panel-motion-ms": `${panelMotion.durationMs}ms` } as CSSProperties}
+      data-panel-motion={panelMotion.treatment}
+      style={
+        {
+          "--panel-motion-ms": panelMotion.durationCss,
+          "--panel-motion-easing": panelMotion.easingCss,
+        } as CSSProperties
+      }
     >
       <header className="petra-topbar">
         <div>

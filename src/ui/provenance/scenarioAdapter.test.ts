@@ -128,6 +128,44 @@ describe("scenario provenance adapter", () => {
     expect(result.rawClassification).toBeNull();
   });
 
+  it("validates record identity before missing-classification early returns", () => {
+    for (const badId of ["", "   ", " mic "]) {
+      expect(() =>
+        resolveScenarioProvenance({
+          id: badId,
+          label: "Ciprofloxacin MIC",
+          record: { citation: "marcusson_2009" },
+          scenario,
+        }),
+      ).toThrow(/provenance record id must be a trimmed non-empty string/);
+    }
+
+    for (const badLabel of ["", "   ", " Ciprofloxacin MIC "]) {
+      expect(() =>
+        resolveScenarioProvenance({
+          id: "mic",
+          label: badLabel,
+          record: { citation: "marcusson_2009" },
+          scenario,
+        }),
+      ).toThrow(/provenance record label must be a trimmed non-empty string/);
+    }
+  });
+
+  it("validates record identity before unsupported-classification early returns", () => {
+    expect(() =>
+      resolveScenarioProvenance({
+        id: " mutation-edge ",
+        label: "WT → gyrA S83L mutation target",
+        record: {
+          classification: "model_target_probability",
+          citation: "regoes_2004",
+        },
+        scenario,
+      }),
+    ).toThrow(/provenance record id must be a trimmed non-empty string/);
+  });
+
   it("does not infer measured evidence merely because a citation exists", () => {
     const result = resolveScenarioProvenance({
       id: "mic",

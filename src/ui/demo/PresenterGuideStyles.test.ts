@@ -72,6 +72,16 @@ describe("PresenterGuide presentation contracts", () => {
     expect(announcementRule).toContain("clip: rect(0 0 0 0)");
   });
 
+  it("keeps the native runbook selector at Petra's expo touch target", () => {
+    const profileRule = presenterCss.match(
+      /\.presenter-guide__profile select \{([\s\S]*?)\}/,
+    )?.[1];
+
+    expect(profileRule).toBeDefined();
+    expect(profileRule).toContain("min-height: 2.75rem;");
+    expect(profileRule).not.toContain("min-width");
+  });
+
   it("does not shrink the shared compact-action touch target locally", () => {
     const actionRule = presenterCss.match(
       /\.presenter-guide__actions button \{([\s\S]*?)\}/,

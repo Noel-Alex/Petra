@@ -79,6 +79,21 @@ describe("AnalysisSurface", () => {
     expect(html).toContain("Source samples only · no invented intermediate values");
   });
 
+  it("threads high contrast through analysis without changing scientific records", () => {
+    const html = renderToStaticMarkup(
+      <AnalysisSurface
+        records={RECORDS}
+        motion="off"
+        contrastMode="high-contrast"
+      />,
+    );
+
+    expect(html).toContain('data-contrast-mode="high-contrast"');
+    expect(html).toContain('data-lineage-id="ancestor"');
+    expect(html).toContain('data-contrast-mode="high-contrast"');
+    expect(html).toContain("--analysis-lineage-stroke-scale:1.6");
+  });
+
   it("mounts the unavailable analysis seam in the default app without manufacturing data", () => {
     const html = renderToStaticMarkup(<App />);
 

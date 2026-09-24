@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 
 import { AnalysisPanel } from "../ui/analysis/AnalysisPanel";
+import type { LineageContrastMode } from "../design/lineageIdentity";
 import type { MotionPreference } from "../ui/motion/policy";
 import {
   projectAuthoritativeAnalysis,
@@ -12,6 +13,7 @@ import "./analysisSurface.css";
 export interface AnalysisSurfaceProps {
   readonly records?: AuthoritativeAnalysisRecords | null;
   readonly motion: MotionPreference;
+  readonly contrastMode?: LineageContrastMode;
 }
 
 /**
@@ -24,8 +26,9 @@ export interface AnalysisSurfaceProps {
 export function AnalysisSurface({
   records = null,
   motion,
+  contrastMode = "standard",
 }: AnalysisSurfaceProps): ReactElement {
-  const view = projectAuthoritativeAnalysis(records);
+  const view = projectAuthoritativeAnalysis(records, { contrastMode });
 
   if (view.status === "unavailable") {
     return (
@@ -49,6 +52,7 @@ export function AnalysisSurface({
       data-analysis-status="available"
       data-run-identity={view.identity.runIdentity}
       data-state-identity={view.identity.stateIdentity}
+      data-contrast-mode={contrastMode}
     >
       <summary>
         <span>

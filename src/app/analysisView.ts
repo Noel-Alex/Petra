@@ -1,3 +1,4 @@
+import type { LineageContrastMode } from "../design/lineageIdentity";
 import {
   buildLineageTree,
   buildScientificChart,
@@ -45,6 +46,7 @@ export type AnalysisSurfaceView =
  */
 export function projectAuthoritativeAnalysis(
   records: AuthoritativeAnalysisRecords | null | undefined,
+  options: { readonly contrastMode?: LineageContrastMode } = {},
 ): AnalysisSurfaceView {
   if (records === null || records === undefined) {
     return {
@@ -70,7 +72,9 @@ export function projectAuthoritativeAnalysis(
     status: "available",
     identity: records.identity,
     charts: buildScientificChartsByUnit(records.series),
-    lineageTree: buildLineageTree(records.lineages),
+    lineageTree: buildLineageTree(records.lineages, {
+      contrastMode: options.contrastMode ?? "standard",
+    }),
   };
 }
 

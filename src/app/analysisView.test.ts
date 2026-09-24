@@ -72,6 +72,37 @@ describe("authoritative analysis app projection", () => {
     ]);
   });
 
+  it("projects high contrast as presentation emphasis without changing lineage identity", () => {
+    const standard = projectAuthoritativeAnalysis(records());
+    const high = projectAuthoritativeAnalysis(records(), {
+      contrastMode: "high-contrast",
+    });
+    expect(standard.status).toBe("available");
+    expect(high.status).toBe("available");
+    if (standard.status !== "available" || high.status !== "available") return;
+
+    expect(
+      high.lineageTree.nodes.map((node) => [
+        node.lineageId,
+        node.appearanceToken,
+        node.patternToken,
+      ]),
+    ).toEqual(
+      standard.lineageTree.nodes.map((node) => [
+        node.lineageId,
+        node.appearanceToken,
+        node.patternToken,
+      ]),
+    );
+    expect(
+      high.lineageTree.nodes.every(
+        (node) =>
+          node.contrastMode === "high-contrast" &&
+          node.strokeWidthScale > 1,
+      ),
+    ).toBe(true);
+  });
+
   it("groups mixed scientific units into separate charts in source order", () => {
     const input = records();
     const view = projectAuthoritativeAnalysis({

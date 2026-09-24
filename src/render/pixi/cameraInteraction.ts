@@ -74,6 +74,45 @@ export function beginRebasedCameraTransition(
   };
 }
 
+export function rebaseCameraTransitionForMotionSpecChange(
+  state: CameraTransitionState,
+  previousDurationMs: number,
+  nextDurationMs: number,
+): CameraTransitionState {
+  assertDuration(previousDurationMs);
+  assertDuration(nextDurationMs);
+
+  const transitionActive =
+    previousDurationMs > 0 && state.elapsedMs < previousDurationMs;
+
+  if (!transitionActive) {
+    return {
+      camera: clampCamera(state.camera),
+      transitionStartCamera: clampCamera(state.camera),
+      targetCamera: clampCamera(state.targetCamera),
+      elapsedMs: nextDurationMs,
+    };
+  }
+
+  const targetCamera = clampCamera(state.targetCamera);
+  if (nextDurationMs === 0) {
+    return {
+      camera: targetCamera,
+      transitionStartCamera: targetCamera,
+      targetCamera,
+      elapsedMs: 0,
+    };
+  }
+
+  const camera = clampCamera(state.camera);
+  return {
+    camera,
+    transitionStartCamera: camera,
+    targetCamera,
+    elapsedMs: 0,
+  };
+}
+
 export function retargetWheelZoomFromRendered(args: {
   readonly state: CameraTransitionState;
   readonly screen: ScreenPoint;

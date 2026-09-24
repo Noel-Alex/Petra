@@ -221,23 +221,20 @@
     },
     {
       "id": "offline-expo-rehearsal",
-      "description": "BLOCKED on #532: production build no-network startup/demo rehearsal.",
+      "description": "Current-build offline/no-external-network preflight; final frozen 90-second/3-minute rehearsal remains #580.",
       "command": [
         "python",
-        "experiments/blocked.py",
-        "--experiment-id",
-        "offline-expo-rehearsal",
-        "--blocked-on",
-        "532",
-        "--reason",
-        "Issue #532 must land the release/offline expo packaging prerequisites before a no-network rehearsal can validate the actual deliverable."
+        "tools/offline_expo_acceptance.py"
       ],
       "issues": [
         11,
+        37,
         532,
-        542
+        542,
+        557,
+        580
       ],
-      "timeout_seconds": 30
+      "timeout_seconds": 600
     },
     {
       "id": "release-responsive-performance-matrix",

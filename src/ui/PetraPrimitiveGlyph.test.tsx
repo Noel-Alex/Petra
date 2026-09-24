@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   PetraPrimitiveGlyph,
+  type PetraPrimitiveGlyphId,
   type PetraPrimitiveGlyphState,
 } from "./PetraPrimitiveGlyph";
 
@@ -97,6 +98,18 @@ describe("PetraPrimitiveGlyph", () => {
     );
     expect(html).toContain('role="img"');
     expect(html).toContain('aria-label="Intervention location"');
+  });
+
+  it("fails closed instead of inventing specialized path geometry", () => {
+    expect(() =>
+      renderToStaticMarkup(
+        <PetraPrimitiveGlyph
+          primitive={"hyphal-path" as PetraPrimitiveGlyphId}
+          motionPreference="full"
+          decorative
+        />,
+      ),
+    ).toThrow(/does not render geometry kind path/);
   });
 
   it("rejects invalid presentation sizes", () => {

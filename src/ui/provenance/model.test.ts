@@ -158,4 +158,72 @@ describe("provenance presentation", () => {
     expect(normalizeEvidenceClass("A")).toBeNull();
     expect(normalizeEvidenceClass("peer-reviewed")).toBeNull();
   });
+
+  it("renders structured source uncertainty with explicit scope and accessible text", () => {
+    const presentation = buildProvenancePresentation({
+      id: "fitness",
+      label: "Relative fitness",
+      evidenceClass: "measured",
+      sources: [{ id: "source", label: "Source" }],
+      sourceUncertainty: [
+        {
+          kind: "standard-deviation",
+          scope: "measurement",
+          quantityLabel: "Relative fitness",
+          value: 0.03,
+          unit: "dimensionless",
+          supportingText: "6 independent competition experiments",
+        },
+        {
+          kind: "not-quantified",
+          scope: "transfer",
+          quantityLabel: "Cross-study transfer",
+        },
+      ],
+    });
+
+    expect(presentation.details).toContainEqual({
+      label: "Measurement uncertainty · Relative fitness",
+      value:
+        "SD 0.03 dimensionless · 6 independent competition experiments",
+    });
+    expect(presentation.details).toContainEqual({
+      label: "Transfer uncertainty · Cross-study transfer",
+      value: "Not quantified in selected source.",
+    });
+    expect(presentation.ariaLabel).toContain(
+      "Measurement uncertainty · Relative fitness",
+    );
+    expect(presentation.ariaLabel).toContain(
+      "Not quantified in selected source.",
+    );
+    expect(presentation.ariaLabel).not.toMatch(/confidence score/i);
+  });
+
+  it("refuses ambiguous simultaneous legacy and structured uncertainty", () => {
+    expect(() =>
+      buildProvenancePresentation({
+        id: "ambiguous",
+        label: "Ambiguous uncertainty",
+        evidenceClass: "engineering",
+        uncertainty: "Legacy text",
+        sourceUncertainty: [
+          {
+            kind: "not-quantified",
+            scope: "model",
+            quantityLabel: "Model form",
+          },
+        ],
+      }),
+    ).toThrow(/either legacy text or structured sourceUncertainty/);
+
+    expect(() =>
+      buildProvenancePresentation({
+        id: "empty-structured",
+        label: "Empty structured uncertainty",
+        evidenceClass: "engineering",
+        sourceUncertainty: [],
+      }),
+    ).toThrow(/at least one explicit uncertainty state/);
+  });
 });

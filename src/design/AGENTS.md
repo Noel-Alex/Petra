@@ -39,3 +39,9 @@ should carry the interface.
 This directory must not import React, Pixi, simulation modules, or browser-only
 DOM classes. Keep bridges target-shaped and framework-neutral so the same visual
 authority remains reusable.
+
+## Lineage visual identity
+- `lineageIdentity.ts` owns the cross-surface presentation identity vocabulary for scientific lineage IDs. The same exact lineage ID resolves to the same bounded appearance + non-color pattern pair in dish, tree, chart, compare, and timeline consumers.
+- Lineage presentation hashing is visual-only. Never feed fitness, resistance, abundance, confidence, ancestry rank, or phenotype into the resolver.
+- Standard and high-contrast modes preserve the same identity tokens; high contrast increases stroke emphasis without remapping lineage identity and remains independent from motion preference.
+- Visible lineage ID/text remains the ultimate non-color cue. Pattern vocabularies reduce hue dependence but do not replace labels when identity matters.

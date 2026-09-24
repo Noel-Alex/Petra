@@ -76,6 +76,7 @@ interface ResolutionBase {
   readonly source: PhageLifeHistorySource;
   readonly context: PhageLifeHistoryContext;
   readonly measuredDomain: PhageLifeHistoryEvidence["measuredDomain"];
+  readonly provenance: PhageLifeHistoryEvidence["provenance"];
 }
 
 export type PhageLifeHistoryResolution =
@@ -126,6 +127,7 @@ export function resolvePhageLifeHistory(
     source: evidence.source,
     context: evidence.context,
     measuredDomain: evidence.measuredDomain,
+    provenance: evidence.provenance,
   };
 
   if (

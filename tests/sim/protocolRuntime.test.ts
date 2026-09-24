@@ -170,6 +170,50 @@ describe('worker protocol-v4 runtime validation', () => {
     })
   })
 
+  it('rejects unknown discriminants and missing response correlation fields', () => {
+    expect(
+      parseWorkerRequest({
+        protocolVersion: PROTOCOL_VERSION,
+        type: 'unknown',
+      }),
+    ).toEqual({
+      ok: false,
+      error: 'Invalid worker request: type must be "initialize" or "command"',
+      commandId: null,
+    })
+
+    expect(
+      parseWorkerResponse({
+        protocolVersion: PROTOCOL_VERSION,
+        type: 'snapshot',
+        snapshot: syntheticSnapshot(),
+      }),
+    ).toEqual({
+      ok: false,
+      error: 'Invalid worker response: snapshot.commandId must be a string',
+      commandId: null,
+    })
+  })
+
+  it('rejects malformed command envelopes before engine dispatch', () => {
+    const parsed = parseWorkerRequest({
+      protocolVersion: PROTOCOL_VERSION,
+      type: 'command',
+      command: {
+        id: 'bad-advance',
+        type: 'advance',
+        ticks: '4',
+      },
+    })
+
+    expect(parsed).toEqual({
+      ok: false,
+      error:
+        'Invalid worker request: command .ticks must be a non-negative safe integer',
+      commandId: 'bad-advance',
+    })
+  })
+
   it('rejects unsupported protocol versions before typed handling', () => {
     const request = parseWorkerRequest({
       protocolVersion: 99,

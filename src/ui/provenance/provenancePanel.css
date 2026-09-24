@@ -24,6 +24,74 @@
   margin: 0;
 }
 
+.provenance-panel__filters {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) minmax(10rem, 0.6fr) auto;
+  align-items: end;
+  gap: 0.7rem;
+  padding: 0.8rem;
+  border: 1px solid currentColor;
+  border-radius: 0.9rem;
+}
+
+.provenance-panel__filters label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.provenance-panel__filters label > span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.provenance-panel__filters input,
+.provenance-panel__filters select,
+.provenance-panel__filters button {
+  min-height: 2.55rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid currentColor;
+  border-radius: 0.7rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.provenance-panel__filters button {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.provenance-panel__filters button:disabled {
+  cursor: default;
+  opacity: 0.48;
+}
+
+.provenance-panel__filters input:focus-visible,
+.provenance-panel__filters select:focus-visible,
+.provenance-panel__filters button:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 2px;
+}
+
+.provenance-panel__filter-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.35rem 1rem;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.provenance-panel__filter-meta p {
+  margin: 0;
+}
+
+.provenance-panel__filter-note {
+  font-weight: 650;
+}
+
 .provenance-panel__records,
 .provenance-badges {
   display: grid;
@@ -184,6 +252,11 @@
 }
 
 @media (max-width: 42rem) {
+  .provenance-panel__filters {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
   .provenance-panel__header,
   .provenance-record__header {
     align-items: stretch;

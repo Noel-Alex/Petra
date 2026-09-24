@@ -161,6 +161,7 @@ def run_experiment(item: dict[str, Any], run_id: str, log_tail_bytes: int) -> di
     env["PETRA_LOCAL_RUN_ID"] = run_id
     env["PETRA_LOCAL_EXPERIMENT_ID"] = exp_id
     env["PETRA_LOCAL_ARTIFACT_DIR"] = str(local_dir / "artifacts")
+    env["PETRA_LOCAL_RESULT_JSON"] = str(local_dir / "compact-result.json")
     Path(env["PETRA_LOCAL_ARTIFACT_DIR"]).mkdir(parents=True, exist_ok=True)
     for key, value in item.get("env", {}).items():
         if not isinstance(key, str) or not isinstance(value, str):
@@ -193,6 +194,15 @@ def run_experiment(item: dict[str, Any], run_id: str, log_tail_bytes: int) -> di
         error = str(exc)
 
     elapsed = time.perf_counter() - started
+    compact_result = None
+    compact_result_path = Path(env["PETRA_LOCAL_RESULT_JSON"])
+    if compact_result_path.exists():
+        try:
+            compact_result = json.loads(compact_result_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            status = "failed"
+            error = f"invalid compact result JSON: {exc}"
+
     return {
         "id": exp_id,
         "description": item.get("description", ""),
@@ -206,6 +216,7 @@ def run_experiment(item: dict[str, Any], run_id: str, log_tail_bytes: int) -> di
         "error": error,
         "log_tail": read_tail(log_path, log_tail_bytes),
         "local_artifact_dir": str((local_dir / "artifacts").relative_to(ROOT)),
+        "compact_result": compact_result,
     }
 
 

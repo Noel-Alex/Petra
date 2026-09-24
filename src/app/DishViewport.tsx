@@ -76,7 +76,11 @@ export function DishViewport({
           </select>
         </label>
 
-        <div className="dish-overlay-legend" aria-live="polite">
+        <div
+          className="dish-overlay-legend"
+          data-overlay-kind={activeOverlay?.kind ?? "none"}
+          aria-live="polite"
+        >
           <span className="dish-overlay-swatch" aria-hidden="true" />
           <span>
             {activeOverlay === null

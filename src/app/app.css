@@ -435,6 +435,21 @@ select:focus-visible {
   box-shadow: 0 0 0 3px rgba(139, 108, 246, 0.12);
 }
 
+.dish-overlay-legend[data-overlay-kind="nutrient"] .dish-overlay-swatch {
+  background: #f0bd4e;
+  box-shadow: 0 0 0 3px rgba(240, 189, 78, 0.12);
+}
+
+.dish-overlay-legend[data-overlay-kind="antibiotic"] .dish-overlay-swatch {
+  background: #8b6cf6;
+  box-shadow: 0 0 0 3px rgba(139, 108, 246, 0.12);
+}
+
+.dish-overlay-legend[data-overlay-kind="none"] .dish-overlay-swatch {
+  background: #7d8999;
+  box-shadow: 0 0 0 3px rgba(125, 137, 153, 0.12);
+}
+
 .dish-interaction-hint,
 .dish-demo-disclosure {
   margin: 0;

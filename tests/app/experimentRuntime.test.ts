@@ -309,6 +309,31 @@ describe("experiment runtime", () => {
     expect(runtime.advancePlayback()).toBe(false);
   });
 
+  it("rejects a snapshot with the same parameter-set label but a different bound config", () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+    const runtime = new ExperimentRuntime(session, identity, commandIds());
+    const foreignIdentity = structuredClone(identity);
+    if (foreignIdentity.parameterSetBinding === undefined) {
+      throw new Error("expected bound fixture identity");
+    }
+    ;(
+      foreignIdentity.parameterSetBinding as { configurationFingerprint: string }
+    ).configurationFingerprint += "-foreign";
+
+    runtime.start();
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: makeSnapshot({ identity: foreignIdentity, tick: 0 }),
+    });
+
+    expect(runtime.state.snapshot).toBeNull();
+    expect(runtime.state.integrationError).toContain(
+      "does not match the active experiment controls",
+    );
+  });
+
   it("does not use start as an implicit reset of a ready experiment", () => {
     const { port, runtime } = readyRuntime();
     expect(runtime.start()).toBe(false);

@@ -24,6 +24,9 @@ export function PixiDish({
   const latestSnapshotRef = useRef<DishRenderSnapshot | null>(null);
   const fixture = useMemo(() => createRendererFixtureSnapshot(), []);
   const activeSnapshot = snapshot ?? fixture;
+  const activeOverlay =
+    activeSnapshot.fields.find((field) => field.kind === "antibiotic") ??
+    activeSnapshot.fields[0];
   const [semanticZoom, setSemanticZoom] =
     useState<SemanticZoomLevel>("dish");
 
@@ -77,6 +80,14 @@ export function PixiDish({
             : "Petra authoritative Petri dish visualization"
         }
       />
+      <div className="pixi-overlay-legend">
+        <span className="overlay-swatch" aria-hidden="true" />
+        <span>
+          {activeOverlay === undefined
+            ? "No overlay"
+            : `${activeOverlay.label} · ${activeOverlay.unit}`}
+        </span>
+      </div>
       <div className="pixi-dish-hud" aria-live="polite">
         <span className="renderer-badge">
           {snapshot === undefined ? "visual fixture" : "live snapshot"}

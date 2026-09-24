@@ -70,7 +70,7 @@ describe("AnalysisSurface", () => {
     expect(html).toContain('data-analysis-status="available"');
     expect(html).toContain('data-run-identity="run-authoritative"');
     expect(html).toContain('data-state-identity="state-authoritative"');
-    expect(html).toContain("Population trajectory &amp; lineage ancestry");
+    expect(html).toContain("Scientific trajectories &amp; lineage ancestry");
     expect(html).toContain("Scientific time series");
     expect(html).toContain("model-biomass");
     expect(html).toContain("model-resource");

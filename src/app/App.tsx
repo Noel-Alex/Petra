@@ -17,6 +17,12 @@ import { DishViewport } from "./DishViewport";
 import { CausalNarrationMount } from "./CausalNarrationMount";
 import type { AuthoritativeCausalEventStream } from "./causalNarration";
 import { InterventionPalette } from "./InterventionPalette";
+import {
+  beginInterventionPlacement,
+  cancelInterventionPlacement,
+  createInterventionPlacementState,
+  moveInterventionPlacement,
+} from "../ui/interventionPlacement";
 import { AnalysisSurface } from "./AnalysisSurface";
 import type { AuthoritativeAnalysisRecords } from "./analysisView";
 import { buildFlagshipProvenanceView } from "./flagshipProvenance";
@@ -112,6 +118,9 @@ export function App({
   const [sourcesLifecycle, setSourcesLifecycle] = useState(
     createSourcesSurfaceLifecycle,
   );
+  const [interventionPlacement, setInterventionPlacement] = useState(
+    createInterventionPlacementState,
+  );
   const [motionSetting, setMotionSetting] = useState<MotionSetting>(() => {
     try {
       return loadMotionSetting(globalThis.localStorage);
@@ -127,6 +136,13 @@ export function App({
       reconcileOnboardingRuntimeSession(current, onboardingProjection),
     );
   }, [onboardingProjection]);
+
+  useEffect(() => {
+    if (experiment.view.status === "ready") return;
+    setInterventionPlacement((current) =>
+      cancelInterventionPlacement(current),
+    );
+  }, [experiment.view.status]);
 
   const motionPreference = resolveMotionSetting({
     setting: motionSetting,
@@ -336,6 +352,22 @@ export function App({
         <InterventionPalette
           motion={motionPreference}
           runtimeStatus={experiment.view.status}
+          placement={interventionPlacement}
+          onBeginPlacement={(tool) => {
+            setInterventionPlacement((current) =>
+              beginInterventionPlacement(current, tool),
+            );
+          }}
+          onPlacementPointChange={(point) => {
+            setInterventionPlacement((current) =>
+              moveInterventionPlacement(current, point),
+            );
+          }}
+          onCancelPlacement={() => {
+            setInterventionPlacement((current) =>
+              cancelInterventionPlacement(current),
+            );
+          }}
         />
 
         <section className="dish-stage" aria-label="Petri dish viewport">
@@ -355,7 +387,23 @@ export function App({
           />
           <DishViewport
             motion={motionPreference}
+            placement={
+              interventionPlacement.phase === "placing"
+                ? interventionPlacement
+                : null
+            }
+            onPlacementPointChange={(point) => {
+              setInterventionPlacement((current) =>
+                moveInterventionPlacement(current, point),
+              );
+            }}
             onEscapeBeforeOverview={() => {
+              if (interventionPlacement.phase === "placing") {
+                setInterventionPlacement((current) =>
+                  cancelInterventionPlacement(current),
+                );
+                return true;
+              }
               if (!sourcesLifecycle.requestedOpen) return false;
               closeSources();
               return true;

@@ -8,6 +8,10 @@ export interface LineageOrigin {
 
 export interface LineageRecord extends LineageOrigin {
   readonly lineageId: string
+  readonly extinctAtHours: number | null
+}
+
+type MutableLineageRecord = Omit<LineageRecord, 'extinctAtHours'> & {
   extinctAtHours: number | null
 }
 
@@ -29,7 +33,7 @@ export interface LineageRegistryCheckpoint {
 /** Deterministic ancestry registry. IDs depend only on creation order. */
 export class LineageRegistry {
   private nextId = 1
-  private readonly records = new Map<string, LineageRecord>()
+  private readonly records = new Map<string, MutableLineageRecord>()
   private readonly events: LineageEvent[] = []
 
   create(origin: LineageOrigin): LineageRecord {
@@ -47,7 +51,7 @@ export class LineageRegistry {
 
     const lineageId = `L${this.nextId}`
     this.nextId += 1
-    const record: LineageRecord = { lineageId, ...origin, extinctAtHours: null }
+    const record: MutableLineageRecord = { lineageId, ...origin, extinctAtHours: null }
     this.records.set(lineageId, record)
     this.events.push({
       kind: 'lineage-created',
@@ -56,7 +60,7 @@ export class LineageRegistry {
       ...(origin.parentLineageId === null ? {} : { parentLineageId: origin.parentLineageId }),
       genotypeId: origin.genotypeId,
     })
-    return record
+    return cloneRecord(record)
   }
 
   markExtinct(lineageId: string, timeHours: number): void {
@@ -71,15 +75,16 @@ export class LineageRegistry {
   }
 
   get(lineageId: string): LineageRecord | undefined {
-    return this.records.get(lineageId)
+    const record = this.records.get(lineageId)
+    return record === undefined ? undefined : cloneRecord(record)
   }
 
   list(): readonly LineageRecord[] {
-    return [...this.records.values()]
+    return [...this.records.values()].map(cloneRecord)
   }
 
   eventLog(): readonly LineageEvent[] {
-    return [...this.events]
+    return this.events.map(cloneEvent)
   }
 
   /**
@@ -351,7 +356,7 @@ function decodeCheckpointEvent(value: unknown, index: number): LineageEvent {
   return value as unknown as LineageEvent
 }
 
-function cloneRecord(record: LineageRecord): LineageRecord {
+function cloneRecord(record: LineageRecord): MutableLineageRecord {
   return {
     lineageId: record.lineageId,
     parentLineageId: record.parentLineageId,

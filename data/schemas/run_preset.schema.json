@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://petra.local/schemas/run-preset.schema.json",
+  "title": "Petra flagship run preset",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "version",
+    "scenarioId",
+    "scenarioVersion",
+    "parameterSetId",
+    "parameterSetVersion",
+    "classification",
+    "seed",
+    "initialResourceLevel",
+    "inocula",
+    "provenance"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scenarioId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scenarioVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "parameterSetId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "parameterSetVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "classification": {
+      "const": "engineering"
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "initialResourceLevel": {
+      "type": "number",
+      "minimum": 0
+    },
+    "inocula": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "lineageId",
+          "x",
+          "y",
+          "biomass"
+        ],
+        "properties": {
+          "lineageId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "x": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "y": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "biomass": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "classification",
+        "context",
+        "limitation"
+      ],
+      "properties": {
+        "classification": {
+          "const": "engineering"
+        },
+        "context": {
+          "type": "string",
+          "minLength": 1
+        },
+        "limitation": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

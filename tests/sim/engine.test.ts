@@ -12,6 +12,31 @@ const identity = createRunIdentity({
 })
 
 describe('SimulationRng', () => {
+  it('round-trips exact uint32 boundary state through constructor and restore', () => {
+    const state = [0, 1, 0x8000_0000, 0xffff_ffff] as const
+    const restored = new SimulationRng(7)
+
+    expect(new SimulationRng(state).snapshot()).toEqual(state)
+    restored.restore(state)
+    expect(restored.snapshot()).toEqual(state)
+  })
+
+  it('rejects lossy or non-finite serialized state words before replay', () => {
+    const invalidWords = [0.5, -1, 0x1_0000_0000, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]
+
+    for (const invalidWord of invalidWords) {
+      const state = [1, 2, 3, invalidWord] as unknown as readonly [number, number, number, number]
+      expect(() => new SimulationRng(state)).toThrow(/four uint32 values/)
+
+      const rng = new SimulationRng(42)
+      const before = rng.snapshot()
+      expect(() => rng.restore(state)).toThrow(/four uint32 values/)
+      expect(rng.snapshot()).toEqual(before)
+    }
+
+    expect(() => new SimulationRng([0, 0, 0, 0])).toThrow(/cannot be all zero/)
+  })
+
   it('replays exactly from serialized state', () => {
     const rng = new SimulationRng(42)
     const prefix = Array.from({ length: 8 }, () => rng.nextUint32())

@@ -3,6 +3,19 @@ import { assertSimulationSeed } from './seed'
 export type RngState = readonly [number, number, number, number]
 
 const UINT32_SCALE = 1 / 0x1_0000_0000
+const UINT32_MAX = 0xffff_ffff
+
+function assertRngState(state: RngState): [number, number, number, number] {
+  if (
+    state.length !== 4 ||
+    state.some((value) => !Number.isInteger(value) || value < 0 || value > UINT32_MAX) ||
+    state.every((value) => value === 0)
+  ) {
+    throw new Error('RNG state must contain four uint32 values and cannot be all zero')
+  }
+
+  return [...state] as [number, number, number, number]
+}
 
 function rotl(value: number, shift: number): number {
   return ((value << shift) | (value >>> (32 - shift))) >>> 0
@@ -33,10 +46,7 @@ export class SimulationRng {
       this.state = [nextSeed(), nextSeed(), nextSeed(), nextSeed()]
       if (this.state.every((value) => value === 0)) this.state[0] = 1
     } else {
-      if (seedOrState.length !== 4 || seedOrState.every((value) => value === 0)) {
-        throw new Error('RNG state must contain four uint32 values and cannot be all zero')
-      }
-      this.state = seedOrState.map((value) => value >>> 0) as [number, number, number, number]
+      this.state = assertRngState(seedOrState)
     }
   }
 

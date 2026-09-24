@@ -1,5 +1,6 @@
 import { Application, Container, Graphics } from "pixi.js";
 import { sampleRepresentativeGlyphs } from "../lod";
+import { resolveLineageAppearance } from "../lineageAppearance";
 import { resolveLineagePattern, type LineagePatternToken } from "../lineagePatterns";
 import {
   semanticZoomLevel,
@@ -49,7 +50,6 @@ export interface PixiDishRenderer {
   destroy(): void;
 }
 
-const LINEAGE_COLORS = [0x55d7ef, 0xf079b7, 0xf2ca68, 0x75e3ae, 0xb39af5] as const;
 const LINEAGE_PATTERN_COLOR = 0xf4f7fb;
 
 export async function createPixiDishRenderer(
@@ -394,7 +394,7 @@ function drawScene(args: {
     drawField(fieldLayer, overlay, snapshot, camera, centerX, centerY, dishSize);
   }
 
-  snapshot.lineages.forEach((lineage, index) => {
+  snapshot.lineages.forEach((lineage) => {
     drawLineageDensity(
       densityLayer,
       lineage,
@@ -403,7 +403,7 @@ function drawScene(args: {
       centerX,
       centerY,
       dishSize,
-      LINEAGE_COLORS[index % LINEAGE_COLORS.length] ?? LINEAGE_COLORS[0],
+      resolveLineageAppearance(lineage.appearanceToken).color,
       level,
     );
   });
@@ -414,12 +414,11 @@ function drawScene(args: {
       minimumDensity: 0.03,
     });
     for (const glyph of glyphs) {
-      const lineageIndex = snapshot.lineages.findIndex(
-        (lineage) => lineage.id === glyph.lineageId,
+      const lineage = snapshot.lineages.find(
+        (candidate) => candidate.id === glyph.lineageId,
       );
-      const lineage = snapshot.lineages[lineageIndex];
       if (lineage === undefined) continue;
-      const color = LINEAGE_COLORS[lineageIndex % LINEAGE_COLORS.length] ?? LINEAGE_COLORS[0];
+      const color = resolveLineageAppearance(lineage.appearanceToken).color;
       const point = dishToScreen(
         glyph.x,
         glyph.y,

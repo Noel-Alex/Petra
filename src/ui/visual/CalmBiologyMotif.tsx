@@ -109,6 +109,7 @@ function Branch({
       data-tone={branch.tone}
       points={branch.points.map(([x, y]) => `${x},${y}`).join(" ")}
       strokeWidth={branch.width}
+      pathLength={1}
       opacity={branch.opacity}
     />
   );

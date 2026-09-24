@@ -9,13 +9,14 @@ export interface RegressionTargetMetrics {
 export type RegressionMetrics = Readonly<Record<string, RegressionTargetMetrics>>;
 
 export interface SurrogateBenchmarkEvidence {
-  readonly schemaVersion: "surrogate-benchmark-evidence-v1";
+  readonly schemaVersion: "surrogate-benchmark-evidence-v2";
   readonly modelId: string;
   readonly modelVersion: string;
   readonly baselineId: string;
   readonly datasetVersion: string;
   readonly engineVersion: string;
   readonly splitPolicyVersion: string;
+  readonly splitCoveragePolicyVersion: string;
   readonly heldOutSplit: Exclude<DatasetSplit, "train">;
   readonly candidate: RegressionMetrics;
   readonly baseline: RegressionMetrics;
@@ -23,6 +24,7 @@ export interface SurrogateBenchmarkEvidence {
 
 export interface SurrogatePromotionRequirements {
   readonly splitPolicyVersion: string;
+  readonly splitCoveragePolicyVersion: string;
   readonly heldOutSplit: Exclude<DatasetSplit, "train">;
   readonly targetIds: readonly string[];
 }
@@ -32,6 +34,7 @@ export type PromotionIssueKind =
   | "dataset-version-mismatch"
   | "engine-version-mismatch"
   | "split-policy-mismatch"
+  | "split-coverage-policy-mismatch"
   | "held-out-split-mismatch"
   | "target-coverage-mismatch"
   | "invalid-metrics"
@@ -162,6 +165,16 @@ export function assessSurrogatePromotion(args: {
     issues.push({
       kind: "split-policy-mismatch",
       message: "benchmark evidence split policy does not match promotion requirements",
+    });
+  }
+  if (
+    evidence.splitCoveragePolicyVersion !==
+    requirements.splitCoveragePolicyVersion
+  ) {
+    issues.push({
+      kind: "split-coverage-policy-mismatch",
+      message:
+        "benchmark evidence split coverage policy does not match promotion requirements",
     });
   }
   if (evidence.heldOutSplit !== requirements.heldOutSplit) {

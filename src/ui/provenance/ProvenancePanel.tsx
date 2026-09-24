@@ -74,6 +74,11 @@ export function ProvenancePanel({
         </p>
       </header>
 
+      <p className="provenance-panel__scope-note">
+        Petra is an educational and research simulator, not a clinical dosing or
+        treatment tool. Model outputs are not patient-specific medical guidance.
+      </p>
+
       <p
         className="provenance-panel__announcement"
         role="status"

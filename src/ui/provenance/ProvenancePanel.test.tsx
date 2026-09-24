@@ -47,6 +47,20 @@ describe("provenance panel", () => {
     expect(markup).toContain("1 complete");
   });
 
+  it("renders the non-clinical product scope as ordinary readable text", () => {
+    const markup = renderToStaticMarkup(
+      <ProvenancePanel records={[]} motionPreference="off" />,
+    );
+
+    expect(markup).toContain('class="provenance-panel__scope-note"');
+    expect(markup).toContain("educational and research simulator");
+    expect(markup).toContain("not a clinical dosing or treatment tool");
+    expect(markup).toContain("not patient-specific medical guidance");
+    expect(markup).not.toMatch(
+      /class="provenance-panel__scope-note"[^>]*(?:aria-live|role="status")/,
+    );
+  });
+
   it("keeps incomplete provenance visibly incomplete instead of rendering a neutral badge", () => {
     const record = resolveScenarioProvenance({
       id: "genotype",

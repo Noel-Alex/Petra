@@ -155,6 +155,9 @@ export function sharedTrajectoryDeltas(
   left: readonly TrajectorySample[],
   right: readonly TrajectorySample[],
 ): readonly TrajectoryDelta[] {
+  validateTrajectorySamples('left', left)
+  validateTrajectorySamples('right', right)
+
   const rightByTime = new Map<number, TrajectorySample>()
   for (const sample of right) rightByTime.set(sample.simulationTimeHours, sample)
 
@@ -169,4 +172,36 @@ export function sharedTrajectoryDeltas(
     })
   }
   return deltas
+}
+
+function validateTrajectorySamples(
+  side: 'left' | 'right',
+  samples: readonly TrajectorySample[],
+): void {
+  const times = new Set<number>()
+
+  samples.forEach((sample, index) => {
+    if (!Number.isFinite(sample.simulationTimeHours) || sample.simulationTimeHours < 0) {
+      throw new RangeError(
+        `${side} trajectory sample ${index} time must be finite and non-negative`,
+      )
+    }
+    if (times.has(sample.simulationTimeHours)) {
+      throw new Error(
+        `${side} trajectory contains duplicate authoritative sample time ${sample.simulationTimeHours}`,
+      )
+    }
+    times.add(sample.simulationTimeHours)
+
+    if (!Number.isFinite(sample.population) || sample.population < 0) {
+      throw new RangeError(
+        `${side} trajectory sample ${index} population must be finite and non-negative`,
+      )
+    }
+    if (!Number.isSafeInteger(sample.activeLineages) || sample.activeLineages < 0) {
+      throw new RangeError(
+        `${side} trajectory sample ${index} activeLineages must be a non-negative safe integer`,
+      )
+    }
+  })
 }

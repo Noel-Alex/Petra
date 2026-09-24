@@ -59,6 +59,7 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - UI must distinguish intervention divergence from stochastic seed divergence. If both differ, disclose both rather than attributing the difference to one cause.
 - Side-by-side/swipe views synchronize biological simulation time, not animation wall time, and visibly handle a branch that has not simulated as far as the other.
 - Trajectory differences default to shared authoritative sample times. Any later interpolation/smoothing is a chart-layer presentation choice and must be labelled.
+- Authoritative compare trajectories must reject duplicate timestamps and malformed samples before delta computation. Duplicate time is ambiguous scientific identity, not an invitation to use array order/last-write-wins. Valid caller sample order is preserved.
 - Export/share adapters should preserve fork origin, seed, ordered post-fork command identity, and provenance needed to replay the comparison.
 
 

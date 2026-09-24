@@ -103,4 +103,57 @@ describe('counterfactual presentation semantics', () => {
       { simulationTimeHours: 2, populationDelta: 10, activeLineageDelta: -1 },
     ])
   })
+
+  it('rejects duplicate authoritative sample times instead of last-write-wins', () => {
+    expect(() =>
+      sharedTrajectoryDeltas(
+        [{ simulationTimeHours: 1, population: 10, activeLineages: 1 }],
+        [
+          { simulationTimeHours: 1, population: 8, activeLineages: 1 },
+          { simulationTimeHours: 1, population: 9, activeLineages: 1 },
+        ],
+      ),
+    ).toThrow(/duplicate authoritative sample time 1/)
+  })
+
+  it('rejects malformed scientific samples before computing deltas', () => {
+    expect(() =>
+      sharedTrajectoryDeltas(
+        [{ simulationTimeHours: Number.NaN, population: 1, activeLineages: 1 }],
+        [],
+      ),
+    ).toThrow(/time must be finite and non-negative/)
+
+    expect(() =>
+      sharedTrajectoryDeltas(
+        [{ simulationTimeHours: 0, population: -1, activeLineages: 1 }],
+        [],
+      ),
+    ).toThrow(/population must be finite and non-negative/)
+
+    expect(() =>
+      sharedTrajectoryDeltas(
+        [{ simulationTimeHours: 0, population: 1, activeLineages: 1.5 }],
+        [],
+      ),
+    ).toThrow(/activeLineages must be a non-negative safe integer/)
+  })
+
+  it('preserves caller ordering for valid shared authoritative samples', () => {
+    expect(
+      sharedTrajectoryDeltas(
+        [
+          { simulationTimeHours: 2, population: 20, activeLineages: 2 },
+          { simulationTimeHours: 0, population: 10, activeLineages: 1 },
+        ],
+        [
+          { simulationTimeHours: 0, population: 8, activeLineages: 1 },
+          { simulationTimeHours: 2, population: 18, activeLineages: 1 },
+        ],
+      ),
+    ).toEqual([
+      { simulationTimeHours: 2, populationDelta: 2, activeLineageDelta: 1 },
+      { simulationTimeHours: 0, populationDelta: 2, activeLineageDelta: 0 },
+    ])
+  })
 })

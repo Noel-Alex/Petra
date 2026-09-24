@@ -45,3 +45,11 @@ Mount Presenter Mode only after the relevant surface exists. The consumer owns e
 ## Verification
 
 Deterministic state tests cover profile order, gate blocking, evidence preservation and motion degradation. Server-render tests cover locked/ready semantics. Browser visual rehearsal remains #59 and end-to-end demo completion remains #11.
+
+
+## Shared visual-theme ownership
+
+- `PresenterGuide.css` consumes Petra's shared visual CSS variables for stable chrome; do not create a presenter-only numeric hex/RGB/RGBA palette.
+- Presenter state remains text/structure authoritative. Shared teal reinforces general presenter focus, mint reinforces evidence-ready state, and amber reinforces waiting/scientific-boundary state; none of these colors satisfies or changes a gate.
+- Theme work must preserve the native profile selector, `PetraCompactAction` navigation semantics, 2.75rem repeated-action touch sizing, one stable live region, cue order, evidence gating, responsive layout, and Full/Reduced/Off motion policy.
+- Keyboard focus uses the shared Petra focus-ring authority rather than a presenter-specific cyan outline.

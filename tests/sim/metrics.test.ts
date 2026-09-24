@@ -42,6 +42,7 @@ const config: ComposedSimulationConfig = {
   evolutionScenario: { scenarioId: 'metric-fixture', scenarioVersion: '1' },
   ciprofloxacin: null,
   samplingExecutionPolicy: null,
+  populationAuthority: null,
   hoursPerTick: 0.1,
 }
 

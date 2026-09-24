@@ -8,6 +8,9 @@ Presentation-only side-by-side and swipe comparison of already-authoritative bra
 
 - `../counterfactual.ts` owns branch-origin/divergence semantics. Do not duplicate or reinterpret fork identity in React/CSS.
 - Compare surfaces are supplied by callers. This subtree never forks, advances, rewinds, or mutates simulation state.
+- Every scientific surface must carry an explicit `authoritative-sample` identity with branch ID, stable sample ID, and exact simulation time. The pane time label derives from that bound identity, not from an independent display number.
+- A surface whose branch/time identity does not match the synchronized cursor is quarantined and visibly withheld. Never render latest/current scientific state under an older synchronized time label.
+- Presentation interpolation is not implicit. If introduced later, it requires a separate explicit identity/disclosure contract and must never masquerade as an authoritative sample.
 - Synchronization uses biological simulation time from authoritative data, never wall-clock animation time.
 - A swipe reveal is only a visual comparison control; moving it must not change simulation state, camera authority, or branch time.
 

@@ -32,7 +32,13 @@ export class SnapshotTraceMismatchError extends Error {
  */
 export function stableSnapshotStringify(value: unknown): string {
   if (value === null || typeof value !== 'object') {
-    return JSON.stringify(value)
+    const encoded = JSON.stringify(value)
+    if (encoded === undefined) {
+      throw new TypeError(
+        'snapshot trace payload contains a non-JSON primitive value',
+      )
+    }
+    return encoded
   }
   if (Array.isArray(value)) {
     return `[${value.map(stableSnapshotStringify).join(',')}]`

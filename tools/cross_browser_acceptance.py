@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any
 
 from expo_browser_acceptance import CDP
+from local_command import resolve_local_command
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT_DIR = Path(
@@ -88,7 +89,7 @@ def wait_http(url: str, timeout: float = 30.0) -> None:
 def version_line(argv: list[str]) -> str | None:
     try:
         proc = subprocess.run(
-            argv,
+            resolve_local_command(argv),
             cwd=ROOT,
             text=True,
             capture_output=True,
@@ -106,7 +107,7 @@ def run_logged(argv: list[str], log_name: str, timeout: int) -> tuple[int | None
     try:
         with log_path.open("wb") as handle:
             proc = subprocess.run(
-                argv,
+                resolve_local_command(argv),
                 cwd=ROOT,
                 stdout=handle,
                 stderr=subprocess.STDOUT,
@@ -733,7 +734,7 @@ def main() -> int:
     deep_chromium = run_deep_chromium()
 
     preview = subprocess.Popen(
-        [
+        resolve_local_command([
             "npm",
             "run",
             "preview",
@@ -743,7 +744,7 @@ def main() -> int:
             "--port",
             str(PREVIEW_PORT),
             "--strictPort",
-        ],
+        ]),
         cwd=ROOT,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,

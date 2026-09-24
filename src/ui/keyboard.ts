@@ -4,6 +4,12 @@ export interface ShortcutContext {
   readonly editableTarget: boolean
 }
 
+export function playbackSpeedShortcut(speed: PlaybackSpeed): '1' | '2' | '3' {
+  if (speed === 1) return '1'
+  if (speed === 4) return '2'
+  return '3'
+}
+
 export function actionForShortcut(
   key: string,
   context: ShortcutContext,

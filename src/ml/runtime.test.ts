@@ -132,7 +132,15 @@ describe("surrogate runtime safety gates", () => {
   });
 
   it("requires runtime compatibility only when Emulated mode is requested", () => {
-    expect(resolve({ activeCompatibility: undefined })).toMatchObject({
+    expect(
+      resolveExecutionMode({
+        requested: "emulated",
+        activeEngineVersion: "engine-a",
+        emulatedFeatureEnabled: true,
+        model,
+        input: inDomain,
+      }),
+    ).toMatchObject({
       mode: "mechanistic",
       requested: "emulated",
       refusalReason: "runtime-compatibility-missing",

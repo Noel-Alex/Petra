@@ -41,26 +41,28 @@ Status: **mechanism ready; preset calibration pending**.
 
 ## Phage
 
-### Strong mechanism
-T4/T7 literature supports:
-- adsorption;
-- eclipse/latent period;
-- burst;
-- host-physiology dependence.
+### Selected named pack
+The first phage pack is **T4 DSM 4505 / E. coli K-12 MG1655 DSM 18039**, calibrated from Nabergoj, Modic & Podgornik 2018 (DOI 10.1002/mbo3.558) in low-salt LB, pH 7, 37 °C continuous culture.
 
-Hadas et al. 1997 and You et al. 2002 are strong anchors.
+The source directly measures growth-rate-dependent:
+- adsorption constant;
+- latent period;
+- burst size;
 
-### Pending
-Choose one host/phage/medium/growth condition and extract compatible numeric:
-- adsorption rate;
-- latent/eclipse distribution;
-- burst/rise behavior;
-- free-phage decay if modeled;
-- growth-rate dependence.
+at eight MG1655 specific growth rates from 0.06 to 0.98 h^-1. See `phage_t4_mg1655_pack.md` for the measured table and provenance rules.
 
-Do not mix a convenient adsorption constant from one phage with a burst/latency curve from another and call it a measured preset.
+### Ready with an explicit transfer
+The measured table is ready to implement as a named life-history evidence object. Applying homogeneous chemostat growth-rate relationships to Petra's local spatial growth state is a **transferred mechanistic approximation**, not a direct spatial measurement. Out-of-range growth rates must be treated as OOD rather than silently extrapolated.
 
-Status: **mechanism ready; numeric science pack pending**.
+### Still pending
+- a separately measured eclipse-time subdivision if Petra wants eclipse distinct from total latent delay;
+- a physical matrix choice for the dish and corresponding T4 diffusion calibration;
+- a general free-phage decay/loss constant for that matrix/environment;
+- an explicit concentration/population unit bridge before the measured mL/min adsorption constant is applied to authoritative spatial state.
+
+Hadas et al. 1997 (T4 / E. coli B/r) and You et al. 2002 (T7 / BL21) remain corroborating host-physiology evidence, not sources of numeric values for the MG1655/T4 preset.
+
+Status: **named life-history pack ready for implementation with transfer label; spatial transport/loss calibration pending**.
 
 ## Temperature
 

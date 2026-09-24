@@ -21,7 +21,6 @@ describe("resolveMicroInteraction", () => {
       translateYRem: 0,
       scale: 1,
       emphasis: "focus",
-      showFocusRing: true,
     });
   });
 
@@ -42,7 +41,6 @@ describe("resolveMicroInteraction", () => {
         translateYRem: 0,
         scale: 1,
         emphasis: "disabled",
-        showFocusRing: false,
       });
     }
   });

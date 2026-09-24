@@ -16,7 +16,6 @@ export interface MicroInteractionPresentation {
   readonly translateYRem: number;
   readonly scale: number;
   readonly emphasis: "rest" | "hover" | "focus" | "press" | "selected" | "disabled";
-  readonly showFocusRing: boolean;
 }
 
 /**
@@ -36,7 +35,6 @@ export function resolveMicroInteraction(
       translateYRem: 0,
       scale: 1,
       emphasis: "disabled",
-      showFocusRing: false,
     };
   }
 
@@ -55,7 +53,6 @@ export function resolveMicroInteraction(
       translateYRem: 0,
       scale: 1,
       emphasis: staticEmphasis,
-      showFocusRing: state === "focus",
     };
   }
 
@@ -66,6 +63,5 @@ export function resolveMicroInteraction(
     translateYRem: state === "hover" || state === "focus" || state === "selected" ? -0.08 : 0,
     scale: state === "press" ? 0.975 : state === "selected" ? 1.015 : 1,
     emphasis: staticEmphasis,
-    showFocusRing: state === "focus",
   };
 }

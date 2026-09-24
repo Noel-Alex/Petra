@@ -7,7 +7,12 @@ import {
 } from "react";
 
 import type { MotionPreference } from "./motion/policy";
-import { resolveMicroInteraction, type MicroInteractionState } from "./motion/microInteractions";
+import { resolveMicroInteraction } from "./motion/microInteractions";
+import {
+  createActionInteractionState,
+  resolveActionMicroInteractionState,
+  updateActionInteractionState,
+} from "./motion/actionInteraction";
 import { PetraIcon } from "./icons/PetraIcon";
 import type { PetraIconName } from "./icons/spec";
 
@@ -44,13 +49,13 @@ export function PetraAction({
   onBlur,
   ...buttonProps
 }: PetraActionProps): ReactElement {
-  const [interaction, setInteraction] = useState<MicroInteractionState>("idle");
+  const [interaction, setInteraction] = useState(createActionInteractionState);
 
-  const semanticState: MicroInteractionState = disabled
-    ? "disabled"
-    : interaction === "idle" && selected
-      ? "selected"
-      : interaction;
+  const semanticState = resolveActionMicroInteractionState({
+    interaction,
+    disabled: disabled === true,
+    selected,
+  });
 
   const presentation = resolveMicroInteraction(semanticState, motionPreference);
   const style = {
@@ -71,27 +76,47 @@ export function PetraAction({
       aria-pressed={selected ? true : undefined}
       style={style}
       onPointerEnter={(event) => {
-        if (!disabled) setInteraction("hover");
+        if (!disabled) {
+          setInteraction((current) =>
+            updateActionInteractionState(current, "pointer-enter"),
+          );
+        }
         onPointerEnter?.(event);
       }}
       onPointerLeave={(event) => {
-        setInteraction("idle");
+        setInteraction((current) =>
+          updateActionInteractionState(current, "pointer-leave"),
+        );
         onPointerLeave?.(event);
       }}
       onPointerDown={(event) => {
-        if (!disabled) setInteraction("press");
+        if (!disabled) {
+          setInteraction((current) =>
+            updateActionInteractionState(current, "pointer-down"),
+          );
+        }
         onPointerDown?.(event);
       }}
       onPointerUp={(event) => {
-        if (!disabled) setInteraction("hover");
+        if (!disabled) {
+          setInteraction((current) =>
+            updateActionInteractionState(current, "pointer-up"),
+          );
+        }
         onPointerUp?.(event);
       }}
       onFocus={(event) => {
-        if (!disabled) setInteraction("focus");
+        if (!disabled) {
+          setInteraction((current) =>
+            updateActionInteractionState(current, "focus"),
+          );
+        }
         onFocus?.(event);
       }}
       onBlur={(event) => {
-        setInteraction("idle");
+        setInteraction((current) =>
+          updateActionInteractionState(current, "blur"),
+        );
         onBlur?.(event);
       }}
     >

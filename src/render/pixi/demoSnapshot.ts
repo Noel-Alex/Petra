@@ -45,6 +45,7 @@ export function createRendererDemoSnapshot(size = 48): DishRenderSnapshot {
 
   return {
     snapshotId: "renderer-demo-v1",
+    samplingIdentity: "renderer-demo-v1",
     simulationTimeHours: 0,
     gridWidth: size,
     gridHeight: size,

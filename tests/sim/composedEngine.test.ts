@@ -4,6 +4,8 @@ import {
 } from '../../src/sim/composedEngine'
 import {
   composedConfigurationFingerprint,
+  createComposedState,
+  stepComposedState,
   type ComposedSimulationConfig,
 } from '../../src/sim/authoritative'
 import type { CuratedMutationGraph } from '../../src/sim/evolution/graph'
@@ -44,6 +46,7 @@ const config: ComposedSimulationConfig = {
     scenarioId: 'composed-worker-fixture',
     scenarioVersion: '1',
   },
+  samplingExecutionPolicy: null,
   lineages: [
     { id: 'ancestor', genotypeId: 'WT', deathHazardPerHour: 0 },
     { id: 'variant', genotypeId: 'VAR', deathHazardPerHour: 0.1 },
@@ -216,6 +219,35 @@ describe('ComposedSimulationEngine', () => {
     expect(fresh.composedState.resource[0]).toBe(8)
     expect(fresh.composedState.genotypeIds[0]).toBe('WT')
     expect(fresh.metrics.lineageBiomass.ancestor).toBe(1)
+  })
+
+  it('uses one scientific-state validator for direct continuation and restore', () => {
+    const directState = createComposedState(config)
+    directState.mask[0] = 2
+
+    let directError = ''
+    try {
+      stepComposedState(directState, config)
+    } catch (error) {
+      directError = error instanceof Error ? error.message : String(error)
+    }
+
+    expect(directError).toMatch(/mask values must be exactly 0 or 1/)
+
+    const source = new ComposedSimulationEngine(identity, config)
+    const checkpoint = source.snapshot().checkpoint
+    checkpoint.composedState.mask[0] = 2
+
+    const target = new ComposedSimulationEngine(identity, config)
+    const before = target.snapshot()
+    expect(() =>
+      target.execute({
+        id: 'restore-shared-validator',
+        type: 'restore',
+        checkpoint,
+      }),
+    ).toThrow(directError)
+    expect(target.snapshot()).toEqual(before)
   })
 
   it('rejects config, genotype, and metric checkpoint corruption', () => {

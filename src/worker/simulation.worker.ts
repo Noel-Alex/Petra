@@ -10,7 +10,7 @@ import type {
 } from '../sim/protocol'
 import {
   WORKER_PERFORMANCE_DIAGNOSTICS_VERSION,
-  type InstrumentedWorkerRequest,
+  parseInstrumentedWorkerRequest,
   type InstrumentedWorkerResponse,
 } from './performanceInstrumentation'
 
@@ -43,16 +43,18 @@ function elapsedSince(startedAtMs: number | null): number | undefined {
   return Math.max(0, performance.now() - startedAtMs)
 }
 
-self.onmessage = (event: MessageEvent<InstrumentedWorkerRequest>) => {
-  const request = event.data
-  if (request.protocolVersion !== PROTOCOL_VERSION) {
+self.onmessage = (event: MessageEvent<unknown>) => {
+  const parsed = parseInstrumentedWorkerRequest(event.data)
+  if (!parsed.ok) {
     post({
       protocolVersion: PROTOCOL_VERSION,
       type: 'error',
-      message: `Unsupported protocol version: ${request.protocolVersion}`,
+      ...(parsed.commandId !== null ? { commandId: parsed.commandId } : {}),
+      message: parsed.error,
     })
     return
   }
+  const request = parsed.value
 
   const startedAtMs =
     request.performanceDiagnostics === true ? performance.now() : null

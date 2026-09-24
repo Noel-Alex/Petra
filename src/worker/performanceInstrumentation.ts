@@ -2,6 +2,11 @@ import type {
   WorkerRequest,
   WorkerResponse,
 } from "../sim/protocol";
+import {
+  parseWorkerRequest,
+  parseWorkerResponse,
+  type ProtocolParseResult,
+} from "../sim/protocolRuntime";
 
 export const WORKER_PERFORMANCE_DIAGNOSTICS_VERSION = 1 as const;
 
@@ -22,6 +27,91 @@ export type InstrumentedWorkerRequest = WorkerRequest & {
 export type InstrumentedWorkerResponse = WorkerResponse & {
   readonly performanceDiagnostics?: WorkerExecutionDiagnostics;
 };
+
+type UnknownRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): UnknownRecord | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as UnknownRecord)
+    : null;
+}
+
+function requestCommandId(request: WorkerRequest): string | null {
+  return request.type === "command" ? request.command.id : null;
+}
+
+/**
+ * Validates the core protocol first, then the optional transport-only request
+ * diagnostics extension. Successful parsing returns the original payload.
+ */
+export function parseInstrumentedWorkerRequest(
+  value: unknown,
+): ProtocolParseResult<InstrumentedWorkerRequest> {
+  const parsed = parseWorkerRequest(value);
+  if (!parsed.ok) return parsed;
+
+  const record = asRecord(value);
+  if (record === null) {
+    return {
+      ok: false,
+      error: "Invalid worker request: expected an object",
+      commandId: requestCommandId(parsed.value),
+    };
+  }
+  if (
+    record.performanceDiagnostics !== undefined &&
+    record.performanceDiagnostics !== true
+  ) {
+    return {
+      ok: false,
+      error:
+        "Invalid worker request: performanceDiagnostics must be true when present",
+      commandId: requestCommandId(parsed.value),
+    };
+  }
+
+  return { ok: true, value: value as InstrumentedWorkerRequest };
+}
+
+/**
+ * Validates the core protocol first, then the optional transport-only response
+ * diagnostics extension. Invalid diagnostics never supply command correlation.
+ */
+export function parseInstrumentedWorkerResponse(
+  value: unknown,
+): ProtocolParseResult<InstrumentedWorkerResponse> {
+  const parsed = parseWorkerResponse(value);
+  if (!parsed.ok) return parsed;
+
+  const record = asRecord(value);
+  if (record === null) {
+    return {
+      ok: false,
+      error: "Invalid worker response: expected an object",
+      commandId: null,
+    };
+  }
+  if (record.performanceDiagnostics === undefined) {
+    return { ok: true, value: value as InstrumentedWorkerResponse };
+  }
+
+  const diagnostics = asRecord(record.performanceDiagnostics);
+  if (
+    diagnostics === null ||
+    diagnostics.version !== WORKER_PERFORMANCE_DIAGNOSTICS_VERSION ||
+    typeof diagnostics.executionDurationMs !== "number" ||
+    !Number.isFinite(diagnostics.executionDurationMs) ||
+    diagnostics.executionDurationMs < 0
+  ) {
+    return {
+      ok: false,
+      error: "Invalid worker response: performanceDiagnostics is invalid",
+      commandId: null,
+    };
+  }
+
+  return { ok: true, value: value as InstrumentedWorkerResponse };
+}
 
 /**
  * Estimates application payload bytes carried by structured clone. Browser

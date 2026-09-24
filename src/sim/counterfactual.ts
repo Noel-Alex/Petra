@@ -1,5 +1,10 @@
 import { SimulationEngine } from './engine'
-import type {\n  SimulationCommand,\n  SimulationSnapshot,\n  SyntheticSimulationCheckpoint,\n  SyntheticSimulationSnapshot,\n} from './protocol'
+import type {
+  SimulationCommand,
+  SimulationSnapshot,
+  SyntheticSimulationCheckpoint,
+  SyntheticSimulationSnapshot,
+} from './protocol'
 
 export const COUNTERFACTUAL_FORK_SCHEMA_VERSION = 1 as const
 
@@ -71,6 +76,11 @@ export class CounterfactualForkController {
     assertBranchDescriptor(args.right)
     if (args.left.branchId === args.right.branchId) {
       throw new Error('counterfactual branch IDs must be distinct')
+    }
+    if (args.parentSnapshot.checkpoint.authority === 'composed') {
+      throw new Error(
+        'counterfactual forks do not yet support composed simulation checkpoints',
+      )
     }
 
     const checkpoint = structuredClone(args.parentSnapshot.checkpoint)
@@ -231,7 +241,9 @@ function validateBranchCommand(command: CounterfactualBranchCommand): void {
   throw new Error('counterfactual branch commands cannot restore or snapshot')
 }
 
-function validateCheckpointForFork(\n  checkpoint: SyntheticSimulationCheckpoint,\n): void {
+function validateCheckpointForFork(
+  checkpoint: SyntheticSimulationCheckpoint,
+): void {
   if (!Number.isSafeInteger(checkpoint.tick) || checkpoint.tick < 0) {
     throw new RangeError('fork checkpoint tick must be a non-negative safe integer')
   }
@@ -296,7 +308,9 @@ function cloneOrigin(origin: CounterfactualForkOrigin): CounterfactualForkOrigin
   }
 }
 
-function cloneSnapshot(\n  snapshot: SyntheticSimulationSnapshot,\n): SyntheticSimulationSnapshot {
+function cloneSnapshot(
+  snapshot: SyntheticSimulationSnapshot,
+): SyntheticSimulationSnapshot {
   return structuredClone(snapshot)
 }
 

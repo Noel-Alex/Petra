@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   resolveMotion,
   resolveMotionPreference,
@@ -26,7 +26,7 @@ function useSystemReducedMotion(): boolean {
   return reduced;
 }
 
-export function App(): JSX.Element {
+export function App() {
   const systemReduced = useSystemReducedMotion();
   const [motionOverride, setMotionOverride] = useState<
     MotionPreference | undefined
@@ -50,7 +50,7 @@ export function App(): JSX.Element {
     <main
       className="petra-app"
       data-motion={motionPreference}
-      style={{ "--panel-motion-ms": `${panelMotion.durationMs}ms` } as React.CSSProperties}
+      style={{ "--panel-motion-ms": `${panelMotion.durationMs}ms` } as CSSProperties}
     >
       <header className="petra-topbar">
         <div>

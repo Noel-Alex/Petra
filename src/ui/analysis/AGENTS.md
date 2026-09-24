@@ -17,6 +17,7 @@
 - Lineage geometry is presentation-only. It cannot create ancestry, change lineage IDs, or infer genotype relationships absent from authoritative records.
 
 ## Accessibility and visual identity
+- Live Analysis chrome consumes the shared `src/design/visualTokens.ts` CSS projection (`--petra-color-*` / `--petra-rgb-*`). Do not reintroduce a local cyan/white dashboard palette or edit shared token values from this subtree; analysis may compose restrained token-derived alpha layers, but scientific meaning still requires labels/pattern/shape rather than hue alone.
 - Every series is identified in visible text and by a numbered endpoint/legend marker, so hue is never the only identity channel. Dash treatment may reinforce identity but is not the sole label.
 - Lineage nodes use visible lineage/genotype text plus distinct extant/extinct geometry. Status may never rely only on color.
 - SVG surfaces carry accessible summary labels; point titles are progressive enhancement only. Complete authoritative chart samples and lineage ancestry must also remain inspectable through a user-controlled semantic table/list outside image-like SVG geometry.

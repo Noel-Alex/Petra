@@ -1134,13 +1134,18 @@ button:hover {
   stroke-width: 0.66;
 }
 
-.dish-placement-overlay[data-motion="full"] .dish-placement-target__ring {
-  animation: petra-placement-ring-drift 4.8s linear infinite;
+.dish-placement-overlay[data-transition-treatment="animate"] .dish-placement-target {
+  animation: petra-placement-target-reveal var(--placement-motion-ms)
+    var(--placement-motion-easing) both;
 }
 
-@keyframes petra-placement-ring-drift {
+@keyframes petra-placement-target-reveal {
+  from {
+    opacity: 0.45;
+  }
+
   to {
-    stroke-dashoffset: -8.1;
+    opacity: 1;
   }
 }
 

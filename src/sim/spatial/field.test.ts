@@ -107,7 +107,7 @@ describe('CircularScalarField', () => {
   })
 
   it('matches one large interval to the same deterministic stable substeps', () => {
-    const coarse = new CircularScalarField({ width:  9, height: 9, cellSize: 1 })
+    const coarse = new CircularScalarField({ width: 9, height: 9, cellSize: 1 })
     const reference = new CircularScalarField({ width: 9, height: 9, cellSize: 1 })
     coarse.set(4, 4, 1)
     reference.set(4, 4, 1)

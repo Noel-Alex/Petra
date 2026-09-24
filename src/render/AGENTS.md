@@ -25,7 +25,7 @@ Zoom thresholds are presentation policy. Crossing them may reveal/hide informati
 
 ## LOD
 
-LOD is deterministic for a fixed render snapshot + view request where practical. Sampling should be stable enough that stationary colonies do not visually reshuffle every frame.
+LOD is deterministic for a fixed render snapshot + view request where practical. Representative sampling uses a stable presentation-domain identity plus grid, lineage, and cell identity rather than snapshot-instance/time entropy, so stationary colonies do not visually reshuffle every frame. Grid/index-schema changes intentionally invalidate that presentation sample; persistent glyphs remain visual proxies and must never be described as the same individual bacterium across time.
 
 Prefer aggregate density/texture at dish scale and bounded representative glyphs at colony scale. Never create one render object per biological cell.
 

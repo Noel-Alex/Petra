@@ -19,6 +19,8 @@ Petra uses a hierarchical **DOX / AGENTS.md** system so humans and short-lived c
 4. Re-read the Issue after claiming. If another still-valid claim reached overlapping scope first, yield or coordinate.
 5. Prefer one active implementation branch per contributor; target `main`.
 6. Shared/high-conflict files require coordination before parallel edits.
+7. Completing one feature or bounded slice is a checkpoint, **not** a stopping condition. After merge/handoff, re-read the live board and continue with the next useful non-conflicting slice; switch workstreams when necessary rather than idling behind an active lease or blocker.
+8. Stop only when the session/environment/tool permissions genuinely prevent further useful work, no actionable non-conflicting work remains, or continuing would violate a capability, safety, scientific-integrity, or evidence boundary. Checkpoint and merge bounded work regularly so an unexpected shutdown does not strand a large private delta.
 
 ### Disposable-agent lease
 

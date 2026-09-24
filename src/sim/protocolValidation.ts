@@ -1,4 +1,5 @@
 import {
+  ENGINE_VERSION,
   PROTOCOL_VERSION,
   assertSimulationSeed,
   type RunIdentity,
@@ -36,7 +37,6 @@ function isSafeNonNegativeInteger(value: unknown): value is number {
 function parseIdentity(value: unknown): ProtocolParseResult<RunIdentity> {
   if (!isRecord(value)) return fail("run identity must be an object");
   const requiredStrings = [
-    "engineVersion",
     "scenarioId",
     "scenarioVersion",
     "parameterSetId",
@@ -46,6 +46,9 @@ function parseIdentity(value: unknown): ProtocolParseResult<RunIdentity> {
     if (typeof value[key] !== "string" || value[key].length === 0) {
       return fail(`run identity.${key} must be a non-empty string`);
     }
+  }
+  if (value.engineVersion !== ENGINE_VERSION) {
+    return fail(`run identity engineVersion must equal ${ENGINE_VERSION}`);
   }
   if (value.protocolVersion !== PROTOCOL_VERSION) {
     return fail(

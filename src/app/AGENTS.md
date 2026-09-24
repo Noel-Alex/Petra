@@ -96,3 +96,10 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Demo snapshot factories used during candidate resolution must remain deterministic and side-effect free for the same explicit demo configuration. They are presentation factories, never a place for RNG progression, network work, persistent mutation, or scientific authority.
 - Source identity is explicit and separate from snapshot shape. Passing a demo-shaped `DishRenderSnapshot` through props must never cause it to be relabelled authoritative.
 - Authoritative state always takes precedence and must not invoke demo generation. Visual-demo state remains explicit opt-in, visibly disclosed, and presentation-only.
+
+
+## Dish-first focus shell
+- App focus mode is presentation-only. `App.tsx` consumes `resolveDishFocusPresentation()` rather than deriving local durations/easings or dispatching simulation commands.
+- While focus mode collapses intervention/inspector side chrome, collapsed interactive regions must be both `aria-hidden` and inert so invisible controls cannot retain keyboard focus. Responsive CSS may remove that chrome entirely at narrow widths.
+- The dish receives the primary workspace column, but authoritative simulation time and playback controls remain available. Full timeline history may compact to an explicit authoritative event count; focus mode must not reorder, synthesize, drop, or relabel timeline authority.
+- Exiting focus restores the ordinary workspace without changing the run, camera authority, selected overlay, or scientific state.

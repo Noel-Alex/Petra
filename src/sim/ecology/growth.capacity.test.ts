@@ -35,6 +35,51 @@ function localTotal(state: EcologyState, index: number): number {
   return state.lineages.reduce((sum, lineage) => sum + lineage[index]!, 0)
 }
 
+describe('local-capacity state invariant', () => {
+  it('rejects materially over-capacity pre-existing biomass before mutation', () => {
+    const state = make([[60], [50]])
+    state.resource[0] = 10
+    const beforeResource = Array.from(state.resource)
+    const beforeLineages = state.lineages.map((lineage) => Array.from(lineage))
+
+    expect(() =>
+      stepEcology(
+        state,
+        { ...p, maxDivisionRate: 1, spreadRate: 0 },
+        neutral(2),
+        1,
+      ),
+    ).toThrow(/biomass exceeds localCapacity/)
+
+    expect(Array.from(state.resource)).toEqual(beforeResource)
+    expect(state.lineages.map((lineage) => Array.from(lineage))).toEqual(
+      beforeLineages,
+    )
+  })
+
+  it('accepts a Petra-produced Float32 round-trip that is only representation units above capacity', () => {
+    const state = make(Array.from({ length: 10 }, () => [0.09]))
+    state.resource[0] = 100
+    const capacityOne: GrowthParameters = {
+      ...p,
+      maxDivisionRate: 1,
+      halfSaturation: 1,
+      biomassYield: 1_000,
+      localCapacity: 1,
+      spreadRate: 0,
+    }
+
+    stepEcology(state, capacityOne, neutral(10), 1)
+
+    // The continuous allocation is exactly capacity-limited before storage, but
+    // ten independent Float32 channel writes each round 0.1 upward.
+    expect(localTotal(state, 0)).toBeGreaterThan(capacityOne.localCapacity)
+    expect(localTotal(state, 0)).toBeLessThan(1.000001)
+
+    expect(() => stepEcology(state, capacityOne, neutral(10), 1)).not.toThrow()
+  })
+})
+
 describe('capacity-conservative colony spread', () => {
   it('never pushes a full destination above local capacity and conserves biomass', () => {
     const state = make([[10, 100]])

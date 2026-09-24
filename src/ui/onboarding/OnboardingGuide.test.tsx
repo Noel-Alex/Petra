@@ -35,6 +35,26 @@ describe("OnboardingGuide", () => {
     );
   });
 
+  it("routes guide navigation through shared compact-action motion", () => {
+    for (const motionPreference of ["full", "reduced", "off"] as const) {
+      const html = renderToStaticMarkup(
+        <OnboardingGuide
+          state={initialOnboardingState()}
+          motionPreference={motionPreference}
+          onAction={vi.fn()}
+        />,
+      );
+
+      for (const actionClass of ["skip", "back", "continue"]) {
+        expect(html).toMatch(
+          new RegExp(
+            `class="petra-compact-action petra-onboarding__${actionClass}"[^>]*data-motion="${motionPreference}"`,
+          ),
+        );
+      }
+    }
+  });
+
   it("visibly locks a causal stage until canonical scientific state is satisfied", () => {
     const inoculation = reduceOnboarding(initialOnboardingState(), {
       type: "continue",

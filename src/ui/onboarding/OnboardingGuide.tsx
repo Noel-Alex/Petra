@@ -4,6 +4,7 @@ import {
   type ReactElement,
 } from "react";
 
+import { PetraCompactAction } from "../PetraCompactAction";
 import { PetraIcon } from "../icons/PetraIcon";
 import type { PetraIconName } from "../icons/spec";
 import type { MotionPreference } from "../motion/policy";
@@ -103,13 +104,13 @@ export function OnboardingGuide({
           </p>
         </div>
         {showSkip ? (
-          <button
-            type="button"
+          <PetraCompactAction
             className="petra-onboarding__skip"
+            motionPreference={motionPreference}
             onClick={() => onAction({ type: "skip" })}
           >
             Skip guide
-          </button>
+          </PetraCompactAction>
         ) : null}
       </header>
 
@@ -182,25 +183,25 @@ export function OnboardingGuide({
       </div>
 
       <footer className="petra-onboarding__actions">
-        <button
-          type="button"
+        <PetraCompactAction
           className="petra-onboarding__back"
+          motionPreference={motionPreference}
           disabled={state.index === 0}
           onClick={() => onAction({ type: "back" })}
         >
           Back
-        </button>
+        </PetraCompactAction>
         <div className="petra-onboarding__progress" aria-hidden="true">
           <span />
         </div>
-        <button
-          type="button"
+        <PetraCompactAction
           className="petra-onboarding__continue"
+          motionPreference={motionPreference}
           disabled={!ready}
           onClick={() => onAction({ type: "continue" })}
         >
           {stage.id === "handoff" ? "Start experimenting" : "Continue"}
-        </button>
+        </PetraCompactAction>
       </footer>
     </section>
   );

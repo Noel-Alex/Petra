@@ -1,3 +1,4 @@
+import type { ComposedSimulationConfig } from '../sim/authoritative'
 import {
   PROTOCOL_VERSION,
   assertSimulationSeed,
@@ -37,7 +38,9 @@ export interface PlannedControlAction {
   readonly effect: ControlEffect
 }
 
-export function createExperimentControlState(identity: RunIdentity): ExperimentControlState {
+export function createExperimentControlState(
+  identity: RunIdentity,
+): ExperimentControlState {
   return {
     identity: structuredClone(identity),
     playing: false,
@@ -51,35 +54,60 @@ export function recordAcceptedCommand(
   command: SimulationCommand,
 ): ExperimentControlState {
   if (command.type === 'snapshot' || command.type === 'restore') return state
-  return { ...state, acceptedCommands: [...state.acceptedCommands, structuredClone(command)] }
+  return {
+    ...state,
+    acceptedCommands: [
+      ...state.acceptedCommands,
+      structuredClone(command),
+    ],
+  }
 }
 
 export function planExperimentControlAction(
   state: ExperimentControlState,
   action: ExperimentControlAction,
   createCommandId: () => string,
+  composedConfig?: ComposedSimulationConfig,
 ): PlannedControlAction {
-  if (action.type === 'toggle-play') return noWorkerEffect({ ...state, playing: !state.playing })
-  if (action.type === 'pause') return noWorkerEffect({ ...state, playing: false })
-  if (action.type === 'play') return noWorkerEffect({ ...state, playing: true })
-  if (action.type === 'set-speed') return noWorkerEffect({ ...state, speed: action.speed })
+  if (action.type === 'toggle-play') {
+    return noWorkerEffect({ ...state, playing: !state.playing })
+  }
+  if (action.type === 'pause') {
+    return noWorkerEffect({ ...state, playing: false })
+  }
+  if (action.type === 'play') {
+    return noWorkerEffect({ ...state, playing: true })
+  }
+  if (action.type === 'set-speed') {
+    return noWorkerEffect({ ...state, speed: action.speed })
+  }
 
   if (action.type === 'step') {
     const ticks = action.ticks ?? 1
-    if (!Number.isSafeInteger(ticks) || ticks <= 0) throw new Error('step.ticks must be a positive safe integer')
-    return withCommands(state, [{ id: createCommandId(), type: 'advance', ticks }])
+    if (!Number.isSafeInteger(ticks) || ticks <= 0) {
+      throw new Error('step.ticks must be a positive safe integer')
+    }
+    return withCommands(state, [
+      { id: createCommandId(), type: 'advance', ticks },
+    ])
   }
 
   if (action.type === 'snapshot') {
-    return withCommands(state, [{ id: createCommandId(), type: 'snapshot' }])
+    return withCommands(state, [
+      { id: createCommandId(), type: 'snapshot' },
+    ])
   }
 
   if (action.type === 'reset') {
     return {
-      state: { ...state, playing: false, acceptedCommands: [] },
+      state: {
+        ...state,
+        playing: false,
+        acceptedCommands: [],
+      },
       effect: {
         type: 'worker-requests',
-        requests: [{ protocolVersion: PROTOCOL_VERSION, type: 'initialize', identity: structuredClone(state.identity) }],
+        requests: [initializeRequest(state.identity, composedConfig)],
       },
     }
   }
@@ -88,16 +116,21 @@ export function planExperimentControlAction(
     assertSimulationSeed(action.seed)
     const identity = { ...state.identity, seed: action.seed }
     return {
-      state: { identity, playing: false, speed: state.speed, acceptedCommands: [] },
+      state: {
+        identity,
+        playing: false,
+        speed: state.speed,
+        acceptedCommands: [],
+      },
       effect: {
         type: 'worker-requests',
-        requests: [{ protocolVersion: PROTOCOL_VERSION, type: 'initialize', identity: structuredClone(identity) }],
+        requests: [initializeRequest(identity, composedConfig)],
       },
     }
   }
 
   const replayRequests: WorkerRequest[] = [
-    { protocolVersion: PROTOCOL_VERSION, type: 'initialize', identity: structuredClone(state.identity) },
+    initializeRequest(state.identity, composedConfig),
     ...state.acceptedCommands.map((command) => ({
       protocolVersion: PROTOCOL_VERSION,
       type: 'command' as const,
@@ -106,7 +139,10 @@ export function planExperimentControlAction(
   ]
   return {
     state: { ...state, playing: false },
-    effect: { type: 'worker-requests', requests: replayRequests },
+    effect: {
+      type: 'worker-requests',
+      requests: replayRequests,
+    },
   }
 }
 
@@ -125,9 +161,26 @@ export function snapshotMatchesControlIdentity(
     checkpoint.identity.scenarioId === state.identity.scenarioId &&
     checkpoint.identity.scenarioVersion === state.identity.scenarioVersion &&
     checkpoint.identity.parameterSetId === state.identity.parameterSetId &&
-    checkpoint.identity.parameterSetVersion === state.identity.parameterSetVersion &&
+    checkpoint.identity.parameterSetVersion ===
+      state.identity.parameterSetVersion &&
     checkpoint.identity.seed === state.identity.seed
   )
+}
+
+function initializeRequest(
+  identity: RunIdentity,
+  composedConfig?: ComposedSimulationConfig,
+): WorkerRequest {
+  return {
+    protocolVersion: PROTOCOL_VERSION,
+    type: 'initialize',
+    identity: structuredClone(identity),
+    ...(composedConfig === undefined
+      ? {}
+      : {
+          composedConfig: structuredClone(composedConfig),
+        }),
+  }
 }
 
 function withCommands(
@@ -147,6 +200,11 @@ function withCommands(
   }
 }
 
-function noWorkerEffect(state: ExperimentControlState): PlannedControlAction {
-  return { state, effect: { type: 'none' } }
+function noWorkerEffect(
+  state: ExperimentControlState,
+): PlannedControlAction {
+  return {
+    state,
+    effect: { type: 'none' },
+  }
 }

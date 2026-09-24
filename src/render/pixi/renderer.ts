@@ -53,6 +53,8 @@ export interface PixiDishRenderer {
 
 const LINEAGE_PATTERN_COLOR = 0xf4f7fb;
 
+type ClientCoordinateEvent = Pick<MouseEvent, "clientX" | "clientY">;
+
 export async function createPixiDishRenderer(
   host: HTMLElement,
   options: PixiDishOptions,
@@ -159,7 +161,7 @@ export async function createPixiDishRenderer(
   };
   app.ticker.add(ticker);
 
-  const localPointer = (event: PointerEvent | WheelEvent): ScreenPoint => {
+  const localPointer = (event: ClientCoordinateEvent): ScreenPoint => {
     const rect = app.canvas.getBoundingClientRect();
     return {
       x: ((event.clientX - rect.left) / Math.max(rect.width, 1)) * app.screen.width,

@@ -39,11 +39,33 @@ button {
   cursor: pointer;
 }
 
-button:hover,
-button:focus-visible,
-select:focus-visible {
+button:hover {
   border-color: rgba(137, 211, 255, 0.65);
-  outline: none;
+}
+
+button:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible,
+[role="tab"]:focus-visible,
+[role="slider"]:focus-visible {
+  border-color: rgba(155, 231, 255, 0.92);
+  outline: 3px solid rgba(155, 231, 255, 0.95);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 0 1px rgba(5, 13, 25, 0.9),
+    0 0 0 6px rgba(155, 231, 255, 0.16);
+}
+
+button:disabled,
+select:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+button:disabled:hover,
+select:disabled:hover {
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .petra-app {

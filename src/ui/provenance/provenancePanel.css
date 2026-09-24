@@ -230,6 +230,21 @@
   overflow-wrap: anywhere;
 }
 
+.provenance-record__details a,
+.provenance-record__declared-sources a {
+  color: inherit;
+  text-decoration-line: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+
+.provenance-record__details a:focus-visible,
+.provenance-record__declared-sources a:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+  border-radius: 0.2rem;
+}
+
 .provenance-record__disclosures ul,
 .provenance-record__declared-sources ul,
 .provenance-record__problems ul,

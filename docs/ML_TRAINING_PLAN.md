@@ -77,7 +77,7 @@ Sampling strategy:
 
 Avoid leakage where snapshots from one trajectory land in both training and validation.
 
-Implementation contract: `src/ml/dataset.ts` assigns splits deterministically at the declared parameter/scenario **group** boundary, deliberately excluding snapshot time/index and seed from the split hash. `src/ml/sweep.ts` first assigns and counts complete groups, then applies a separately versioned held-out **coverage policy** before accepting any trajectory tasks. The default coverage contract requires at least one group in train, validation, and test; insufficient coverage is an explicit planning refusal with observed group/trajectory counts, not a reason to move seeds or frames between splits. Only after coverage passes does the planner expand caller-declared parameter points × intervention families × stochastic seeds into stable future mechanistic trajectory tasks. An explicit trajectory cap is also required. Generation manifest v2 records both split-assignment and split-coverage policy versions plus group/trajectory split counts. Benchmark evidence and promotion requirements bind the coverage-policy version too, preventing older evidence from being silently reinterpreted after a policy change. Promoted model cards and benchmark evidence also share a versioned compatibility identity: explicit supported scenario/version pairs, normalization profile, input schema, and target schema. Runtime Emulated admission must match that identity exactly before OOD checks; multi-scenario compatibility is enumerated rather than inferred from feature overlap. Parameter-set hashes remain governed by the validated domain envelope when a surrogate intentionally spans parameter ranges. The sweep planner does not generate synthetic biology or imply the composed mechanistic engine is ready. `src/ml/runtime.ts` owns the optional Emulated-mode feature/promotion/compatibility/OOD gate, and any failed gate falls back to Mechanistic execution. These helpers are infrastructure only; they do not mean a surrogate has been trained or promoted.
+Implementation contract: `src/ml/dataset.ts` assigns splits deterministically at the declared parameter/scenario **group** boundary, deliberately excluding snapshot time/index and seed from the split hash. `src/ml/sweep.ts` first assigns and counts complete groups, then applies a separately versioned held-out **coverage policy** before accepting any trajectory tasks. The default coverage contract requires at least one group in train, validation, and test; insufficient coverage is an explicit planning refusal with observed group/trajectory counts, not a reason to move seeds or frames between splits. Only after coverage passes does the planner expand caller-declared parameter points × intervention families × stochastic seeds into stable future mechanistic trajectory tasks. An explicit trajectory cap is also required. Generation manifest v2 records both split-assignment and split-coverage policy versions plus group/trajectory split counts. Surrogate benchmark evidence v4 binds the coverage-policy version plus a separately versioned evaluation-weighting policy, preventing older evidence from being silently reinterpreted after either policy changes. Held-out records carry stable group + trajectory identity and an explicit requested forecast horizon; candidate and baseline predictions are paired on the exact same authoritative target row. The default evaluation contract accepts one record per trajectory × declared horizon, equal-weights horizons within a group, then equal-weights held-out groups overall, so denser snapshot cadence or longer trajectories cannot silently dominate promotion. Promoted model cards and benchmark evidence also share a versioned compatibility identity: explicit supported scenario/version pairs, normalization profile, input schema, and target schema. Runtime Emulated admission must match that identity exactly before OOD checks; multi-scenario compatibility is enumerated rather than inferred from feature overlap. Parameter-set hashes remain governed by the validated domain envelope when a surrogate intentionally spans parameter ranges. The sweep planner does not generate synthetic biology or imply the composed mechanistic engine is ready. `src/ml/runtime.ts` owns the optional Emulated-mode feature/promotion/compatibility/OOD gate, and any failed gate falls back to Mechanistic execution. These helpers are infrastructure only; they do not mean a surrogate has been trained or promoted.
 
 ## Targets and losses
 
@@ -106,13 +106,16 @@ Warnings may supplement a refusal, but a product-promoted Petra surrogate must n
 ## Validation
 
 Report:
-- aggregate MAE/RMSE;
+- group-balanced aggregate MAE/RMSE;
+- per held-out parameter/intervention group MAE/RMSE and group/trajectory/sample coverage;
+- per requested future-horizon MAE/RMSE plus group × horizon failure strata;
 - relative error by magnitude;
-- error across future horizon;
 - resistant-fraction error;
 - spatial mass error;
 - front-position error where relevant;
 - failure modes by scenario.
+
+Promotion evidence must not flatten arbitrary adjacent snapshots into one row-weighted score. Candidate and baseline use the same paired evaluation records. The default `group-horizon-balanced-strict-v1` policy requires complete declared group/horizon coverage and strict candidate improvement in both MAE and RMSE at overall, group, horizon, and group × horizon levels. This is validation infrastructure, not a claim that any current surrogate has met the gate.
 
 Compare against:
 1. mechanistic simulation;
@@ -164,7 +167,8 @@ Do not use GPU simply because one is available; the simulator itself may be CPU-
 No surrogate enters the main product until:
 - mechanistic engine is validated for its intended claims;
 - dataset is versioned/reproducible;
-- simple baseline is beaten;
+- the simple baseline is beaten under the declared, versioned group/horizon evaluation policy rather than only a flat row aggregate;
+- every required held-out group and forecast horizon has complete paired evidence;
 - OOD policy works;
 - error is visible;
 - a mechanistic spot-check path remains available.

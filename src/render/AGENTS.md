@@ -74,3 +74,10 @@ Pure render-model helpers get deterministic unit tests. Browser/GPU/FPS claims r
 - Renderer startup/failure narration uses one stable mounted polite/atomic status region with status copy only. Interactive recovery controls such as Retry are ordinary focusable siblings outside the live-region subtree and may reference the visible failure explanation with `aria-describedby`; never make buttons/links descendants of the atomic renderer status region.
 - Renderer recovery actions consume Petra's shared compact action interaction adapter with the current `full | reduced | off` presentation preference. Renderer-local fallback styling may own geometry/color, but hover/press/focus timing and easing stay in the shared UI motion policy.
 
+
+
+## Replay / scrub presentation
+- `src/render/replayPresentation.ts` projects an ordered history of authoritative `DishRenderSnapshot` keyframes into a deterministic dish presentation for a requested simulation-time position. It never creates simulator events, checkpoints, commands, or scientific readouts.
+- Exact keyframes remain authoritative. Values between compatible keyframes are explicitly `presentation-only` and reuse `visualInterpolation.ts` through normalized progress so replay output is independent of frame cadence.
+- Snapshot history must have unique snapshot IDs and strictly increasing authoritative simulation times. Ambiguous same-time keyframes fail closed until runtime authority supplies a stronger ordering identity; adapters must not silently sort, deduplicate, or use array order as scientific authority.
+- When interpolation is disabled or the visual-compatibility planner rejects a pair, replay snaps to the previous authoritative keyframe rather than showing future state early or fabricating a morph.

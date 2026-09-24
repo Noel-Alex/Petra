@@ -59,7 +59,7 @@ function collectLineageCandidates(
   minimumDensity: number,
   output: Array<GlyphSample & { score: number }>,
 ): void {
-  const visibleRadius = Math.min(0.75, 0.72 / Math.max(1, camera.zoom));
+  const visibleRadius = 0.5 / Math.max(1, camera.zoom);
   const radiusSquared = visibleRadius * visibleRadius;
 
   for (let cellIndex = 0; cellIndex < lineage.density.length; cellIndex += 1) {

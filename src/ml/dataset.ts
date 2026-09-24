@@ -14,8 +14,14 @@ export interface DatasetGroupIdentity {
   readonly scenarioId: string;
   readonly scenarioVersion: string;
   /**
-   * Caller-defined parameter/intervention family used as the leakage boundary.
-   * All seeds and snapshots in this group are assigned to one dataset split.
+   * Exact authoritative initialization/run-condition identity. Seed remains
+   * outside this fingerprint so stochastic replicas of one condition stay in
+   * exactly one dataset split.
+   */
+  readonly runConditionFingerprint: string;
+  /**
+   * Caller-defined intervention family used as the leakage boundary alongside
+   * mechanism + run-condition identity.
    */
   readonly groupId: string;
 }
@@ -46,7 +52,7 @@ export interface SplitPolicy {
 }
 
 export const DEFAULT_SPLIT_POLICY: SplitPolicy = Object.freeze({
-  version: "trajectory-group-v1",
+  version: "trajectory-group-v2",
   trainFraction: 0.7,
   validationFraction: 0.15,
   testFraction: 0.15,
@@ -131,14 +137,16 @@ export function splitGroupKey(group: DatasetGroupIdentity): string {
     group.parameterSetHash,
     group.scenarioId,
     group.scenarioVersion,
+    group.runConditionFingerprint,
     group.groupId,
   ]);
 }
 
 /**
- * Assigns an entire parameter/scenario group to exactly one split.
- * Snapshot index, simulation time and seed are deliberately absent from the
- * hash so adjacent frames and stochastic replicas cannot leak across splits.
+ * Assigns an entire mechanism/scenario/run-condition/intervention group to
+ * exactly one split. Snapshot index, simulation time and seed are deliberately
+ * absent from the hash so adjacent frames and stochastic replicas cannot leak
+ * across splits.
  */
 export function assignDatasetSplit(
   group: DatasetGroupIdentity,
@@ -182,6 +190,7 @@ function validateGroupIdentity(group: DatasetGroupIdentity): void {
   requireNonEmpty("parameterSetHash", group.parameterSetHash);
   requireNonEmpty("scenarioId", group.scenarioId);
   requireNonEmpty("scenarioVersion", group.scenarioVersion);
+  requireNonEmpty("runConditionFingerprint", group.runConditionFingerprint);
   requireNonEmpty("groupId", group.groupId);
 }
 

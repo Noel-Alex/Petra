@@ -28,6 +28,7 @@ function readout(
     lineageBiomass: [
       {
         lineageId: "ancestor",
+        genotypeId: "WT",
         biomass: 4,
         fractionOfRegionBiomass: 1,
       },

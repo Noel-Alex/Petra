@@ -1,0 +1,65 @@
+.experiment-run-controls {
+  display: grid;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.experiment-run-controls__primary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.seed-control {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.seed-control label {
+  display: grid;
+  gap: 0.25rem;
+  min-width: min(100%, 12rem);
+  color: inherit;
+  font-size: 0.82rem;
+}
+
+.seed-control input {
+  width: min(12rem, 100%);
+  min-height: 2.75rem;
+  border: 1px solid rgb(var(--petra-rgb-cream) / 0.14);
+  border-radius: 10px;
+  background: var(--petra-color-ink-soft);
+  color: var(--petra-color-cream);
+  padding: 0.5rem 0.65rem;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.seed-control input:focus-visible {
+  border-color: rgb(var(--petra-rgb-amber) / 0.9);
+  outline: 3px solid var(--petra-focus-ring);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 0 1px var(--petra-focus-edge),
+    inset 0 0 0 2px rgb(var(--petra-rgb-amber) / 0.28);
+}
+
+.seed-control input:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.experiment-run-controls__identity,
+.experiment-run-controls__feedback {
+  margin: 0;
+  color: var(--petra-color-cream-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.experiment-run-controls__feedback:empty {
+  display: none;
+}

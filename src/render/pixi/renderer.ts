@@ -4,7 +4,6 @@ import { resolveLineageAppearance } from "../lineageAppearance";
 import { resolveLineagePattern, type LineagePatternToken } from "../lineagePatterns";
 import {
   semanticZoomLevel,
-  validateRenderSnapshot,
   type CameraView,
   type DishRenderSnapshot,
   type RenderField,
@@ -41,6 +40,7 @@ import {
   interpolateCameraTransition,
   type CameraMotionSpec,
 } from "./cameraMotion";
+import { resolveSnapshotOverlayUpdate } from "./snapshotOverlay";
 
 export type RendererMotionMode = "full" | "reduced" | "off";
 
@@ -53,6 +53,10 @@ export interface PixiDishOptions {
 
 export interface PixiDishRenderer {
   update(snapshot: DishRenderSnapshot): void;
+  updatePresentation(
+    snapshot: DishRenderSnapshot,
+    overlayId: string | null,
+  ): void;
   setOverlay(overlayId: string | null): void;
   setMotionMode(mode: RendererMotionMode): void;
   setCamera(camera: CameraView): void;
@@ -120,6 +124,20 @@ export async function createPixiDishRenderer(
       glyphLayer,
       accentLayer,
     });
+  };
+
+  const applySnapshotOverlayUpdate = (
+    nextSnapshot: DishRenderSnapshot,
+    requestedOverlayId: string | null,
+  ) => {
+    const next = resolveSnapshotOverlayUpdate(
+      { snapshot, overlayId },
+      nextSnapshot,
+      requestedOverlayId,
+    );
+    snapshot = next.snapshot;
+    overlayId = next.overlayId;
+    render();
   };
 
   const resizeScheduler = createResizeRedrawScheduler(
@@ -329,15 +347,11 @@ export async function createPixiDishRenderer(
 
   return {
     update(nextSnapshot) {
-      validateRenderSnapshot(nextSnapshot);
-      snapshot = nextSnapshot;
-      if (
-        overlayId !== null &&
-        !nextSnapshot.fields.some((field) => field.id === overlayId)
-      ) {
-        overlayId = null;
-      }
-      render();
+      applySnapshotOverlayUpdate(nextSnapshot, overlayId);
+    },
+
+    updatePresentation(nextSnapshot, nextOverlayId) {
+      applySnapshotOverlayUpdate(nextSnapshot, nextOverlayId);
     },
 
     setOverlay(nextOverlayId) {

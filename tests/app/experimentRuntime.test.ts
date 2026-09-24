@@ -240,6 +240,56 @@ describe("experiment runtime", () => {
     });
   });
 
+  it("routes a validated intervention through authoritative command confirmation", () => {
+    const { port, runtime } = readyRuntime();
+    const command = {
+      id: "intervention-1",
+      type: "apply-ciprofloxacin" as const,
+      intervention: {
+        schemaVersion: 1 as const,
+        concentrationMgPerL: 0,
+        concentrationUnit: "mg/L" as const,
+        blendMode: "set" as const,
+        geometry: { kind: "global" as const },
+      },
+    };
+
+    expect(runtime.dispatchAuthoritativeCommand(command)).toEqual({
+      accepted: true,
+      reason: null,
+    });
+    expect(runtime.state.controls.acceptedCommands).toEqual([]);
+    expect(port.posted[1]).toEqual({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "command",
+      command,
+    });
+    expect(runtime.dispatchAuthoritativeCommand({
+      ...command,
+      id: "intervention-busy",
+    })).toEqual({ accepted: false, reason: "worker-busy" });
+
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      commandId: command.id,
+      snapshot: makeSnapshot({
+        tick: 0,
+        commandCount: 1,
+        events: [{
+          sequence: 1,
+          tick: 0,
+          simulationTimeHours: 0,
+          type: "ciprofloxacin-applied",
+          commandId: command.id,
+          intervention: command.intervention,
+        }],
+      }),
+    });
+
+    expect(runtime.state.controls.acceptedCommands).toEqual([command]);
+  });
+
   it("does not pile playback requests while the worker is busy", () => {
     const { port, runtime } = readyRuntime(["playback-1", "playback-2"]);
 

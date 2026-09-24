@@ -37,6 +37,11 @@ export interface ControlDispatchResult {
   readonly reason: "worker-busy" | "worker-not-ready" | "disposed" | null;
 }
 
+export type AuthoritativeInterventionCommand = Extract<
+  SimulationCommand,
+  { readonly type: "apply-ciprofloxacin" }
+>;
+
 export type ExperimentRuntimeListener = (state: ExperimentRuntimeState) => void;
 
 /**
@@ -152,6 +157,42 @@ export class ExperimentRuntime {
       controls: planned.state,
     };
     this.publish();
+    return { accepted: true, reason: null };
+  }
+
+  /**
+   * Dispatch one already-validated product intervention through the same
+   * authoritative WorkerSession and event-confirmation path as run controls.
+   */
+  dispatchAuthoritativeCommand(
+    command: AuthoritativeInterventionCommand,
+  ): ControlDispatchResult {
+    if (this.current.worker.phase === "disposed") {
+      return { accepted: false, reason: "disposed" };
+    }
+    if (
+      this.current.integrationError !== null ||
+      this.current.worker.phase === "idle" ||
+      this.current.worker.phase === "error"
+    ) {
+      return { accepted: false, reason: "worker-not-ready" };
+    }
+    if (
+      this.current.worker.phase === "initializing" ||
+      this.current.worker.phase === "pending"
+    ) {
+      return { accepted: false, reason: "worker-busy" };
+    }
+
+    const acceptedCommand = structuredClone(command);
+    this.pendingAcceptance.set(acceptedCommand.id, acceptedCommand);
+    this.session.enqueue([
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: acceptedCommand,
+      },
+    ]);
     return { accepted: true, reason: null };
   }
 

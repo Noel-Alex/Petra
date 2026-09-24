@@ -44,6 +44,7 @@ export interface SurrogatePromotionRequirements {
 }
 
 export type PromotionIssueKind =
+  | "evidence-schema-mismatch"
   | "identity-mismatch"
   | "dataset-version-mismatch"
   | "engine-version-mismatch"
@@ -155,6 +156,13 @@ export function assessSurrogatePromotion(args: {
   const issues: PromotionIssue[] = [];
   const { evidence, requirements } = args;
   const targetIds = validateTargetIds(requirements.targetIds);
+
+  if (evidence.schemaVersion !== "surrogate-benchmark-evidence-v3") {
+    issues.push({
+      kind: "evidence-schema-mismatch",
+      message: "benchmark evidence schema version is not supported",
+    });
+  }
 
   if (
     evidence.modelId !== args.expectedModelId ||

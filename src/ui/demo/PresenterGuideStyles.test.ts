@@ -6,7 +6,7 @@ import presenterCss from "./PresenterGuide.css?raw";
 // @ts-expect-error Vite raw asset import is runtime-supported but not declared in tsconfig types.
 import presenterSource from "./PresenterGuide.tsx?raw";
 
-describe("PresenterGuide resolved motion CSS", () => {
+describe("PresenterGuide presentation contracts", () => {
   it("fails static when adapter-projected motion variables are absent", () => {
     expect(presenterCss).toContain("--presenter-motion-ms: 0ms;");
     expect(presenterCss).toContain("--presenter-ease: linear;");
@@ -30,11 +30,24 @@ describe("PresenterGuide resolved motion CSS", () => {
     );
   });
 
-  it("keys only the cue visual layer while keeping the polite live region stable", () => {
+  it("keeps one bounded live region outside the keyed cue visual layer", () => {
+    const announcementIndex = presenterSource.indexOf(
+      'className="presenter-guide__announcement"',
+    );
+    const cueLayerIndex = presenterSource.indexOf("key={presentation.cue.id}");
+
     expect(presenterSource).toContain(
+      '<section className="presenter-guide__card">',
+    );
+    expect(presenterSource).not.toContain(
       '<section className="presenter-guide__card" aria-live="polite">',
     );
-    expect(presenterSource).toContain("key={presentation.cue.id}");
+    expect(presenterSource.match(/role="status"/g)).toHaveLength(1);
+    expect(presenterSource).toContain('aria-live="polite"');
+    expect(presenterSource).toContain('aria-atomic="true"');
+    expect(presenterSource).toContain('aria-relevant="text"');
+    expect(announcementIndex).toBeGreaterThan(-1);
+    expect(cueLayerIndex).toBeGreaterThan(announcementIndex);
     expect(presenterSource).toContain(
       'className="presenter-guide__card-content"',
     );
@@ -44,6 +57,19 @@ describe("PresenterGuide resolved motion CSS", () => {
     expect(presenterSource).not.toContain(
       '<section key={presentation.cue.id}',
     );
+  });
+
+  it("visually hides the bounded presenter announcement without removing it", () => {
+    const announcementRule = presenterCss.match(
+      /\.presenter-guide__announcement \{([\s\S]*?)\}/,
+    )?.[1];
+
+    expect(announcementRule).toBeDefined();
+    expect(announcementRule).toContain("position: absolute");
+    expect(announcementRule).toContain("inline-size: 1px");
+    expect(announcementRule).toContain("block-size: 1px");
+    expect(announcementRule).toContain("overflow: hidden");
+    expect(announcementRule).toContain("clip: rect(0 0 0 0)");
   });
 
   it("does not shrink the shared compact-action touch target locally", () => {

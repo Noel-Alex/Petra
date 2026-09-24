@@ -17,6 +17,8 @@ export interface PixiDishProps {
   readonly className?: string;
   readonly ariaLabel?: string;
   readonly ariaDescribedBy?: string;
+  /** Monotonic presentation-only request counter from the React shell. */
+  readonly resetCameraSignal?: number;
   /** Explicit opt-in for the deterministic presentation-only fixture. */
   readonly demoMode?: boolean;
 }
@@ -41,6 +43,7 @@ export function PixiDish({
   className,
   ariaLabel,
   ariaDescribedBy,
+  resetCameraSignal = 0,
   demoMode = false,
 }: PixiDishProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -48,6 +51,7 @@ export function PixiDish({
   const motionRef = useRef(motion);
   const overlayRef = useRef(overlayId);
   const demoSnapshotRef = useRef<DishRenderSnapshot | null>(null);
+  const resetCameraSignalRef = useRef(resetCameraSignal);
   const [startup, setStartup] = useState<RendererStartupState>(IDLE_STARTUP);
   const [retryAttempt, setRetryAttempt] = useState(0);
 
@@ -115,6 +119,12 @@ export function PixiDish({
   useEffect(() => {
     rendererRef.current?.setOverlay(overlayId);
   }, [overlayId]);
+
+  useEffect(() => {
+    if (resetCameraSignal === resetCameraSignalRef.current) return;
+    resetCameraSignalRef.current = resetCameraSignal;
+    rendererRef.current?.resetCamera();
+  }, [resetCameraSignal]);
 
   useEffect(() => {
     snapshotRef.current = renderSnapshot;

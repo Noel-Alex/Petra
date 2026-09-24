@@ -12,6 +12,8 @@ Own React/browser orchestration around Petra's authoritative worker and presenta
 - Scientific timeline presentation stays in src/ui/timeline.ts.
 - Renderer/Pixi scene authority stays under src/render/**.
 - `DishViewport.tsx` may choose/display source-provided render overlays and units, but it must not derive scientific units or fabricate authoritative snapshots. Until #42/#37 supplies a valid `DishRenderSnapshot`, the renderer demo fixture must remain visibly labelled visual-only.
+- Dish camera controls are presentation-only. The visible overview/reset action sends a declarative reset request into the renderer rather than storing Pixi objects in app state.
+- Escape inside the dish may reset camera overview only after active-tool, default-prevented, and editable-control paths have had first refusal; it must not override intervention cancellation or synthesize worker commands.
 
 ## Runtime rules
 - Do not emit the next queued request until the active request receives its expected authoritative response.

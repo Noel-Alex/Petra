@@ -154,6 +154,75 @@ describe("validateRenderSnapshot", () => {
       }),
     ).toThrow(/dimensions/i);
   });
+
+  it("accepts explicit normalized fungal hyphal geometry", () => {
+    const snapshot = fixture();
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        hyphalPaths: [
+          {
+            id: "fungus-branch-1",
+            organismKind: "fungus",
+            points: [
+              { x: 0.25, y: 0.5 },
+              { x: 0.42, y: 0.46 },
+              { x: 0.58, y: 0.35 },
+            ],
+          },
+        ],
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects duplicate, denormalized, and degenerate hyphal geometry", () => {
+    const snapshot = fixture();
+    const path = {
+      id: "fungus-branch-1",
+      organismKind: "fungus" as const,
+      points: [
+        { x: 0.25, y: 0.5 },
+        { x: 0.42, y: 0.46 },
+      ],
+    };
+
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        hyphalPaths: [path, path],
+      }),
+    ).toThrow(/duplicate render hyphal path id/i);
+
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        hyphalPaths: [
+          {
+            ...path,
+            points: [
+              { x: 0.25, y: 0.5 },
+              { x: 1.2, y: 0.46 },
+            ],
+          },
+        ],
+      }),
+    ).toThrow(/normalized dish coordinates/i);
+
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        hyphalPaths: [
+          {
+            ...path,
+            points: [
+              { x: 0.25, y: 0.5 },
+              { x: 0.25, y: 0.5 },
+            ],
+          },
+        ],
+      }),
+    ).toThrow(/zero-length segment/i);
+  });
 });
 
 describe("sampleRepresentativeGlyphs", () => {

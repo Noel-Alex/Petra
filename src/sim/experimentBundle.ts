@@ -13,6 +13,7 @@ import {
 import {
   assertComposedParameterSetBinding,
 } from './parameterSetBinding'
+import { assertCiprofloxacinIntervention } from './ciprofloxacinIntervention'
 import {
   type RunIdentity,
   type SimulationCheckpoint,
@@ -28,7 +29,7 @@ import {
   type ReplayAuthority,
 } from './replayCompatibility'
 
-export const EXPERIMENT_BUNDLE_SCHEMA_VERSION = 1 as const
+export const EXPERIMENT_BUNDLE_SCHEMA_VERSION = 2 as const
 
 const INTERNAL_BUNDLE_RESTORE_COMMAND_ID =
   '__petra_experiment_bundle_restore__'
@@ -64,6 +65,11 @@ const SYNTHETIC_PULSE_COMMAND_KEYS = new Set([
   'id',
   'type',
   'magnitude',
+])
+const CIPROFLOXACIN_COMMAND_KEYS = new Set([
+  'id',
+  'type',
+  'intervention',
 ])
 const RUN_IDENTITY_KEYS = new Set([
   'engineVersion',
@@ -107,6 +113,7 @@ const EVENT_KEYS = new Set([
   'type',
   'commandId',
   'value',
+  'intervention',
 ])
 const METRIC_SAMPLE_KEYS = new Set([
   'schemaVersion',
@@ -142,7 +149,7 @@ const GENOTYPE_METRIC_KEYS = new Set([
 
 type ReplayMutationCommand = Extract<
   SimulationCommand,
-  { type: 'advance' | 'synthetic-pulse' }
+  { type: 'advance' | 'apply-ciprofloxacin' | 'synthetic-pulse' }
 >
 
 export type ExperimentReplayCommand = Readonly<ReplayMutationCommand>
@@ -376,6 +383,7 @@ export function validateExperimentBundle(bundle: ExperimentBundle): void {
   validateReplayCommands(
     record.authority,
     replay.commands as unknown as ExperimentReplayCommand[],
+    composedConfig,
   )
 
   const evidence = requireRecord(
@@ -398,7 +406,7 @@ export function validateExperimentBundle(bundle: ExperimentBundle): void {
   if (record.counterfactualAncestry !== null) {
     throw new ExperimentBundleError(
       'counterfactual-ancestry-unsupported',
-      'Experiment bundle v1 does not accept counterfactual ancestry until the parent trace contract is independently verifiable.',
+      'Experiment bundle v2 does not accept counterfactual ancestry until the parent trace contract is independently verifiable.',
     )
   }
 
@@ -420,7 +428,7 @@ export function validateExperimentBundle(bundle: ExperimentBundle): void {
   ) {
     throw new ExperimentBundleError(
       'capability-claim-invalid',
-      'Experiment bundle v1 cannot claim renderer state, raw datasets, or counterfactual ancestry.',
+      'Experiment bundle v2 cannot claim renderer state, raw datasets, or counterfactual ancestry.',
     )
   }
 }
@@ -586,6 +594,7 @@ function validateReplayOrigin(
 function validateReplayCommands(
   authority: ReplayAuthority,
   commands: readonly ExperimentReplayCommand[],
+  composedConfig: ComposedSimulationConfig | null | undefined,
 ): void {
   const ids = new Set<string>()
   for (let index = 0; index < commands.length; index += 1) {
@@ -635,6 +644,42 @@ function validateReplayCommands(
       continue
     }
 
+    if (command.type === 'apply-ciprofloxacin') {
+      assertOnlyKeys(
+        command as unknown as Record<string, unknown>,
+        CIPROFLOXACIN_COMMAND_KEYS,
+        `experiment replay command ${index}`,
+        'command-invalid',
+      )
+      if (authority !== 'composed') {
+        throw new ExperimentBundleError(
+          'command-invalid',
+          'Synthetic experiment bundles cannot contain apply-ciprofloxacin commands.',
+        )
+      }
+      if (
+        composedConfig === null ||
+        composedConfig === undefined ||
+        composedConfig.ciprofloxacin === null
+      ) {
+        throw new ExperimentBundleError(
+          'command-invalid',
+          'Ciprofloxacin replay commands require composed ciprofloxacin pharmacodynamic authority.',
+        )
+      }
+      try {
+        assertCiprofloxacinIntervention(command.intervention)
+      } catch (error) {
+        throw new ExperimentBundleError(
+          'command-invalid',
+          error instanceof Error
+            ? error.message
+            : 'Ciprofloxacin replay intervention is invalid.',
+        )
+      }
+      continue
+    }
+
     if (command.type === 'synthetic-pulse') {
       assertOnlyKeys(
         command as unknown as Record<string, unknown>,
@@ -659,7 +704,7 @@ function validateReplayCommands(
 
     throw new ExperimentBundleError(
       'command-invalid',
-      'Experiment replay history may contain only mutating advance/synthetic-pulse commands; restore/snapshot commands are replay metadata, not history.',
+      'Experiment replay history may contain only mutating advance/apply-ciprofloxacin/synthetic-pulse commands; restore/snapshot commands are replay metadata, not history.',
     )
   }
 }
@@ -721,6 +766,7 @@ function validateEvents(
   const allowedTypes = new Set([
     'initialized',
     'advanced',
+    'ciprofloxacin-applied',
     'synthetic-pulse',
     'restored',
   ])
@@ -787,6 +833,15 @@ function validateEvents(
         'Composed experiment evidence cannot contain synthetic-pulse events.',
       )
     }
+    if (
+      authority === 'synthetic' &&
+      event.type === 'ciprofloxacin-applied'
+    ) {
+      throw new ExperimentBundleError(
+        'evidence-invalid',
+        'Synthetic experiment evidence cannot contain ciprofloxacin-applied events.',
+      )
+    }
     if (event.commandId !== undefined) {
       canonicalText(
         event.commandId,
@@ -798,6 +853,23 @@ function validateEvents(
       throw new ExperimentBundleError(
         'evidence-invalid',
         'Experiment evidence event value must be finite when present.',
+      )
+    }
+    if (event.type === 'ciprofloxacin-applied') {
+      try {
+        assertCiprofloxacinIntervention(event.intervention)
+      } catch (error) {
+        throw new ExperimentBundleError(
+          'evidence-invalid',
+          error instanceof Error
+            ? error.message
+            : 'Ciprofloxacin evidence intervention is invalid.',
+        )
+      }
+    } else if (event.intervention !== undefined) {
+      throw new ExperimentBundleError(
+        'evidence-invalid',
+        'Only ciprofloxacin-applied events may carry intervention payloads.',
       )
     }
 

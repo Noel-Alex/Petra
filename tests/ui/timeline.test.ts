@@ -45,6 +45,20 @@ describe('scientific timeline projection', () => {
         commandId: 'pulse-1',
         value: 10,
       },
+      {
+        sequence: 3,
+        tick: 120,
+        simulationTimeHours: 2,
+        type: 'ciprofloxacin-applied',
+        commandId: 'dose-1',
+        intervention: {
+          schemaVersion: 1,
+          concentrationMgPerL: 0.125,
+          concentrationUnit: 'mg/L',
+          blendMode: 'set',
+          geometry: { kind: 'global' },
+        },
+      },
     ])
 
     expect(buildScientificTimeline(snapshot)).toEqual([
@@ -75,6 +89,15 @@ describe('scientific timeline projection', () => {
         label: 'Synthetic intervention',
         commandId: 'pulse-1',
         value: 10,
+      },
+      {
+        id: 'event-3',
+        sequence: 3,
+        tick: 120,
+        simulationTimeHours: 2,
+        kind: 'intervention',
+        label: 'Ciprofloxacin set 0.125 mg/L (global)',
+        commandId: 'dose-1',
       },
     ])
   })

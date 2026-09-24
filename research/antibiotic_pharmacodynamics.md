@@ -47,20 +47,27 @@ For an MVP, decay may be zero unless a calibrated scenario requires it.
 
 ### Current composed-runtime authority boundary
 
-Protocol-v4 composed runs may carry a **static** full-grid ciprofloxacin
-concentration landscape in `mg/L` as replay-critical run configuration. The
-landscape is validated as finite/non-negative, exactly zero outside the dish
-mask, and may be non-zero only when the run also binds the supported
-source-backed PD/MIC authority. Composed stepping reuses the reviewed spatial
-loss composition to derive one genotype-specific loss-hazard field from that
-authoritative concentration array.
+Protocol-v5 / composed-state-v3 runs carry the **current** full-grid
+ciprofloxacin landscape in `mg/L` as replay-critical checkpoint state. The
+configuration still binds the initial landscape plus the supported source-backed
+PD/MIC authority. Current concentrations must remain finite/non-negative and
+exactly zero outside the dish mask. Composed stepping reuses the reviewed
+spatial loss composition to derive genotype-specific loss hazards from the
+checkpoint concentration array.
 
-This is an implementation of the existing Regoes + Marcusson transfer policy,
-not new biological evidence and not a claim that the concentration field itself
-has calibrated transport dynamics. The bundled flagship baseline keeps the
-landscape exactly zero. Mutable pulse/paint/gradient intervention state still
-requires a versioned checkpoint/protocol command path; presentation previews
-must not be treated as having changed biology until that path exists.
+The typed `apply-ciprofloxacin` command may set or add `mg/L` concentration
+using validated global, radial, stripe, or paint geometry. Command acceptance is
+recorded at the exact current biological time and does not itself advance the
+simulation clock. This is an implementation of the existing Regoes + Marcusson
+transfer policy, not new biological evidence.
+
+Critically, this command changes the authoritative concentration **landscape**;
+it does not add or validate concentration transport. Petra still has no
+source-calibrated ciprofloxacin diffusion coefficient, decay/clearance process,
+plate-medium mapping, or claim that command geometry reproduces physical drug
+delivery. The bundled flagship begins at exactly zero exposure. A later
+transport mechanism must be separately calibrated/versioned rather than being
+implied by the existence of mutable intervention state.
 
 ## Resistance
 

@@ -125,6 +125,12 @@ export class SimulationEngine {
       return this.snapshot()
     }
 
+    if (command.type === 'apply-ciprofloxacin') {
+      throw new Error(
+        'apply-ciprofloxacin is biological authority and is not available in the synthetic fixture engine',
+      )
+    }
+
     if (!Number.isFinite(command.magnitude)) throw new Error('synthetic-pulse.magnitude must be finite')
 
     // Compute and validate the complete transition before mutating live state.
@@ -157,7 +163,7 @@ export class SimulationEngine {
       rngState: this.rng.snapshot(),
       commandCount: this.commandCount,
     }
-    const events = this.events.map((event) => ({ ...event }))
+    const events = this.events.map((event) => structuredClone(event))
     return { checkpoint, events, traceHash: simulationSnapshotTraceHash({ checkpoint, events }) }
   }
 

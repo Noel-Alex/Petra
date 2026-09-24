@@ -15,14 +15,14 @@ The frontend explains and controls the model. It does not become the model.
 
 ## Current implementation boundary
 
-Current `main` already contains a real composed-worker capability alongside the narrow synthetic infrastructure fixture path. `src/sim/protocol.ts` is protocol v4, `src/worker/simulation.worker.ts` selects `ComposedSimulationEngine` when an explicit `composedConfig` is supplied, and composed checkpoints/snapshots carry `authority: 'composed'`.
+Current `main` already contains a real composed-worker capability alongside the narrow synthetic infrastructure fixture path. `src/sim/protocol.ts` is protocol v5, `src/worker/simulation.worker.ts` selects `ComposedSimulationEngine` when an explicit `composedConfig` is supplied, and composed checkpoints/snapshots carry `authority: 'composed'`.
 
 That does **not** mean the flagship product path is complete. Issue #37 now owns the remaining product/flagship activation and integration work rather than the existence of a composed worker loop:
 
-- protocol v4 keeps synthetic and composed authority explicitly distinct; omitted `composedConfig` is the infrastructure/test fixture path, not product biology;
+- protocol v5 keeps synthetic and composed authority explicitly distinct; omitted `composedConfig` is the infrastructure/test fixture path, not product biology;
 - composed runs require a validated parameter-set binding in `RunIdentity`, tying the friendly parameter-set ID/version to the exact deterministic composed-configuration fingerprint;
 - `syntheticPopulation` and `synthetic-pulse` remain explicitly synthetic fixtures and must never be presented or adapted as real biology/interventions;
-- real flagship intervention commands, the reviewed continuous-biomass → discrete evolution bridge, and product-default flagship activation remain separate #37 gates;
+- protocol v5 now supplies one real flagship intervention mutation, `apply-ciprofloxacin`; reviewed continuous-biomass → discrete evolution authority, remaining intervention families, and product-default flagship activation remain separate #37/#626 gates;
 - product UI must not invent scientific readouts when the active runtime does not supply the required authoritative records;
 - renderer demo fixtures remain presentation-only and visibly disclosed.
 
@@ -42,7 +42,7 @@ Lineages use compact metadata plus aggregate spatial biomass/density channels. A
 
 ## Worker protocol
 
-### Implemented protocol v4 on current main
+### Implemented protocol v5 on current main
 
 The current versioned types in `src/sim/protocol.ts` define:
 
@@ -51,6 +51,7 @@ Main → worker:
 - `initialize` with a versioned `RunIdentity` plus optional `composedConfig`; supplying composed configuration selects composed biological authority, while omission retains only the synthetic infrastructure fixture;
 - `command` carrying one of:
   - `advance`;
+  - `apply-ciprofloxacin` with schema-versioned exact `mg/L`, `set|add`, and global/radial/stripe/paint geometry (**composed authority only**);
   - `synthetic-pulse` (**infrastructure fixture only**);
   - `restore`;
   - `snapshot`.
@@ -63,11 +64,11 @@ Worker → main:
 - `snapshot`;
 - `error`.
 
-Protocol v4 checkpoints are a tagged union: `SyntheticSimulationCheckpoint` is infrastructure-only, while `ComposedSimulationCheckpoint` carries real composed state plus metrics and `authority: 'composed'`. Composed authority validates its parameter-set/configuration binding and rejects synthetic fixture commands. Do not translate real inoculation, nutrient, or antibiotic interactions into `synthetic-pulse`.
+Protocol v5 checkpoints are a tagged union: `SyntheticSimulationCheckpoint` is infrastructure-only, while `ComposedSimulationCheckpoint` carries real composed state plus metrics and `authority: 'composed'`. Composed state v3 checkpoints the mutable ciprofloxacin concentration landscape; the config retains the fingerprinted initial landscape and source-backed PD/MIC policy. Composed authority validates its parameter-set/configuration binding, accepts only the typed ciprofloxacin mutation it implements, and rejects synthetic fixture commands. Do not translate inoculation, nutrient, phage, competitor, or other unsupported interactions into `synthetic-pulse` or `apply-ciprofloxacin`.
 
 ### Remaining flagship protocol/product integration
 
-The composed worker substrate is already implemented. #37 may still evolve/version the protocol where the flagship needs real typed intervention commands, additional authoritative product records, or other wire-shape changes. The exact message names and payloads must come from the merged versioned source types, not from this planning document.
+The composed worker substrate and first real ciprofloxacin mutation are implemented. #37/#626 may still evolve/version the protocol where the flagship needs additional intervention families, authoritative product records, or other wire-shape changes. The exact message names and payloads must come from the merged versioned source types, not from this planning document.
 
 Required target properties:
 
@@ -116,7 +117,7 @@ A production checkpoint must preserve every replay-critical state component requ
 
 - run/scenario/parameter identity;
 - simulation tick/time;
-- environmental fields;
+- environmental fields, including the current mutable ciprofloxacin concentration landscape when enabled;
 - lineage biomass/state;
 - biological RNG state;
 - lineage ancestry/extinction/event state;

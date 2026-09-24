@@ -105,6 +105,9 @@ describe('authoritative composed state', () => {
     expect(branch).not.toEqual(checkpoint)
     expect(original).toEqual(checkpoint)
     expect(branch.resource).not.toBe(checkpoint.resource)
+    expect(branch.ciprofloxacinConcentrationMgPerL).not.toBe(
+      checkpoint.ciprofloxacinConcentrationMgPerL,
+    )
     expect(branch.lineageIds).not.toBe(checkpoint.lineageIds)
     expect(branch.genotypeIds).not.toBe(checkpoint.genotypeIds)
     expect(branch.lineageBiomass[0]).not.toBe(checkpoint.lineageBiomass[0])
@@ -132,7 +135,23 @@ describe('authoritative composed state', () => {
     ).toThrow(/fingerprint mismatch/)
   })
 
-  it('binds a static ciprofloxacin landscape into replay identity and ecology loss', () => {
+  it('stores mutable ciprofloxacin checkpoint concentration canonically as Float32', () => {
+    const floatConfig: ComposedSimulationConfig = {
+      ...config,
+      ciprofloxacin: ciprofloxacinAuthority,
+      ciprofloxacinConcentrationMgPerL: [0.1, 0],
+    }
+    const state = createComposedState(floatConfig)
+
+    expect(state.ciprofloxacinConcentrationMgPerL[0]).toBe(Math.fround(0.1))
+
+    state.ciprofloxacinConcentrationMgPerL[0] = 0.1
+    expect(() => stepComposedState(state, floatConfig)).toThrow(
+      /canonical Float32/,
+    )
+  })
+
+  it('binds the initial ciprofloxacin landscape into replay identity and ecology loss', () => {
     const baselineState = createComposedState(config)
     const baselineMetrics = stepComposedState(baselineState, config)
 
@@ -400,6 +419,18 @@ describe('authoritative composed state', () => {
   })
 
   it('rejects corrupted serialized ecology state outside the dish mask', () => {
+    const drugState = createComposedState({
+      ...maskedConfig,
+      ciprofloxacin: ciprofloxacinAuthority,
+    })
+    drugState.ciprofloxacinConcentrationMgPerL[1] = 0.5
+    expect(() =>
+      stepComposedState(
+        drugState,
+        { ...maskedConfig, ciprofloxacin: ciprofloxacinAuthority },
+      ),
+    ).toThrow(/ciprofloxacin concentration must be zero outside composed mask/)
+
     const resourceState = createComposedState(maskedConfig)
     resourceState.resource[1] = 9
     expect(() => stepComposedState(resourceState, maskedConfig)).toThrow(

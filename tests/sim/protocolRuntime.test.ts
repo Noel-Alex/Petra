@@ -104,7 +104,7 @@ const composedSnapshot = new ComposedSimulationEngine(
   composedConfig,
 ).snapshot()
 
-describe('worker protocol-v4 runtime validation', () => {
+describe('worker protocol-v5 runtime validation', () => {
   it('accepts valid synthetic protocol requests and responses', () => {
     expect(
       parseWorkerRequest({
@@ -159,6 +159,49 @@ describe('worker protocol-v4 runtime validation', () => {
     })
   })
 
+  it('validates typed ciprofloxacin commands at the worker boundary', () => {
+    const payload = {
+      protocolVersion: PROTOCOL_VERSION,
+      type: 'command' as const,
+      command: {
+        id: 'dose-1',
+        type: 'apply-ciprofloxacin' as const,
+        intervention: {
+          schemaVersion: 1 as const,
+          concentrationMgPerL: 0.125,
+          concentrationUnit: 'mg/L' as const,
+          blendMode: 'set' as const,
+          geometry: {
+            kind: 'radial' as const,
+            center: { x: 0.5, y: 0.5 },
+            radiusFraction: 0.2,
+          },
+        },
+      },
+    }
+
+    const parsed = parseWorkerRequest(payload)
+    expect(parsed).toMatchObject({ ok: true })
+    if (!parsed.ok) throw new Error(parsed.error)
+    expect(parsed.value).toBe(payload)
+
+    const invalid = structuredClone(payload)
+    invalid.command.intervention.geometry.radiusFraction = 0
+    expect(parseWorkerRequest(invalid)).toMatchObject({
+      ok: false,
+      commandId: 'dose-1',
+    })
+
+    const extra = structuredClone(payload) as typeof payload & {
+      command: typeof payload.command & { rendererFrame: number }
+    }
+    extra.command.rendererFrame = 7
+    expect(parseWorkerRequest(extra)).toMatchObject({
+      ok: false,
+      commandId: 'dose-1',
+    })
+  })
+
   it('accepts a valid composed authoritative snapshot', () => {
     const payload = {
       protocolVersion: PROTOCOL_VERSION,
@@ -172,6 +215,23 @@ describe('worker protocol-v4 runtime validation', () => {
     expect(parsed.value).toBe(payload)
     if (parsed.value.type !== 'ready') throw new Error('expected ready response')
     expect(parsed.value.snapshot.checkpoint.authority).toBe('composed')
+  })
+
+  it('rejects composed checkpoint state that omits mutable ciprofloxacin authority', () => {
+    const malformed = structuredClone(composedSnapshot) as unknown as {
+      checkpoint: {
+        composedState: Record<string, unknown>
+      }
+    }
+    delete malformed.checkpoint.composedState.ciprofloxacinConcentrationMgPerL
+
+    expect(
+      parseWorkerResponse({
+        protocolVersion: PROTOCOL_VERSION,
+        type: 'ready',
+        snapshot: malformed,
+      }),
+    ).toMatchObject({ ok: false })
   })
 
   it('rejects non-object envelopes without throwing', () => {

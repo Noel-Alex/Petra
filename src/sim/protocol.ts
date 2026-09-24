@@ -4,6 +4,7 @@ import type {
   ComposedSimulationState,
 } from './authoritative'
 import type { RngState } from './rng'
+import type { CiprofloxacinIntervention } from './ciprofloxacinIntervention'
 import {
   assertComposedParameterSetBindingIdentity,
   type ComposedParameterSetBinding,
@@ -13,7 +14,7 @@ import { assertSimulationSeed } from './seed'
 export { assertSimulationSeed, MAX_SIMULATION_SEED } from './seed'
 
 export const ENGINE_VERSION = 'petra-ts-core/0.1.0' as const
-export const PROTOCOL_VERSION = 4 as const
+export const PROTOCOL_VERSION = 5 as const
 
 export interface RunIdentity {
   engineVersion: typeof ENGINE_VERSION
@@ -60,6 +61,11 @@ export type SimulationCheckpoint =
 
 export type SimulationCommand =
   | { id: string; type: 'advance'; ticks: number }
+  | {
+      id: string
+      type: 'apply-ciprofloxacin'
+      intervention: CiprofloxacinIntervention
+    }
   | { id: string; type: 'synthetic-pulse'; magnitude: number }
   | { id: string; type: 'restore'; checkpoint: SimulationCheckpoint }
   | { id: string; type: 'snapshot' }
@@ -85,9 +91,15 @@ export interface SimulationEvent {
   sequence: number
   tick: number
   simulationTimeHours: number
-  type: 'initialized' | 'advanced' | 'synthetic-pulse' | 'restored'
+  type:
+    | 'initialized'
+    | 'advanced'
+    | 'ciprofloxacin-applied'
+    | 'synthetic-pulse'
+    | 'restored'
   commandId?: string
   value?: number
+  intervention?: CiprofloxacinIntervention
 }
 
 interface SimulationSnapshotBase {

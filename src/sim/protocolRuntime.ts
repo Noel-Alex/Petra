@@ -8,6 +8,7 @@ import {
   assertComposedParameterSetBinding,
   assertComposedParameterSetBindingRecord,
 } from './parameterSetBinding'
+import { assertCiprofloxacinIntervention } from './ciprofloxacinIntervention'
 import {
   ENGINE_VERSION,
   PROTOCOL_VERSION,
@@ -37,12 +38,13 @@ export type ProtocolParseResult<T> =
 
 const SYNTHETIC_HOURS_PER_TICK = 1 / 60
 const UINT32_MAX = 0xffff_ffff
+const CIPROFLOXACIN_COMMAND_KEYS = new Set(['id', 'type', 'intervention'])
 
 /**
  * Runtime promotion boundary for successfully deserialized Worker requests.
  *
  * The returned object is the original payload after validation rather than a
- * reconstructed subset, so protocol-v4 composed configuration/binding fields
+ * reconstructed subset, so protocol-v5 composed configuration/binding fields
  * cannot be silently stripped by an older parser.
  */
 export function parseWorkerRequest(
@@ -242,6 +244,25 @@ function parseSimulationCommand(
     return { ok: true, value: value as SimulationCommand }
   }
 
+  if (record.type === 'apply-ciprofloxacin') {
+    for (const key of Object.keys(record)) {
+      if (!CIPROFLOXACIN_COMMAND_KEYS.has(key)) {
+        return failure(
+          '. contains unsupported field ' + JSON.stringify(key),
+        )
+      }
+    }
+    try {
+      assertCiprofloxacinIntervention(record.intervention)
+    } catch (error) {
+      return failure(
+        '.intervention ' +
+          (error instanceof Error ? error.message : 'is invalid'),
+      )
+    }
+    return { ok: true, value: value as SimulationCommand }
+  }
+
   if (record.type === 'synthetic-pulse') {
     if (!isFiniteNumber(record.magnitude)) {
       return failure('.magnitude must be finite')
@@ -404,6 +425,17 @@ function parseComposedState(
   )
   if (!resource.ok) return failure(`.resource ${resource.error}`)
 
+  const ciprofloxacin = parseDenseNumberArray(
+    record.ciprofloxacinConcentrationMgPerL,
+    cellCount,
+    isFiniteNonNegative,
+  )
+  if (!ciprofloxacin.ok) {
+    return failure(
+      `.ciprofloxacinConcentrationMgPerL ${ciprofloxacin.error}`,
+    )
+  }
+
   const lineageIds = parseDenseStringArray(record.lineageIds)
   if (!lineageIds.ok) return failure(`.lineageIds ${lineageIds.error}`)
   const genotypeIds = parseDenseStringArray(record.genotypeIds)
@@ -505,6 +537,7 @@ function parseSimulationEvent(
   if (
     record.type !== 'initialized' &&
     record.type !== 'advanced' &&
+    record.type !== 'ciprofloxacin-applied' &&
     record.type !== 'synthetic-pulse' &&
     record.type !== 'restored'
   ) {
@@ -518,6 +551,20 @@ function parseSimulationEvent(
   }
   if (record.value !== undefined && !isFiniteNumber(record.value)) {
     return failure('.value must be finite when present')
+  }
+  if (record.type === 'ciprofloxacin-applied') {
+    try {
+      assertCiprofloxacinIntervention(record.intervention)
+    } catch (error) {
+      return failure(
+        '.intervention ' +
+          (error instanceof Error ? error.message : 'is invalid'),
+      )
+    }
+  } else if (record.intervention !== undefined) {
+    return failure(
+      '.intervention is supported only for ciprofloxacin-applied events',
+    )
   }
 
   return { ok: true, value: value as SimulationEvent }

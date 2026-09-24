@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
+import { PROTOCOL_VERSION } from "../sim/protocol";
 import type {
   AuthoritativeRegionInspection,
   MeasuredAuthoritativeRegionInspection,
@@ -16,7 +17,7 @@ import {
 
 const runIdentityFixture = {
   engineVersion: "petra-ts-core/0.1.0",
-  protocolVersion: 4,
+  protocolVersion: PROTOCOL_VERSION,
   scenarioId: "region-inspector-ui",
   scenarioVersion: "1",
   parameterSetId: "fixture:region-inspector-ui",
@@ -168,7 +169,7 @@ describe("RegionInspectorPanel", () => {
     expect(html).toContain("Accepted command position");
     expect(html).toContain("region-inspector-ui@1");
     expect(html).toContain("fixture:region-inspector-ui@1");
-    expect(html).toContain("petra-ts-core/0.1.0 / protocol 4");
+    expect(html).toContain(`petra-ts-core/0.1.0 / protocol ${PROTOCOL_VERSION}`);
   });
 
   it("renders explicit no-grid coverage without numeric scientific measurements", () => {

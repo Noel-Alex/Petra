@@ -66,5 +66,21 @@ function projectEvent(event: SimulationEvent): TimelineEntry {
   if (event.type === 'initialized') return { ...base, kind: 'run', label: 'Run initialized' }
   if (event.type === 'advanced') return { ...base, kind: 'advance', label: `Advanced ${event.value ?? 0} tick(s)` }
   if (event.type === 'restored') return { ...base, kind: 'restore', label: 'Checkpoint restored' }
+  if (event.type === 'ciprofloxacin-applied') {
+    const intervention = event.intervention
+    if (intervention === undefined) {
+      throw new Error(
+        `ciprofloxacin event ${event.sequence} is missing intervention authority`,
+      )
+    }
+    return {
+      ...base,
+      kind: 'intervention',
+      label:
+        `Ciprofloxacin ${intervention.blendMode} ` +
+        `${intervention.concentrationMgPerL} ${intervention.concentrationUnit} ` +
+        `(${intervention.geometry.kind})`,
+    }
+  }
   return { ...base, kind: 'intervention', label: 'Synthetic intervention' }
 }

@@ -14,6 +14,7 @@ import {
   type AdvanceExecutionPolicy,
 } from './advanceExecutionPolicy'
 import { assertComposedParameterSetBinding } from './parameterSetBinding'
+import { applyCiprofloxacinIntervention } from './ciprofloxacinIntervention'
 import { assertReplayCompatibility } from './replayCompatibility'
 import {
   simulationSnapshotTraceHash,
@@ -222,6 +223,29 @@ export class ComposedSimulationEngine {
       )
     }
 
+    if (command.type === 'apply-ciprofloxacin') {
+      if (!Number.isSafeInteger(this.commandCount + 1)) {
+        throw new Error(
+          'ciprofloxacin intervention would exceed the safe integer command-count domain',
+        )
+      }
+
+      const workingState = cloneComposedState(this.state)
+      applyCiprofloxacinIntervention(
+        workingState,
+        this.config,
+        command.intervention,
+      )
+      this.state = workingState
+      this.commandCount += 1
+      this.pushEvent({
+        type: 'ciprofloxacin-applied',
+        commandId: command.id,
+        intervention: structuredClone(command.intervention),
+      })
+      return this.snapshot()
+    }
+
     if (!Number.isSafeInteger(command.ticks) || command.ticks < 0) {
       throw new Error('advance.ticks must be a non-negative safe integer')
     }
@@ -264,7 +288,7 @@ export class ComposedSimulationEngine {
       composedState: cloneComposedState(this.state),
       metrics: cloneMetrics(this.metrics),
     }
-    const events = this.events.map((event) => ({ ...event }))
+    const events = this.events.map((event) => structuredClone(event))
     return {
       checkpoint,
       events,

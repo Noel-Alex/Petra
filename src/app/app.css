@@ -66,8 +66,8 @@ button:hover {
 }
 
 .petra-app {
-  --panel-motion-ms: 220ms;
-  --panel-motion-easing: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --panel-motion-ms: 0ms;
+  --panel-motion-easing: linear;
   min-height: 100vh;
   display: grid;
   grid-template-rows: auto 1fr auto;

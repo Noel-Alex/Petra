@@ -10,7 +10,7 @@ Run:
 python tools/verify.py premerge
 ```
 
-That registry command is the canonical source-level premerge gate. With the TypeScript implementation substrate present it runs repository/provenance checks, strict TypeScript typechecking, and the deterministic Vitest suite. CI executes the same contract.
+That registry command is the canonical **local/manual** source-level premerge gate. With the TypeScript implementation substrate present it runs repository/provenance checks, strict TypeScript typechecking, and the deterministic Vitest suite. Under Petra's current hosted-CI freeze, agents and humans run this contract locally and record the evidence they actually observed.
 
 A green source-test run is **not** browser, GPU, frame-time/device, or experimental validation. Record those evidence classes separately and only after they are actually measured.
 
@@ -91,4 +91,4 @@ For curated scenarios, compare selected normalized trajectories/relationships ag
 
 ## Provenance test
 
-CI should fail Science-Mode scenario validation if a required parameter has no value, unit, source, context or evidence tier.
+The local/manual premerge gate should fail Science-Mode scenario validation if a required parameter has no value, unit, source, context or evidence tier.

@@ -13,6 +13,7 @@ Deterministic local verification and developer/research tooling.
 - Passing source checks are not browser, device, performance, or scientific experimental evidence.
 - Tools must fail clearly and avoid mutating source during verification.
 - Verification output must identify what ran and what remains outside the current evidence boundary.
+- The scenario contract check enforces normalized flagship record-level provenance for exposed genotype, resource×drug composition, and mutation-transition records, including class-specific source/context/transfer/limitation requirements.
 
 ## Work guidance
 Prefer lightweight Python tools with no unnecessary dependencies for repository contract checks.

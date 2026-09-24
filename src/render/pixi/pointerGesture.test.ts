@@ -39,6 +39,19 @@ describe("pointer gesture planner", () => {
     });
   });
 
+  it("suppresses unstable pinch ratios at near-zero separation", () => {
+    const first = beginPointerGesture(
+      createPointerGestureState(),
+      1,
+      { x: 100, y: 100 },
+    );
+    const second = beginPointerGesture(first.state, 2, { x: 101, y: 100 });
+    const moved = movePointerGesture(second.state, 2, { x: 102, y: 100 });
+
+    expect(moved.accepted).toBe(true);
+    expect(moved.intent).toEqual({ kind: "none" });
+  });
+
   it("continues cleanly as one-pointer pan after the other pointer lifts", () => {
     const first = beginPointerGesture(
       createPointerGestureState(),

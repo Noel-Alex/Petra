@@ -8,6 +8,7 @@ import {
   type ComposedSimulationConfig,
   type ComposedSimulationState,
 } from './authoritative'
+import { assertEcologyLocalCapacity } from './ecology/capacity'
 import type {
   ComposedSimulationCheckpoint,
   ComposedSimulationSnapshot,
@@ -167,6 +168,20 @@ function validateState(
       }
     })
   })
+
+  for (let cell = 0; cell < cells; cell += 1) {
+    if (state.mask[cell] !== 1) continue
+    let totalBiomass = 0
+    for (const channel of state.lineageBiomass) {
+      totalBiomass += channel[cell]!
+    }
+    assertEcologyLocalCapacity(
+      totalBiomass,
+      config.growth.localCapacity,
+      state.lineageBiomass.length,
+      cell,
+    )
+  }
 }
 
 function validateMetrics(

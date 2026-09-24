@@ -277,6 +277,55 @@ describe('authoritative composed state', () => {
     )
   })
 
+  it('rejects materially over-capacity initial composed state', () => {
+    expect(() =>
+      createComposedState({
+        ...config,
+        growth: { ...config.growth, localCapacity: 2.5 },
+      }),
+    ).toThrow(/initial composed state: ecology biomass exceeds localCapacity/)
+  })
+
+  it('rejects materially over-capacity continued state before mutation', () => {
+    const state = createComposedState(config)
+    state.lineageBiomass[0]![0] = 15
+    state.lineageBiomass[1]![0] = 10
+    const before = cloneComposedState(state)
+
+    expect(() => stepComposedState(state, config)).toThrow(
+      /composed state: ecology biomass exceeds localCapacity/,
+    )
+    expect(state).toEqual(before)
+  })
+
+  it('accepts a Float32-representable boundary across composed create and continue', () => {
+    const roundedConfig: ComposedSimulationConfig = {
+      ...config,
+      width: 1,
+      height: 1,
+      mask: [1],
+      initialResource: [0],
+      initialLineageBiomass: [
+        [Math.fround(0.1)],
+        [Math.fround(0.2)],
+      ],
+      growth: {
+        ...config.growth,
+        localCapacity: 0.3,
+        spreadRate: 0,
+      },
+    }
+    const representedTotal =
+      roundedConfig.initialLineageBiomass[0]![0]! +
+      roundedConfig.initialLineageBiomass[1]![0]!
+    expect(representedTotal).toBeGreaterThan(
+      roundedConfig.growth.localCapacity,
+    )
+
+    const state = createComposedState(roundedConfig)
+    expect(() => stepComposedState(state, roundedConfig)).not.toThrow()
+  })
+
   it('reports resource and lineage aggregates over the same in-mask domain', () => {
     const state = createComposedState(maskedConfig)
     const metrics = stepComposedState(state, maskedConfig)

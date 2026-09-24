@@ -203,7 +203,7 @@ export function assertTaskMatchesMechanisticExecutionDefinition(
   );
   if (task.trajectory.group.parameterSetHash !== expectedParameterSetHash) {
     throw new TypeError(
-      `task ${task.taskId} parameterSetHash does not match resolved composed parameter authority`,
+      `task ${task.taskId} parameterSetHash does not match resolved composed parameter + initial-state authority`,
     );
   }
 

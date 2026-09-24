@@ -47,7 +47,8 @@ export function projectInterventionCapability(
     case "pending":
       return unavailable(
         "runtime-pending",
-        "An authoritative simulation request is in flight. Intervention tools are unavailable until the runtime is ready.",
+        "An authoritative simulation request is in flight. Placement preview remains available, but scientific application stays locked until authority is ready.",
+        true,
       );
     case "error":
       return unavailable(

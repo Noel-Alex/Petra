@@ -10,7 +10,6 @@ import {
   createRunIdentity,
   type SimulationSnapshot,
   type WorkerRequest,
-  type WorkerResponse,
 } from "../../src/sim/protocol";
 
 const identity = createRunIdentity({

@@ -41,10 +41,12 @@ export function ExperimentRunControls({
     () => view.runControls.seed?.toString() ?? "",
   );
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [seedInvalid, setSeedInvalid] = useState(false);
 
   useEffect(() => {
     setSeedDraft(view.runControls.seed?.toString() ?? "");
     setFeedback(null);
+    setSeedInvalid(false);
   }, [view.runControls.seed]);
 
   const dispatchAction = (action: ExperimentControlAction) => {
@@ -56,9 +58,11 @@ export function ExperimentRunControls({
     const parsed = parseSeedDraft(seedDraft);
     if (parsed.error !== null || parsed.seed === null) {
       setFeedback(parsed.error);
+      setSeedInvalid(true);
       return;
     }
 
+    setSeedInvalid(false);
     dispatchAction({ type: "set-seed", seed: parsed.seed });
   };
 
@@ -146,10 +150,11 @@ export function ExperimentRunControls({
             value={seedDraft}
             disabled={!view.runControls.canSetSeed}
             aria-describedby={feedbackId}
-            aria-invalid={feedback !== null ? true : undefined}
+            aria-invalid={seedInvalid ? true : undefined}
             onChange={(event) => {
               setSeedDraft(event.target.value);
               if (feedback !== null) setFeedback(null);
+              if (seedInvalid) setSeedInvalid(false);
             }}
           />
         </label>

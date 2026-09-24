@@ -11,6 +11,12 @@ describe("flagship provenance presentation projection", () => {
       version: "1.4.0-research",
       title: "E. coli / ciprofloxacin spatial evolution",
     });
+    expect(view.scienceAdmission).toMatchObject({
+      maturity: "validated-educational",
+      availability: "educational-only",
+      referenceEligible: false,
+    });
+    expect(view.scienceAdmissionLabel).toBe("Validated educational");
   });
 
   it("resolves every exposed flagship record without inventing fallback evidence", () => {

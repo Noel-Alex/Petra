@@ -15,6 +15,7 @@ import {
   type RenderLineage,
 } from "../model";
 import {
+  isScreenPointInsideDishAperture,
   panCamera,
   resolveDishViewportGeometry,
   screenToDish,
@@ -250,10 +251,14 @@ export async function createPixiDishRenderer(
 
   const onPointerDown = (event: PointerEvent) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
+    const screen = localPointer(event);
+    const viewport = { width: app.screen.width, height: app.screen.height };
+    if (!isScreenPointInsideDishAperture(screen, viewport)) return;
+
     const started = beginPointerGesture(
       gestureState,
       event.pointerId,
-      localPointer(event),
+      screen,
     );
     gestureState = started.state;
     if (!started.accepted) return;
@@ -311,8 +316,11 @@ export async function createPixiDishRenderer(
   };
 
   const onWheel = (event: WheelEvent) => {
-    event.preventDefault();
     const screen = localPointer(event);
+    const viewport = { width: app.screen.width, height: app.screen.height };
+    if (!isScreenPointInsideDishAperture(screen, viewport)) return;
+
+    event.preventDefault();
     const factor = wheelZoomFactor({
       deltaY: event.deltaY,
       deltaMode: event.deltaMode,
@@ -322,7 +330,7 @@ export async function createPixiDishRenderer(
       retargetWheelZoomFromRendered({
         state: readCameraTransitionState(),
         screen,
-        viewport: { width: app.screen.width, height: app.screen.height },
+        viewport,
         factor,
         policy: {
           animate: motion === "full",
@@ -335,9 +343,12 @@ export async function createPixiDishRenderer(
 
   const onDoubleClick = (event: MouseEvent) => {
     const screen = localPointer(event);
+    const viewport = { width: app.screen.width, height: app.screen.height };
+    if (!isScreenPointInsideDishAperture(screen, viewport)) return;
+
     const anchor = screenToDish(
       screen,
-      { width: app.screen.width, height: app.screen.height },
+      viewport,
       camera,
     );
     beginCameraTransition({ centerX: anchor.x, centerY: anchor.y, zoom: 3.2 });

@@ -48,3 +48,8 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Complete-history rows preserve sequence, tick, simulation time, and command identity supplied by `TimelineEntry`; opening history never creates scientific state.
 - New events must not auto-open history, steal focus, or force-scroll a user away from an older record they are inspecting.
 - Native details/scroll behavior deliberately keeps Full/Reduced/Off information-equivalent without introducing a second motion authority.
+
+## Dish camera motion adapter
+- `DishViewport.tsx` must project camera travel through `dishCameraMotion.ts`; it must not manufacture a Full-motion camera spec independently of the resolved user preference.
+- `CameraMotionSpec` describes spatial interpolation only: Full may use the named `MOTION.cameraFocus` travel token, while Reduced/Off request zero camera travel and keep their distinct semantics through the renderer motion mode / surrounding presentation.
+- Generic camera travel policy is not semantic-view identity. Do not pretend every pan, focus, or overview reset is a dish→colony transition just to reuse semantic-zoom labels.

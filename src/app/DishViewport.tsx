@@ -10,9 +10,7 @@ import { PixiDish } from "../render/pixi/PixiDish";
 import { createRendererDemoSnapshot } from "../render/pixi/demoSnapshot";
 import type { RendererMotionMode } from "../render/pixi/renderer";
 import { PetraCompactAction } from "../ui/PetraCompactAction";
-import { resolveMotion } from "../ui/motion/policy";
 import { planSurfaceTransition } from "../ui/motion/semanticTransitions";
-import { MOTION } from "../ui/motion/tokens";
 import {
   defaultDishOverlayId,
   resolveDishOverlay,
@@ -22,6 +20,7 @@ import {
   surfaceMotionCss,
 } from "./motionAdapter";
 import { dishEscapeAction } from "./dishKeyboard";
+import { resolveDishCameraMotion } from "./dishCameraMotion";
 
 export interface DishViewportProps {
   readonly motion: RendererMotionMode;
@@ -62,10 +61,7 @@ export function DishViewport({
   );
   const resolvedOverlayId = activeOverlay?.id ?? null;
   const usingDemo = snapshot === null || snapshot === undefined;
-  const cameraTreatment = resolveMotion("full", {
-    kind: "navigational",
-    durationMs: MOTION.cameraFocus.durationMs,
-  });
+  const cameraPlan = resolveDishCameraMotion(motion);
   const overlayMotion = useMemo(
     () =>
       surfaceMotionCss(
@@ -109,11 +105,8 @@ export function DishViewport({
         <PixiDish
           snapshot={snapshot}
           demoMode={usingDemo}
-          motion={motion}
-          cameraMotion={{
-            durationMs: cameraTreatment.durationMs,
-            easing: MOTION.cameraFocus.easing,
-          }}
+          motion={cameraPlan.mode}
+          cameraMotion={cameraPlan.cameraMotion}
           overlayId={resolvedOverlayId}
           resetCameraSignal={cameraResetSignal}
           className="dish-renderer-canvas"

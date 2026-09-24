@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   WorkerSession,
+  createBrowserWorkerPort,
   type WorkerPort,
   type WorkerPortHandlers,
 } from "../../src/app/workerSession";
@@ -61,6 +62,44 @@ class FakePort implements WorkerPort {
 
   fail(message: string): void {
     this.handlers?.error(message);
+  }
+
+  messageError(): void {
+    this.handlers?.error("Simulation worker message could not be deserialized");
+  }
+}
+
+class FakeBrowserWorker {
+  readonly posted: WorkerRequest[] = [];
+  terminated = false;
+  private readonly listeners = new Map<string, Set<EventListener>>();
+
+  postMessage(request: WorkerRequest): void {
+    this.posted.push(structuredClone(request));
+  }
+
+  addEventListener(type: string, listener: EventListener): void {
+    const listeners = this.listeners.get(type) ?? new Set<EventListener>();
+    listeners.add(listener);
+    this.listeners.set(type, listeners);
+  }
+
+  removeEventListener(type: string, listener: EventListener): void {
+    this.listeners.get(type)?.delete(listener);
+  }
+
+  terminate(): void {
+    this.terminated = true;
+  }
+
+  listenerCount(type: string): number {
+    return this.listeners.get(type)?.size ?? 0;
+  }
+
+  emit(type: string, event: Event): void {
+    for (const listener of this.listeners.get(type) ?? []) {
+      listener(event);
+    }
   }
 }
 
@@ -142,6 +181,101 @@ describe("worker session", () => {
     expect(session.state.latestSnapshot).toBeNull();
   });
 
+  it("fails closed on message deserialization during initialization and can recover", () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+
+    session.enqueue([
+      { protocolVersion: PROTOCOL_VERSION, type: "initialize", identity },
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: { id: "queued-command", type: "snapshot" },
+      },
+    ]);
+    port.messageError();
+
+    expect(session.state).toMatchObject({
+      phase: "error",
+      error: "Simulation worker message could not be deserialized",
+      pendingCommandId: null,
+      queuedRequests: 0,
+    });
+    expect(port.posted).toHaveLength(1);
+
+    session.enqueue([
+      { protocolVersion: PROTOCOL_VERSION, type: "initialize", identity },
+    ]);
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: snapshot(0),
+    });
+
+    expect(session.state.phase).toBe("ready");
+  });
+
+  it("retains the active command id on message deserialization failure", () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+
+    session.enqueue([
+      { protocolVersion: PROTOCOL_VERSION, type: "initialize", identity },
+    ]);
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: snapshot(0),
+    });
+
+    session.enqueue([
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: { id: "advance-active", type: "advance", ticks: 4 },
+      },
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: { id: "queued-command", type: "snapshot" },
+      },
+    ]);
+    port.messageError();
+
+    expect(session.state).toMatchObject({
+      phase: "error",
+      error: "Simulation worker message could not be deserialized",
+      pendingCommandId: "advance-active",
+      queuedRequests: 0,
+    });
+    expect(session.state.latestSnapshot).toEqual(snapshot(0));
+    expect(port.posted.at(-1)).toMatchObject({
+      type: "command",
+      command: { id: "advance-active" },
+    });
+  });
+
+  it("retains the active command id on generic worker failure", () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+
+    session.enqueue([
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: { id: "snapshot-active", type: "snapshot" },
+      },
+    ]);
+    port.fail("worker crashed");
+
+    expect(session.state).toMatchObject({
+      phase: "error",
+      error: "worker crashed",
+      pendingCommandId: "snapshot-active",
+      queuedRequests: 0,
+    });
+  });
+
   it("surfaces worker errors and can recover with a new request", () => {
     const port = new FakePort();
     const session = new WorkerSession(port);
@@ -154,6 +288,7 @@ describe("worker session", () => {
     expect(session.state).toMatchObject({
       phase: "error",
       error: "worker crashed",
+      pendingCommandId: null,
       queuedRequests: 0,
     });
 
@@ -168,6 +303,31 @@ describe("worker session", () => {
       snapshot: snapshot(0),
     });
     expect(session.state.phase).toBe("ready");
+  });
+
+  it("subscribes and unsubscribes every browser Worker transport event", () => {
+    const worker = new FakeBrowserWorker();
+    const port = createBrowserWorkerPort(worker as unknown as Worker);
+    const errors: string[] = [];
+    const unsubscribe = port.subscribe({
+      message: () => undefined,
+      error: (message) => errors.push(message),
+    });
+
+    expect(worker.listenerCount("message")).toBe(1);
+    expect(worker.listenerCount("error")).toBe(1);
+    expect(worker.listenerCount("messageerror")).toBe(1);
+
+    worker.emit("messageerror", {} as Event);
+    expect(errors).toEqual(["Simulation worker message could not be deserialized"]);
+
+    unsubscribe();
+    expect(worker.listenerCount("message")).toBe(0);
+    expect(worker.listenerCount("error")).toBe(0);
+    expect(worker.listenerCount("messageerror")).toBe(0);
+
+    port.dispose();
+    expect(worker.terminated).toBe(true);
   });
 
   it("notifies subscribers and disposes the worker safely", () => {

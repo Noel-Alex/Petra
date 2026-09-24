@@ -66,7 +66,7 @@ describe('authoritative region inspector', () => {
     expect(inspection.configurationFingerprint).toBe(state.configurationFingerprint)
   })
 
-  it('never lets masked sentinel values leak into scientific readout', () => {
+  it('keeps masked cells outside whole-grid scientific readout', () => {
     const state = createComposedState(config)
     // Deliberately corrupt only the masked cell after valid state creation.
     // The simulator rejects this state if stepped; the read-only inspector must

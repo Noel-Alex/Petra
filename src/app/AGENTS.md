@@ -154,3 +154,9 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - `timelineHistory.css` owns disclosure/history layout but consumes Petra's shared `--petra-color-*` / `--petra-rgb-*` variables for stable chrome. Do not restore a timeline-local numeric cyan/white/blue-grey palette.
 - Theme changes must preserve native `details/summary` behavior, the 2.75rem summary touch floor, focus visibility, bounded history scrolling, responsive stacking, authoritative event order/content, and supplied simulation timestamps.
 - Hover/background color is non-essential presentation reinforcement only. Timeline meaning, chronology, and playback authority must remain understandable without it, and this stylesheet must not introduce independent motion timing.
+
+
+## Scenario discovery and Science Mode
+- `scenarioDiscovery.ts` is the product-facing scenario catalog boundary. It consumes `evaluateScienceModeAdmission(...)` directly so bundled/parseable/runnable scenarios cannot bypass the science admission contract.
+- Experimental packs may remain discoverable with explicit refusal reasons, but grounded Science Mode selectors must use `listGroundedScienceModeScenarios()` (or the same admission result) rather than filtering on display status, filename, or runtime availability.
+- The current flagship remains a research/experimental pack for grounded physical Science Mode while its limiting-resource context is UNBOUND and its ecology execution profile is engineering/model-unit only. This does not prevent truthful mechanistic research/demo execution under its existing warnings.

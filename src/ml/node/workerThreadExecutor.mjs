@@ -94,14 +94,12 @@ export class WorkerThreadMechanisticExecutor {
     worker.on("error", (error) => this.handleWorkerFailure(slot, error));
     worker.on("exit", (code) => {
       if (slot.retiring) return;
-      if (code !== 0) {
-        this.handleWorkerFailure(
-          slot,
-          new Error("mechanistic worker exited with code " + code),
-        );
-      } else {
-        this.retireSlot(slot);
-      }
+      this.handleWorkerFailure(
+        slot,
+        new Error(
+          "mechanistic worker exited unexpectedly with code " + code,
+        ),
+      );
     });
   }
 

@@ -131,6 +131,25 @@ describe('replay compatibility policy', () => {
     ).toMatchObject({ compatible: true, mode: 'exact' })
   })
 
+  it('refuses a stale target runtime identity even when artifact identity is current', () => {
+    const staleTarget = {
+      ...identity,
+      protocolVersion: PROTOCOL_VERSION - 1,
+    } as unknown as typeof identity
+
+    expect(
+      assessReplayCompatibility({
+        artifactIdentity: identity,
+        targetIdentity: staleTarget,
+        artifactAuthority: 'composed',
+        targetAuthority: 'composed',
+      }),
+    ).toMatchObject({
+      compatible: false,
+      reason: 'unsupported-protocol-version',
+    })
+  })
+
   it('fails closed with human-readable refusal instead of migrating versions', () => {
     expect(() =>
       assertReplayCompatibility({

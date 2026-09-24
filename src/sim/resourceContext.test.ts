@@ -213,6 +213,33 @@ describe("scenario resource context identity", () => {
     );
   });
 
+  it("rejects unknown resource-context fields instead of erasing them from identity", () => {
+    const base = flagship.environment.resourceContext;
+
+    expect(() =>
+      parseScenarioResourceContext({
+        ...base,
+        physicalScale: "unknown future semantic field",
+      }),
+    ).toThrow(/resourceContext contains unsupported field: physicalScale/);
+  });
+
+  it("rejects unknown provenance fields instead of erasing them from identity", () => {
+    const base = flagship.environment.resourceContext;
+
+    expect(() =>
+      parseScenarioResourceContext({
+        ...base,
+        provenance: {
+          ...base.provenance,
+          methodology: "unknown provenance semantics",
+        },
+      }),
+    ).toThrow(
+      /resourceContext\.provenance contains unsupported field: methodology/,
+    );
+  });
+
   it("rejects ambiguous provenance and malformed identity fields", () => {
     const base = flagship.environment.resourceContext;
 

@@ -59,6 +59,32 @@ const BOUNDARIES = new Set<ResourceContextBoundary>([
   "no_flux",
   "external_feed",
 ]);
+const RESOURCE_CONTEXT_KEYS = new Set([
+  "version",
+  "bindingStatus",
+  "representation",
+  "concentrationUnit",
+  "limitingSubstrate",
+  "medium",
+  "referenceTemperatureC",
+  "boundary",
+  "initialCondition",
+  "biomassMapping",
+  "provenance",
+]);
+
+const RESOURCE_PROVENANCE_KEYS = new Set([
+  "classification",
+  "citation",
+  "citations",
+  "context",
+  "transformation",
+  "uncertainty",
+  "transferNote",
+  "calibrationNote",
+  "limitation",
+]);
+
 const EVIDENCE_CLASSES = new Set<ResourceContextEvidenceClass>([
   "measured",
   "derived",
@@ -88,9 +114,16 @@ export function parseScenarioResourceContext(
   value: unknown,
 ): ScenarioResourceContext {
   const record = requireRecord("resourceContext", value);
+  assertOnlyKnownKeys("resourceContext", record, RESOURCE_CONTEXT_KEYS);
+
   const provenanceRecord = requireRecord(
     "resourceContext.provenance",
     record.provenance,
+  );
+  assertOnlyKnownKeys(
+    "resourceContext.provenance",
+    provenanceRecord,
+    RESOURCE_PROVENANCE_KEYS,
   );
 
   const bindingStatus = requireEnum(
@@ -314,6 +347,18 @@ function parseCitations(value: unknown): readonly string[] {
     throw new Error("resourceContext.provenance.citations must be unique");
   }
   return citations;
+}
+
+function assertOnlyKnownKeys(
+  name: string,
+  record: Record<string, unknown>,
+  allowed: ReadonlySet<string>,
+): void {
+  for (const key of Object.keys(record)) {
+    if (!allowed.has(key)) {
+      throw new Error(`${name} contains unsupported field: ${key}`);
+    }
+  }
 }
 
 function requireRecord(

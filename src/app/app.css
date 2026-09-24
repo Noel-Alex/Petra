@@ -504,3 +504,12 @@ button:hover {
     justify-content: center;
   }
 }
+
+
+.dish-renderer-canvas:focus-visible {
+  outline: 3px solid #d9f2ff;
+  outline-offset: 5px;
+  box-shadow:
+    0 0 0 2px #081120,
+    0 0 0 7px rgba(143, 220, 255, 0.7);
+}

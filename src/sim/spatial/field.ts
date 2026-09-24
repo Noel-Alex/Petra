@@ -12,7 +12,7 @@ export interface DiffusionResult {
   dtPerSubstep: number
 }
 
-export const MAX_EXPLICIT_2D_DIFFUSION_ALPHA = 0.25 as const
+const MAX_EXPLICIT_2D_DIFFUSION_ALPHA = 0.25 as const
 
 function requirePositiveFinite(name: string, value: number): void {
   if (!Number.isFinite(value) || value <= 0) throw new Error(`${name} must be a positive finite number`)

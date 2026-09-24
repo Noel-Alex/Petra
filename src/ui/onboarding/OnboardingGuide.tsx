@@ -58,6 +58,18 @@ export function OnboardingGuide({
     "--onboarding-motion-ms": `${presentation.motion.durationMs}ms`,
     "--onboarding-easing": `cubic-bezier(${presentation.easing.join(", ")})`,
     "--onboarding-progress": progress,
+    "--onboarding-ambient-primary-ms":
+      `${presentation.ambient.primaryDrift.motion.durationMs}ms`,
+    "--onboarding-ambient-primary-easing":
+      `cubic-bezier(${presentation.ambient.primaryDrift.easing.join(", ")})`,
+    "--onboarding-ambient-secondary-ms":
+      `${presentation.ambient.secondaryDrift.motion.durationMs}ms`,
+    "--onboarding-ambient-secondary-easing":
+      `cubic-bezier(${presentation.ambient.secondaryDrift.easing.join(", ")})`,
+    "--onboarding-focus-orbit-ms":
+      `${presentation.ambient.focusOrbit.motion.durationMs}ms`,
+    "--onboarding-focus-orbit-easing":
+      `cubic-bezier(${presentation.ambient.focusOrbit.easing.join(", ")})`,
   } as CSSProperties;
 
   return (
@@ -66,6 +78,13 @@ export function OnboardingGuide({
       data-focus={stage.focus}
       data-motion={motionPreference}
       data-motion-treatment={presentation.motion.treatment}
+      data-ambient-motion={
+        presentation.ambient.primaryDrift.motion.loops &&
+        presentation.ambient.secondaryDrift.motion.loops &&
+        presentation.ambient.focusOrbit.motion.loops
+          ? "animate"
+          : "static"
+      }
       aria-labelledby={headingId}
       aria-describedby={statusId}
       style={style}

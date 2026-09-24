@@ -2,6 +2,12 @@
   --onboarding-motion-ms: 220ms;
   --onboarding-easing: cubic-bezier(0.2, 0.8, 0.2, 1);
   --onboarding-progress: 0.1667;
+  --onboarding-ambient-primary-ms: 0ms;
+  --onboarding-ambient-primary-easing: linear;
+  --onboarding-ambient-secondary-ms: 0ms;
+  --onboarding-ambient-secondary-easing: linear;
+  --onboarding-focus-orbit-ms: 0ms;
+  --onboarding-focus-orbit-easing: linear;
   --onboarding-accent: #8fdcff;
   --onboarding-accent-soft: rgba(143, 220, 255, 0.12);
   position: relative;
@@ -74,12 +80,18 @@
   transform: rotate(42deg);
 }
 
-.petra-onboarding[data-motion="full"] .petra-onboarding__ambient span:nth-child(1) {
-  animation: petra-onboarding-drift-a 8s ease-in-out infinite alternate;
+.petra-onboarding[data-ambient-motion="animate"]
+  .petra-onboarding__ambient
+  span:nth-child(1) {
+  animation: petra-onboarding-drift-a var(--onboarding-ambient-primary-ms)
+    var(--onboarding-ambient-primary-easing) infinite alternate;
 }
 
-.petra-onboarding[data-motion="full"] .petra-onboarding__ambient span:nth-child(2) {
-  animation: petra-onboarding-drift-b 11s ease-in-out infinite alternate;
+.petra-onboarding[data-ambient-motion="animate"]
+  .petra-onboarding__ambient
+  span:nth-child(2) {
+  animation: petra-onboarding-drift-b var(--onboarding-ambient-secondary-ms)
+    var(--onboarding-ambient-secondary-easing) infinite alternate;
 }
 
 .petra-onboarding__header,
@@ -297,8 +309,9 @@
   border: 1px dashed color-mix(in srgb, var(--onboarding-accent) 44%, transparent);
 }
 
-.petra-onboarding[data-motion="full"] .petra-onboarding__focus-orbit {
-  animation: petra-onboarding-orbit 12s linear infinite;
+.petra-onboarding[data-ambient-motion="animate"] .petra-onboarding__focus-orbit {
+  animation: petra-onboarding-orbit var(--onboarding-focus-orbit-ms)
+    var(--onboarding-focus-orbit-easing) infinite;
 }
 
 .petra-onboarding__focus-core {

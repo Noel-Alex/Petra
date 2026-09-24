@@ -207,6 +207,32 @@ describe("scenario provenance adapter", () => {
     );
   });
 
+  it("does not synthesize a link when citation metadata has no explicit locator", () => {
+    const result = resolveScenarioProvenance({
+      id: "title-only",
+      label: "Title-only citation",
+      record: { classification: "measured", citation: "source" },
+      scenario: {
+        citations: {
+          source: {
+            title: "Source with title only",
+          },
+        },
+      },
+    });
+
+    expect(result.status).toBe("complete");
+    expect(result.sources).toContainEqual({
+      id: "source",
+      label: "Source with title only",
+    });
+    expect(result.sources[0]?.href).toBeUndefined();
+    expect(result.presentation?.details).toContainEqual({
+      label: "Source",
+      value: "Source with title only",
+    });
+  });
+
   it("preserves explicit HTTP(S) citation URLs as actionable source authority", () => {
     const result = resolveScenarioProvenance({
       id: "url-source",

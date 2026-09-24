@@ -1,3 +1,4 @@
+import type { ComposedSimulationConfig } from "../sim/authoritative";
 import {
   PROTOCOL_VERSION,
   type RunIdentity,
@@ -47,13 +48,17 @@ export class ExperimentRuntime {
   private readonly listeners = new Set<ExperimentRuntimeListener>();
   private readonly pendingAcceptance = new Map<string, SimulationCommand>();
   private readonly unsubscribeWorker: () => void;
+  private readonly composedConfig: ComposedSimulationConfig | undefined;
   private current: ExperimentRuntimeState;
 
   constructor(
     private readonly session: WorkerSession,
     identity: RunIdentity,
     private readonly createCommandId: () => string,
+    composedConfig?: ComposedSimulationConfig,
   ) {
+    this.composedConfig =
+      composedConfig === undefined ? undefined : structuredClone(composedConfig);
     this.current = {
       controls: createExperimentControlState(identity),
       worker: session.state,
@@ -87,13 +92,7 @@ export class ExperimentRuntime {
     }
 
     this.pendingAcceptance.clear();
-    this.session.enqueue([
-      {
-        protocolVersion: PROTOCOL_VERSION,
-        type: "initialize",
-        identity: structuredClone(this.current.controls.identity),
-      },
-    ]);
+    this.session.enqueue([this.initializeRequest(this.current.controls.identity)]);
     return true;
   }
 
@@ -113,6 +112,7 @@ export class ExperimentRuntime {
       this.current.controls,
       action,
       this.createCommandId,
+      this.composedConfig,
     );
 
     if (planned.effect.type === "worker-requests") {
@@ -175,6 +175,17 @@ export class ExperimentRuntime {
     this.session.dispose();
     this.unsubscribeWorker();
     this.listeners.clear();
+  }
+
+  private initializeRequest(identity: RunIdentity): WorkerRequest {
+    return {
+      protocolVersion: PROTOCOL_VERSION,
+      type: "initialize",
+      identity: structuredClone(identity),
+      ...(this.composedConfig === undefined
+        ? {}
+        : { composedConfig: structuredClone(this.composedConfig) }),
+    };
   }
 
   private stageReplayableCommands(requests: readonly WorkerRequest[]): void {

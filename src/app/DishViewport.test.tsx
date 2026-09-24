@@ -26,7 +26,7 @@ describe("DishViewport render-source truth boundary", () => {
       <DishViewport motion="off" snapshot={null} demoMode />,
     );
 
-    expect(html).toContain('data-render-source="visual-demo"');
+    expect(html.match(/data-render-source="visual-demo"/g)).toHaveLength(2);
     expect(html).toContain("visual demo · not biology");
     expect(html).toContain("visual-only renderer");
     expect(html).toContain("demo-antibiotic");
@@ -43,7 +43,9 @@ describe("DishViewport render-source truth boundary", () => {
       <DishViewport motion="off" snapshot={authoritative} demoMode />,
     );
 
-    expect(html).toContain('data-render-source="authoritative-snapshot"');
+    expect(
+      html.match(/data-render-source="authoritative-snapshot"/g),
+    ).toHaveLength(2);
     expect(html).toContain("authoritative snapshot");
     expect(html).not.toContain("visual demo · not biology");
     expect(html).not.toContain("visual-only renderer fixture");

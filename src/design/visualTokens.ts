@@ -13,10 +13,10 @@ export const PETRA_VISUAL_COLORS = Object.freeze({
   inkSoft: 0x34445e,
   cream: 0xf4ead7,
   creamMuted: 0xd9d0be,
-  teal: 0x5d9e98,
+  teal: 0x68aaa4,
   mint: 0x83b89a,
   amber: 0xd2a44d,
-  coral: 0xd7786f,
+  coral: 0xdf8379,
   olive: 0x8e9b64,
   lavender: 0x9486a9,
 });

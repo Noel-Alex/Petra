@@ -22,6 +22,14 @@ Own React/browser orchestration around Petra's authoritative worker and presenta
 - Sources is a non-modal disclosure, not a focus trap. While requested open, unconsumed Escape on the Petra app keyboard path may close it outside editable controls; close intent restores focus to the stable Sources trigger immediately. `aria-expanded` tracks **requested visibility**, while Full-motion exit may keep the drawer mounted only for the shared `planSurfaceTransition({ action: "hide" })` presentation wall-time. An exiting drawer is `aria-hidden` + inert so focus cannot re-enter it. Reduced/Off unmount immediately; reopen/preference changes/unmount must cancel stale exit timers. Exit completion is presentation-only and may never emit simulator/scientific commands.
 - Sources drawer responsive geometry is CSS authority in `sourcesDrawer.css`. Do not put `inset`, `width`, `max-height`, or other breakpoint-owned layout geometry back into React inline styles, because inline specificity defeats the narrow-screen media query. React may still project runtime motion custom properties at the app boundary.
 
+## Authoritative region-inspector query coordination
+- `regionInspectorRuntime.ts` owns app-layer request generations for asynchronous authoritative region queries. Selection identity alone is insufficient because the same region may be re-queried against newer authoritative state; only the currently active request id may resolve/fail presentation state.
+- The coordinator is transport-agnostic. Runtime/worker adapters emit the returned `RegionInspectionQuery` and feed results/errors back; React, Pixi, and pointer code must not bypass it or manufacture scientific readouts.
+- Clearing or superseding a selection invalidates the active request. Late results/errors are ignored even when an older request targeted the same selection id.
+- A matching request id is still insufficient when the payload carries a different selection id; mismatched transport payloads fail closed rather than being relabelled.
+- Region selection ids passed into this app seam must already be canonical non-empty text with no surrounding whitespace. This coordinator rejects aliases; it never trims or rewrites caller-visible query identity.
+- Request ids are orchestration identity only, not biological identity/time. Exact run/tick/simulation-time identity remains a #37/#42 authority input and must not be inferred from request order.
+
 ## Runtime rules
 - Do not emit the next queued request until the active request receives its expected authoritative response.
 - Correlate command snapshots/errors by command id; never accept a stale/mismatched snapshot as current state.

@@ -95,3 +95,9 @@ Contributor: Noel-Alex
 - Learned-model authority remains downstream of trustworthy mechanistic trajectories, but ML infrastructure preparation is explicitly allowed and encouraged before those trajectories are ready.
 - Active DOX now uses role-based language for local experiment/CI ownership. Historical references to individuals remain historical facts, not contributor templates.
 - Claims, branches, commits, PRs, and handoffs must use the actual authenticated contributor identity. Repository ownership or old `Contributor:` lines are never permission to impersonate that identity.
+
+
+### 2026-09-24 — #650 Science Mode admission gate (Noel-Alex)
+- Claimed #650 on `Noel-Alex/650-science-mode-admission`; research/new biological retuning remains OFF for this slice.
+- Current flagship evidence audit: primary-literature sources, transfer assumptions, validation targets, and record-level provenance are present, but `environment.resourceContext.bindingStatus` is explicitly `unbound` and `executionProfile` is explicitly engineering/model-unit authority. Therefore executable flagship ecology must not be presented as physically grounded/reference Science Mode.
+- Implementing one fail-closed machine-readable admission authority plus product scenario discovery consumption. Current expected flagship maturity is `experimental`; this classification is an honesty gate, not a claim that the mechanistic research scenario is unusable.

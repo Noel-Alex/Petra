@@ -1,34 +1,14 @@
 import { SimulationRng } from './rng'
 import type {
   RunIdentity,
-  SimulationCheckpoint,
   SimulationCommand,
   SimulationEvent,
-  SimulationSnapshot,
+  SyntheticSimulationCheckpoint,
+  SyntheticSimulationSnapshot,
 } from './protocol'
+import { simulationTraceHash, stableStringify } from './trace'
 
 const HOURS_PER_TICK = 1 / 60
-
-function stableStringify(value: unknown): string {
-  if (value === null || typeof value !== 'object') return JSON.stringify(value)
-  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`
-  const object = value as Record<string, unknown>
-  return `{${Object.keys(object)
-    .sort()
-    .map((key) => `${JSON.stringify(key)}:${stableStringify(object[key])}`)
-    .join(',')}}`
-}
-
-/** FNV-1a 32-bit trace checksum: a regression identity, not a security hash. */
-function traceHash(value: unknown): string {
-  const text = stableStringify(value)
-  let hash = 0x811c9dc5
-  for (let index = 0; index < text.length; index += 1) {
-    hash ^= text.charCodeAt(index)
-    hash = Math.imul(hash, 0x01000193) >>> 0
-  }
-  return hash.toString(16).padStart(8, '0')
-}
 
 export class SimulationEngine {
   private readonly identity: RunIdentity
@@ -44,8 +24,11 @@ export class SimulationEngine {
     this.pushEvent({ type: 'initialized' })
   }
 
-  execute(command: SimulationCommand): SimulationSnapshot {
+  execute(command: SimulationCommand): SyntheticSimulationSnapshot {
     if (command.type === 'restore') {
+      if (command.checkpoint.authority === 'composed') {
+        throw new Error('Cannot restore a composed checkpoint into synthetic authority')
+      }
       this.restore(command.checkpoint)
       this.pushEvent({ type: 'restored', commandId: command.id })
       return this.snapshot()
@@ -82,8 +65,8 @@ export class SimulationEngine {
     return this.snapshot()
   }
 
-  snapshot(): SimulationSnapshot {
-    const checkpoint: SimulationCheckpoint = {
+  snapshot(): SyntheticSimulationSnapshot {
+    const checkpoint: SyntheticSimulationCheckpoint = {
       identity: structuredClone(this.identity),
       tick: this.tick,
       simulationTimeHours: this.currentSimulationTimeHours(),
@@ -92,7 +75,11 @@ export class SimulationEngine {
       commandCount: this.commandCount,
     }
     const events = this.events.map((event) => ({ ...event }))
-    return { checkpoint, events, traceHash: traceHash({ checkpoint, events }) }
+    return {
+      checkpoint,
+      events,
+      traceHash: simulationTraceHash({ checkpoint, events }),
+    }
   }
 
   private currentSimulationTimeHours(): number {
@@ -110,7 +97,7 @@ export class SimulationEngine {
     })
   }
 
-  private restore(checkpoint: SimulationCheckpoint): void {
+  private restore(checkpoint: SyntheticSimulationCheckpoint): void {
     if (stableStringify(checkpoint.identity) !== stableStringify(this.identity)) {
       throw new Error('Cannot restore a checkpoint from a different run identity')
     }

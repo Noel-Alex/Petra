@@ -29,7 +29,9 @@ This is separate from `src/ui/compare/export.ts`, whose existing manifest remain
 
 ## Current boundary
 
-The current browser worker is still the synthetic protocol substrate. This module deliberately composes only the existing `SimulationEngine` checkpoint/command contract and does not touch `authoritative.ts`, flagship biology, renderer state, or worker migration. When #37 replaces the synthetic worker protocol, the fork layer should consume the new authoritative checkpoint/command union rather than invent a parallel simulation model.
+Protocol v3 introduces an explicit composed-authority checkpoint variant, but this fork controller still owns only the legacy synthetic `SimulationEngine` contract. Its public replay payload is therefore typed to `SyntheticSimulationCheckpoint`, and construction from a composed snapshot fails closed rather than pretending composed branch/replay semantics exist.
+
+A later #9/#37 integration must add a composed fork engine that preserves the complete composed checkpoint/configuration identity (including ordered lineage/genotype channels) and only then widen the fork/replay bundle. Do not adapt composed checkpoints through the synthetic engine or `synthetic-pulse`.
 
 ## Verification
 

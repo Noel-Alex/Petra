@@ -16,6 +16,7 @@ This is the compact contract between Petra's interface, simulator, and evidence 
 | More resistance mutations do not imply a monotonic fitness cost | measured | Marcusson genotype table | only curated genotypes |
 | Resistant mutants can arise before selection | established mechanism | Luria–Delbrück; Huseby fluctuation tests | curated transitions rather than whole genome |
 | Huseby 3.8e-6 rate is one exact mutation edge | **false** | Huseby 2017 | aggregate selected mutational target |
+| Petra may use Huseby point-mutation / regulator-disruption target orders as curated transition probabilities | mechanistic approximation | Huseby 2017 population-model target scales | not measured exact-edge probabilities; preserve target-class semantics and validate aggregate mutation supply separately |
 | Spatial position/front access can change which lineage succeeds | measured qualitative phenomenon | Baym et al. 2016 | not a quantitative MEGA-plate replica |
 | Shared-resource competitors can suppress each other without direct attack | mechanistic | consumer-resource ecology | direct interactions need separate sources |
 | Persister survival is equivalent to inherited resistance | **false** | Balaban et al. 2004 | persistence is reversible phenotype |

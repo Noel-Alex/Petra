@@ -1,6 +1,6 @@
 .petra-compact-action {
   --petra-compact-action-duration: 0ms;
-  --petra-compact-action-easing: ease;
+  --petra-compact-action-easing: linear;
   --petra-compact-action-y: 0rem;
   --petra-compact-action-scale: 1;
   min-height: 2.75rem;

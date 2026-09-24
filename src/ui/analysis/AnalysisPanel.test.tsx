@@ -190,6 +190,24 @@ describe("AnalysisPanel", () => {
     expect(off).toContain("Simulation time");
   });
 
+  it("derives analysis chrome from Petra's shared calm visual tokens", () => {
+    expect(analysisCss).toContain(
+      "--analysis-surface: rgb(var(--petra-rgb-ink) / 0.82);",
+    );
+    expect(analysisCss).toContain(
+      "--analysis-surface-strong: rgb(var(--petra-rgb-ink-deep) / 0.94);",
+    );
+    expect(analysisCss).toContain(
+      "--analysis-muted: rgb(var(--petra-rgb-cream-muted) / 0.76);",
+    );
+    expect(analysisCss).toContain(
+      "--analysis-accent: var(--petra-color-mint);",
+    );
+    expect(analysisCss).toContain("rgb(var(--petra-rgb-teal) / 0.1)");
+    expect(analysisCss).toContain("rgb(var(--petra-rgb-cream) / 0.96)");
+    expect(analysisCss).not.toMatch(/\brgba?\(\s*\d/);
+  });
+
   it("renders a stable empty ancestry state without inventing lineage records", () => {
     const emptyTree = buildLineageTree([]);
     const html = renderToStaticMarkup(

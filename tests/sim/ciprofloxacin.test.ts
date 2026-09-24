@@ -12,6 +12,9 @@ import {
   log10RateToNaturalPerHour,
   micShiftedRegoesResponse,
   naturalRateToLog10PerHour,
+  prepareMicShiftedRegoes,
+  preparedMicShiftedNetRateLog10PerHour,
+  preparedMicShiftedNetRateNaturalPerHour,
   regoesNetRateLog10PerHour,
   type RegoesPharmacodynamics,
 } from "../../src/sim/pharmacodynamics/ciprofloxacin";
@@ -53,6 +56,22 @@ describe("Regoes ciprofloxacin pharmacodynamics", () => {
     expect(resistant.effectiveZMic).toBeCloseTo(0.017 * (1.0 / 0.03), 14);
     expect(resistant.netRateLog10PerHour).toBeGreaterThan(wt.netRateLog10PerHour);
     expect(resistant.netRateLog10PerHour).toBeLessThanOrEqual(REGOES_CAB1_CIPRO.psiMaxLog10PerHour);
+  });
+
+  it("keeps the prepared spatial evaluator numerically equivalent to the reference path", () => {
+    const prepared = prepareMicShiftedRegoes(REGOES_CAB1_CIPRO, REFERENCE_MIC, 1.0);
+    for (const concentration of [0, 0.001, REGOES_CAB1_CIPRO.zMic, 0.1, 1, 100]) {
+      const reference = micShiftedRegoesResponse(
+        concentration,
+        REGOES_CAB1_CIPRO,
+        REFERENCE_MIC,
+        1.0,
+      );
+      expect(preparedMicShiftedNetRateLog10PerHour(concentration, prepared))
+        .toBeCloseTo(reference.netRateLog10PerHour, 14);
+      expect(preparedMicShiftedNetRateNaturalPerHour(concentration, prepared))
+        .toBeCloseTo(reference.netRateNaturalPerHour, 14);
+    }
   });
 
   it("does not turn resistance into immunity at sufficiently high concentration", () => {

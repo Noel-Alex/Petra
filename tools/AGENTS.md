@@ -15,6 +15,7 @@ Deterministic local verification and developer/research tooling.
 - Tools must fail clearly and avoid mutating source during verification.
 - Verification output must identify what ran and what remains outside the current evidence boundary.
 - The scenario contract check enforces normalized flagship record-level provenance for exposed genotype, resource×drug composition, mutation-transition, resource-context, and engineering execution-profile records, including class-specific source/context/transfer/limitation requirements. The flagship execution profile must remain bound to the scenario/resource-context version, exact model units, finite kernel inputs, the explicit spread-step stability bound, and the declared behavior-target set.
+- The same scenario check validates the flagship `composedParameterSet`: scenario/profile/resource/loss references, model-grid engineering geometry, known founder genotype IDs, exact zero inactive drug-loss hazard for the baseline set, unique founder lineage IDs, and explicit engineering limitations.
 
 ## Work guidance
 Prefer lightweight Python tools with no unnecessary dependencies for repository contract checks.

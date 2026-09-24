@@ -18,6 +18,27 @@ describe("T4 / MG1655 life-history evidence", () => {
       collectionId: "DSM 18039",
     });
 
+    expect(
+      T4_MG1655_LIFE_HISTORY.rows.map((row) => [
+        row.growthRatePerHour,
+        row.adsorptionConstantMlPerMin,
+        row.adsorptionConstantSdMlPerMin,
+        row.latentPeriodMinutes,
+        row.latentPeriodSdMinutes,
+        row.burstSizePfuPerCell,
+        row.burstSizeSdPfuPerCell,
+      ]),
+    ).toEqual([
+      [0.06, 2.6e-9, 0.24e-9, 80, 4, 8, 2],
+      [0.13, 2.0e-9, 0.12e-9, 60, 4, 13, 3],
+      [0.26, 1.1e-9, 0.19e-9, 41, 1, 20, 5],
+      [0.5, 0.81e-9, 0.04e-9, 36, 4, 33, 6],
+      [0.6, 0.53e-9, 0.04e-9, 31, 3, 59, 3],
+      [0.73, 0.42e-9, 0.07e-9, 29, 3, 66, 7],
+      [0.82, 0.5e-9, 0.05e-9, 27, 1, 75, 4],
+      [0.98, 0.52e-9, 0.04e-9, 27, 1, 89, 4],
+    ]);
+
     for (const row of T4_MG1655_LIFE_HISTORY.rows) {
       const resolved = resolvePhageLifeHistory(
         T4_MG1655_LIFE_HISTORY,
@@ -104,5 +125,8 @@ describe("T4 / MG1655 life-history evidence", () => {
       temperatureC: 37,
     });
     expect(T4_MG1655_LIFE_HISTORY.provenance.classification).toBe("measured");
+    expect(T4_MG1655_LIFE_HISTORY.provenance.limitation).toContain(
+      "transferred mechanistic approximation",
+    );
   });
 });

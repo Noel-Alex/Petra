@@ -2,9 +2,13 @@ import { describe, expect, it } from "vitest";
 import { createRendererDemoSnapshot } from "../render/pixi/demoSnapshot";
 import {
   AUTOMATIC_DISH_OVERLAY,
+  AUTOMATIC_DISH_OVERLAY_CONTROL_VALUE,
   NO_DISH_OVERLAY,
+  NO_DISH_OVERLAY_CONTROL_VALUE,
   defaultDishOverlayId,
+  dishOverlayControlValue,
   dishOverlayFieldSelection,
+  dishOverlaySelectionFromControlValue,
   reconcileDishOverlaySelection,
   resolveDishOverlay,
   resolveDishOverlaySelection,
@@ -28,6 +32,40 @@ describe("dish presentation overlay selection", () => {
     const snapshot = createRendererDemoSnapshot(24);
     expect(resolveDishOverlay(snapshot, "missing-layer")?.id).toBe(
       "demo-antibiotic",
+    );
+  });
+
+  it("round-trips automatic, none, and field identities through control values", () => {
+    expect(dishOverlayControlValue(AUTOMATIC_DISH_OVERLAY)).toBe(
+      AUTOMATIC_DISH_OVERLAY_CONTROL_VALUE,
+    );
+    expect(dishOverlaySelectionFromControlValue("automatic")).toBe(
+      AUTOMATIC_DISH_OVERLAY,
+    );
+
+    expect(dishOverlayControlValue(NO_DISH_OVERLAY)).toBe(
+      NO_DISH_OVERLAY_CONTROL_VALUE,
+    );
+    expect(dishOverlaySelectionFromControlValue("none")).toBe(
+      NO_DISH_OVERLAY,
+    );
+
+    const field = dishOverlayFieldSelection("demo-nutrient");
+    expect(dishOverlayControlValue(field)).toBe("field:demo-nutrient");
+    expect(dishOverlaySelectionFromControlValue("field:demo-nutrient")).toEqual(
+      field,
+    );
+  });
+
+  it("rejects ambiguous or malformed overlay control values", () => {
+    expect(() => dishOverlaySelectionFromControlValue("")).toThrow(
+      /unknown dish overlay control value/,
+    );
+    expect(() => dishOverlaySelectionFromControlValue("demo-nutrient")).toThrow(
+      /unknown dish overlay control value/,
+    );
+    expect(() => dishOverlaySelectionFromControlValue("field:")).toThrow(
+      /non-empty/,
     );
   });
 

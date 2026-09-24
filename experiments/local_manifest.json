@@ -50,25 +50,26 @@
     },
     {
       "id": "flagship-runtime-smoke",
-      "description": "PREPARED; BLOCKED on #626: composed init/advance/checkpoint/restore/replay harness is ready; mutable authoritative ciprofloxacin intervention remains required.",
+      "description": "Authoritative flagship composed runtime smoke: init, advance, scenario-WT-MIC ciprofloxacin intervention, checkpoint restore, exact replay, and deterministic continuation.",
       "command": [
-        "python",
-        "experiments/blocked.py",
-        "--experiment-id",
-        "flagship-runtime-smoke",
-        "--blocked-on",
-        "626",
-        "--reason",
-        "The composed init/advance/checkpoint/restore/replay harness is prepared in experiments/flagship_runtime_smoke.experiment.ts. Issue #626 must land the mutable authoritative ciprofloxacin intervention checkpoint/protocol command before the full smoke can test intervention replay truthfully."
+        "npm",
+        "exec",
+        "--offline",
+        "--",
+        "vitest",
+        "run",
+        "--config",
+        "experiments/vitest.flagship_runtime_smoke.config.ts"
       ],
       "issues": [
         37,
         42,
         542,
         626,
-        717
+        717,
+        749
       ],
-      "timeout_seconds": 30
+      "timeout_seconds": 900
     },
     {
       "id": "flagship-long-soak",

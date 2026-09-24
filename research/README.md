@@ -20,6 +20,7 @@ This directory is the scientific memory of the project. The rule is simple: **if
 - `numerical_methods.md` — bounded stochastic events, diffusion stability, update-order and validation details.
 - `persistence_tolerance.md` — inherited resistance vs reversible persistence/tolerance.
 - `phage_extension.md` / `phage_host_state.md` — lytic phage model and host-physiology dependence.
+- `phage_t4_mg1655_pack.md` — selected T4 DSM 4505 / MG1655 DSM 18039 life-history calibration, measured domain, transfer boundary, and remaining transport gaps.
 - `horizontal_gene_transfer.md` — plasmid conjugation, cost and density/contact cautions.
 - `competition_consumer_resource.md` — mechanistic competition before arbitrary pairwise coefficients.
 - `temperature.md` / `environment_temperature_ph.md` — cardinal temperature and pH modeling.

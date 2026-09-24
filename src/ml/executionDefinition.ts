@@ -8,16 +8,26 @@ import type {
   MechanisticSweepTask,
   SweepInterventionFamily,
   SweepParameterPoint,
+  SweepRunCondition,
 } from "./sweep";
 
 export const MECHANISTIC_EXECUTION_DEFINITION_SCHEMA_VERSION =
-  "petra-ml-execution-definition-v1" as const;
+  "petra-ml-execution-definition-v2" as const;
 export const MECHANISTIC_PARAMETER_IDENTITY_SCHEMA_VERSION =
   "petra-ml-parameter-execution-v1" as const;
+export const MECHANISTIC_RUN_CONDITION_SCHEMA_VERSION =
+  "petra-ml-run-condition-v1" as const;
 export const MECHANISTIC_INTERVENTION_SCHEDULE_SCHEMA_VERSION =
   "petra-ml-intervention-schedule-v1" as const;
 export const NO_INTERVENTION_SCHEDULE_VERSION =
   "no-intervention-v1" as const;
+
+export interface MechanisticRunConditionExecutionDefinition {
+  readonly schemaVersion: typeof MECHANISTIC_RUN_CONDITION_SCHEMA_VERSION;
+  readonly conditionId: string;
+  readonly conditionVersion: string;
+  readonly fingerprint: string;
+}
 
 export interface NoInterventionExecutionDefinition {
   readonly schemaVersion: typeof MECHANISTIC_INTERVENTION_SCHEDULE_SCHEMA_VERSION;
@@ -29,6 +39,7 @@ export interface NoInterventionExecutionDefinition {
 export interface MechanisticExecutionDefinition {
   readonly schemaVersion: typeof MECHANISTIC_EXECUTION_DEFINITION_SCHEMA_VERSION;
   readonly parameterSetBinding: ComposedParameterSetBinding;
+  readonly runCondition: MechanisticRunConditionExecutionDefinition;
   readonly intervention: NoInterventionExecutionDefinition;
 }
 
@@ -49,6 +60,50 @@ export function mechanisticParameterSetHash(
     binding.parameterSetVersion,
     binding.configurationFingerprint,
   ]);
+}
+
+/**
+ * Creates a compact, collision-free run-condition identity from the caller's
+ * versioned authoritative initialization parts. Display ids are deliberately
+ * excluded from the biological fingerprint so equivalent conditions cannot be
+ * split merely by renaming them.
+ *
+ * Concrete scenario adapters own the meaning/order of identityParts. For the
+ * flagship, that adapter must encode initial model-resource level and founder
+ * lineage/placement/biomass inputs rather than mechanism parameters or seed.
+ */
+export function createMechanisticRunConditionExecutionDefinition(args: {
+  readonly conditionId: string;
+  readonly conditionVersion: string;
+  readonly identityParts: readonly string[];
+}): MechanisticRunConditionExecutionDefinition {
+  requireCanonicalText("run condition id", args.conditionId);
+  requireCanonicalText("run condition version", args.conditionVersion);
+  if (!Array.isArray(args.identityParts) || args.identityParts.length === 0) {
+    throw new TypeError("run condition identityParts must be a non-empty array");
+  }
+  args.identityParts.forEach((part, index) =>
+    requireCanonicalText(`run condition identityParts[${index}]`, part),
+  );
+  return Object.freeze({
+    schemaVersion: MECHANISTIC_RUN_CONDITION_SCHEMA_VERSION,
+    conditionId: args.conditionId,
+    conditionVersion: args.conditionVersion,
+    fingerprint: encodeIdentity(MECHANISTIC_RUN_CONDITION_SCHEMA_VERSION, [
+      args.conditionVersion,
+      ...args.identityParts,
+    ]),
+  });
+}
+
+export function createSweepRunConditionForExecution(
+  runCondition: MechanisticRunConditionExecutionDefinition,
+): SweepRunCondition {
+  validateMechanisticRunConditionExecutionDefinition(runCondition);
+  return Object.freeze({
+    id: runCondition.conditionId,
+    fingerprint: runCondition.fingerprint,
+  });
 }
 
 /**
@@ -105,6 +160,7 @@ export function createNoInterventionSweepFamily(
 
 export function createMechanisticExecutionDefinition(args: {
   readonly parameterSetBinding: ComposedParameterSetBinding;
+  readonly runCondition: MechanisticRunConditionExecutionDefinition;
   readonly intervention: NoInterventionExecutionDefinition;
 }): MechanisticExecutionDefinition {
   assertComposedParameterSetBindingRecord(args.parameterSetBinding);
@@ -113,10 +169,12 @@ export function createMechanisticExecutionDefinition(args: {
       "authoritative mechanistic execution definitions require provenance parameter-set authority",
     );
   }
+  validateMechanisticRunConditionExecutionDefinition(args.runCondition);
   validateNoInterventionExecutionDefinition(args.intervention);
   return Object.freeze({
     schemaVersion: MECHANISTIC_EXECUTION_DEFINITION_SCHEMA_VERSION,
     parameterSetBinding: Object.freeze(structuredClone(args.parameterSetBinding)),
+    runCondition: Object.freeze({ ...args.runCondition }),
     intervention: Object.freeze({
       ...args.intervention,
       commands: Object.freeze([]) as readonly [],
@@ -156,6 +214,7 @@ export function assertTaskMatchesMechanisticExecutionDefinition(
     },
     config,
   );
+  validateMechanisticRunConditionExecutionDefinition(definition.runCondition);
   validateNoInterventionExecutionDefinition(definition.intervention);
 
   const expectedParameterSetHash = mechanisticParameterSetHash(
@@ -164,6 +223,20 @@ export function assertTaskMatchesMechanisticExecutionDefinition(
   if (task.trajectory.group.parameterSetHash !== expectedParameterSetHash) {
     throw new TypeError(
       `task ${task.taskId} parameterSetHash does not match resolved composed parameter authority`,
+    );
+  }
+
+  if (task.runConditionId !== definition.runCondition.conditionId) {
+    throw new TypeError(
+      `task ${task.taskId} runConditionId does not match resolved execution definition`,
+    );
+  }
+  if (
+    task.trajectory.group.runConditionFingerprint !==
+    definition.runCondition.fingerprint
+  ) {
+    throw new TypeError(
+      `task ${task.taskId} run-condition fingerprint does not match resolved authoritative initialization`,
     );
   }
 
@@ -183,6 +256,24 @@ export function assertTaskMatchesMechanisticExecutionDefinition(
       `task ${task.taskId} intervention fingerprint does not match resolved authoritative schedule`,
     );
   }
+}
+
+function validateMechanisticRunConditionExecutionDefinition(
+  runCondition: MechanisticRunConditionExecutionDefinition,
+): void {
+  if (
+    runCondition === null ||
+    typeof runCondition !== "object" ||
+    Array.isArray(runCondition)
+  ) {
+    throw new TypeError("run condition execution definition must be an object");
+  }
+  if (runCondition.schemaVersion !== MECHANISTIC_RUN_CONDITION_SCHEMA_VERSION) {
+    throw new RangeError("unsupported mechanistic run-condition schema");
+  }
+  requireCanonicalText("run condition id", runCondition.conditionId);
+  requireCanonicalText("run condition version", runCondition.conditionVersion);
+  requireCanonicalText("run condition fingerprint", runCondition.fingerprint);
 }
 
 function validateNoInterventionExecutionDefinition(

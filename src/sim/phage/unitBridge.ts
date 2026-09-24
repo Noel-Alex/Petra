@@ -188,6 +188,13 @@ export function resolvePhageAdsorptionExposure(args: {
   };
 }
 
+/**
+ * Trial-by-trial exact adsorption reference.
+ *
+ * @deprecated Product/runtime callers with externally supplied PFU counts must
+ * use sampleAdsorbedPfuWithPolicy. Keep this path for bounded reference
+ * fixtures and distribution validation.
+ */
 export function sampleExactAdsorbedPfu(
   freePhagePfu: number,
   adsorptionProbability: number,

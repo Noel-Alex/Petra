@@ -57,21 +57,21 @@ export interface DiscretePopulationAuthorityState {
   readonly width: number
   readonly height: number
   readonly lineageIds: readonly string[]
-  readonly standingHostCounts: readonly (readonly number[])[]
-  readonly standingResidualCellEquivalents: readonly (readonly number[])[]
-  readonly divisionResidualCellEquivalents: readonly (readonly number[])[]
+  readonly standingHostCounts: readonly ArrayLike<number>[]
+  readonly standingResidualCellEquivalents: readonly ArrayLike<number>[]
+  readonly divisionResidualCellEquivalents: readonly ArrayLike<number>[]
 }
 
 export interface DiscretePopulationAdvanceResult {
   readonly state: DiscretePopulationAuthorityState
-  readonly divisionOpportunities: readonly (readonly number[])[]
+  readonly divisionOpportunities: readonly ArrayLike<number>[]
   readonly totalStandingHosts: number
   readonly totalDivisionOpportunities: number
 }
 
 export interface DiscreteHostRemovalPlan {
   readonly state: DiscretePopulationAuthorityState
-  readonly modelBiomassToRemove: readonly (readonly number[])[]
+  readonly modelBiomassToRemove: readonly ArrayLike<number>[]
   readonly totalRemovedHosts: number
 }
 
@@ -121,7 +121,7 @@ export function discretePopulationConfigurationIdentity(
 
 export function createDiscretePopulationAuthorityState(
   config: DiscretePopulationAuthorityConfig,
-  lineageBiomass: readonly (readonly number[])[],
+  lineageBiomass: readonly ArrayLike<number>[],
 ): DiscretePopulationAuthorityState {
   validateConfig(config)
   validateBiomassChannels('initial lineage biomass', lineageBiomass, config)
@@ -155,8 +155,8 @@ export function advanceDiscretePopulationAuthority(
   state: DiscretePopulationAuthorityState,
   config: DiscretePopulationAuthorityConfig,
   args: {
-    readonly currentLineageBiomass: readonly (readonly number[])[]
-    readonly divisionBiomass: readonly (readonly number[])[]
+    readonly currentLineageBiomass: readonly ArrayLike<number>[]
+    readonly divisionBiomass: readonly ArrayLike<number>[]
   },
 ): DiscretePopulationAdvanceResult {
   validateConfig(config)
@@ -257,7 +257,7 @@ export function advanceDiscretePopulationAuthority(
 export function planDiscreteHostRemoval(
   state: DiscretePopulationAuthorityState,
   config: DiscretePopulationAuthorityConfig,
-  removals: readonly (readonly number[])[],
+  removals: readonly ArrayLike<number>[],
 ): DiscreteHostRemovalPlan {
   validateConfig(config)
   validateStateAgainstConfig(state, config)
@@ -318,7 +318,7 @@ export function planDiscreteHostRemoval(
 export function restoreDiscretePopulationAuthorityState(
   serialized: DiscretePopulationAuthorityState,
   config: DiscretePopulationAuthorityConfig,
-  currentLineageBiomass: readonly (readonly number[])[],
+  currentLineageBiomass: readonly ArrayLike<number>[],
 ): DiscretePopulationAuthorityState {
   validateConfig(config)
   validateStateAgainstConfig(serialized, config)
@@ -510,7 +510,7 @@ function validateStateAgainstConfig(
 function validateStandingStateAgainstBiomass(
   state: DiscretePopulationAuthorityState,
   config: DiscretePopulationAuthorityConfig,
-  lineageBiomass: readonly (readonly number[])[],
+  lineageBiomass: readonly ArrayLike<number>[],
 ): void {
   for (
     let lineageIndex = 0;
@@ -544,59 +544,62 @@ function validateStandingStateAgainstBiomass(
 
 function validateBiomassChannels(
   name: string,
-  channels: readonly (readonly number[])[],
+  channels: readonly ArrayLike<number>[],
   config: DiscretePopulationAuthorityConfig,
 ): void {
   validateChannelShape(name, channels, config)
-  channels.forEach((channel) =>
-    channel.forEach((value, cell) => {
+  for (const channel of channels) {
+    for (let cell = 0; cell < channel.length; cell += 1) {
+      const value = channel[cell]!
       finiteNonNegative(name, value)
       if (config.mask[cell] === 0 && value !== 0) {
         throw new Error(name + ' must be zero outside population mask')
       }
-    }),
-  )
+    }
+  }
 }
 
 function validateCountChannels(
   name: string,
-  channels: readonly (readonly number[])[],
+  channels: readonly ArrayLike<number>[],
   config: DiscretePopulationAuthorityConfig,
 ): void {
   validateChannelShape(name, channels, config)
-  channels.forEach((channel) =>
-    channel.forEach((value, cell) => {
+  for (const channel of channels) {
+    for (let cell = 0; cell < channel.length; cell += 1) {
+      const value = channel[cell]!
       if (!Number.isSafeInteger(value) || value < 0) {
         throw new RangeError(name + ' must contain non-negative safe integers')
       }
       if (config.mask[cell] === 0 && value !== 0) {
         throw new Error(name + ' must be zero outside population mask')
       }
-    }),
-  )
+    }
+  }
 }
 
 function validateResidualChannels(
   name: string,
-  channels: readonly (readonly number[])[],
+  channels: readonly ArrayLike<number>[],
   config: DiscretePopulationAuthorityConfig,
 ): void {
   validateChannelShape(name, channels, config)
-  channels.forEach((channel) =>
-    channel.forEach((value, cell) => {
+  for (const channel of channels) {
+    for (let cell = 0; cell < channel.length; cell += 1) {
+      const value = channel[cell]!
       if (!Number.isFinite(value) || value < 0 || value >= 1) {
         throw new RangeError(name + ' must contain finite values in [0, 1)')
       }
       if (config.mask[cell] === 0 && value !== 0) {
         throw new Error(name + ' must be zero outside population mask')
       }
-    }),
-  )
+    }
+  }
 }
 
 function validateChannelShape(
   name: string,
-  channels: readonly (readonly number[])[],
+  channels: readonly ArrayLike<number>[],
   config: DiscretePopulationAuthorityConfig,
 ): void {
   const cells = config.width * config.height
@@ -604,7 +607,11 @@ function validateChannelShape(
     !Array.isArray(channels) ||
     channels.length !== config.lineageIds.length ||
     channels.some(
-      (channel) => !Array.isArray(channel) || channel.length !== cells,
+      (channel) =>
+        channel === null ||
+        typeof channel !== 'object' ||
+        !Number.isSafeInteger(channel.length) ||
+        channel.length !== cells,
     )
   ) {
     throw new Error(name + ' channels must match lineage/grid dimensions')
@@ -612,7 +619,7 @@ function validateChannelShape(
 }
 
 function decomposeStandingBiomass(
-  lineageBiomass: readonly (readonly number[])[],
+  lineageBiomass: readonly ArrayLike<number>[],
   config: DiscretePopulationAuthorityConfig,
 ): {
   readonly counts: number[][]
@@ -680,7 +687,7 @@ function splitCellEquivalents(
 
 function sumCounts(
   name: string,
-  channels: readonly (readonly number[])[],
+  channels: readonly ArrayLike<number>[],
 ): number {
   let total = 0
   for (const channel of channels) {

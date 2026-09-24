@@ -944,7 +944,7 @@ function validateRunIdentityWireShape(
 }
 
 function validateLineageMetricRows(
-  rows: readonly AuthoritativeMetricSample['lineages'][number][],
+  rows: AuthoritativeMetricSample['lineages'],
   sampleIndex: number,
 ): void {
   const lineageIds = new Set<string>()
@@ -995,7 +995,7 @@ function validateLineageMetricRows(
 }
 
 function validateGenotypeMetricRows(
-  rows: readonly AuthoritativeMetricSample['genotypes'][number][],
+  rows: AuthoritativeMetricSample['genotypes'],
   sampleIndex: number,
 ): void {
   const genotypeIds = new Set<string>()

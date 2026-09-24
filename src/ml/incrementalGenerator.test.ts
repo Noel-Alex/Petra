@@ -232,8 +232,19 @@ describe("incremental mechanistic ML dataset collector", () => {
     expect(resumed.progress.stagedTrajectoryCount).toBe(1);
     expect(resumed.stageTrajectory(firstResult)).toEqual(firstRecord);
 
-    const conflicting = structuredClone(firstResult);
-    conflicting.samples[0]!.target.futurePopulation = 999;
+    const conflicting: MechanisticTrajectoryResult<
+      FixtureInput,
+      FixtureTarget
+    > = {
+      ...firstResult,
+      samples: [
+        {
+          ...firstResult.samples[0]!,
+          target: { futurePopulation: 999 },
+        },
+        ...firstResult.samples.slice(1),
+      ],
+    };
     expect(() => resumed.stageTrajectory(conflicting)).toThrow(
       /already staged with different content/,
     );

@@ -22,6 +22,8 @@ For the paper's *E. coli* CAB1 ciprofloxacin experiment, the fitted table report
 - `zMIC = 0.017 µg/mL`;
 - conventional MIC about `0.03 µg/mL`.
 
+**Evidence classification:** the four pharmacodynamic parameters are **derived fit estimates**, not raw measured scalars. Regoes et al. derive net growth rates from the first 60 minutes of log10 viable-density time-kill data, then fit the four-parameter pharmacodynamic function with nonlinear least squares. The conventional MIC is separately determined by a twofold dilution protocol.
+
 **Use:** reference concentration-response shape.
 
 **Transfer warning:** CAB1 in LB at 37 °C is not identical to every strain/environment. Exact parameter transfer to an MG1655 genotype set is an approximation that must be labeled.

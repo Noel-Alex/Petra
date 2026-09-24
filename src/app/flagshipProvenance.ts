@@ -68,6 +68,15 @@ export function buildFlagshipProvenanceView(
     units: "time: hour; resource: model-resource; biomass: model-biomass",
   });
 
+  const composedParameterSet = resolveScenarioProvenance({
+    id: `composed-parameter-set:${scenario.composedParameterSet.id}@${scenario.composedParameterSet.version}`,
+    label: "Baseline composed parameter set",
+    record: scenario.composedParameterSet as ProvenanceRecord,
+    scenario: context,
+    valueText:
+      `${scenario.composedParameterSet.id} v${scenario.composedParameterSet.version}`,
+  });
+
   const mutationRecords = scenario.mutationTransitions.map((transition) =>
     resolveScenarioProvenance({
       id: `mutation:${transition.from}->${transition.to}`,
@@ -85,7 +94,7 @@ export function buildFlagshipProvenanceView(
       version: scenario.version,
       title: scenario.title,
     },
-    records: [executionProfile, composition, ...genotypeRecords, ...mutationRecords],
+    records: [composedParameterSet, executionProfile, composition, ...genotypeRecords, ...mutationRecords],
     assumptions: resolveScenarioTransferAssumptions(context),
   };
 }

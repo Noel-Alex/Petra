@@ -92,7 +92,10 @@ function preparedInfection() {
     population,
     cfg,
     plan,
-    [createPhageLifeHistoryIdentity(history)],
+    {
+      infectedAtMinutes: 0,
+      lifeHistoryIdentities: [createPhageLifeHistoryIdentity(history)],
+    },
   );
   return { cfg, population, history, plan, ...committed };
 }
@@ -256,6 +259,48 @@ describe("spatial phage infection and lysis commit seam", () => {
       [2, 2],
       [0, 0],
     ]);
+  });
+
+
+  it("requires the exact current latent-queue time when scheduling infections", () => {
+    const cfg = config();
+    const population = createDiscretePopulationAuthorityState(cfg, [
+      [4, 0],
+      [0, 0],
+    ]);
+    const spatial = createPhageSpatialInfectionState(cfg);
+    const lysis = createPhageLysisTransactionState(
+      DETERMINISTIC_RESIDUAL_BURST_POLICY,
+    );
+    const history = lifeHistory();
+    const plan = planPopulationBackedProductiveInfections(population, cfg, [
+      {
+        lineageId: "WT",
+        cellIndex: 0,
+        adsorbedPfu: 1,
+        alreadyInfectedHosts: 0,
+      },
+    ]);
+
+    expect(() =>
+      commitPopulationBackedInfections(
+        spatial,
+        lysis,
+        population,
+        cfg,
+        plan,
+        {
+          infectedAtMinutes: 1,
+          lifeHistoryIdentities: [createPhageLifeHistoryIdentity(history)],
+        },
+      ),
+    ).toThrow(/must equal the latent queue current authoritative time/);
+
+    expect(spatial.infectedHostCounts).toEqual([
+      [0, 0],
+      [0, 0],
+    ]);
+    expect(lysis.latentQueue.cohorts).toEqual([]);
   });
 
   it("refuses a stale population-backed infection plan before scheduling", () => {

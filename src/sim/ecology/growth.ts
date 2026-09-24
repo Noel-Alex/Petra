@@ -119,12 +119,38 @@ function validate(
     }
   }
 
-  // State arrays are caller-owned and mutable. Validate every in-domain value
-  // before the step mutates resource or lineage channels so malformed input
-  // cannot leave a partially applied scientific state behind after throwing.
+  // State arrays are caller-owned and mutable. Validate the complete scientific
+  // domain before the step mutates resource or lineage channels so malformed
+  // input cannot leave a partially applied state behind after throwing.
+  //
+  // The dish mask is binary authority, not a truthy/falsy presentation hint:
+  // exactly 1 is in-domain and exactly 0 is outside the simulation domain.
+  // Off-mask scientific channels must remain exactly zero, matching the
+  // composed-state authority boundary rather than silently hiding caller data.
   for (let index = 0; index < n; index += 1) {
-    if (state.mask[index] === 0) continue
-    finiteNonNegative('resource concentration', state.resource[index]!)
+    const maskValue = state.mask[index]!
+    if (maskValue !== 0 && maskValue !== 1) {
+      throw new Error(`ecology mask must be binary 0 or 1 at cell ${index}`)
+    }
+
+    const resource = state.resource[index]!
+    if (maskValue === 0) {
+      if (resource !== 0) {
+        throw new Error(
+          `resource must be zero outside ecology mask at cell ${index}`,
+        )
+      }
+      for (let lineageIndex = 0; lineageIndex < state.lineages.length; lineageIndex += 1) {
+        if (state.lineages[lineageIndex]![index]! !== 0) {
+          throw new Error(
+            `lineage biomass must be zero outside ecology mask at cell ${index}`,
+          )
+        }
+      }
+      continue
+    }
+
+    finiteNonNegative('resource concentration', resource)
     for (let lineageIndex = 0; lineageIndex < state.lineages.length; lineageIndex += 1) {
       finiteNonNegative('lineage biomass', state.lineages[lineageIndex]![index]!)
     }

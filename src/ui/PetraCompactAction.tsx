@@ -34,6 +34,7 @@ export function PetraCompactAction({
   onPointerLeave,
   onPointerDown,
   onPointerUp,
+  onPointerCancel,
   onFocus,
   onBlur,
   ...buttonProps
@@ -94,6 +95,12 @@ export function PetraCompactAction({
           );
         }
         onPointerUp?.(event);
+      }}
+      onPointerCancel={(event) => {
+        setInteraction((current) =>
+          updateActionInteractionState(current, "pointer-cancel"),
+        );
+        onPointerCancel?.(event);
       }}
       onFocus={(event) => {
         if (!disabled) {

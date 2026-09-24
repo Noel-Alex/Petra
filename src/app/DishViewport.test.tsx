@@ -48,4 +48,43 @@ describe("DishViewport render-source truth boundary", () => {
     expect(html).not.toContain("visual demo · not biology");
     expect(html).not.toContain("visual-only renderer fixture");
   });
+
+
+  it("renders signed net-growth legend semantics from the shared overlay registry", () => {
+    const base = createRendererDemoSnapshot(12);
+    const cells = base.gridWidth * base.gridHeight;
+    const netGrowth = new Float32Array(cells);
+    netGrowth.fill(0);
+
+    const authoritative = {
+      ...base,
+      snapshotId: "authoritative-net-growth",
+      samplingIdentity: "authoritative-net-growth",
+      fields: [
+        {
+          id: "net-growth",
+          kind: "net-growth" as const,
+          label: "Net growth",
+          unit: "1/h",
+          width: base.gridWidth,
+          height: base.gridHeight,
+          values: netGrowth,
+          minimum: -2,
+          maximum: 2,
+        },
+      ],
+    };
+
+    const html = renderToStaticMarkup(
+      <DishViewport motion="off" snapshot={authoritative} />,
+    );
+
+    expect(html).toContain('data-overlay-kind="net-growth"');
+    expect(html).toContain('data-overlay-transfer="diverging"');
+    expect(html).toContain('data-overlay-pattern="signed-diagonal"');
+    expect(html).toContain("Negative loss");
+    expect(html).toContain("zero neutral");
+    expect(html).toContain("positive growth");
+    expect(html).toContain("-2 to 2 1/h");
+  });
 });

@@ -57,10 +57,30 @@ describe("authoritative timeline history", () => {
     expect(markup).toContain("2 events");
   });
 
+  it("keeps timeline count context non-live across the recent-history threshold", () => {
+    for (const count of [0, 1, 4, 5, 6]) {
+      const entries = Array.from({ length: count }, (_, index) => event(index));
+      const markup = renderToStaticMarkup(<TimelineHistory entries={entries} />);
+
+      expect(markup).not.toContain('aria-live="polite"');
+      expect(markup).not.toContain('role="status"');
+
+      if (count > 0) {
+        expect(markup).toContain(`${count} ${count === 1 ? "event" : "events"}`);
+      }
+    }
+  });
+
+  it("does not define a second timeline live-announcement channel in source", () => {
+    expect(timelineHistorySource).not.toContain("aria-live");
+    expect(timelineHistorySource).not.toContain('role="status"');
+  });
+
   it("rejects invalid recent limits instead of silently dropping history", () => {
     expect(() => planTimelineHistory([event(0)], 0)).toThrow(RangeError);
     expect(() => planTimelineHistory([event(0)], 1.5)).toThrow(RangeError);
   });
+
   it("keeps Space local without preventing the browser scrolling default", () => {
     let stopped = 0;
     let prevented = 0;
@@ -108,5 +128,4 @@ describe("authoritative timeline history", () => {
       timelineHistorySource.match(/onKeyDown=\{keepTimelineHistorySpaceLocal\}/g),
     ).toHaveLength(1);
   });
-
 });

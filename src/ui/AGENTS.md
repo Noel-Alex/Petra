@@ -96,7 +96,7 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - `PetraAction.tsx` is a presentation-only adapter: it may render labels, Petra-owned icon geometry, focus, selection, hover and press feedback, but it cannot issue or imply scientific commands by itself.
 - Full motion may use small decorative lift/compression. Reduced and off modes remove spatial movement while retaining focus/selection through border/background/static emphasis.
 - Touch devices must not depend on hover state. Keyboard focus must remain visibly distinct, and disabled state must be static.
-- Micro-interaction duration is presentation wall time only and must come from named Petra motion tokens.
+- Micro-interaction duration and easing are presentation wall-time policy only and must come from named Petra motion tokens; React/CSS adapters project them rather than defining parallel curves.
 
 
 ## Causal event narration

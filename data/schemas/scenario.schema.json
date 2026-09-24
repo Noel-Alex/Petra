@@ -69,6 +69,15 @@
         "null"
       ],
       "properties": {
+        "referencePharmacodynamics": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/provenance"
+            }
+          },
+          "additionalProperties": true
+        },
         "resourceDrugCompositionPolicy": {
           "type": "object",
           "properties": {

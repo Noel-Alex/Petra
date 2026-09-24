@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  GROUP_HORIZON_BALANCED_EVALUATION_POLICY_VERSION,
   assessSurrogatePromotion,
   computeRegressionMetrics,
+  computeStratifiedRegressionBenchmark,
   surrogateCompatibilityKey,
+  type RegressionEvaluationRow,
   type SurrogateBenchmarkEvidence,
   type SurrogateCompatibilityIdentity,
   type SurrogatePromotionRequirements,
@@ -20,32 +23,108 @@ const compatibility: SurrogateCompatibilityIdentity = {
   targetSchemaVersion: "aggregate-target-v1",
 };
 
+const horizons = [
+  { id: "short", hours: 1 },
+  { id: "long", hours: 8 },
+] as const;
+
 const requirements: SurrogatePromotionRequirements = {
   splitPolicyVersion: "trajectory-group-v1",
   splitCoveragePolicyVersion: "held-out-group-coverage-v1",
+  evaluationPolicyVersion: GROUP_HORIZON_BALANCED_EVALUATION_POLICY_VERSION,
   heldOutSplit: "test",
   targetIds: ["population", "resistantFraction"],
+  requiredGroupKeys: ["group-a", "group-b"],
+  requiredHorizons: horizons,
 };
 
+function row(args: {
+  groupKey: string;
+  trajectoryKey: string;
+  horizonId: "short" | "long";
+  population: number;
+  resistantFraction: number;
+  candidatePopulationError?: number;
+  candidateFractionError?: number;
+  baselinePopulationError?: number;
+  baselineFractionError?: number;
+}): RegressionEvaluationRow {
+  const horizon = horizons.find((item) => item.id === args.horizonId);
+  if (horizon === undefined) throw new Error("unknown test horizon");
+
+  return {
+    groupKey: args.groupKey,
+    trajectoryKey: args.trajectoryKey,
+    horizonId: args.horizonId,
+    forecastHorizonHours: horizon.hours,
+    actual: {
+      population: args.population,
+      resistantFraction: args.resistantFraction,
+    },
+    candidate: {
+      population: args.population + (args.candidatePopulationError ?? 1),
+      resistantFraction:
+        args.resistantFraction + (args.candidateFractionError ?? 0.01),
+    },
+    baseline: {
+      population: args.population + (args.baselinePopulationError ?? 2),
+      resistantFraction:
+        args.resistantFraction + (args.baselineFractionError ?? 0.02),
+    },
+  };
+}
+
+const goodRows: readonly RegressionEvaluationRow[] = [
+  row({
+    groupKey: "group-a",
+    trajectoryKey: "trajectory-a",
+    horizonId: "short",
+    population: 100,
+    resistantFraction: 0.1,
+  }),
+  row({
+    groupKey: "group-a",
+    trajectoryKey: "trajectory-a",
+    horizonId: "long",
+    population: 80,
+    resistantFraction: 0.15,
+  }),
+  row({
+    groupKey: "group-b",
+    trajectoryKey: "trajectory-b",
+    horizonId: "short",
+    population: 120,
+    resistantFraction: 0.08,
+  }),
+  row({
+    groupKey: "group-b",
+    trajectoryKey: "trajectory-b",
+    horizonId: "long",
+    population: 90,
+    resistantFraction: 0.2,
+  }),
+];
+
+const goodBenchmark = computeStratifiedRegressionBenchmark({
+  targetIds: requirements.targetIds,
+  requiredGroupKeys: requirements.requiredGroupKeys,
+  requiredHorizons: requirements.requiredHorizons,
+  rows: goodRows,
+});
+
 const goodEvidence: SurrogateBenchmarkEvidence = {
-  schemaVersion: "surrogate-benchmark-evidence-v3",
+  schemaVersion: "surrogate-benchmark-evidence-v4",
   modelId: "aggregate-surrogate",
   modelVersion: "1",
   baselineId: "mean-by-scenario-v1",
   datasetVersion: "mechanistic-v1",
   engineVersion: "engine-a",
   compatibility,
-  splitPolicyVersion: "trajectory-group-v1",
-  splitCoveragePolicyVersion: "held-out-group-coverage-v1",
-  heldOutSplit: "test",
-  candidate: {
-    population: { mae: 1, rmse: 1.2, count: 2 },
-    resistantFraction: { mae: 0.01, rmse: 0.012, count: 2 },
-  },
-  baseline: {
-    population: { mae: 2, rmse: 2.4, count: 2 },
-    resistantFraction: { mae: 0.02, rmse: 0.024, count: 2 },
-  },
+  splitPolicyVersion: requirements.splitPolicyVersion,
+  splitCoveragePolicyVersion: requirements.splitCoveragePolicyVersion,
+  evaluationPolicyVersion: requirements.evaluationPolicyVersion,
+  heldOutSplit: requirements.heldOutSplit,
+  ...goodBenchmark,
 };
 
 function assess(evidence: SurrogateBenchmarkEvidence = goodEvidence) {
@@ -142,14 +221,164 @@ describe("surrogate held-out benchmarks", () => {
     ).toThrow(/duplicate scenario/);
   });
 
-  it("accepts only matching evidence that strictly beats the baseline on every target", () => {
+  it("retains group/trajectory/horizon coverage and balanced aggregate metrics", () => {
+    expect(goodBenchmark.coverage).toMatchObject({
+      rowCount: 4,
+      trajectoryCount: 2,
+      groupCount: 2,
+      byGroup: {
+        "group-a": { rowCount: 2, trajectoryCount: 1 },
+        "group-b": { rowCount: 2, trajectoryCount: 1 },
+      },
+      byHorizon: {
+        short: {
+          forecastHorizonHours: 1,
+          rowCount: 2,
+          trajectoryCount: 2,
+          groupCount: 2,
+        },
+        long: {
+          forecastHorizonHours: 8,
+          rowCount: 2,
+          trajectoryCount: 2,
+          groupCount: 2,
+        },
+      },
+    });
+    expect(goodBenchmark.candidate.overall.population).toEqual({
+      mae: 1,
+      rmse: 1,
+      count: 4,
+    });
+    expect(goodBenchmark.baseline.overall.population).toEqual({
+      mae: 2,
+      rmse: 2,
+      count: 4,
+    });
+  });
+
+  it("rejects duplicate trajectory-horizon rows and missing requested horizons", () => {
+    expect(() =>
+      computeStratifiedRegressionBenchmark({
+        targetIds: requirements.targetIds,
+        requiredGroupKeys: requirements.requiredGroupKeys,
+        requiredHorizons: requirements.requiredHorizons,
+        rows: [...goodRows, goodRows[0]!],
+      }),
+    ).toThrow(/duplicate evaluation record/);
+
+    expect(() =>
+      computeStratifiedRegressionBenchmark({
+        targetIds: requirements.targetIds,
+        requiredGroupKeys: requirements.requiredGroupKeys,
+        requiredHorizons: requirements.requiredHorizons,
+        rows: goodRows.filter(
+          (item) =>
+            !(
+              item.trajectoryKey === "trajectory-b" &&
+              item.horizonId === "long"
+            ),
+        ),
+      }),
+    ).toThrow(/missing required horizons/);
+  });
+
+  it("exposes a group failure hidden by imbalanced flat-row metrics", () => {
+    const imbalancedRows: RegressionEvaluationRow[] = [];
+    for (let index = 0; index < 20; index += 1) {
+      imbalancedRows.push({
+        groupKey: "easy-group",
+        trajectoryKey: `easy-${index}`,
+        horizonId: "four-hours",
+        forecastHorizonHours: 4,
+        actual: { y: 0 },
+        candidate: { y: 0 },
+        baseline: { y: 1 },
+      });
+    }
+    imbalancedRows.push({
+      groupKey: "hard-group",
+      trajectoryKey: "hard-0",
+      horizonId: "four-hours",
+      forecastHorizonHours: 4,
+      actual: { y: 0 },
+      candidate: { y: 10 },
+      baseline: { y: 2 },
+    });
+
+    const flatCandidate = computeRegressionMetrics({
+      targetIds: ["y"],
+      actual: imbalancedRows.map((item) => item.actual),
+      predicted: imbalancedRows.map((item) => item.candidate),
+    });
+    const flatBaseline = computeRegressionMetrics({
+      targetIds: ["y"],
+      actual: imbalancedRows.map((item) => item.actual),
+      predicted: imbalancedRows.map((item) => item.baseline),
+    });
+    expect(flatCandidate.y!.mae).toBeLessThan(flatBaseline.y!.mae);
+
+    const benchmark = computeStratifiedRegressionBenchmark({
+      targetIds: ["y"],
+      requiredGroupKeys: ["easy-group", "hard-group"],
+      requiredHorizons: [{ id: "four-hours", hours: 4 }],
+      rows: imbalancedRows,
+    });
+    expect(benchmark.candidate.overall.y!.mae).toBeGreaterThan(
+      benchmark.baseline.overall.y!.mae,
+    );
+
+    const assessment = assessSurrogatePromotion({
+      evidence: {
+        schemaVersion: "surrogate-benchmark-evidence-v4",
+        modelId: "imbalanced-model",
+        modelVersion: "1",
+        baselineId: "simple-baseline",
+        datasetVersion: "mechanistic-v1",
+        engineVersion: "engine-a",
+        compatibility,
+        splitPolicyVersion: "trajectory-group-v1",
+        splitCoveragePolicyVersion: "held-out-group-coverage-v1",
+        evaluationPolicyVersion:
+          GROUP_HORIZON_BALANCED_EVALUATION_POLICY_VERSION,
+        heldOutSplit: "test",
+        ...benchmark,
+      },
+      requirements: {
+        splitPolicyVersion: "trajectory-group-v1",
+        splitCoveragePolicyVersion: "held-out-group-coverage-v1",
+        evaluationPolicyVersion:
+          GROUP_HORIZON_BALANCED_EVALUATION_POLICY_VERSION,
+        heldOutSplit: "test",
+        targetIds: ["y"],
+        requiredGroupKeys: ["easy-group", "hard-group"],
+        requiredHorizons: [{ id: "four-hours", hours: 4 }],
+      },
+      expectedModelId: "imbalanced-model",
+      expectedModelVersion: "1",
+      expectedDatasetVersion: "mechanistic-v1",
+      expectedEngineVersion: "engine-a",
+      expectedCompatibility: compatibility,
+    });
+
+    expect(assessment.eligible).toBe(false);
+    expect(
+      assessment.issues.some(
+        (issue) =>
+          issue.kind === "baseline-not-beaten" &&
+          issue.stratum === "group:hard-group",
+      ),
+    ).toBe(true);
+  });
+
+  it("accepts only matching compatibility plus evidence that beats baseline in every required stratum", () => {
     expect(assess()).toEqual({ eligible: true, issues: [] });
   });
 
   it("rejects stale benchmark evidence schemas", () => {
     const stale = {
       ...goodEvidence,
-      schemaVersion: "surrogate-benchmark-evidence-v2",
+      schemaVersion: "surrogate-benchmark-evidence-v3",
     } as unknown as SurrogateBenchmarkEvidence;
     const assessment = assess(stale);
 
@@ -190,21 +419,24 @@ describe("surrogate held-out benchmarks", () => {
     );
   });
 
-  it("rejects ties/regressions and stale evidence", () => {
+  it("rejects stale engine, evaluation policy, and non-promotable evidence", () => {
     const assessment = assess({
       ...goodEvidence,
       engineVersion: "old-engine",
-      candidate: {
-        ...goodEvidence.candidate,
-        population: { mae: 2, rmse: 2.4, count: 2 },
-      },
+      evaluationPolicyVersion: "flat-row-v0",
+      candidate: goodEvidence.baseline,
     });
 
     expect(assessment.eligible).toBe(false);
-    expect(assessment.issues.map((issue) => issue.kind)).toEqual([
+    expect(assessment.issues.map((issue) => issue.kind)).toContain(
       "engine-version-mismatch",
+    );
+    expect(assessment.issues.map((issue) => issue.kind)).toContain(
+      "evaluation-policy-mismatch",
+    );
+    expect(assessment.issues.map((issue) => issue.kind)).toContain(
       "baseline-not-beaten",
-    ]);
+    );
   });
 
   it("rejects benchmark evidence from a different split coverage policy", () => {
@@ -219,20 +451,58 @@ describe("surrogate held-out benchmarks", () => {
     );
   });
 
-  it("rejects target coverage and evaluation-count mismatches", () => {
+  it("rejects missing strata and metrics inconsistent with the balanced policy", () => {
+    const missingStratum = assess({
+      ...goodEvidence,
+      candidate: {
+        ...goodEvidence.candidate,
+        byGroupHorizon: {
+          ...goodEvidence.candidate.byGroupHorizon,
+          "group-b": {},
+        },
+      },
+    });
+    expect(missingStratum.eligible).toBe(false);
+    expect(missingStratum.issues.map((issue) => issue.kind)).toContain(
+      "stratum-coverage-mismatch",
+    );
+
+    const inconsistent = assess({
+      ...goodEvidence,
+      candidate: {
+        ...goodEvidence.candidate,
+        overall: {
+          ...goodEvidence.candidate.overall,
+          population: {
+            ...goodEvidence.candidate.overall.population!,
+            mae: 0,
+          },
+        },
+      },
+    });
+    expect(inconsistent.eligible).toBe(false);
+    expect(inconsistent.issues.map((issue) => issue.kind)).toContain(
+      "stratum-metrics-inconsistent",
+    );
+  });
+
+  it("rejects target coverage and paired evaluation-count mismatches", () => {
     const assessment = assess({
       ...goodEvidence,
       candidate: {
-        population: { mae: 1, rmse: 1.2, count: 3 },
+        ...goodEvidence.candidate,
+        overall: {
+          population: {
+            ...goodEvidence.candidate.overall.population!,
+            count: 999,
+          },
+        },
       },
     });
 
     expect(assessment.eligible).toBe(false);
     expect(assessment.issues.map((issue) => issue.kind)).toContain(
       "target-coverage-mismatch",
-    );
-    expect(assessment.issues.map((issue) => issue.kind)).toContain(
-      "evaluation-count-mismatch",
     );
   });
 });

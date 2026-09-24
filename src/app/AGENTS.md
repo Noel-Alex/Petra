@@ -69,6 +69,7 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - New events must not auto-open history, steal focus, or force-scroll a user away from an older record they are inspecting.
 - TimelineHistory is static inspection context, not an event-arrival live region. Generic event counts remain visible text only; `CausalNarrationMount` is the sole bounded scientific-event announcement owner, so the recent/full-history threshold cannot create or destroy narration authority.
 - Native details/scroll behavior deliberately keeps Full/Reduced/Off information-equivalent without introducing a second motion authority.
+- `timelineHistory.css` consumes Petra's shared visual-token CSS projection for stable chrome; do not reintroduce a local cyan/white/blue-grey palette. Theme changes must not alter event ordering, timestamps, command identity, scroll ownership, disclosure semantics, or playback shortcuts.
 - The focusable complete-history scroll region has local first refusal for Space: stop propagation before the App playback shortcut, but never prevent Space's native browser scrolling default. Do not generalize this into blocking every `role="region"`; the dish and other presentation regions retain their own input contracts.
 
 ## Dish camera motion adapter

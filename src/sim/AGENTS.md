@@ -55,3 +55,5 @@ At minimum, test identical-seed/command replay, RNG state round-trip, checkpoint
 
 - Treat one protocol `advance` command as one replay transaction. Run multi-tick composed work on detached state and publish it only after every requested tick succeeds.
 - A rejected composed command must leave checkpoint state, metrics, tick, command count, and event history unchanged. Do not expose a partially advanced biological state after a numerical/model refusal.
+
+- `scienceModeAdmission.ts` is the fail-closed authority for whether a scenario may be presented as grounded Science Mode. Parseable/runnable presets are not admission evidence. Missing validation, provenance, primary-source resolution, transfer disclosure, visible limitations, UNBOUND required values, or engineering-only execution authority keeps a scenario experimental; engineering model-unit profiles never satisfy physical calibration claims.

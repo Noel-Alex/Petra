@@ -10,6 +10,14 @@
 - Mutation targets/probabilities are scenario + provenance inputs. The current mutation sampler has no antibiotic/selective-pressure input.
 - Antibiotic may change survival, growth, or lineage frequency through sourced mechanisms; it must not directly raise mutation probability unless a separately researched mechanism is intentionally introduced and versioned.
 
+
+## Curated mutation graph
+- `graph.ts` is the strict scenario→evolution adapter for curated genotype nodes and mutation transitions. Composition/worker code should consume it rather than re-parsing raw preset JSON or re-implementing transition validation.
+- Genotype relative fitness, edge probability, domain mutation classification, citation key, and optional note remain scenario-owned inputs. The graph adapter may validate/preserve them but must not infer new biology from MIC, drug concentration, evidence badges, or aggregate selected appearance rates.
+- Transition array order is replay-sensitive because `sampleDivisionMutations` interprets target probabilities cumulatively in supplied order. Reordering curated edges is an engine/scenario replay change, not cosmetic JSON cleanup.
+- Duplicate source→target edges are rejected while the exact sampler identifies mutually exclusive outputs by target genotype. Supporting multiple mechanistic classes to the same target requires a deliberate sampler/state contract, not silent edge merging.
+- Per-source transition probability mass must remain ≤ 1. A missing outgoing edge set means no curated mutation target from that genotype; an unknown genotype lookup is an error rather than an empty fallback.
+
 ## Exact and accelerated sampling
 - The current per-division categorical path is the bounded reference sampler: each opportunity creates at most one mutually exclusive child class, so mutant births cannot exceed opportunities.
 - A future binomial/multinomial/Poisson/tau-leap acceleration must preserve target exclusivity/bounds and be validated statistically against the exact reference over representative small and rare-event cases.

@@ -8,6 +8,7 @@
 - App-shell consumers receive authoritative analysis records through the explicit `src/app/analysisView.ts` boundary. Missing authority is an unavailable state; current synthetic worker fields, Pixi snapshots, and visual demo fixtures are not valid substitutes.
 - Decimation may **select existing source points only**. Do not interpolate, smooth, average into new displayed measurements, or silently resample values.
 - Chart domains are computed from the full source dataset, not only retained display points.
+- Biological-time axes are constrained by the authoritative non-negative time contract. Degenerate single-time domains expand deterministically without crossing below 0 h; ordinary non-degenerate source time bounds remain exact. Value axes use their own domain policy and may legitimately be signed.
 - Series with different units require separate charts. Never normalize unlike scientific units onto one unlabeled axis.
 - SVG connecting segments are visual reading guides only; source markers remain visible and the UI must disclose that no intermediate scientific samples are invented.
 - Lineage ancestry must validate parent identity, chronology, extinction timing, and cycles before layout.

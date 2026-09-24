@@ -527,6 +527,7 @@ export function buildFlagshipComposedRunPlan(
       scenarioId: evolutionGraph.scenarioId,
       scenarioVersion: evolutionGraph.scenarioVersion,
     },
+    samplingExecutionPolicy: null,
     hoursPerTick: executionProfile.hoursPerTick,
   }
 

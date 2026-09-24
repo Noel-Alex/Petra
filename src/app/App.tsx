@@ -548,7 +548,7 @@ export function App({
                   }
                 : undefined
             }
-            regionSelectionActive={regionInspector.state.status === "ready"}
+            regionSelectionActive={regionInspectionRequest !== null}
             onClearRegionSelection={() => {
               setRegionInspectionRequest(null);
             }}

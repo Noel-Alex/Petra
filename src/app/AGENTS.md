@@ -48,6 +48,7 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 ## Semantic motion adapters
 - React shell panels and dish overlay chrome consume `src/ui/motion/semanticTransitions.ts`; do not derive competing durations/easings directly in components.
 - `src/app/motionAdapter.ts` is the thin CSS projection layer for framework-neutral surface plans.
+- App-shell panel motion custom properties fail static (`0ms` + non-semantic easing) when React projection is absent; only the resolved adapter may opt panels/drawers into active transition timing/easing.
 - Representative-cell semantic zoom must remain visibly labelled illustrative/explanatory and never be described as literal microscopy or a finer simulation scale.
 - Dish-hero ambient motion is decorative presentation only. The shell consumes `resolveDishAmbient()`: Full may loop subtle transform/opacity ambience from the named `MOTION.dishAmbient` token; Reduced/Off retain static halo depth with no loop. Ambient rhythm must never imply growth, diffusion, biological pulse rate, or simulation speed.
 - Semantic zoom guidance may explain renderer meaning, but it must not infer current scientific state from camera position unless the renderer explicitly reports a presentation-only semantic level.

@@ -5,6 +5,7 @@ import {
 } from "react";
 
 import type { MotionPreference } from "../motion/policy";
+import { keepAnalysisDataScrollKeyLocal } from "./analysisKeyboard";
 import {
   resolveAnalysisMotion,
   type LineageTreeLayout,
@@ -276,6 +277,7 @@ function ScientificSourceData({
         role="region"
         aria-label="Complete authoritative scientific source samples"
         tabIndex={0}
+        onKeyDown={keepAnalysisDataScrollKeyLocal}
       >
         <table className="analysis-data__table">
           <caption>Complete authoritative source samples</caption>
@@ -333,6 +335,7 @@ function LineageSourceData({
         role="region"
         aria-label="Complete authoritative lineage ancestry records"
         tabIndex={0}
+        onKeyDown={keepAnalysisDataScrollKeyLocal}
       >
         <table className="analysis-data__table">
           <caption>Complete authoritative lineage ancestry records</caption>

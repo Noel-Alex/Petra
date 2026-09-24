@@ -1,6 +1,7 @@
 import {
   DEFAULT_SPLIT_POLICY,
   assignDatasetSplit,
+  mechanisticDatasetSchemaKey,
   splitGroupKey,
   trajectoryKey,
   validateMechanisticDatasetSchemaIdentity,
@@ -164,6 +165,7 @@ export function planMechanisticSweep(
   validateSplitPolicy(splitPolicy);
   validateSplitCoveragePolicy(splitCoveragePolicy);
   const datasetSchema = Object.freeze({ ...definition.datasetSchema });
+  const datasetSchemaIdentityKey = mechanisticDatasetSchemaKey(datasetSchema);
 
   const groupCount =
     definition.parameterPoints.length * definition.interventionFamilies.length;
@@ -232,7 +234,11 @@ export function planMechanisticSweep(
       const key = trajectoryKey(trajectory);
 
       tasks.push({
-        taskId: stableTaskId(definition.planVersion, key),
+        taskId: stableTaskId(
+          definition.planVersion,
+          datasetSchemaIdentityKey,
+          key,
+        ),
         datasetVersion: definition.datasetVersion,
         normalizationProfileId: definition.normalizationProfileId,
         datasetSchema,
@@ -441,8 +447,12 @@ function interventionGroupId(fingerprint: string): string {
   return `intervention:${fingerprint.length}:${fingerprint}`;
 }
 
-function stableTaskId(planVersion: string, key: string): string {
-  return `sweep:${encodePart(planVersion)}:${encodePart(key)}`;
+function stableTaskId(
+  planVersion: string,
+  datasetSchemaKey: string,
+  key: string,
+): string {
+  return `sweep:${encodePart(planVersion)}:${encodePart(datasetSchemaKey)}:${encodePart(key)}`;
 }
 
 function encodePart(value: string): string {

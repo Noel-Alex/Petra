@@ -58,6 +58,26 @@ describe("sampling execution policy", () => {
     }
   });
 
+  it("samples high probabilities through the exact complement law", () => {
+    for (let seed = 1; seed <= 100; seed += 1) {
+      const low = sampleExactSparseBinomial(
+        500,
+        0.02,
+        new SimulationRng(seed),
+        createSamplingDrawBudget(policy()),
+        samplingExecutionPolicyIdentity(policy()),
+      );
+      const high = sampleExactSparseBinomial(
+        500,
+        0.98,
+        new SimulationRng(seed),
+        createSamplingDrawBudget(policy()),
+        samplingExecutionPolicyIdentity(policy()),
+      );
+      expect(high).toBe(500 - low);
+    }
+  });
+
   it("refuses disabled/oversized acceleration before any random draw", () => {
     expect(() =>
       requireAcceleratedSampling(

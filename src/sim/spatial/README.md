@@ -20,6 +20,8 @@ A requested ecological interval is subdivided automatically with
 
 `dt_stable = dx^2 / (4D)`.
 
+The requested interval is biological time; diffusion substeps are mechanism-owned numerical work inside that interval. The planner must produce a positive representable stability interval and a safe-integer substep count before any field mutation. Extreme finite inputs that would underflow the stability interval or require an unrepresentable number of iterations fail closed rather than hanging or silently violating the CFL bound.
+
 The field owns one reusable scratch buffer; diffusion performs no per-cell allocation in its hot loop.
 
 ## Numerical authority

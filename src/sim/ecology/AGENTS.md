@@ -13,6 +13,7 @@
 - `localCapacity` is a hard scientific-state invariant, not only a growth/spread limiter. `capacity.ts` owns the shared numerical validity rule: materially over-capacity in-mask biomass is rejected rather than clipped, while one IEEE-754 binary32 relative spacing (plus the minimum-subnormal envelope) is allowed solely for Float32 storage/round-trip representation. That tolerance is engineering/numerical, never biological slack.
 - `stepEcology()` must preflight the entire scientific domain before its first mutation. The raw dish mask is authoritative and must contain only exact `0 | 1` bytes; resource and every lineage-biomass channel must be exactly zero where `mask === 0`. In-mask values remain finite/non-negative. Malformed caller state fails atomically: no partial resource consumption, hidden off-mask science, or lineage change is allowed on validation failure.
 - Growth and death fluxes are computed from the same pre-step biomass. Same-step deaths do not create new capacity until the next ecology step. Changing that operator order is a numerical/model change requiring tests and replay/version review.
+- The current ecology tick is deliberately fixed-step. `stepEcology()` refuses `spreadRate * dt > 0.25`, which is the conservative four-neighbour explicit spread bound; first-order loss uses exact exponential survival `1 - exp(-h dt)` and therefore does not need a linearized event-probability cap. Any future stochastic event/tau-leap integration needs its own versioned probability/substep policy before it can share this tick.
 - Coarse spread is an effective colony-front approximation, not literal single-cell motility.
 - No renderer/UI state may feed back into ecology authority.
 
@@ -20,7 +21,7 @@
 Biological rates and relative fitness require source/provenance at scenario composition time. Capacity/spread may be calibrated or engineering values but must remain labeled. Unbound flagship parameters must stay visibly unbound rather than receiving convenient source-looking constants.
 
 ## Verification
-Run `python tools/verify.py premerge`. Ecology tests must cover Monod identities, resource/yield/capacity limits, materially over-capacity refusal, Float32 capacity-boundary round trips, lineage-order independence, nutrient-depletion slowdown, relative-fitness scaling, bounded death, spatial death fields, finite/non-negative state, exact binary-mask/off-mask domain invariants, atomic malformed-state rejection, and spread conservation.
+Run `python tools/verify.py premerge`. Ecology tests must cover Monod identities, resource/yield/capacity limits, materially over-capacity refusal, Float32 capacity-boundary round trips, lineage-order independence, nutrient-depletion slowdown, relative-fitness scaling, bounded death, spatial death fields, finite/non-negative state, exact binary-mask/off-mask domain invariants, atomic malformed-state rejection, exact spread-step boundary/refusal, and spread conservation.
 
 ## Child DOX index
 No child contracts yet.

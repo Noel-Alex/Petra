@@ -106,6 +106,36 @@ describe('CircularScalarField', () => {
     expectFiniteNonNegative(field)
   })
 
+  it('matches one large interval to the same deterministic stable substeps', () => {
+    const coarse = new CircularScalarField({ width: 9, height: 9, cellSize: 1 })
+    const reference = new CircularScalarField({ width: 9, height: 9, cellSize: 1 })
+    coarse.set(4, 4, 1)
+    reference.set(4, 4, 1)
+
+    const plan = coarse.diffuse(1, 1)
+    expect(plan).toEqual({ substeps: 4, dtPerSubstep: 0.25 })
+    for (let step = 0; step < plan.substeps; step += 1) {
+      reference.diffuse(1, plan.dtPerSubstep)
+    }
+
+    expect(coarse.values).toEqual(reference.values)
+    expectFiniteNonNegative(coarse)
+  })
+
+  it('refuses an unrepresentable diffusion substep count before mutating the field', () => {
+    const field = new CircularScalarField({ width: 9, height: 9, cellSize: 1 })
+    field.set(4, 4, 1)
+    const before = field.values.slice()
+
+    expect(() => field.diffuse(1e15, 10)).toThrow(/safe integer/)
+    expect(field.values).toEqual(before)
+
+    expect(() => field.diffuse(Number.MAX_VALUE, 1)).toThrow(
+      /non-representable stable substep interval/,
+    )
+    expect(field.values).toEqual(before)
+  })
+
   it('preserves reflection symmetry for a centered impulse', () => {
     const field = new CircularScalarField({ width: 21, height: 21, cellSize: 1 })
     field.set(10, 10, 1)

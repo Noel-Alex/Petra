@@ -191,6 +191,16 @@ function resolveLineageInputs(
           mutationClass: record.mutationClass,
           abundanceModelBiomass: record.abundanceModelBiomass,
           relativeFitness: record.relativeFitness,
+          ciprofloxacin:
+            record.ciprofloxacin == null
+              ? null
+              : {
+                  micMgPerL: record.ciprofloxacin.micMgPerL,
+                  responseShift:
+                    record.ciprofloxacin.responseShift === null
+                      ? null
+                      : { ...record.ciprofloxacin.responseShift },
+                },
           sourceKeys: [...record.sourceKeys],
           assumptionKeys: [...record.assumptionKeys],
         },

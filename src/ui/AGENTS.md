@@ -130,3 +130,9 @@ Pure motion-policy, control-planning, replay-order, keyboard, and timeline helpe
 - Until runtime #37/#42 supplies exact run/tick/simulation-time identity, this state machine preserves selection + composed-state identity only; adapters must not fabricate a biological timestamp.
 - `RegionInspectorPanel.tsx` is the reusable DOM readout for this lifecycle. It may display only `AuthoritativeRegionInspection` results, must label stale/error-retained results with their original selection identity, and must keep `model-biomass` / `model-resource` explicit rather than upgrading them into physical units. The typed `no-grid-coverage` result is an authoritative absence-of-measurement outcome: present it explicitly and never synthesize zero biomass/resource or lineage fractions from it.
 - Selected-cell count means authoritative simulation grid cells, not bacterial cell count. Configuration fingerprint and composed state version are identity/schema metadata, not a biological timestamp.
+
+
+## Dish focus choreography
+- `src/ui/motion/focusMode.ts` is the single framework-neutral policy for switching between the normal workspace and dish-first focus presentation. Focus mode changes only layout density/visual priority; it never pauses, advances, rewinds, or otherwise mutates simulation state.
+- Focus mode keeps the timeline controller available while compacting history, and collapses side chrome without erasing its underlying product capability.
+- Full motion may use the named panel navigational timing; Reduced uses a short crossfade and Off settles immediately. Adapters must not invent a second focus timing curve.

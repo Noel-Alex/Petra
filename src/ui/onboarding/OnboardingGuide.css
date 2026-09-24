@@ -467,9 +467,23 @@
   transition: transform var(--onboarding-motion-ms) var(--onboarding-easing);
 }
 
+.petra-onboarding[data-motion-treatment="crossfade"] .petra-onboarding__rail::after,
+.petra-onboarding[data-motion-treatment="crossfade"] .petra-onboarding__progress span {
+  transition-duration: 0ms;
+}
+
+.petra-onboarding[data-motion-treatment="crossfade"] .petra-onboarding__rail-mark {
+  transition-property: border-color, background-color;
+}
+
 .petra-onboarding[data-motion-treatment="instant"] *,
 .petra-onboarding[data-motion-treatment="static-emphasis"] * {
   animation: none !important;
+  transition-duration: 0ms !important;
+}
+
+.petra-onboarding[data-motion-treatment="instant"] .petra-onboarding__rail::after,
+.petra-onboarding[data-motion-treatment="static-emphasis"] .petra-onboarding__rail::after {
   transition-duration: 0ms !important;
 }
 

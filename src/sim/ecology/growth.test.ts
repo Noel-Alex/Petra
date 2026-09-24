@@ -212,6 +212,78 @@ describe('resource-limited ecology step', () => {
     expect(s.lineages[0]).toEqual(beforeLineage)
   })
 
+  it('rejects a non-binary dish mask atomically before earlier cells can mutate', () => {
+    const s: EcologyState = {
+      width: 2,
+      height: 1,
+      mask: new Uint8Array([1, 2]),
+      resource: new Float32Array([10, 10]),
+      lineages: [new Float32Array([1, 1])],
+    }
+    const beforeMask = s.mask.slice()
+    const beforeResource = s.resource.slice()
+    const beforeLineage = s.lineages[0]!.slice()
+
+    expect(() => stepEcology(s, params, neutral(1), 1)).toThrow(
+      /mask must be binary 0 or 1 at cell 1/,
+    )
+    expect(s.mask).toEqual(beforeMask)
+    expect(s.resource).toEqual(beforeResource)
+    expect(s.lineages[0]).toEqual(beforeLineage)
+  })
+
+  it('rejects hidden off-mask resource atomically instead of ignoring it', () => {
+    const s: EcologyState = {
+      width: 2,
+      height: 1,
+      mask: new Uint8Array([1, 0]),
+      resource: new Float32Array([10, 5]),
+      lineages: [new Float32Array([1, 0])],
+    }
+    const beforeResource = s.resource.slice()
+    const beforeLineage = s.lineages[0]!.slice()
+
+    expect(() => stepEcology(s, params, neutral(1), 1)).toThrow(
+      /resource must be zero outside ecology mask at cell 1/,
+    )
+    expect(s.resource).toEqual(beforeResource)
+    expect(s.lineages[0]).toEqual(beforeLineage)
+  })
+
+  it('rejects hidden off-mask lineage biomass atomically instead of ignoring it', () => {
+    const s: EcologyState = {
+      width: 2,
+      height: 1,
+      mask: new Uint8Array([1, 0]),
+      resource: new Float32Array([10, 0]),
+      lineages: [new Float32Array([1, 2])],
+    }
+    const beforeResource = s.resource.slice()
+    const beforeLineage = s.lineages[0]!.slice()
+
+    expect(() => stepEcology(s, params, neutral(1), 1)).toThrow(
+      /lineage biomass must be zero outside ecology mask at cell 1/,
+    )
+    expect(s.resource).toEqual(beforeResource)
+    expect(s.lineages[0]).toEqual(beforeLineage)
+  })
+
+  it('accepts zero-valued off-mask storage without making it scientific state', () => {
+    const s: EcologyState = {
+      width: 2,
+      height: 1,
+      mask: new Uint8Array([1, 0]),
+      resource: new Float32Array([0, 0]),
+      lineages: [new Float32Array([3, 0])],
+    }
+
+    const result = stepEcology(s, params, neutral(1), 1)
+    expect(result.metrics.totalBiomass).toBe(3)
+    expect(result.metrics.occupiedCells).toBe(1)
+    expect(s.resource[1]).toBe(0)
+    expect(s.lineages[0]![1]).toBe(0)
+  })
+
   it('rejects invalid lineage kinetics and death fields', () => {
     const s = state(1, [1])
     expect(() => stepEcology(s, params, [], 1)).toThrow(/one entry per lineage/)

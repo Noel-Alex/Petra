@@ -92,6 +92,71 @@ describe("PetraAction interaction precedence", () => {
     ).toBe("selected");
   });
 
+  it("clears an unfocused press when the pointer is cancelled", () => {
+    let state = updateActionInteractionState(
+      createActionInteractionState(),
+      "pointer-down",
+    );
+    state = updateActionInteractionState(state, "pointer-cancel");
+
+    expect(
+      resolveActionMicroInteractionState({
+        interaction: state,
+        disabled: false,
+        selected: false,
+      }),
+    ).toBe("idle");
+  });
+
+  it("restores persistent focus after a cancelled press", () => {
+    let state = updateActionInteractionState(
+      createActionInteractionState(),
+      "focus",
+    );
+    state = updateActionInteractionState(state, "pointer-down");
+    state = updateActionInteractionState(state, "pointer-cancel");
+
+    expect(
+      resolveActionMicroInteractionState({
+        interaction: state,
+        disabled: false,
+        selected: true,
+      }),
+    ).toBe("focus");
+  });
+
+  it("restores selected state after a cancelled unfocused press", () => {
+    let state = updateActionInteractionState(
+      createActionInteractionState(),
+      "pointer-down",
+    );
+    state = updateActionInteractionState(state, "pointer-cancel");
+
+    expect(
+      resolveActionMicroInteractionState({
+        interaction: state,
+        disabled: false,
+        selected: true,
+      }),
+    ).toBe("selected");
+  });
+
+  it("keeps disabled authoritative after pointer cancellation", () => {
+    let state = updateActionInteractionState(
+      createActionInteractionState(),
+      "pointer-down",
+    );
+    state = updateActionInteractionState(state, "pointer-cancel");
+
+    expect(
+      resolveActionMicroInteractionState({
+        interaction: state,
+        disabled: true,
+        selected: true,
+      }),
+    ).toBe("disabled");
+  });
+
   it("keeps disabled authoritative over all transient state", () => {
     let state = createActionInteractionState();
     state = updateActionInteractionState(state, "focus");

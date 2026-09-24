@@ -41,7 +41,7 @@ function definition(): MechanisticSweepDefinition {
       { id: "untreated", fingerprint: "none" },
       { id: "pulse", fingerprint: "dose-family-v1" },
     ],
-    seeds: ["1", "2"],
+    seeds: [1, 2],
     maxTrajectories: 20,
   };
 }
@@ -91,7 +91,7 @@ describe("mechanistic ML dataset generator", () => {
 
     expect(reversed).toEqual(first);
     expect(first.summary).toMatchObject({
-      schemaVersion: "petra-ml-dataset-artifact-v1",
+      schemaVersion: "petra-ml-dataset-artifact-v2",
       planVersion: plan.planVersion,
       datasetVersion: plan.datasetVersion,
       engineVersion: plan.engineVersion,

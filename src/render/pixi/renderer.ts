@@ -62,6 +62,13 @@ import { resolveSnapshotOverlayUpdate } from "./snapshotOverlay";
 import { createSemanticZoomLevelObserver } from "../semanticZoomObserver";
 import { wheelZoomFactor } from "./wheelZoom";
 import {
+  advanceDishVisualTransition,
+  planDishVisualTransition,
+  type DishDrawableState,
+  type DishVisualState,
+  type DishVisualTransition,
+} from "../visualInterpolation";
+import {
   onePointerPanOwnedAtGestureStart,
   rendererOwnsGestureIntent,
   rendererTouchActionForNextGesture,
@@ -80,7 +87,7 @@ export interface PixiDishOptions {
 export interface PixiDishRenderer {
   update(snapshot: DishRenderSnapshot): void;
   updatePresentation(
-    snapshot: DishRenderSnapshot,
+    snapshot: DishVisualState,
     overlayId: string | null,
   ): void;
   setOverlay(overlayId: string | null): void;
@@ -130,6 +137,9 @@ export async function createPixiDishRenderer(
   app.stage.addChild(root);
 
   let snapshot: DishRenderSnapshot | null = null;
+  let drawableState: DishDrawableState | null = null;
+  let visualTransition: DishVisualTransition | null = null;
+  let visualElapsedMs = 0;
   let overlayId = options.overlayId ?? null;
   let motion: RendererMotionMode = options.motion ?? "full";
   let cameraMotion = copyCameraMotionSpec(options.cameraMotion);
@@ -158,11 +168,11 @@ export async function createPixiDishRenderer(
   const render = () => {
     if (destroyed) return;
     syncHostTouchAction();
-    if (snapshot === null) return;
+    if (drawableState === null) return;
     semanticZoomObserver.update(semanticZoomLevel(camera.zoom));
     drawScene({
       app,
-      snapshot,
+      snapshot: drawableState,
       camera,
       overlayId,
       motion,
@@ -180,6 +190,7 @@ export async function createPixiDishRenderer(
     nextSnapshot: DishRenderSnapshot,
     requestedOverlayId: string | null,
   ) => {
+    const previousSnapshotId = snapshot?.snapshotId ?? null;
     const next = resolveSnapshotOverlayUpdate(
       { snapshot, overlayId },
       nextSnapshot,
@@ -187,6 +198,28 @@ export async function createPixiDishRenderer(
     );
     snapshot = next.snapshot;
     overlayId = next.overlayId;
+
+    if (previousSnapshotId === next.snapshot.snapshotId) {
+      render();
+      return;
+    }
+
+    const from = drawableState;
+    if (motion === "full" && from !== null) {
+      const plan = planDishVisualTransition(from, next.snapshot);
+      if (plan.kind === "interpolate") {
+        const initial = advanceDishVisualTransition(plan.transition, 0);
+        drawableState = initial.state;
+        visualTransition = initial.complete ? null : plan.transition;
+        visualElapsedMs = 0;
+        render();
+        return;
+      }
+    }
+
+    visualTransition = null;
+    visualElapsedMs = 0;
+    drawableState = next.snapshot;
     render();
   };
 
@@ -254,23 +287,39 @@ export async function createPixiDishRenderer(
 
   const ticker = () => {
     if (destroyed || motion !== "full") return;
+
+    let changed = false;
     if (
-      cameraTransitionComplete({
+      !cameraTransitionComplete({
         elapsedMs: cameraElapsedMs,
         durationMs: cameraMotion.durationMs,
       })
     ) {
-      return;
+      cameraElapsedMs += app.ticker.deltaMS;
+      camera = interpolateCameraTransition({
+        from: transitionStartCamera,
+        to: targetCamera,
+        elapsedMs: cameraElapsedMs,
+        motion: cameraMotion,
+      });
+      changed = true;
     }
 
-    cameraElapsedMs += app.ticker.deltaMS;
-    camera = interpolateCameraTransition({
-      from: transitionStartCamera,
-      to: targetCamera,
-      elapsedMs: cameraElapsedMs,
-      motion: cameraMotion,
-    });
-    render();
+    if (visualTransition !== null) {
+      visualElapsedMs += app.ticker.deltaMS;
+      const step = advanceDishVisualTransition(
+        visualTransition,
+        visualElapsedMs,
+      );
+      drawableState = step.state;
+      if (step.complete) {
+        visualTransition = null;
+        visualElapsedMs = 0;
+      }
+      changed = true;
+    }
+
+    if (changed) render();
   };
   app.ticker.add(ticker);
 
@@ -473,6 +522,9 @@ export async function createPixiDishRenderer(
         camera = targetCamera;
         transitionStartCamera = targetCamera;
         cameraElapsedMs = cameraMotion.durationMs;
+        visualTransition = null;
+        visualElapsedMs = 0;
+        drawableState = snapshot;
       }
       render();
     },
@@ -515,7 +567,7 @@ export async function createPixiDishRenderer(
 
 function drawScene(args: {
   readonly app: Application;
-  readonly snapshot: DishRenderSnapshot;
+  readonly snapshot: DishDrawableState;
   readonly camera: CameraView;
   readonly overlayId: string | null;
   readonly motion: RendererMotionMode;

@@ -6,6 +6,18 @@ import {
   stepComposedState,
   type ComposedSimulationConfig,
 } from '../../src/sim/authoritative'
+import type { CuratedMutationGraph } from '../../src/sim/evolution/graph'
+
+const evolutionGraph: CuratedMutationGraph = {
+  scenarioId: 'test-scenario',
+  scenarioVersion: '1',
+  genotypes: [
+    { id: 'WT', relativeFitness: 1, sourceOrder: 0 },
+    { id: 'VAR', relativeFitness: 0.9, sourceOrder: 1 },
+    { id: 'ISO', relativeFitness: 1, sourceOrder: 2 },
+  ],
+  transitions: [],
+}
 
 const config: ComposedSimulationConfig = {
   width: 2,
@@ -20,9 +32,11 @@ const config: ComposedSimulationConfig = {
     localCapacity: 20,
     spreadRate: 0,
   },
+  evolutionGraph,
+  evolutionScenario: { scenarioId: 'test-scenario', scenarioVersion: '1' },
   lineages: [
-    { id: 'ancestor', relativeFitness: 1, deathHazardPerHour: 0 },
-    { id: 'variant', relativeFitness: 0.9, deathHazardPerHour: 0.1 },
+    { id: 'ancestor', genotypeId: 'WT', deathHazardPerHour: 0 },
+    { id: 'variant', genotypeId: 'VAR', deathHazardPerHour: 0.1 },
   ],
   hoursPerTick: 0.01,
 }
@@ -62,14 +76,16 @@ describe('authoritative composed state', () => {
     expect(original).toEqual(checkpoint)
     expect(branch.resource).not.toBe(checkpoint.resource)
     expect(branch.lineageIds).not.toBe(checkpoint.lineageIds)
+    expect(branch.genotypeIds).not.toBe(checkpoint.genotypeIds)
     expect(branch.lineageBiomass[0]).not.toBe(checkpoint.lineageBiomass[0])
   })
 
-  it('binds positional lineage channels and mechanism config to one fingerprint', () => {
+  it('binds positional lineage/genotype channels and mechanism config to one fingerprint', () => {
     const state = createComposedState(config)
     expect(state.configurationFingerprint).toBe(
       composedConfigurationFingerprint(config),
     )
+    expect(state.genotypeIds).toEqual(['WT', 'VAR'])
 
     expect(() =>
       stepComposedState(state, {
@@ -86,6 +102,52 @@ describe('authoritative composed state', () => {
     ).toThrow(/fingerprint mismatch/)
   })
 
+  it('rejects genotype reassignment even when numerical fitness is identical', () => {
+    const state = createComposedState(config)
+    const reassigned: ComposedSimulationConfig = {
+      ...config,
+      lineages: [
+        { ...config.lineages[0]!, genotypeId: 'ISO' },
+        config.lineages[1]!,
+      ],
+    }
+
+    expect(evolutionGraph.genotypes[0]!.relativeFitness).toBe(
+      evolutionGraph.genotypes[2]!.relativeFitness,
+    )
+    expect(composedConfigurationFingerprint(reassigned)).not.toBe(
+      state.configurationFingerprint,
+    )
+    expect(() => stepComposedState(state, reassigned)).toThrow(
+      /fingerprint mismatch/,
+    )
+  })
+
+  it('rejects serialized genotype channel drift independently of biomass order', () => {
+    const state = createComposedState(config)
+    state.genotypeIds[0] = 'ISO'
+
+    expect(() => stepComposedState(state, config)).toThrow(/genotype order/)
+  })
+
+  it('sources relative fitness from the curated genotype graph', () => {
+    const baseline = createComposedState(config)
+    const alteredGraph: CuratedMutationGraph = {
+      ...evolutionGraph,
+      genotypes: evolutionGraph.genotypes.map((genotype) =>
+        genotype.id === 'VAR' ? { ...genotype, relativeFitness: 0.5 } : genotype,
+      ),
+    }
+    const alteredConfig = { ...config, evolutionGraph: alteredGraph }
+
+    expect(composedConfigurationFingerprint(alteredConfig)).not.toBe(
+      baseline.configurationFingerprint,
+    )
+    expect(() => stepComposedState(baseline, alteredConfig)).toThrow(
+      /fingerprint mismatch/,
+    )
+  })
+
   it('rejects hidden or malformed scenario authority instead of inventing defaults', () => {
     expect(() => createComposedState({ ...config, hoursPerTick: 0 })).toThrow(
       /hoursPerTick/,
@@ -98,7 +160,7 @@ describe('authoritative composed state', () => {
         ...config,
         lineages: [config.lineages[0]!, config.lineages[0]!],
       }),
-    ).toThrow(/unique/)
+    ).toThrow(/duplicate active lineage|unique/)
     expect(() =>
       createComposedState({ ...config, mask: [1, 2] }),
     ).toThrow(/exactly 0 or 1/)
@@ -111,6 +173,21 @@ describe('authoritative composed state', () => {
         ],
       }),
     ).toThrow(/non-empty/)
+    expect(() =>
+      createComposedState({
+        ...config,
+        lineages: [
+          { ...config.lineages[0]!, genotypeId: 'unknown' },
+          config.lineages[1]!,
+        ],
+      }),
+    ).toThrow(/unknown genotype/)
+    expect(() =>
+      createComposedState({
+        ...config,
+        evolutionScenario: { scenarioId: 'other', scenarioVersion: '1' },
+      }),
+    ).toThrow(/scenario mismatch/)
   })
 
   it('rejects non-zero initial ecology state outside the dish mask', () => {

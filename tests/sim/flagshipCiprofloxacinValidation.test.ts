@@ -46,16 +46,18 @@ describe('integrated flagship ciprofloxacin validation', () => {
       return stepComposedState(state, config)
     })
 
-    expect(responses[1]!.totalBiomass).toBeLessThanOrEqual(
+    // Require a real integrated response, not merely non-violation of order:
+    // an accidentally ignored/zeroed concentration field must fail this test.
+    expect(responses[1]!.totalBiomass).toBeLessThan(
       responses[0]!.totalBiomass,
     )
-    expect(responses[2]!.totalBiomass).toBeLessThanOrEqual(
+    expect(responses[2]!.totalBiomass).toBeLessThan(
       responses[1]!.totalBiomass,
     )
-    expect(responses[1]!.deathBiomass).toBeGreaterThanOrEqual(
+    expect(responses[1]!.deathBiomass).toBeGreaterThan(
       responses[0]!.deathBiomass,
     )
-    expect(responses[2]!.deathBiomass).toBeGreaterThanOrEqual(
+    expect(responses[2]!.deathBiomass).toBeGreaterThan(
       responses[1]!.deathBiomass,
     )
   })

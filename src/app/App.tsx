@@ -62,14 +62,6 @@ export interface AppProps {
 
 const SOURCES_TRIGGER_ID = "petra-sources-trigger";
 
-const SOURCES_SURFACE_STYLE: CSSProperties = {
-  position: "fixed",
-  inset: "5.5rem 1rem 1rem auto",
-  width: "min(34rem, calc(100vw - 2rem))",
-  maxHeight: "calc(100vh - 6.5rem)",
-  overflow: "auto",
-  zIndex: 30,
-};
 
 function focusSourcesTrigger(): void {
   if (typeof document === "undefined") return;
@@ -239,7 +231,6 @@ export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
             sourcesLifecycle.phase === "exiting" ? true : undefined
           }
           inert={sourcesLifecycle.phase === "exiting"}
-          style={SOURCES_SURFACE_STYLE}
         >
           <div className="sources-drawer__chrome">
             <p className="sources-drawer__scope" role="note">

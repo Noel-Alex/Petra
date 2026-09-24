@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   T4_MG1655_LIFE_HISTORY,
+  createPhageLifeHistoryIdentity,
   resolvePhageLifeHistory,
+  type PhageLifeHistoryIdentity,
 } from "./lifeHistory";
 import {
   PHAGE_LATENT_QUEUE_SCHEMA_VERSION,
@@ -14,6 +16,23 @@ import {
   type LatentInfectionQueueState,
 } from "./latentQueue";
 
+function testLifeHistoryIdentity(
+  lifeHistoryIdentity: testLifeHistoryIdentity(number),
+): PhageLifeHistoryIdentity {
+  const row = T4_MG1655_LIFE_HISTORY.rows[0]!;
+  const resolved = resolvePhageLifeHistory(
+    T4_MG1655_LIFE_HISTORY,
+    row.growthRatePerHour,
+  );
+  if (resolved.status !== "exact") {
+    throw new Error("expected exact T4/MG1655 life-history row");
+  }
+  return {
+    ...createPhageLifeHistoryIdentity(resolved),
+    latentPeriodMinutes,
+  };
+}
+
 describe("phage latent infection queue", () => {
   it("orders cohorts deterministically by lysis maturity, then sequence", () => {
     let state = createLatentInfectionQueue(10);
@@ -21,17 +40,17 @@ describe("phage latent infection queue", () => {
     state = scheduleLatentInfections(state, {
       infectionCount: 2,
       infectedAtMinutes: 10,
-      latentPeriodMinutes: 20,
+      lifeHistoryIdentity: testLifeHistoryIdentity(20),
     });
     state = scheduleLatentInfections(state, {
       infectionCount: 3,
       infectedAtMinutes: 11,
-      latentPeriodMinutes: 5,
+      lifeHistoryIdentity: testLifeHistoryIdentity(5),
     });
     state = scheduleLatentInfections(state, {
       infectionCount: 4,
       infectedAtMinutes: 12,
-      latentPeriodMinutes: 4,
+      lifeHistoryIdentity: testLifeHistoryIdentity(4),
     });
 
     expect(state.schemaVersion).toBe(PHAGE_LATENT_QUEUE_SCHEMA_VERSION);
@@ -44,7 +63,7 @@ describe("phage latent infection queue", () => {
     state = scheduleLatentInfections(state, {
       infectionCount: 7,
       infectedAtMinutes: 2,
-      latentPeriodMinutes: 18,
+      lifeHistoryIdentity: testLifeHistoryIdentity(18),
     });
 
     const before = advanceLatentInfectionQueue(state, 19.999);
@@ -62,7 +81,7 @@ describe("phage latent infection queue", () => {
     const scheduled = scheduleLatentInfections(createLatentInfectionQueue(5), {
       infectionCount: 3,
       infectedAtMinutes: 5,
-      latentPeriodMinutes: 0,
+      lifeHistoryIdentity: testLifeHistoryIdentity(0),
     });
 
     const advanced = advanceLatentInfectionQueue(scheduled, 5);
@@ -83,7 +102,7 @@ describe("phage latent infection queue", () => {
     const scheduled = scheduleLatentInfections(createLatentInfectionQueue(), {
       infectionCount: 2,
       infectedAtMinutes: 4,
-      latentPeriodMinutes: resolved.values.latentPeriodMinutes,
+      lifeHistoryIdentity: testLifeHistoryIdentity(resolved.values.latentPeriodMinutes),
     });
     const cohort = scheduled.cohorts[0]!;
 
@@ -98,7 +117,7 @@ describe("phage latent infection queue", () => {
     const next = scheduleLatentInfections(state, {
       infectionCount: 0,
       infectedAtMinutes: 3,
-      latentPeriodMinutes: 10,
+      lifeHistoryIdentity: testLifeHistoryIdentity(10),
     });
 
     expect(next).toBe(state);
@@ -112,7 +131,7 @@ describe("phage latent infection queue", () => {
       scheduleLatentInfections(state, {
         infectionCount: 1,
         infectedAtMinutes: 9,
-        latentPeriodMinutes: 1,
+        lifeHistoryIdentity: testLifeHistoryIdentity(1),
       }),
     ).toThrow(/cannot precede/);
 
@@ -120,7 +139,7 @@ describe("phage latent infection queue", () => {
       scheduleLatentInfections(state, {
         infectionCount: 1.5,
         infectedAtMinutes: 10,
-        latentPeriodMinutes: 1,
+        lifeHistoryIdentity: testLifeHistoryIdentity(1),
       }),
     ).toThrow(/safe integer/);
 
@@ -140,7 +159,7 @@ describe("phage latent infection queue", () => {
     const lastRepresentable = scheduleLatentInfections(nearLimit, {
       infectionCount: 1,
       infectedAtMinutes: 0,
-      latentPeriodMinutes: 10,
+      lifeHistoryIdentity: testLifeHistoryIdentity(10),
     });
 
     expect(lastRepresentable.nextSequence).toBe(Number.MAX_SAFE_INTEGER);
@@ -153,16 +172,56 @@ describe("phage latent infection queue", () => {
       scheduleLatentInfections(lastRepresentable, {
         infectionCount: 1,
         infectedAtMinutes: 0,
-        latentPeriodMinutes: 10,
+        lifeHistoryIdentity: testLifeHistoryIdentity(10),
       }),
     ).toThrow(/sequence allocation would exceed safe integer range/);
 
     const zeroCount = scheduleLatentInfections(lastRepresentable, {
       infectionCount: 0,
       infectedAtMinutes: 0,
-      latentPeriodMinutes: 10,
+      lifeHistoryIdentity: testLifeHistoryIdentity(10),
     });
     expect(zeroCount).toBe(lastRepresentable);
+  });
+
+  it("round-trips infection-time life-history identity through serialized queue state", () => {
+    const identity = testLifeHistoryIdentity(27);
+    const scheduled = scheduleLatentInfections(createLatentInfectionQueue(), {
+      infectionCount: 4,
+      infectedAtMinutes: 3,
+      lifeHistoryIdentity: identity,
+    });
+
+    const restored = JSON.parse(
+      JSON.stringify(scheduled),
+    ) as LatentInfectionQueueState;
+    expect(() => validateLatentInfectionQueue(restored)).not.toThrow();
+    expect(restored.cohorts[0]?.lifeHistoryIdentity).toEqual(identity);
+    expect(restored.cohorts[0]?.lifeHistoryIdentity).not.toBe(identity);
+  });
+
+  it("rejects malformed replay-critical life-history identity on restore", () => {
+    const identity = testLifeHistoryIdentity(10);
+    const malformed = {
+      schemaVersion: PHAGE_LATENT_QUEUE_SCHEMA_VERSION,
+      currentTimeMinutes: 0,
+      nextSequence: 1,
+      cohorts: [
+        {
+          sequence: 0,
+          infectionCount: 1,
+          infectedAtMinutes: 0,
+          lifeHistoryIdentity: {
+            ...identity,
+            sourceKey: ` ${identity.sourceKey}`,
+          },
+        },
+      ],
+    } as unknown as LatentInfectionQueueState;
+
+    expect(() => validateLatentInfectionQueue(malformed)).toThrow(
+      /trimmed non-empty string/,
+    );
   });
 
   it("rejects corrupted or nondeterministically ordered queue state", () => {
@@ -175,7 +234,7 @@ describe("phage latent infection queue", () => {
           sequence: 1,
           infectionCount: 1,
           infectedAtMinutes: 0,
-          latentPeriodMinutes: 10,
+          lifeHistoryIdentity: testLifeHistoryIdentity(10),
         },
       ],
     };
@@ -192,13 +251,13 @@ describe("phage latent infection queue", () => {
           sequence: 0,
           infectionCount: 1,
           infectedAtMinutes: 0,
-          latentPeriodMinutes: 20,
+          lifeHistoryIdentity: testLifeHistoryIdentity(20),
         },
         {
           sequence: 1,
           infectionCount: 1,
           infectedAtMinutes: 0,
-          latentPeriodMinutes: 10,
+          lifeHistoryIdentity: testLifeHistoryIdentity(10),
         },
       ],
     };

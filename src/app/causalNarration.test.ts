@@ -7,6 +7,7 @@ import {
 } from "../sim/protocol";
 import {
   advanceCausalNarrationSession,
+  causalEventStreamRevisionKey,
   createCausalNarrationSession,
   type AuthoritativeCausalEventStream,
 } from "./causalNarration";
@@ -180,6 +181,127 @@ describe("causal narration app authority boundary", () => {
     );
     expect(accepted.plan.presentation).toBe("specific");
     expect(accepted.cursor.sequence).toBe(0);
+  });
+
+
+  it("uses replay-relevant history rather than only the final frontier for React revisions", () => {
+    const original = stream(RUN_A, "run-a/main", [
+      {
+        id: "mutation-0",
+        sequence: 0,
+        eventKind: "mutation-observed",
+      },
+      {
+        id: "lysis-1",
+        sequence: 1,
+        eventKind: "lysis-observed",
+      },
+    ]);
+    const unchangedClone = stream(RUN_A, "run-a/main", [
+      {
+        id: "mutation-0",
+        sequence: 0,
+        eventKind: "mutation-observed",
+      },
+      {
+        id: "lysis-1",
+        sequence: 1,
+        eventKind: "lysis-observed",
+      },
+    ]);
+    const replacedEarlierEvent = stream(RUN_A, "run-a/main", [
+      {
+        id: "intervention-0",
+        sequence: 0,
+        eventKind: "intervention-applied",
+      },
+      {
+        id: "lysis-1",
+        sequence: 1,
+        eventKind: "lysis-observed",
+      },
+    ]);
+
+    expect(causalEventStreamRevisionKey(unchangedClone)).toBe(
+      causalEventStreamRevisionKey(original),
+    );
+    expect(causalEventStreamRevisionKey(replacedEarlierEvent)).not.toBe(
+      causalEventStreamRevisionKey(original),
+    );
+  });
+
+  it("rejects replacement of already accepted history within one run branch", () => {
+    const first = advanceCausalNarrationSession(
+      createCausalNarrationSession(),
+      RUN_A,
+      stream(RUN_A, "run-a/main", [
+        {
+          id: "mutation-0",
+          sequence: 0,
+          eventKind: "mutation-observed",
+        },
+        {
+          id: "lysis-1",
+          sequence: 1,
+          eventKind: "lysis-observed",
+        },
+      ]),
+    );
+
+    expect(() =>
+      advanceCausalNarrationSession(
+        first,
+        RUN_A,
+        stream(RUN_A, "run-a/main", [
+          {
+            id: "intervention-0",
+            sequence: 0,
+            eventKind: "intervention-applied",
+          },
+          {
+            id: "lysis-1",
+            sequence: 1,
+            eventKind: "lysis-observed",
+          },
+        ]),
+      ),
+    ).toThrow(/accepted history cannot be replaced/);
+  });
+
+  it("accepts a normal append-only extension and advances the stored history identity", () => {
+    const first = advanceCausalNarrationSession(
+      createCausalNarrationSession(),
+      RUN_A,
+      stream(RUN_A, "run-a/main", [
+        {
+          id: "mutation-0",
+          sequence: 0,
+          eventKind: "mutation-observed",
+        },
+      ]),
+    );
+
+    const appended = advanceCausalNarrationSession(
+      first,
+      RUN_A,
+      stream(RUN_A, "run-a/main", [
+        {
+          id: "mutation-0",
+          sequence: 0,
+          eventKind: "mutation-observed",
+        },
+        {
+          id: "lysis-1",
+          sequence: 1,
+          eventKind: "lysis-observed",
+        },
+      ]),
+    );
+
+    expect(appended.plan.presentation).toBe("specific");
+    expect(appended.plan.eventIds).toEqual(["lysis-1"]);
+    expect(appended.acceptedEventCount).toBe(2);
+    expect(appended.acceptedHistoryKey).not.toBe(first.acceptedHistoryKey);
   });
 
   it("requires an explicit non-empty run/branch identity", () => {

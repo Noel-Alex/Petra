@@ -1,4 +1,9 @@
-import { useId, useMemo, useState } from "react";
+import {
+  useId,
+  useMemo,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import type { DishRenderSnapshot } from "../render/model";
 import { PixiDish } from "../render/pixi/PixiDish";
 import { createRendererDemoSnapshot } from "../render/pixi/demoSnapshot";
@@ -9,15 +14,33 @@ import {
   defaultDishOverlayId,
   resolveDishOverlay,
 } from "./dishPresentation";
+import { dishEscapeAction } from "./dishKeyboard";
 
 export interface DishViewportProps {
   readonly motion: RendererMotionMode;
   readonly snapshot?: DishRenderSnapshot | null;
+  /**
+   * Gives an active tool first refusal on Escape. Return true when consumed.
+   * This callback may cancel presentation-only tool state but must not fabricate
+   * or mutate authoritative simulation state.
+   */
+  readonly onEscapeBeforeOverview?: () => boolean;
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return (
+    target.isContentEditable ||
+    target.tagName === "INPUT" ||
+    target.tagName === "TEXTAREA" ||
+    target.tagName === "SELECT"
+  );
 }
 
 export function DishViewport({
   motion,
   snapshot,
+  onEscapeBeforeOverview,
 }: DishViewportProps) {
   const interactionHintId = useId();
   const demoSnapshot = useMemo(() => createRendererDemoSnapshot(), []);
@@ -25,6 +48,7 @@ export function DishViewport({
   const [requestedOverlayId, setRequestedOverlayId] = useState<string | null>(
     () => defaultDishOverlayId(activeSnapshot),
   );
+  const [cameraResetSignal, setCameraResetSignal] = useState(0);
   const activeOverlay = resolveDishOverlay(
     activeSnapshot,
     requestedOverlayId,
@@ -36,10 +60,32 @@ export function DishViewport({
     durationMs: MOTION.cameraFocus.durationMs,
   });
 
+  const requestOverview = () => {
+    setCameraResetSignal((signal) => signal + 1);
+  };
+
+  const handleDishKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Escape" || event.defaultPrevented) return;
+
+    const higherPriorityConsumed = onEscapeBeforeOverview?.() ?? false;
+    const action = dishEscapeAction(event.key, {
+      defaultPrevented: event.defaultPrevented,
+      editableTarget: isEditableTarget(event.target),
+      higherPriorityConsumed,
+      renderEnabled: true,
+    });
+    if (action !== "reset-overview") return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    requestOverview();
+  };
+
   return (
     <div
       className="dish-renderer-shell"
       data-render-source={usingDemo ? "visual-demo" : "authoritative-snapshot"}
+      onKeyDown={handleDishKeyDown}
     >
       <div className="dish-renderer-frame">
         <PixiDish
@@ -51,6 +97,7 @@ export function DishViewport({
             easing: MOTION.cameraFocus.easing,
           }}
           overlayId={resolvedOverlayId}
+          resetCameraSignal={cameraResetSignal}
           className="dish-renderer-canvas"
           ariaLabel={
             usingDemo
@@ -65,6 +112,15 @@ export function DishViewport({
       </div>
 
       <div className="dish-renderer-controls">
+        <button
+          type="button"
+          className="dish-overview-control"
+          onClick={requestOverview}
+          aria-label="Return Petri dish camera to whole-dish overview"
+        >
+          Dish
+        </button>
+
         <label className="dish-overlay-control">
           <span>Overlay</span>
           <select

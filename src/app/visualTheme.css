@@ -238,3 +238,61 @@ button:hover {
   border-color: rgb(var(--petra-rgb-teal) / 0.48);
   background: rgb(var(--petra-rgb-teal) / 0.14);
 }
+
+/* #458 localized intervention placement theme */
+.tool-stack button small,
+.placement-safety-note {
+  color: rgb(var(--petra-rgb-cream-muted) / 0.76);
+}
+
+.tool-stack button[aria-pressed="true"] {
+  border-color: rgb(var(--petra-rgb-mint) / 0.48);
+  background: rgb(var(--petra-rgb-mint) / 0.11);
+}
+
+.tool-stack button[aria-pressed="true"] small {
+  color: var(--petra-color-mint);
+}
+
+.intervention-placement-drawer {
+  border-color: rgb(var(--petra-rgb-mint) / 0.2);
+  background: rgb(var(--petra-rgb-ink-soft) / 0.62);
+}
+
+.intervention-placement-drawer__heading strong,
+.placement-axis output {
+  color: var(--petra-color-cream);
+}
+
+.placement-preview-badge {
+  border-color: rgb(var(--petra-rgb-amber) / 0.28);
+  color: var(--petra-color-amber);
+}
+
+.placement-axis {
+  color: var(--petra-color-cream-muted);
+}
+
+.placement-axis input[type="range"] {
+  accent-color: var(--petra-color-mint);
+}
+
+.dish-placement-target {
+  color: var(--petra-color-mint);
+}
+
+.dish-placement-target[data-placement-tool="fungus"] {
+  color: var(--petra-color-teal);
+}
+
+.dish-placement-target[data-placement-tool="antibiotic"] {
+  color: var(--petra-color-coral);
+}
+
+.dish-placement-target[data-placement-tool="nutrient"] {
+  color: var(--petra-color-amber);
+}
+
+.dish-placement-target__glyph {
+  stroke: var(--petra-color-ink-deep);
+}

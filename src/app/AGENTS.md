@@ -160,3 +160,11 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - One series bundle must contain one exact run identity and one exact metric sampling policy with strictly increasing authoritative ticks/times. Mixed runs/cadences fail closed rather than being plotted together.
 - Biomass/resource/fraction/diversity display units and visual identity tokens are caller/scenario owned. Genotype display labels/tokens must be supplied explicitly for every genotype observed; never derive scientific identity from renderer colors.
 - A genotype absent from an authoritative sample is plotted as exact zero fraction for that sample, not interpolated between neighboring samples. Presentation decimation remains downstream in the analysis chart model and may select source points only.
+
+
+## Base App-shell visual-theme ownership
+- `app.css` must be safe on its own: stable App, dish DOM chrome, runtime-status, timeline-summary, semantic-guide, and native-control colors consume Petra's shared `--petra-color-*` / `--petra-rgb-*` variables instead of retaining a hidden pre-reset numeric palette beneath `visualTheme.css`.
+- Renderer overlay semantics remain upstream-owned through `--overlay-positive`, `--overlay-negative`, and `--overlay-neutral`. App CSS may provide a shared neutral fallback and pattern contrast, but must preserve dot/hatch/ring/bar/speckle geometry so overlay meaning is not color-only.
+- Stable shell/source-badge chrome must not reintroduce blur-heavy `backdrop-filter` glass. Dish ambient `filter: blur(...)` is a separate decorative halo treatment governed by motion policy and is not this glass-material ban.
+- Runtime status color is reinforcement only: ready uses shared mint, pending/starting amber, error coral, while visible status text remains authoritative.
+- Theme cleanup must not change focus geometry, touch targets, dish-first focus-mode layout, intervention-placement semantics, semantic zoom, timeline ordering/content, or renderer scientific mapping.

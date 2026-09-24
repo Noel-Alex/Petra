@@ -639,8 +639,8 @@ def touch_pass(cdp: CDP) -> list[dict[str, Any]]:
     return checks
 
 
-def renderer_frame_samples(cdp: CDP) -> list[float] | None:
-    samples = cdp.eval(
+def renderer_frame_samples(cdp: CDP) -> dict[str, Any] | None:
+    workload = cdp.eval(
         """new Promise(resolve => {
           const host = document.querySelector(
             '.dish-renderer-canvas[data-render-status="ready"] [role="region"]'
@@ -649,50 +649,128 @@ def renderer_frame_samples(cdp: CDP) -> list[float] | None:
             resolve(null);
             return;
           }
+
           const r = host.getBoundingClientRect();
-          const values = [];
-          let last = performance.now();
+          const frameIntervalsMs = [];
+          const rendererOwned = [];
+          const synchronousRedrawMs = [];
+          let lastFrame = performance.now();
+          let previousOwned = null;
+          let previousRedrawMs = null;
+          let deltaY = -32;
+
           function step(now) {
-            values.push(now - last);
-            last = now;
-            host.dispatchEvent(new WheelEvent('wheel', {
+            // Attribute each frame interval to the renderer workload dispatched
+            // during the preceding frame. Five warm-up samples are discarded.
+            if (previousOwned !== null && previousRedrawMs !== null) {
+              frameIntervalsMs.push(now - lastFrame);
+              rendererOwned.push(previousOwned);
+              synchronousRedrawMs.push(previousRedrawMs);
+            }
+
+            if (frameIntervalsMs.length >= 180) {
+              resolve({
+                frameIntervalsMs: frameIntervalsMs.slice(5),
+                rendererOwned: rendererOwned.slice(5),
+                synchronousRedrawMs: synchronousRedrawMs.slice(5)
+              });
+              return;
+            }
+
+            lastFrame = now;
+            const event = new WheelEvent('wheel', {
               bubbles: true,
               cancelable: true,
               clientX: r.x + r.width / 2,
               clientY: r.y + r.height / 2,
-              deltaY: 0
-            }));
-            if (values.length >= 180) resolve(values.slice(5));
-            else requestAnimationFrame(step);
+              deltaY
+            });
+            const redrawStart = performance.now();
+            // Renderer wheel ownership is deliberately observable: accepted
+            // zoom intent calls preventDefault() and synchronously render()s in
+            // Motion Off. A zero-delta event is not owned and must never count
+            // as renderer performance work.
+            previousOwned = host.dispatchEvent(event) === false;
+            previousRedrawMs = performance.now() - redrawStart;
+
+            // Equal-and-opposite small deltas keep the camera near its starting
+            // zoom instead of saturating a min/max boundary during the sample.
+            deltaY = -deltaY;
+            requestAnimationFrame(step);
           }
+
           requestAnimationFrame(step);
         })""",
         await_promise=True,
     )
-    if not isinstance(samples, list):
+    if not isinstance(workload, dict):
         return None
-    return [float(value) for value in samples]
+
+    intervals = workload.get("frameIntervalsMs")
+    ownership = workload.get("rendererOwned")
+    redraw_durations = workload.get("synchronousRedrawMs")
+    if (
+        not isinstance(intervals, list)
+        or not isinstance(ownership, list)
+        or not isinstance(redraw_durations, list)
+        or len(intervals) != len(ownership)
+        or len(intervals) != len(redraw_durations)
+    ):
+        return None
+
+    return {
+        "frameIntervalsMs": [float(value) for value in intervals],
+        "rendererOwned": [value is True for value in ownership],
+        "synchronousRedrawMs": [float(value) for value in redraw_durations],
+    }
 
 
-def frame_metrics(samples: list[float] | None, view: str) -> dict[str, Any]:
+def frame_metrics(workload: dict[str, Any] | None, view: str) -> dict[str, Any]:
+    if not workload:
+        return {
+            "view": view,
+            "sampleCount": 0,
+            "rendererOwnedRedraws": 0,
+            "averageFrameMs": None,
+            "p95FrameMs": None,
+            "framesOver33ms": None,
+            "averageSynchronousRedrawMs": None,
+            "p95SynchronousRedrawMs": None,
+        }
+
+    samples = workload["frameIntervalsMs"]
+    ownership = workload["rendererOwned"]
+    redraw_durations = workload["synchronousRedrawMs"]
     if not samples:
         return {
             "view": view,
             "sampleCount": 0,
+            "rendererOwnedRedraws": 0,
             "averageFrameMs": None,
             "p95FrameMs": None,
             "framesOver33ms": None,
+            "averageSynchronousRedrawMs": None,
+            "p95SynchronousRedrawMs": None,
         }
+
     ordered = sorted(samples)
+    ordered_redraws = sorted(redraw_durations)
     avg = sum(samples) / len(samples)
     p95 = ordered[min(len(ordered) - 1, int(len(ordered) * 0.95))]
     over_33 = sum(value > 33.4 for value in samples)
+    redraw_avg = sum(redraw_durations) / len(redraw_durations)
+    redraw_p95 = ordered_redraws[
+        min(len(ordered_redraws) - 1, int(len(ordered_redraws) * 0.95))
+    ]
     return {
         "view": view,
         "sampleCount": len(samples),
+        "rendererOwnedRedraws": sum(ownership),
         "averageFrameMs": round(avg, 3),
         "p95FrameMs": round(p95, 3),
         "framesOver33ms": over_33,
+        "averageSynchronousRedrawMs": round(redraw_avg, 3),
+        "p95SynchronousRedrawMs": round(redraw_p95, 3),
     }
 
 
@@ -732,9 +810,12 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
         [
             check(
                 "performance whole-dish: representative redraw samples captured",
-                reset_ok and whole["sampleCount"] >= 175,
+                reset_ok
+                and whole["sampleCount"] >= 175
+                and whole["rendererOwnedRedraws"] == whole["sampleCount"],
                 {
                     **whole,
+                    "workload": "alternating -32/+32 px center-wheel redraws, Motion Off",
                     "fixtureSource": render.get("source"),
                     "artifact": str(ARTIFACT_DIR / "performance-whole-dish.png"),
                 },
@@ -756,9 +837,12 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
             ),
             check(
                 "performance colony zoom: representative redraw samples captured",
-                zoom_ok and zoomed["sampleCount"] >= 175,
+                zoom_ok
+                and zoomed["sampleCount"] >= 175
+                and zoomed["rendererOwnedRedraws"] == zoomed["sampleCount"],
                 {
                     **zoomed,
+                    "workload": "alternating -32/+32 px center-wheel redraws, Motion Off",
                     "fixtureSource": render.get("source"),
                     "artifact": str(ARTIFACT_DIR / "performance-colony-zoom.png"),
                 },

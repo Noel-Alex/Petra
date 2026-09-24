@@ -16,6 +16,8 @@ export interface PixiDishProps {
   readonly className?: string;
   readonly ariaLabel?: string;
   readonly ariaDescribedBy?: string;
+  /** Increment/change to request the existing renderer camera return to overview. */
+  readonly overviewResetRequest?: number;
   /** Explicit opt-in for the deterministic presentation-only fixture. */
   readonly demoMode?: boolean;
 }
@@ -28,6 +30,7 @@ export function PixiDish({
   className,
   ariaLabel,
   ariaDescribedBy,
+  overviewResetRequest = 0,
   demoMode = false,
 }: PixiDishProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -35,6 +38,7 @@ export function PixiDish({
   const motionRef = useRef(motion);
   const overlayRef = useRef(overlayId);
   const demoSnapshotRef = useRef<DishRenderSnapshot | null>(null);
+  const appliedOverviewResetRef = useRef(overviewResetRequest);
 
   const usingAuthoritative = snapshot !== null && snapshot !== undefined;
   const usingDemo = !usingAuthoritative && demoMode;
@@ -94,6 +98,12 @@ export function PixiDish({
     snapshotRef.current = renderSnapshot;
     if (renderSnapshot !== null) rendererRef.current?.update(renderSnapshot);
   }, [renderSnapshot]);
+
+  useEffect(() => {
+    if (overviewResetRequest === appliedOverviewResetRef.current) return;
+    appliedOverviewResetRef.current = overviewResetRequest;
+    rendererRef.current?.resetCamera();
+  }, [overviewResetRequest]);
 
   const source = usingAuthoritative
     ? "authoritative-snapshot"

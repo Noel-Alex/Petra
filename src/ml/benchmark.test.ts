@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   GROUP_HORIZON_BALANCED_EVALUATION_POLICY_VERSION,
   assessSurrogatePromotion,
+  buildSurrogateBenchmarkEvidence,
   computeRegressionMetrics,
   computeStratifiedRegressionBenchmark,
   surrogateCompatibilityKey,
@@ -11,6 +12,7 @@ import {
   type SurrogateCompatibilityIdentity,
   type SurrogatePromotionRequirements,
 } from "./benchmark";
+import type { MechanisticDatasetSummary } from "./generator";
 
 const compatibility: SurrogateCompatibilityIdentity = {
   schemaVersion: "surrogate-compatibility-v1",
@@ -21,6 +23,31 @@ const compatibility: SurrogateCompatibilityIdentity = {
   normalizationProfileId: "aggregate-normalization-v1",
   inputSchemaVersion: "aggregate-input-v1",
   targetSchemaVersion: "aggregate-target-v1",
+};
+
+const datasetSchema = {
+  schemaVersion: "mechanistic-dataset-schema-v1" as const,
+  inputSchemaVersion: compatibility.inputSchemaVersion,
+  targetSchemaVersion: compatibility.targetSchemaVersion,
+};
+
+const datasetSummary: MechanisticDatasetSummary = {
+  schemaVersion: "petra-ml-dataset-artifact-v3",
+  planVersion: "aggregate-sweep-v1",
+  datasetVersion: "mechanistic-v1",
+  engineVersion: "engine-a",
+  scenarioId: "selection-not-mutation",
+  scenarioVersion: "1",
+  normalizationProfileId: compatibility.normalizationProfileId,
+  datasetSchema,
+  splitPolicyVersion: "trajectory-group-v1",
+  splitCoveragePolicyVersion: "held-out-group-coverage-v1",
+  groupCount: 2,
+  trajectoryCount: 2,
+  sampleCount: 4,
+  splitGroupCounts: { train: 0, validation: 0, test: 2 },
+  splitTrajectoryCounts: { train: 0, validation: 0, test: 2 },
+  splitSampleCounts: { train: 0, validation: 0, test: 4 },
 };
 
 const horizons = [
@@ -112,20 +139,17 @@ const goodBenchmark = computeStratifiedRegressionBenchmark({
   rows: goodRows,
 });
 
-const goodEvidence: SurrogateBenchmarkEvidence = {
-  schemaVersion: "surrogate-benchmark-evidence-v4",
-  modelId: "aggregate-surrogate",
-  modelVersion: "1",
-  baselineId: "mean-by-scenario-v1",
-  datasetVersion: "mechanistic-v1",
-  engineVersion: "engine-a",
-  compatibility,
-  splitPolicyVersion: requirements.splitPolicyVersion,
-  splitCoveragePolicyVersion: requirements.splitCoveragePolicyVersion,
-  evaluationPolicyVersion: requirements.evaluationPolicyVersion,
-  heldOutSplit: requirements.heldOutSplit,
-  ...goodBenchmark,
-};
+const goodEvidence: SurrogateBenchmarkEvidence =
+  buildSurrogateBenchmarkEvidence({
+    modelId: "aggregate-surrogate",
+    modelVersion: "1",
+    baselineId: "mean-by-scenario-v1",
+    dataset: datasetSummary,
+    compatibility,
+    evaluationPolicyVersion: requirements.evaluationPolicyVersion,
+    heldOutSplit: requirements.heldOutSplit,
+    benchmark: goodBenchmark,
+  });
 
 function assess(evidence: SurrogateBenchmarkEvidence = goodEvidence) {
   return assessSurrogatePromotion({
@@ -330,12 +354,16 @@ describe("surrogate held-out benchmarks", () => {
 
     const assessment = assessSurrogatePromotion({
       evidence: {
-        schemaVersion: "surrogate-benchmark-evidence-v4",
+        schemaVersion: "surrogate-benchmark-evidence-v5",
         modelId: "imbalanced-model",
         modelVersion: "1",
         baselineId: "simple-baseline",
         datasetVersion: "mechanistic-v1",
         engineVersion: "engine-a",
+        datasetScenarioId: "selection-not-mutation",
+        datasetScenarioVersion: "1",
+        datasetNormalizationProfileId: compatibility.normalizationProfileId,
+        datasetSchema,
         compatibility,
         splitPolicyVersion: "trajectory-group-v1",
         splitCoveragePolicyVersion: "held-out-group-coverage-v1",
@@ -414,6 +442,45 @@ describe("surrogate held-out benchmarks", () => {
           issue.stratum === "horizon:long",
       ),
     ).toBe(true);
+  });
+
+  it("constructs evidence from dataset provenance and refuses schema relabeling", () => {
+    expect(goodEvidence.datasetSchema).toEqual(datasetSchema);
+    expect(goodEvidence.datasetVersion).toBe(datasetSummary.datasetVersion);
+    expect(goodEvidence.splitPolicyVersion).toBe(
+      datasetSummary.splitPolicyVersion,
+    );
+
+    expect(() =>
+      buildSurrogateBenchmarkEvidence({
+        modelId: "aggregate-surrogate",
+        modelVersion: "1",
+        baselineId: "mean-by-scenario-v1",
+        dataset: datasetSummary,
+        compatibility: {
+          ...compatibility,
+          inputSchemaVersion: "aggregate-input-v2",
+        },
+        evaluationPolicyVersion: requirements.evaluationPolicyVersion,
+        heldOutSplit: requirements.heldOutSplit,
+        benchmark: goodBenchmark,
+      }),
+    ).toThrow(/dataset input\/target schema/);
+  });
+
+  it("rejects benchmark evidence whose dataset schema disagrees with model compatibility", () => {
+    const assessment = assess({
+      ...goodEvidence,
+      datasetSchema: {
+        ...goodEvidence.datasetSchema,
+        targetSchemaVersion: "aggregate-target-v2",
+      },
+    });
+
+    expect(assessment.eligible).toBe(false);
+    expect(assessment.issues.map((issue) => issue.kind)).toContain(
+      "dataset-schema-mismatch",
+    );
   });
 
   it("accepts only matching compatibility plus evidence that beats baseline in every required stratum", () => {

@@ -162,7 +162,7 @@ function runSeed(seed: number): {
     'same seed + same ordered commands must reproduce every snapshot/event/trace hash from genesis',
   )
 
-  const midpointSnapshot = directSnapshots[3]
+  const midpointSnapshot = directSnapshots[2]
   if (midpointSnapshot === undefined) {
     throw new Error('seed replay matrix failed to capture midpoint snapshot')
   }

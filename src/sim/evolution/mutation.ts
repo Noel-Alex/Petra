@@ -55,6 +55,10 @@ function assertTargets(targets: readonly MutationTarget[]): void {
  *
  * Probabilities are scenario-owned inputs. This function does not infer or
  * modify them from antibiotic concentration or any other selective pressure.
+ *
+ * @deprecated Product/runtime callers with externally supplied counts must use
+ * sampleDivisionMutationsWithPolicy. Keep this function as the exact reference
+ * path for bounded fixtures and distribution validation.
  */
 export function sampleDivisionMutations(
   divisions: number,

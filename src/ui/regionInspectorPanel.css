@@ -62,6 +62,11 @@
   color: #efd894;
 }
 
+.region-inspector-panel__status-badge[data-status="no-grid-coverage"] {
+  border-color: rgba(143, 220, 255, 0.28);
+  color: #a9e7ff;
+}
+
 .region-inspector-panel__status-badge[data-status="error"] {
   border-color: rgba(240, 121, 183, 0.3);
   color: #ffb0c4;
@@ -86,6 +91,11 @@
 .region-inspector-panel[data-region-inspector-status="stale"]
   .region-inspector-panel__status-copy {
   border-left-color: rgba(242, 202, 104, 0.62);
+}
+
+.region-inspector-panel[data-region-inspector-status="no-grid-coverage"]
+  .region-inspector-panel__status-copy {
+  border-left-color: rgba(143, 220, 255, 0.62);
 }
 
 .region-inspector-panel[data-region-inspector-status="error"]

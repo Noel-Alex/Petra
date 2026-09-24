@@ -5,6 +5,16 @@ import { PetraCompactAction } from "./PetraCompactAction";
 import { MOTION } from "./motion/tokens";
 
 describe("PetraCompactAction motion projection", () => {
+  it("renders caller children as the visible native-button label", () => {
+    const html = renderToStaticMarkup(
+      <PetraCompactAction motionPreference="full">
+        Sources
+      </PetraCompactAction>,
+    );
+
+    expect(html).toContain(">Sources</button>");
+  });
+
   it("projects the shared full-motion token and selected semantics", () => {
     const html = renderToStaticMarkup(
       <PetraCompactAction motionPreference="full" selected>
@@ -18,6 +28,7 @@ describe("PetraCompactAction motion projection", () => {
       `--petra-compact-action-duration:${MOTION.toolPreview.durationMs}ms`,
     );
     expect(html).toContain("--petra-compact-action-y:-0.08rem");
+    expect(html).toContain(">2×</button>");
   });
 
   it("keeps reduced selected meaning without spatial movement", () => {

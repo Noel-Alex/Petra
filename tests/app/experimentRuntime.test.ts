@@ -1,3 +1,5 @@
+import type { ComposedSimulationConfig } from "../../src/sim/authoritative";
+import type { CuratedMutationGraph } from "../../src/sim/evolution/graph";
 import { describe, expect, it } from "vitest";
 import {
   ExperimentRuntime,
@@ -24,6 +26,37 @@ const identity = createRunIdentity({
   parameterSetVersion: "1",
   seed: 23,
 });
+
+const composedGraph: CuratedMutationGraph = {
+  scenarioId: "runtime-fixture",
+  scenarioVersion: "1",
+  genotypes: [{ id: "WT", relativeFitness: 1, sourceOrder: 0 }],
+  transitions: [],
+};
+
+const composedConfig: ComposedSimulationConfig = {
+  width: 1,
+  height: 1,
+  mask: [1],
+  initialResource: [1],
+  initialLineageBiomass: [[1]],
+  growth: {
+    maxDivisionRate: 0.5,
+    halfSaturation: 1,
+    biomassYield: 1,
+    localCapacity: 10,
+    spreadRate: 0,
+  },
+  lineages: [
+    { id: "ancestor", genotypeId: "WT", deathHazardPerHour: 0 },
+  ],
+  evolutionGraph: composedGraph,
+  evolutionScenario: {
+    scenarioId: "runtime-fixture",
+    scenarioVersion: "1",
+  },
+  hoursPerTick: 0.01,
+};
 
 function makeSnapshot(args: {
   identity?: RunIdentity;
@@ -90,6 +123,42 @@ function readyRuntime(ids: string[] = ["step-1"]) {
 }
 
 describe("experiment runtime", () => {
+  it("starts and reinitializes with the same composed simulation authority", () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+    const runtime = new ExperimentRuntime(
+      session,
+      identity,
+      commandIds("unused"),
+      composedConfig,
+    );
+
+    expect(runtime.start()).toBe(true);
+    expect(port.posted[0]).toMatchObject({
+      type: "initialize",
+      identity,
+      composedConfig,
+    });
+    expect(
+      port.posted[0]?.type === "initialize" &&
+        port.posted[0].composedConfig,
+    ).not.toBe(composedConfig);
+
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: makeSnapshot({ tick: 0 }),
+    });
+    expect(runtime.dispatch({ type: "reset" })).toEqual({
+      accepted: true,
+      reason: null,
+    });
+    expect(port.posted.at(-1)).toMatchObject({
+      type: "initialize",
+      composedConfig,
+    });
+  });
+
   it("initializes through the worker and projects authoritative timeline state", () => {
     const { port, runtime } = readyRuntime();
 

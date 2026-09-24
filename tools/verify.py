@@ -363,6 +363,132 @@ def scenario_contracts() -> int:
                         f"{prefix}: unbound resource context requires an explicit limitation"
                     )
 
+            execution_profile = obj.get("executionProfile")
+            profile_path = f"{prefix}: executionProfile"
+            if not isinstance(execution_profile, dict):
+                errors.append(f"{profile_path} must be an object")
+            else:
+                if execution_profile.get("schemaVersion") != 1:
+                    errors.append(f"{profile_path}.schemaVersion must equal 1")
+                for key in ("id", "version", "scenarioId", "scenarioVersion", "resourceContextVersion"):
+                    if not _nonempty_string(execution_profile.get(key)):
+                        errors.append(f"{profile_path}.{key} must be a non-empty string")
+                if execution_profile.get("scenarioId") != obj.get("id"):
+                    errors.append(f"{profile_path}.scenarioId must match scenario id")
+                if execution_profile.get("scenarioVersion") != obj.get("version"):
+                    errors.append(f"{profile_path}.scenarioVersion must match scenario version")
+                if (
+                    isinstance(resource_context, dict)
+                    and execution_profile.get("resourceContextVersion") != resource_context.get("version")
+                ):
+                    errors.append(
+                        f"{profile_path}.resourceContextVersion must match environment.resourceContext.version"
+                    )
+                if execution_profile.get("classification") != "engineering":
+                    errors.append(f"{profile_path}.classification must be engineering")
+
+                units = execution_profile.get("units")
+                expected_units = {
+                    "time": "hour",
+                    "resource": "model-resource",
+                    "biomass": "model-biomass",
+                }
+                if units != expected_units:
+                    errors.append(
+                        f"{profile_path}.units must equal {expected_units!r}"
+                    )
+
+                hours_per_tick = execution_profile.get("hoursPerTick")
+                if (
+                    not isinstance(hours_per_tick, (int, float))
+                    or isinstance(hours_per_tick, bool)
+                    or not math.isfinite(hours_per_tick)
+                    or hours_per_tick <= 0
+                ):
+                    errors.append(f"{profile_path}.hoursPerTick must be positive and finite")
+
+                growth = execution_profile.get("growth")
+                if not isinstance(growth, dict):
+                    errors.append(f"{profile_path}.growth must be an object")
+                else:
+                    expected_growth_keys = {
+                        "maxDivisionRate",
+                        "halfSaturation",
+                        "biomassYield",
+                        "localCapacity",
+                        "spreadRate",
+                    }
+                    if set(growth) != expected_growth_keys:
+                        errors.append(
+                            f"{profile_path}.growth must contain exactly {sorted(expected_growth_keys)!r}"
+                        )
+                    for key in expected_growth_keys:
+                        value = growth.get(key)
+                        if (
+                            not isinstance(value, (int, float))
+                            or isinstance(value, bool)
+                            or not math.isfinite(value)
+                        ):
+                            errors.append(f"{profile_path}.growth.{key} must be finite")
+                            continue
+                        if key in {"halfSaturation", "biomassYield", "localCapacity"}:
+                            if value <= 0:
+                                errors.append(f"{profile_path}.growth.{key} must be positive")
+                        elif value < 0:
+                            errors.append(f"{profile_path}.growth.{key} must be non-negative")
+                    spread_rate = growth.get("spreadRate")
+                    if (
+                        isinstance(spread_rate, (int, float))
+                        and not isinstance(spread_rate, bool)
+                        and math.isfinite(spread_rate)
+                        and isinstance(hours_per_tick, (int, float))
+                        and not isinstance(hours_per_tick, bool)
+                        and math.isfinite(hours_per_tick)
+                        and hours_per_tick > 0
+                        and spread_rate * hours_per_tick > 0.25
+                    ):
+                        errors.append(
+                            f"{profile_path}: spreadRate * hoursPerTick must be <= 0.25"
+                        )
+
+                expected_targets = {
+                    "positive-early-growth",
+                    "resource-depletion",
+                    "zero-resource-no-growth",
+                    "capacity-bound",
+                    "conservative-neighbour-spread",
+                }
+                targets = execution_profile.get("behaviorTargets")
+                if (
+                    not isinstance(targets, list)
+                    or len(targets) != len(expected_targets)
+                    or set(targets) != expected_targets
+                ):
+                    errors.append(
+                        f"{profile_path}.behaviorTargets must contain exactly the flagship engineering target set"
+                    )
+
+                _validate_presentation_provenance(
+                    execution_profile,
+                    profile_path,
+                    errors,
+                    require_context=True,
+                )
+                profile_provenance = execution_profile.get("provenance")
+                if isinstance(profile_provenance, dict):
+                    if profile_provenance.get("classification") != "engineering":
+                        errors.append(
+                            f"{profile_path}.provenance.classification must be engineering"
+                        )
+                    if not _nonempty_string(profile_provenance.get("calibrationNote")):
+                        errors.append(
+                            f"{profile_path}.provenance.calibrationNote is required"
+                        )
+                    if not _nonempty_string(profile_provenance.get("limitation")):
+                        errors.append(
+                            f"{profile_path}.provenance.limitation is required"
+                        )
+
             genotypes = obj.get("genotypes")
             if not isinstance(genotypes, list) or not genotypes:
                 errors.append(f"{prefix}: flagship genotypes must be a non-empty array")

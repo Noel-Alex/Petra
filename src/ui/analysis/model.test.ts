@@ -82,6 +82,32 @@ describe("scientific analysis projection", () => {
     ).toThrow(/different units/);
   });
 
+  it("rejects duplicate series ids instead of creating ambiguous presentation identity", () => {
+    expect(() =>
+      buildScientificChart(
+        [
+          {
+            id: "same",
+            label: "A",
+            unit: "cells",
+            appearanceToken: "a",
+            patternToken: "solid",
+            points: [{ timeHours: 0, value: 1 }],
+          },
+          {
+            id: "same",
+            label: "B",
+            unit: "cells",
+            appearanceToken: "b",
+            patternToken: "dash",
+            points: [{ timeHours: 0, value: 2 }],
+          },
+        ],
+        { maxPointsPerSeries: 20 },
+      ),
+    ).toThrow(/duplicate scientific series id/);
+  });
+
   it("preserves scientific meaning when motion is reduced or off", () => {
     const reduced = resolveAnalysisMotion("reduced");
     expect(reduced.chart.treatment).toBe("crossfade");

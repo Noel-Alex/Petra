@@ -13,9 +13,9 @@ import {
 } from "./sweep";
 
 export const MECHANISTIC_DATASET_ARTIFACT_SCHEMA_VERSION =
-  "petra-ml-dataset-artifact-v1" as const;
+  "petra-ml-dataset-artifact-v2" as const;
 export const MECHANISTIC_DATASET_ROW_SCHEMA_VERSION =
-  "petra-ml-dataset-row-v1" as const;
+  "petra-ml-dataset-row-v2" as const;
 
 export interface MechanisticTrajectoryResult<TInput, TTarget> {
   readonly taskId: string;

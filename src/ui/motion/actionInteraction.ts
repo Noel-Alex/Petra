@@ -13,7 +13,8 @@ export type ActionInteractionEvent =
   | "pointer-enter"
   | "pointer-leave"
   | "pointer-down"
-  | "pointer-up";
+  | "pointer-up"
+  | "pointer-cancel";
 
 export function createActionInteractionState(): ActionInteractionState {
   return { focused: false, pointer: "idle" };
@@ -31,6 +32,7 @@ export function updateActionInteractionState(
     case "pointer-enter":
       return { ...state, pointer: "hover" };
     case "pointer-leave":
+    case "pointer-cancel":
       return { ...state, pointer: "idle" };
     case "pointer-down":
       return { ...state, pointer: "press" };

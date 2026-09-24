@@ -13,7 +13,7 @@ function lineage(
   return {
     id,
     label: id,
-    appearanceToken: "teal",
+    appearanceToken: "lineage-cyan",
     patternToken: "solid-ring",
     density: Float32Array.from(density),
   };
@@ -27,7 +27,7 @@ describe("lineage density colony isocontours", () => {
       gridWidth: 2,
       gridHeight: 2,
       sharedMaximum: 1,
-      levels: [Math.SQRT1_2],
+      levels: [0.5],
     } as const;
 
     const first = extractLineageDensityContourSegments(args);
@@ -36,7 +36,7 @@ describe("lineage density colony isocontours", () => {
     expect(second).toEqual(first);
     expect(first).toEqual([
       {
-        level: Math.SQRT1_2,
+        level: 0.5,
         from: { x: 0.5, y: 0.25 },
         to: { x: 0.5, y: 0.75 },
       },
@@ -66,8 +66,8 @@ describe("lineage density colony isocontours", () => {
     expect(first).toEqual([
       {
         level: 0.5,
-        from: { x: 0.375, y: 0.25 },
-        to: { x: 0.375, y: 0.75 },
+        from: { x: 0.5, y: 0.25 },
+        to: { x: 0.5, y: 0.75 },
       },
     ]);
     expect(second).toEqual([

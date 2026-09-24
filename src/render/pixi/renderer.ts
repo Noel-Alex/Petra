@@ -1,6 +1,7 @@
 import { Application, Container, Graphics } from "pixi.js";
 import { petraVisualColor } from "../../design/visualTokens";
 import { gridCellCenter } from "../gridGeometry";
+import { extractFieldContourSegments } from "../fieldContours";
 import { sampleRepresentativeGlyphs } from "../lod";
 import { resolveLineageAppearance } from "../lineageAppearance";
 import {
@@ -774,6 +775,40 @@ function drawField(
       .fill({
         color: projected.color,
         alpha: projected.alpha * textureAlpha,
+      });
+  }
+
+  const contours = extractFieldContourSegments({
+    field,
+    dishMask: snapshot.dishMask,
+    gridWidth: snapshot.gridWidth,
+    gridHeight: snapshot.gridHeight,
+  });
+  const contourWidth = Math.max(0.9, Math.min(1.8, dishSize * 0.0018));
+  for (const segment of contours) {
+    const from = dishToScreen(
+      segment.from.x,
+      segment.from.y,
+      camera,
+      centerX,
+      centerY,
+      dishSize,
+    );
+    const to = dishToScreen(
+      segment.to.x,
+      segment.to.y,
+      camera,
+      centerX,
+      centerY,
+      dishSize,
+    );
+    graphics
+      .moveTo(from.x, from.y)
+      .lineTo(to.x, to.y)
+      .stroke({
+        color: presentation.positiveColor,
+        alpha: 0.24 + segment.level * 0.28,
+        width: contourWidth,
       });
   }
 }

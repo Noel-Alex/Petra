@@ -570,6 +570,12 @@ export function assessSurrogatePromotion(args: {
         baseline === undefined ||
         coverage === undefined
       ) {
+        issues.push({
+          kind: "stratum-coverage-mismatch",
+          stratum: `group:${groupKey}/horizon:${horizon.id}`,
+          message:
+            `required group/horizon stratum ${groupKey} × ${horizon.id} is missing evidence`,
+        });
         continue;
       }
       assessMetricPair({
@@ -606,14 +612,33 @@ function validateEvidenceCoverage(
   }
 
   const expectedGroups = [...groupKeys].sort();
-  const actualGroups = Object.keys(evidence.coverage.byGroup).sort();
   const expectedHorizons = horizons.map((horizon) => horizon.id).sort();
+  const actualGroups = Object.keys(evidence.coverage.byGroup).sort();
   const actualHorizons = Object.keys(evidence.coverage.byHorizon).sort();
+  const candidateGroups = Object.keys(evidence.candidate.byGroup).sort();
+  const baselineGroups = Object.keys(evidence.baseline.byGroup).sort();
+  const candidateMatrixGroups = Object.keys(
+    evidence.candidate.byGroupHorizon,
+  ).sort();
+  const baselineMatrixGroups = Object.keys(
+    evidence.baseline.byGroupHorizon,
+  ).sort();
+  const candidateHorizons = Object.keys(evidence.candidate.byHorizon).sort();
+  const baselineHorizons = Object.keys(evidence.baseline.byHorizon).sort();
 
   if (actualGroups.join("\u0000") !== expectedGroups.join("\u0000")) {
     issues.push({
       kind: "stratum-coverage-mismatch",
       message: "benchmark evidence must exactly cover required held-out groups",
+    });
+  }
+  if (
+    [candidateGroups, baselineGroups, candidateMatrixGroups, baselineMatrixGroups]
+      .some((keys) => keys.join("\u0000") !== expectedGroups.join("\u0000"))
+  ) {
+    issues.push({
+      kind: "stratum-coverage-mismatch",
+      message: "candidate and baseline metrics must exactly cover required groups",
     });
   }
   if (actualHorizons.join("\u0000") !== expectedHorizons.join("\u0000")) {
@@ -622,7 +647,20 @@ function validateEvidenceCoverage(
       message: "benchmark evidence must exactly cover required forecast horizons",
     });
   }
+  if (
+    [candidateHorizons, baselineHorizons].some(
+      (keys) => keys.join("\u0000") !== expectedHorizons.join("\u0000"),
+    )
+  ) {
+    issues.push({
+      kind: "stratum-coverage-mismatch",
+      message:
+        "candidate and baseline metrics must exactly cover required forecast horizons",
+    });
+  }
 
+  let groupRowTotal = 0;
+  let groupTrajectoryTotal = 0;
   for (const groupKey of groupKeys) {
     const group = evidence.coverage.byGroup[groupKey];
     const candidate = evidence.candidate.byGroup[groupKey];
@@ -656,18 +694,57 @@ function validateEvidenceCoverage(
         stratum: `group:${groupKey}`,
         message: `coverage for group ${groupKey} must be positive integers`,
       });
+    } else {
+      groupRowTotal += group.rowCount;
+      groupTrajectoryTotal += group.trajectoryCount;
     }
 
-    const matrixHorizons = Object.keys(matrix).sort();
-    if (matrixHorizons.join("\u0000") !== expectedHorizons.join("\u0000")) {
+    const coverageHorizonKeys = Object.keys(matrix).sort();
+    const candidateHorizonKeys = Object.keys(candidateMatrix).sort();
+    const baselineHorizonKeys = Object.keys(baselineMatrix).sort();
+    if (
+      [coverageHorizonKeys, candidateHorizonKeys, baselineHorizonKeys].some(
+        (keys) => keys.join("\u0000") !== expectedHorizons.join("\u0000"),
+      )
+    ) {
       issues.push({
         kind: "stratum-coverage-mismatch",
         stratum: `group:${groupKey}`,
-        message: `group ${groupKey} must cover every required horizon`,
+        message:
+          `group ${groupKey} candidate, baseline, and coverage must include every required horizon`,
       });
+    }
+
+    for (const horizon of horizons) {
+      const cell = matrix[horizon.id];
+      if (
+        cell === undefined ||
+        !Number.isSafeInteger(cell.rowCount) ||
+        cell.rowCount <= 0 ||
+        !Number.isSafeInteger(cell.trajectoryCount) ||
+        cell.trajectoryCount <= 0
+      ) {
+        issues.push({
+          kind: "stratum-coverage-mismatch",
+          stratum: `group:${groupKey}/horizon:${horizon.id}`,
+          message:
+            `coverage for ${groupKey} × ${horizon.id} must be positive integers`,
+        });
+      }
     }
   }
 
+  if (
+    groupRowTotal !== evidence.coverage.rowCount ||
+    groupTrajectoryTotal !== evidence.coverage.trajectoryCount
+  ) {
+    issues.push({
+      kind: "stratum-coverage-mismatch",
+      message: "group coverage counts do not reconcile with aggregate coverage",
+    });
+  }
+
+  let horizonRowTotal = 0;
   for (const horizon of horizons) {
     const coverage = evidence.coverage.byHorizon[horizon.id];
     const candidate = evidence.candidate.byHorizon[horizon.id];
@@ -694,7 +771,16 @@ function validateEvidenceCoverage(
         stratum: `horizon:${horizon.id}`,
         message: `coverage for horizon ${horizon.id} does not match requirements`,
       });
+    } else {
+      horizonRowTotal += coverage.rowCount;
     }
+  }
+
+  if (horizonRowTotal !== evidence.coverage.rowCount) {
+    issues.push({
+      kind: "stratum-coverage-mismatch",
+      message: "horizon coverage row counts do not reconcile with aggregate coverage",
+    });
   }
 }
 

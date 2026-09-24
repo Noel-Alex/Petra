@@ -95,6 +95,10 @@ When `prefers-reduced-motion: reduce`:
 
 Provide an in-app Motion setting because some users want more/less motion independent of OS.
 
+### Ambient decorative motion
+
+Slow onboarding ambience is centralized in named Petra decorative-loop tokens rather than component-local CSS durations. Full motion may use deliberately asynchronous periods so background shapes do not move in lockstep. Reduced and Off resolve those loops to static presentation. Ambient loop wall time is decorative only: it never advances onboarding gates, worker commands, simulation time, or biological state.
+
 ## Haptics/audio
 
 Optional only. If added:

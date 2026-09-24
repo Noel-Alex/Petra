@@ -22,6 +22,7 @@ Use named semantic levels rather than raw camera scale as scientific meaning:
 - `representative-cell` — explanatory illustration only, clearly labelled representative rather than microscopic truth.
 
 Zoom thresholds are presentation policy. Crossing them may reveal/hide information but may not change the simulation.
+- The Pixi adapter may report the **named** semantic level to React, but raw numeric camera zoom remains renderer-local. Level notifications fire only when the named level changes; animation frames within one level must not churn React state.
 
 ## LOD
 

@@ -3,9 +3,22 @@ import { describe, expect, it } from "vitest";
 import {
   assessSurrogatePromotion,
   computeRegressionMetrics,
+  surrogateCompatibilityKey,
   type SurrogateBenchmarkEvidence,
+  type SurrogateCompatibilityIdentity,
   type SurrogatePromotionRequirements,
 } from "./benchmark";
+
+const compatibility: SurrogateCompatibilityIdentity = {
+  schemaVersion: "surrogate-compatibility-v1",
+  supportedScenarios: [
+    { scenarioId: "selection-not-mutation", scenarioVersion: "1" },
+    { scenarioId: "fitness-tradeoff", scenarioVersion: "2" },
+  ],
+  normalizationProfileId: "aggregate-normalization-v1",
+  inputSchemaVersion: "aggregate-input-v1",
+  targetSchemaVersion: "aggregate-target-v1",
+};
 
 const requirements: SurrogatePromotionRequirements = {
   splitPolicyVersion: "trajectory-group-v1",
@@ -15,12 +28,13 @@ const requirements: SurrogatePromotionRequirements = {
 };
 
 const goodEvidence: SurrogateBenchmarkEvidence = {
-  schemaVersion: "surrogate-benchmark-evidence-v2",
+  schemaVersion: "surrogate-benchmark-evidence-v3",
   modelId: "aggregate-surrogate",
   modelVersion: "1",
   baselineId: "mean-by-scenario-v1",
   datasetVersion: "mechanistic-v1",
   engineVersion: "engine-a",
+  compatibility,
   splitPolicyVersion: "trajectory-group-v1",
   splitCoveragePolicyVersion: "held-out-group-coverage-v1",
   heldOutSplit: "test",
@@ -33,6 +47,18 @@ const goodEvidence: SurrogateBenchmarkEvidence = {
     resistantFraction: { mae: 0.02, rmse: 0.024, count: 2 },
   },
 };
+
+function assess(evidence: SurrogateBenchmarkEvidence = goodEvidence) {
+  return assessSurrogatePromotion({
+    evidence,
+    requirements,
+    expectedModelId: "aggregate-surrogate",
+    expectedModelVersion: "1",
+    expectedDatasetVersion: "mechanistic-v1",
+    expectedEngineVersion: "engine-a",
+    expectedCompatibility: compatibility,
+  });
+}
 
 describe("surrogate held-out benchmarks", () => {
   it("computes deterministic multi-target MAE/RMSE", () => {
@@ -88,34 +114,61 @@ describe("surrogate held-out benchmarks", () => {
     ).toThrow(/overflow/);
   });
 
-  it("accepts only matching evidence that strictly beats the baseline on every target", () => {
+  it("canonicalizes explicit multi-scenario compatibility independent of ordering", () => {
     expect(
-      assessSurrogatePromotion({
-        evidence: goodEvidence,
-        requirements,
-        expectedModelId: "aggregate-surrogate",
-        expectedModelVersion: "1",
-        expectedDatasetVersion: "mechanistic-v1",
-        expectedEngineVersion: "engine-a",
+      surrogateCompatibilityKey({
+        ...compatibility,
+        supportedScenarios: [...compatibility.supportedScenarios].reverse(),
       }),
-    ).toEqual({ eligible: true, issues: [] });
+    ).toBe(surrogateCompatibilityKey(compatibility));
+  });
+
+  it("rejects malformed compatibility identities", () => {
+    expect(() =>
+      surrogateCompatibilityKey({
+        ...compatibility,
+        supportedScenarios: [],
+      }),
+    ).toThrow(/at least one supported scenario/);
+
+    expect(() =>
+      surrogateCompatibilityKey({
+        ...compatibility,
+        supportedScenarios: [
+          compatibility.supportedScenarios[0]!,
+          compatibility.supportedScenarios[0]!,
+        ],
+      }),
+    ).toThrow(/duplicate scenario/);
+  });
+
+  it("accepts only matching evidence that strictly beats the baseline on every target", () => {
+    expect(assess()).toEqual({ eligible: true, issues: [] });
+  });
+
+  it("rejects evidence promoted under another compatibility contract", () => {
+    const assessment = assess({
+      ...goodEvidence,
+      compatibility: {
+        ...compatibility,
+        normalizationProfileId: "aggregate-normalization-v0",
+      },
+    });
+
+    expect(assessment.eligible).toBe(false);
+    expect(assessment.issues.map((issue) => issue.kind)).toContain(
+      "compatibility-mismatch",
+    );
   });
 
   it("rejects ties/regressions and stale evidence", () => {
-    const assessment = assessSurrogatePromotion({
-      evidence: {
-        ...goodEvidence,
-        engineVersion: "old-engine",
-        candidate: {
-          ...goodEvidence.candidate,
-          population: { mae: 2, rmse: 2.4, count: 2 },
-        },
+    const assessment = assess({
+      ...goodEvidence,
+      engineVersion: "old-engine",
+      candidate: {
+        ...goodEvidence.candidate,
+        population: { mae: 2, rmse: 2.4, count: 2 },
       },
-      requirements,
-      expectedModelId: "aggregate-surrogate",
-      expectedModelVersion: "1",
-      expectedDatasetVersion: "mechanistic-v1",
-      expectedEngineVersion: "engine-a",
     });
 
     expect(assessment.eligible).toBe(false);
@@ -126,16 +179,9 @@ describe("surrogate held-out benchmarks", () => {
   });
 
   it("rejects benchmark evidence from a different split coverage policy", () => {
-    const assessment = assessSurrogatePromotion({
-      evidence: {
-        ...goodEvidence,
-        splitCoveragePolicyVersion: "held-out-group-coverage-v0",
-      },
-      requirements,
-      expectedModelId: "aggregate-surrogate",
-      expectedModelVersion: "1",
-      expectedDatasetVersion: "mechanistic-v1",
-      expectedEngineVersion: "engine-a",
+    const assessment = assess({
+      ...goodEvidence,
+      splitCoveragePolicyVersion: "held-out-group-coverage-v0",
     });
 
     expect(assessment.eligible).toBe(false);
@@ -145,18 +191,11 @@ describe("surrogate held-out benchmarks", () => {
   });
 
   it("rejects target coverage and evaluation-count mismatches", () => {
-    const assessment = assessSurrogatePromotion({
-      evidence: {
-        ...goodEvidence,
-        candidate: {
-          population: { mae: 1, rmse: 1.2, count: 3 },
-        },
+    const assessment = assess({
+      ...goodEvidence,
+      candidate: {
+        population: { mae: 1, rmse: 1.2, count: 3 },
       },
-      requirements,
-      expectedModelId: "aggregate-surrogate",
-      expectedModelVersion: "1",
-      expectedDatasetVersion: "mechanistic-v1",
-      expectedEngineVersion: "engine-a",
     });
 
     expect(assessment.eligible).toBe(false);

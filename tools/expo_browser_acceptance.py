@@ -300,7 +300,7 @@ def install_browser_performance_probes(cdp: CDP) -> None:
   });
 })();
 """
-    cdp.call("Page.addScriptToEvaluateOnNewDocument", {"source": source})
+    cdp.eval(source)
 
 
 def reset_browser_performance_probe(cdp: CDP) -> None:
@@ -1021,43 +1021,49 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
 
     gpu_proxy = renderer_gpu_proxy(cdp)
 
+    # Preserve the original timing gate as an uninstrumented baseline. Draw-call
+    # wrapping adds a small observer cost, so the profiling workload below runs
+    # separately rather than contaminating the frame-time acceptance evidence.
     reset_ok = click_overview_reset(cdp)
     time.sleep(0.1)
     whole_png = capture_browser_png(cdp, "performance-whole-dish.png")
-    reset_browser_performance_probe(cdp)
-    whole_runtime_before = chromium_runtime_metrics(cdp)
     whole_samples = renderer_frame_samples(cdp)
-    whole_runtime_after = chromium_runtime_metrics(cdp)
-    whole_probe = browser_performance_probe_snapshot(cdp)
-    whole = {
-        **frame_metrics(whole_samples, "whole-dish"),
-        "browserProbe": whole_probe,
-        "runtimeBefore": whole_runtime_before,
-        "runtimeAfter": whole_runtime_after,
-        "runtimeDelta": numeric_metric_delta(whole_runtime_before, whole_runtime_after),
-    }
+    whole = frame_metrics(whole_samples, "whole-dish")
 
     zoom_ok = dispatch_renderer_wheel(cdp, -650)
     time.sleep(0.1)
     zoom_png = capture_browser_png(cdp, "performance-colony-zoom.png")
+    zoom_samples = renderer_frame_samples(cdp)
+    zoomed = frame_metrics(zoom_samples, "colony-camera-zoom")
+
+    cdp.call("Performance.enable")
+    install_browser_performance_probes(cdp)
+
+    profile_whole_reset_ok = click_overview_reset(cdp)
+    time.sleep(0.1)
+    reset_browser_performance_probe(cdp)
+    whole_runtime_before = chromium_runtime_metrics(cdp)
+    whole_profile_samples = renderer_frame_samples(cdp)
+    whole_runtime_after = chromium_runtime_metrics(cdp)
+    whole_probe = browser_performance_probe_snapshot(cdp)
+    whole_profile = frame_metrics(whole_profile_samples, "whole-dish-profiled")
+
+    profile_zoom_ok = dispatch_renderer_wheel(cdp, -650)
+    time.sleep(0.1)
     reset_browser_performance_probe(cdp)
     zoom_runtime_before = chromium_runtime_metrics(cdp)
-    zoom_samples = renderer_frame_samples(cdp)
+    zoom_profile_samples = renderer_frame_samples(cdp)
     zoom_runtime_after = chromium_runtime_metrics(cdp)
     zoom_probe = browser_performance_probe_snapshot(cdp)
-    zoomed = {
-        **frame_metrics(zoom_samples, "colony-camera-zoom"),
-        "browserProbe": zoom_probe,
-        "runtimeBefore": zoom_runtime_before,
-        "runtimeAfter": zoom_runtime_after,
-        "runtimeDelta": numeric_metric_delta(zoom_runtime_before, zoom_runtime_after),
-    }
+    zoom_profile = frame_metrics(zoom_profile_samples, "colony-camera-zoom-profiled")
 
     whole_p95 = whole.get("p95FrameMs")
     zoom_p95 = zoomed.get("p95FrameMs")
     whole_draw_calls = whole_probe.get("drawCalls") if whole_probe else None
     zoom_draw_calls = zoom_probe.get("drawCalls") if zoom_probe else None
     gpu_context = gpu_proxy.get("contextKind") if gpu_proxy else None
+    whole_runtime_delta = numeric_metric_delta(whole_runtime_before, whole_runtime_after)
+    zoom_runtime_delta = numeric_metric_delta(zoom_runtime_before, zoom_runtime_after)
     checks.extend(
         [
             check(
@@ -1084,11 +1090,13 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
                     "drawCalls": whole_draw_calls,
                     "drawCallsByMethod": whole_probe.get("drawCallsByMethod") if whole_probe else None,
                     "wrappedMethods": whole_probe.get("wrappedMethods") if whole_probe else None,
-                    "ownedRedraws": whole.get("rendererOwnedRedraws"),
+                    "profileResetApplied": profile_whole_reset_ok,
+                    "ownedRedraws": whole_profile.get("rendererOwnedRedraws"),
+                    "profileSampleCount": whole_profile.get("sampleCount"),
                     "drawCallsPerOwnedRedraw": (
-                        round(whole_draw_calls / whole["rendererOwnedRedraws"], 3)
+                        round(whole_draw_calls / whole_profile["rendererOwnedRedraws"], 3)
                         if isinstance(whole_draw_calls, (int, float))
-                        and whole.get("rendererOwnedRedraws", 0) > 0
+                        and whole_profile.get("rendererOwnedRedraws", 0) > 0
                         else None
                     ),
                 },
@@ -1102,7 +1110,7 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
                 {
                     "runtimeBefore": whole_runtime_before,
                     "runtimeAfter": whole_runtime_after,
-                    "runtimeDelta": whole.get("runtimeDelta"),
+                    "runtimeDelta": whole_runtime_delta,
                     "longTaskSupported": whole_probe.get("longTaskSupported") if whole_probe else False,
                     "longTaskCount": whole_probe.get("longTaskCount") if whole_probe else None,
                     "longTaskTotalMs": whole_probe.get("longTaskTotalMs") if whole_probe else None,
@@ -1146,11 +1154,13 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
                     "drawCalls": zoom_draw_calls,
                     "drawCallsByMethod": zoom_probe.get("drawCallsByMethod") if zoom_probe else None,
                     "wrappedMethods": zoom_probe.get("wrappedMethods") if zoom_probe else None,
-                    "ownedRedraws": zoomed.get("rendererOwnedRedraws"),
+                    "profileZoomApplied": profile_zoom_ok,
+                    "ownedRedraws": zoom_profile.get("rendererOwnedRedraws"),
+                    "profileSampleCount": zoom_profile.get("sampleCount"),
                     "drawCallsPerOwnedRedraw": (
-                        round(zoom_draw_calls / zoomed["rendererOwnedRedraws"], 3)
+                        round(zoom_draw_calls / zoom_profile["rendererOwnedRedraws"], 3)
                         if isinstance(zoom_draw_calls, (int, float))
-                        and zoomed.get("rendererOwnedRedraws", 0) > 0
+                        and zoom_profile.get("rendererOwnedRedraws", 0) > 0
                         else None
                     ),
                 },
@@ -1164,7 +1174,7 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
                 {
                     "runtimeBefore": zoom_runtime_before,
                     "runtimeAfter": zoom_runtime_after,
-                    "runtimeDelta": zoomed.get("runtimeDelta"),
+                    "runtimeDelta": zoom_runtime_delta,
                     "longTaskSupported": zoom_probe.get("longTaskSupported") if zoom_probe else False,
                     "longTaskCount": zoom_probe.get("longTaskCount") if zoom_probe else None,
                     "longTaskTotalMs": zoom_probe.get("longTaskTotalMs") if zoom_probe else None,
@@ -1237,9 +1247,7 @@ def main() -> int:
         cdp = new_page()
         cdp.call("Page.enable")
         cdp.call("Runtime.enable")
-        cdp.call("Performance.enable")
         cdp.call("Accessibility.enable")
-        install_browser_performance_probes(cdp)
         cdp.call("Page.navigate", {"url": TARGET_URL})
         time.sleep(1.2)
 
@@ -1282,7 +1290,8 @@ def main() -> int:
         "evidence_boundary": (
             "Headless browser evidence checks layout, accessibility plumbing, motion modes, "
             "input smoke, screenshots, representative renderer frame/redraw time, WebGL draw-call "
-            "counts, Chromium heap/DOM trends, and long-task/GC symptoms where exposed. The GPU "
+            "counts from a separate profiled redraw workload, Chromium heap/DOM trends, and "
+            "long-task/GC symptoms where exposed. The GPU "
             "record is explicitly a canvas/capability proxy, not measured VRAM. Human visible-browser "
             "review remains required for final aesthetic judgment; this run does not validate "
             "scientific correctness or simulator throughput."

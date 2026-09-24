@@ -54,6 +54,8 @@ export function planTimelineHistory(
  *
  * The component never reorders, summarizes, drops, focuses, or scrolls the
  * authoritative timeline. Opening/closing history is presentation state only.
+ * Event counts are visible context, not a live-announcement channel; authoritative
+ * causal event arrival is narrated by the dedicated CausalNarrationMount.
  */
 export function TimelineHistory({
   entries,
@@ -100,7 +102,7 @@ export function TimelineHistory({
           </div>
         </details>
       ) : (
-        <p className="timeline-history__count" aria-live="polite">
+        <p className="timeline-history__count">
           {entries.length} {entries.length === 1 ? "event" : "events"}
         </p>
       )}

@@ -1,4 +1,9 @@
 .sources-drawer {
+  position: fixed;
+  inset: 5.5rem 1rem 1rem auto;
+  z-index: 30;
+  width: min(34rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 6.5rem);
   display: grid;
   gap: 0.9rem;
   padding: 1rem;
@@ -9,6 +14,7 @@
     rgba(9, 21, 39, 0.97);
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.46);
   backdrop-filter: blur(22px);
+  overflow: auto;
   overscroll-behavior: contain;
 }
 

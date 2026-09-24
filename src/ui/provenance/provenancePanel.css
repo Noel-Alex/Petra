@@ -87,12 +87,20 @@
     linear-gradient(currentColor, currentColor) 80% 0 / 1px 100% no-repeat;
 }
 
-.provenance-badge[data-pattern="diagonal"] .provenance-badge__pattern,
-.provenance-badge[data-pattern="warning-stripe"] .provenance-badge__pattern {
+.provenance-badge[data-pattern="diagonal"] .provenance-badge__pattern {
   background: repeating-linear-gradient(
     135deg,
     transparent 0 2px,
     currentColor 2px 3px
+  );
+}
+
+.provenance-badge[data-pattern="warning-stripe"] .provenance-badge__pattern {
+  border-style: double;
+  background: repeating-linear-gradient(
+    45deg,
+    currentColor 0 2px,
+    transparent 2px 5px
   );
 }
 
@@ -155,6 +163,7 @@
 }
 
 .provenance-record__disclosures ul,
+.provenance-record__declared-sources ul,
 .provenance-record__problems ul,
 .provenance-assumptions ul {
   margin-bottom: 0;

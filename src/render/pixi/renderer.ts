@@ -1,6 +1,14 @@
 import { Application, Container, Graphics } from "pixi.js";
 import { petraVisualColor } from "../../design/visualTokens";
+import { resolvePetraVectorPrimitive } from "../../design/vectorPrimitives";
 import { gridCellCenter } from "../gridGeometry";
+import {
+  evaluateHyphalPathTransitionAtProgress,
+  fullyRevealHyphalPaths,
+  planHyphalPathTransition,
+  type HyphalPathDrawable,
+  type HyphalPathTransition,
+} from "../hyphalPathPresentation";
 import { sampleRepresentativeGlyphs } from "../lod";
 import { resolveLineageAppearance } from "../lineageAppearance";
 import {
@@ -13,6 +21,7 @@ import {
   resolveOverlayPresentation,
 } from "../overlayPresentation";
 import { resolveLineagePattern, type LineagePatternToken } from "../lineagePatterns";
+import { cubicBezierProgress } from "../motionMath";
 import {
   semanticZoomLevel,
   type CameraView,
@@ -64,6 +73,7 @@ import { createSemanticZoomLevelObserver } from "../semanticZoomObserver";
 import { wheelZoomFactor } from "./wheelZoom";
 import {
   advanceDishVisualTransition,
+  DEFAULT_DISH_VISUAL_MOTION,
   planDishVisualTransition,
   type DishDrawableState,
   type DishVisualState,
@@ -106,6 +116,8 @@ const DISH_RIM_COLOR = petraVisualColor("creamMuted");
 const DISH_HIGHLIGHT_COLOR = petraVisualColor("cream");
 const DISH_GLYPH_EDGE_COLOR = petraVisualColor("inkDeep");
 const DISH_ACCENT_COLOR = petraVisualColor("teal");
+const HYPHAL_PATH_COLOR = petraVisualColor("mint");
+const HYPHAL_PATH_PRIMITIVE = resolvePetraVectorPrimitive("hyphal-path");
 
 type ClientCoordinateEvent = Pick<MouseEvent, "clientX" | "clientY">;
 
@@ -134,10 +146,11 @@ export async function createPixiDishRenderer(
   const dataLayer = new Container();
   const fieldLayer = new Graphics();
   const densityLayer = new Graphics();
+  const hyphalLayer = new Graphics();
   const glyphLayer = new Graphics();
   const accentLayer = new Graphics();
 
-  dataLayer.addChild(fieldLayer, densityLayer, glyphLayer);
+  dataLayer.addChild(fieldLayer, densityLayer, hyphalLayer, glyphLayer);
   dataLayer.mask = dishInteriorMask;
   root.addChild(plateLayer, dishInteriorMask, dataLayer, accentLayer);
   app.stage.addChild(root);
@@ -146,6 +159,9 @@ export async function createPixiDishRenderer(
   let drawableState: DishDrawableState | null = null;
   let visualTransition: DishVisualTransition | null = null;
   let visualElapsedMs = 0;
+  let hyphalState: readonly HyphalPathDrawable[] = [];
+  let hyphalTransition: HyphalPathTransition | null = null;
+  let hyphalElapsedMs = 0;
   let overlayId = options.overlayId ?? null;
   let motion: RendererMotionMode = options.motion ?? "full";
   let cameraMotion = copyCameraMotionSpec(options.cameraMotion);
@@ -187,9 +203,40 @@ export async function createPixiDishRenderer(
       dishInteriorMask,
       fieldLayer,
       densityLayer,
+      hyphalLayer,
+      hyphalPaths: hyphalState,
       glyphLayer,
       accentLayer,
     });
+  };
+
+  const applyHyphalSnapshotUpdate = (
+    hasPreviousSnapshot: boolean,
+    nextSnapshot: DishRenderSnapshot,
+  ) => {
+    const targetPaths = nextSnapshot.hyphalPaths ?? [];
+    if (!hasPreviousSnapshot || motion !== "full") {
+      hyphalTransition = null;
+      hyphalElapsedMs = 0;
+      hyphalState = fullyRevealHyphalPaths(targetPaths);
+      return;
+    }
+
+    const plan = planHyphalPathTransition(hyphalState, targetPaths);
+    if (plan.kind === "interpolate") {
+      const initial = evaluateHyphalPathTransitionAtProgress(
+        plan.transition,
+        0,
+      );
+      hyphalState = initial.state;
+      hyphalTransition = initial.complete ? null : plan.transition;
+      hyphalElapsedMs = 0;
+      return;
+    }
+
+    hyphalTransition = null;
+    hyphalElapsedMs = 0;
+    hyphalState = fullyRevealHyphalPaths(targetPaths);
   };
 
   const applySnapshotOverlayUpdate = (
@@ -197,6 +244,7 @@ export async function createPixiDishRenderer(
     requestedOverlayId: string | null,
   ) => {
     const previousSnapshotId = snapshot?.snapshotId ?? null;
+    const hadPreviousSnapshot = snapshot !== null;
     const next = resolveSnapshotOverlayUpdate(
       { snapshot, overlayId },
       nextSnapshot,
@@ -209,6 +257,8 @@ export async function createPixiDishRenderer(
       render();
       return;
     }
+
+    applyHyphalSnapshotUpdate(hadPreviousSnapshot, next.snapshot);
 
     const from = drawableState;
     if (motion === "full" && from !== null) {
@@ -321,6 +371,30 @@ export async function createPixiDishRenderer(
       if (step.complete) {
         visualTransition = null;
         visualElapsedMs = 0;
+      }
+      changed = true;
+    }
+
+    if (hyphalTransition !== null) {
+      hyphalElapsedMs += app.ticker.deltaMS;
+      const durationMs = DEFAULT_DISH_VISUAL_MOTION.durationMs;
+      const progress =
+        durationMs === 0 ? 1 : Math.min(1, hyphalElapsedMs / durationMs);
+      const easedProgress =
+        progress === 1
+          ? 1
+          : cubicBezierProgress(
+              progress,
+              DEFAULT_DISH_VISUAL_MOTION.easing,
+            );
+      const step = evaluateHyphalPathTransitionAtProgress(
+        hyphalTransition,
+        easedProgress,
+      );
+      hyphalState = step.state;
+      if (step.complete) {
+        hyphalTransition = null;
+        hyphalElapsedMs = 0;
       }
       changed = true;
     }
@@ -531,6 +605,9 @@ export async function createPixiDishRenderer(
         visualTransition = null;
         visualElapsedMs = 0;
         drawableState = snapshot;
+        hyphalTransition = null;
+        hyphalElapsedMs = 0;
+        hyphalState = fullyRevealHyphalPaths(snapshot?.hyphalPaths ?? []);
       }
       render();
     },
@@ -582,6 +659,8 @@ function drawScene(args: {
   readonly dishInteriorMask: Graphics;
   readonly fieldLayer: Graphics;
   readonly densityLayer: Graphics;
+  readonly hyphalLayer: Graphics;
+  readonly hyphalPaths: readonly HyphalPathDrawable[];
   readonly glyphLayer: Graphics;
   readonly accentLayer: Graphics;
 }): void {
@@ -596,6 +675,8 @@ function drawScene(args: {
     dishInteriorMask,
     fieldLayer,
     densityLayer,
+    hyphalLayer,
+    hyphalPaths,
     glyphLayer,
     accentLayer,
   } = args;
@@ -615,6 +696,7 @@ function drawScene(args: {
     dishInteriorMask,
     fieldLayer,
     densityLayer,
+    hyphalLayer,
     glyphLayer,
     accentLayer,
   ]) {
@@ -662,6 +744,17 @@ function drawScene(args: {
       lineageDensityMaximum,
     );
   });
+
+  for (const hyphalPath of hyphalPaths) {
+    drawHyphalPath(
+      hyphalLayer,
+      hyphalPath,
+      camera,
+      centerX,
+      centerY,
+      dishSize,
+    );
+  }
 
   if (level !== "dish") {
     const glyphs = sampleRepresentativeGlyphs(snapshot, camera, level, {
@@ -839,6 +932,86 @@ function drawLineagePatternRings(
     graphics
       .circle(point.x, point.y, Math.max(1, radius * scale))
       .stroke({ color: LINEAGE_PATTERN_COLOR, alpha, width });
+  }
+}
+
+function drawHyphalPath(
+  graphics: Graphics,
+  drawable: HyphalPathDrawable,
+  camera: CameraView,
+  centerX: number,
+  centerY: number,
+  dishSize: number,
+): void {
+  if (
+    HYPHAL_PATH_PRIMITIVE.geometry.kind !== "path" ||
+    drawable.visibleLength <= 0
+  ) {
+    return;
+  }
+
+  const points = drawable.path.points;
+  const width = Math.max(
+    1.4,
+    Math.min(5.5, dishSize * 0.0045 * Math.sqrt(camera.zoom)),
+  );
+  let remaining = drawable.visibleLength;
+  const first = dishToScreen(
+    points[0]!.x,
+    points[0]!.y,
+    camera,
+    centerX,
+    centerY,
+    dishSize,
+  );
+  graphics.moveTo(first.x, first.y);
+
+  let lastVisible = first;
+  for (let index = 1; index < points.length; index += 1) {
+    if (remaining <= 0) break;
+    const previous = points[index - 1]!;
+    const current = points[index]!;
+    const segmentLength = Math.hypot(
+      current.x - previous.x,
+      current.y - previous.y,
+    );
+    const fraction = Math.min(1, remaining / segmentLength);
+    const visiblePoint = {
+      x: previous.x + (current.x - previous.x) * fraction,
+      y: previous.y + (current.y - previous.y) * fraction,
+    };
+    lastVisible = dishToScreen(
+      visiblePoint.x,
+      visiblePoint.y,
+      camera,
+      centerX,
+      centerY,
+      dishSize,
+    );
+    graphics.lineTo(lastVisible.x, lastVisible.y);
+    remaining -= segmentLength;
+    if (fraction < 1) break;
+  }
+
+  graphics.stroke({
+    color: HYPHAL_PATH_COLOR,
+    alpha: 0.86,
+    width,
+  });
+
+  if (
+    HYPHAL_PATH_PRIMITIVE.geometry.cap === "round" &&
+    HYPHAL_PATH_PRIMITIVE.geometry.join === "round"
+  ) {
+    const capRadius = width * 0.5;
+    graphics.circle(first.x, first.y, capRadius).fill({
+      color: HYPHAL_PATH_COLOR,
+      alpha: 0.86,
+    });
+    graphics.circle(lastVisible.x, lastVisible.y, capRadius).fill({
+      color: HYPHAL_PATH_COLOR,
+      alpha: 0.86,
+    });
   }
 }
 

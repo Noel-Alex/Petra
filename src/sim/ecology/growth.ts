@@ -60,6 +60,61 @@ function finiteNonNegative(name: string, value: number): void {
   if (!Number.isFinite(value) || value < 0) throw new Error(`${name} must be finite and non-negative`)
 }
 
+// Ecology channels are stored as Float32 values. Independent Float32 writes can
+// move a mathematically capacity-exact multi-lineage sum a few representation
+// units above the double-precision localCapacity value. This bound is numerical,
+// not biological slack: one full Float32 relative spacing per stored biomass
+// value, with the minimum positive Float32 subnormal covering values near zero.
+const FLOAT32_RELATIVE_SPACING = 2 ** -23
+const FLOAT32_MIN_SUBNORMAL = 2 ** -149
+
+function float32StorageTolerance(value: number): number {
+  return Math.max(
+    FLOAT32_MIN_SUBNORMAL,
+    Math.abs(value) * FLOAT32_RELATIVE_SPACING,
+  )
+}
+
+/**
+ * Fail closed when an in-mask cell is materially above local capacity.
+ *
+ * The tolerance only covers Float32 representation of the individual biomass
+ * channels. It scales with the actual stored values, so it cannot become a
+ * fixed biological allowance merely because localCapacity is large.
+ */
+export function assertLocalCapacityInvariant(
+  mask: ArrayLike<number>,
+  lineages: readonly ArrayLike<number>[],
+  localCapacity: number,
+  context = 'ecology state',
+): void {
+  if (!Number.isFinite(localCapacity) || localCapacity <= 0) {
+    throw new Error('localCapacity must be positive and finite')
+  }
+
+  for (let index = 0; index < mask.length; index += 1) {
+    if (mask[index] !== 1) continue
+
+    let localBiomass = 0
+    let representationTolerance = 0
+    for (const lineage of lineages) {
+      const amount = lineage[index]!
+      localBiomass += amount
+      representationTolerance += float32StorageTolerance(amount)
+    }
+
+    if (!Number.isFinite(localBiomass)) {
+      throw new Error(`${context} local biomass must be finite at cell ${index}`)
+    }
+    if (localBiomass > localCapacity + representationTolerance) {
+      throw new Error(
+        `${context} biomass exceeds localCapacity at cell ${index}: ` +
+          `${localBiomass} > ${localCapacity} (Float32 representation tolerance ${representationTolerance})`,
+      )
+    }
+  }
+}
+
 export function monod(resource: number, halfSaturation: number): number {
   finiteNonNegative('resource', resource)
   if (!Number.isFinite(halfSaturation) || halfSaturation <= 0) throw new Error('halfSaturation must be positive and finite')
@@ -155,6 +210,13 @@ function validate(
       finiteNonNegative('lineage biomass', state.lineages[lineageIndex]![index]!)
     }
   }
+
+  assertLocalCapacityInvariant(
+    state.mask,
+    state.lineages,
+    p.localCapacity,
+    'ecology state',
+  )
 }
 
 /**

@@ -10,6 +10,7 @@ Own Petra's accessible DOM/UI presentation language, motion policy, story transi
 - Prefer framework-neutral state/policy modules underneath React/Motion adapters so animation semantics survive library changes.
 - Playback pause/speed are scheduler state; speed changes how many authoritative ticks are requested, not the meaning of a tick.
 - Replay must reinitialize the same run identity and apply accepted commands in original order. Do not invent or interpolate authority events.
+- Seed controls consume the simulation-owned uint32 seed validator (`0..0xffffffff`) and must not define a looser UI-only numeric domain. Invalid wraparound aliases fail before an initialize request; future numeric inputs may mirror min/max/step for usability but HTML constraints are not authority.
 
 ## Motion language
 - Motion is categorized as **causal**, **spatial**, **navigational**, or **decorative**.

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { PROTOCOL_VERSION, createRunIdentity } from '../../src/sim/protocol'
+import {
+  MAX_SIMULATION_SEED,
+  PROTOCOL_VERSION,
+  createRunIdentity,
+} from '../../src/sim/protocol'
 import {
   createExperimentControlState,
   planExperimentControlAction,
@@ -81,6 +85,35 @@ describe('experiment control planning', () => {
       type: 'worker-requests',
       requests: [{ type: 'initialize', identity: { seed: 99 } }],
     })
+  })
+
+  it('accepts the maximum uint32 seed without canonicalizing it', () => {
+    const result = planExperimentControlAction(
+      createExperimentControlState(identity),
+      { type: 'set-seed', seed: MAX_SIMULATION_SEED },
+      idFactory(),
+    )
+
+    expect(result.state.identity.seed).toBe(MAX_SIMULATION_SEED)
+    expect(result.effect).toMatchObject({
+      type: 'worker-requests',
+      requests: [{
+        type: 'initialize',
+        identity: { seed: MAX_SIMULATION_SEED },
+      }],
+    })
+  })
+
+  it('rejects uint32 wraparound aliases before creating an initialize request', () => {
+    const state = createExperimentControlState(identity)
+
+    expect(() =>
+      planExperimentControlAction(
+        state,
+        { type: 'set-seed', seed: 0x1_0000_0001 },
+        idFactory(),
+      ),
+    ).toThrow(/unsigned 32-bit integer/)
   })
 })
 

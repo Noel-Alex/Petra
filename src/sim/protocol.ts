@@ -1,4 +1,7 @@
 import type { RngState } from './rng'
+import { assertSimulationSeed } from './seed'
+
+export { assertSimulationSeed, MAX_SIMULATION_SEED } from './seed'
 
 export const ENGINE_VERSION = 'petra-ts-core/0.1.0' as const
 export const PROTOCOL_VERSION = 2 as const
@@ -53,5 +56,6 @@ export type WorkerResponse =
   | { protocolVersion: typeof PROTOCOL_VERSION; type: 'error'; commandId?: string; message: string }
 
 export function createRunIdentity(input: Omit<RunIdentity, 'engineVersion' | 'protocolVersion'>): RunIdentity {
+  assertSimulationSeed(input.seed)
   return { engineVersion: ENGINE_VERSION, protocolVersion: PROTOCOL_VERSION, ...input }
 }

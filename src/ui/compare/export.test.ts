@@ -71,8 +71,14 @@ describe("counterfactual export manifest", () => {
   });
 
   it("deep-copies branch origin and command identity from mutable callers", () => {
-    const mutableOrigin = { ...origin };
-    const mutableCommands = ["dose-1"];
+    const mutableOrigin = {
+      sourceRunId: String(origin.sourceRunId),
+      checkpointTraceHash: String(origin.checkpointTraceHash),
+      tick: origin.tick,
+      simulationTimeHours: origin.simulationTimeHours,
+      commandCount: origin.commandCount,
+    };
+    const mutableCommands: string[] = ["dose-1"];
     const left: CounterfactualBranch = {
       branchId: "left",
       label: "Control",

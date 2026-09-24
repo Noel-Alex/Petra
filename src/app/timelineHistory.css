@@ -14,9 +14,9 @@
 
 .timeline-history {
   min-width: 0;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid rgb(var(--petra-rgb-cream-muted) / 0.1);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.025);
+  background: rgb(var(--petra-rgb-cream) / 0.025);
 }
 
 .timeline-history > summary {
@@ -27,7 +27,7 @@
   min-height: 2.75rem;
   padding: 0.48rem 0.62rem;
   border-radius: inherit;
-  color: #c8d4e4;
+  color: var(--petra-color-cream);
   cursor: pointer;
   font-size: 0.75rem;
   font-weight: 700;
@@ -35,7 +35,7 @@
 }
 
 .timeline-history > summary:hover {
-  background: rgba(143, 220, 255, 0.045);
+  background: rgb(var(--petra-rgb-teal) / 0.07);
 }
 
 .timeline-history > summary:focus-visible,
@@ -46,14 +46,14 @@
 }
 
 .timeline-history[open] > summary {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid rgb(var(--petra-rgb-cream-muted) / 0.1);
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
 
 .timeline-history__count {
   margin: 0;
-  color: #8d9bae;
+  color: rgb(var(--petra-rgb-cream-muted) / 0.7);
   font-size: 0.75rem;
   font-weight: 500;
   line-height: 1.35;
@@ -81,8 +81,8 @@
   align-items: start;
   padding: 0.52rem 0.58rem;
   border-radius: 9px;
-  background: rgba(255, 255, 255, 0.025);
-  color: #bdc8d8;
+  background: rgb(var(--petra-rgb-cream) / 0.025);
+  color: rgb(var(--petra-rgb-cream-muted) / 0.9);
   font-size: 0.75rem;
 }
 
@@ -97,7 +97,7 @@
 }
 
 .timeline-history__event-copy small {
-  color: #8391a5;
+  color: rgb(var(--petra-rgb-cream-muted) / 0.62);
   font-size: 0.75rem;
   line-height: 1.35;
   overflow-wrap: anywhere;
@@ -105,7 +105,7 @@
 
 .timeline-history__time {
   flex: 0 0 auto;
-  color: #8998ad;
+  color: rgb(var(--petra-rgb-cream-muted) / 0.68);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }

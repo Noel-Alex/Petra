@@ -14,6 +14,8 @@ Own framework-neutral presentation of authoritative scientific/source provenance
 - Malformed nested provenance must fail visibly; adapters must not fall back to a convenient top-level classification or source guess.
 - `ProvenancePanel.tsx` may display authoritative declared sources even when classification is incomplete, but it must not convert those sources into an evidence badge.
 - Shared icon geometry comes from `src/ui/icons/spec.ts` via the thin `PetraIcon.tsx` adapter; provenance components must not invent a second icon vocabulary.
+- Actionable external source links may be projected only from explicit authoritative citation locators. DOI fields resolve through `https://doi.org/<doi>`; explicit `http://`/`https://` citation URLs may be linked directly. Never synthesize a URL from source title, citation key, evidence class, confidence, or paper count.
+- Unsupported/unsafe citation URL schemes remain visible as non-actionable locator text and a provenance problem; presentation code must never emit them as `href` values. External source links open separately so evidence drill-down does not replace the running expo surface.
 
 ## Accessibility
 - Critical evidence meaning uses text labels plus icon and **visibly distinct** non-color pattern tokens; `data-pattern` metadata alone is not sufficient without a rendered pattern treatment.

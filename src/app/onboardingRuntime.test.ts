@@ -50,6 +50,7 @@ function runtimeState(
         };
 
   return {
+    runBranchIdentity: `onboarding-test-${seed}/0`,
     controls: createExperimentControlState(identity),
     worker: {
       phase: snapshot === null ? "initializing" : "ready",

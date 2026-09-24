@@ -15,6 +15,10 @@ import {
 } from './advanceExecutionPolicy'
 import { assertComposedParameterSetBinding } from './parameterSetBinding'
 import { assertReplayCompatibility } from './replayCompatibility'
+import {
+  simulationSnapshotTraceHash,
+  stableSnapshotStringify,
+} from './snapshotTrace'
 import type {
   ComposedSimulationCheckpoint,
   ComposedSimulationSnapshot,
@@ -33,27 +37,6 @@ function finiteNonNegative(name: string, value: number): void {
 function numbersAgree(a: number, b: number): boolean {
   if (Object.is(a, b)) return true
   return Math.abs(a - b) <= 1e-12 * Math.max(1, Math.abs(a), Math.abs(b))
-}
-
-function stableStringify(value: unknown): string {
-  if (value === null || typeof value !== 'object') return JSON.stringify(value)
-  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`
-  const object = value as Record<string, unknown>
-  return `{${Object.keys(object)
-    .sort()
-    .map((key) => `${JSON.stringify(key)}:${stableStringify(object[key])}`)
-    .join(',')}}`
-}
-
-/** FNV-1a regression identity. It is deterministic, not cryptographic. */
-function traceHash(value: unknown): string {
-  const text = stableStringify(value)
-  let hash = 0x811c9dc5
-  for (let index = 0; index < text.length; index += 1) {
-    hash ^= text.charCodeAt(index)
-    hash = Math.imul(hash, 0x01000193) >>> 0
-  }
-  return hash.toString(16).padStart(8, '0')
 }
 
 function cloneMetrics(metrics: ComposedMetrics): ComposedMetrics {
@@ -136,7 +119,7 @@ function validateMetrics(
 
   const stateIds = [...state.lineageIds].sort()
   const metricIds = Object.keys(metrics.lineageBiomass).sort()
-  if (stableStringify(stateIds) !== stableStringify(metricIds)) {
+  if (stableSnapshotStringify(stateIds) !== stableSnapshotStringify(metricIds)) {
     throw new Error('checkpoint metrics lineage identity does not match composed state')
   }
   for (const id of stateIds) {
@@ -285,7 +268,7 @@ export class ComposedSimulationEngine {
     return {
       checkpoint,
       events,
-      traceHash: traceHash({ checkpoint, events }),
+      traceHash: simulationSnapshotTraceHash({ checkpoint, events }),
     }
   }
 

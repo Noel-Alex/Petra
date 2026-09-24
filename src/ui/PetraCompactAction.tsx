@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useState,
   type ButtonHTMLAttributes,
   type CSSProperties,
@@ -7,6 +8,7 @@ import {
 
 import {
   beginActionPointerPress,
+  clearActionPointerState,
   createActionInteractionState,
   resolveActionMicroInteractionState,
   updateActionInteractionState,
@@ -42,6 +44,11 @@ export function PetraCompactAction({
   ...buttonProps
 }: PetraCompactActionProps): ReactElement {
   const [interaction, setInteraction] = useState(createActionInteractionState);
+
+  useEffect(() => {
+    if (!disabled) return;
+    setInteraction(clearActionPointerState);
+  }, [disabled]);
 
   const isSelected = selected === true;
   const semanticState = resolveActionMicroInteractionState({
@@ -91,11 +98,9 @@ export function PetraCompactAction({
         onPointerDown?.(event);
       }}
       onPointerUp={(event) => {
-        if (!disabled) {
-          setInteraction((current) =>
-            updateActionInteractionState(current, "pointer-up"),
-          );
-        }
+        setInteraction((current) =>
+          updateActionInteractionState(current, "pointer-up"),
+        );
         onPointerUp?.(event);
       }}
       onPointerCancel={(event) => {

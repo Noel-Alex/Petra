@@ -40,6 +40,7 @@ import {
 } from "./dishKeyboard";
 import { resolveDishCameraMotion } from "./dishCameraMotion";
 import { resolveDishVisualMotion } from "./dishVisualMotion";
+import { resolveDishHyphalMotion } from "./dishHyphalMotion";
 
 export interface DishViewportProps {
   readonly motion: RendererMotionMode;
@@ -118,6 +119,10 @@ export function DishViewport({
   const cameraPlan = resolveDishCameraMotion(motion);
   const visualPlan = useMemo(
     () => resolveDishVisualMotion(motion),
+    [motion],
+  );
+  const hyphalPlan = useMemo(
+    () => resolveDishHyphalMotion(motion),
     [motion],
   );
   const overlayMotion = useMemo(
@@ -211,6 +216,7 @@ export function DishViewport({
           motion={cameraPlan.mode}
           cameraMotion={cameraPlan.cameraMotion}
           visualMotion={visualPlan.visualMotion}
+          hyphalMotion={hyphalPlan.motion}
           overlayId={resolvedOverlayId}
           resetCameraSignal={cameraResetSignal}
           onSemanticZoomLevelChange={handleSemanticZoomLevelChange}

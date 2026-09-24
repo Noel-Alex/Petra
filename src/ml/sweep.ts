@@ -20,6 +20,55 @@ export interface SweepInterventionFamily {
   readonly fingerprint: string;
 }
 
+export interface SplitCoveragePolicy {
+  readonly version: string;
+  readonly requiredSplits: readonly DatasetSplit[];
+  readonly minimumGroupsPerSplit: number;
+}
+
+export const DEFAULT_SPLIT_COVERAGE_POLICY: SplitCoveragePolicy = Object.freeze({
+  version: "held-out-group-coverage-v1",
+  requiredSplits: Object.freeze(["train", "validation", "test"] as const),
+  minimumGroupsPerSplit: 1,
+});
+
+export interface SplitCoverageGap {
+  readonly split: DatasetSplit;
+  readonly requiredGroups: number;
+  readonly observedGroups: number;
+  readonly observedTrajectories: number;
+}
+
+export class SweepSplitCoverageError extends RangeError {
+  readonly code = "insufficient-split-coverage";
+  readonly policyVersion: string;
+  readonly gaps: readonly SplitCoverageGap[];
+  readonly groupCounts: Readonly<Record<DatasetSplit, number>>;
+  readonly trajectoryCounts: Readonly<Record<DatasetSplit, number>>;
+
+  constructor(args: {
+    readonly policyVersion: string;
+    readonly gaps: readonly SplitCoverageGap[];
+    readonly groupCounts: Readonly<Record<DatasetSplit, number>>;
+    readonly trajectoryCounts: Readonly<Record<DatasetSplit, number>>;
+  }) {
+    const summary = args.gaps
+      .map(
+        (gap) =>
+          `${gap.split}: ${gap.observedGroups}/${gap.requiredGroups} groups (${gap.observedTrajectories} trajectories)`,
+      )
+      .join(", ");
+    super(
+      `mechanistic sweep refused by split coverage policy ${args.policyVersion}: ${summary}. Enlarge or change the declared sweep, or use a separately versioned split/coverage policy; do not move individual seeds or frames between splits.`,
+    );
+    this.name = "SweepSplitCoverageError";
+    this.policyVersion = args.policyVersion;
+    this.gaps = Object.freeze([...args.gaps]);
+    this.groupCounts = Object.freeze({ ...args.groupCounts });
+    this.trajectoryCounts = Object.freeze({ ...args.trajectoryCounts });
+  }
+}
+
 export interface MechanisticSweepDefinition {
   readonly planVersion: string;
   readonly datasetVersion: string;
@@ -32,6 +81,7 @@ export interface MechanisticSweepDefinition {
   readonly seeds: readonly string[];
   readonly maxTrajectories: number;
   readonly splitPolicy?: SplitPolicy;
+  readonly splitCoveragePolicy?: SplitCoveragePolicy;
 }
 
 export interface MechanisticSweepTask {
@@ -54,8 +104,11 @@ export interface MechanisticSweepPlan {
   readonly scenarioVersion: string;
   readonly normalizationProfileId: string;
   readonly splitPolicy: SplitPolicy;
+  readonly splitCoveragePolicy: SplitCoveragePolicy;
   readonly groupCount: number;
   readonly trajectoryCount: number;
+  readonly splitGroupCounts: Readonly<Record<DatasetSplit, number>>;
+  readonly splitTrajectoryCounts: Readonly<Record<DatasetSplit, number>>;
   readonly tasks: readonly MechanisticSweepTask[];
 }
 
@@ -70,7 +123,7 @@ export interface SweepManifestTrajectory {
 }
 
 export interface MechanisticSweepManifest {
-  readonly schemaVersion: "petra-ml-sweep-manifest-v1";
+  readonly schemaVersion: "petra-ml-sweep-manifest-v2";
   readonly planVersion: string;
   readonly datasetVersion: string;
   readonly engineVersion: string;
@@ -78,8 +131,10 @@ export interface MechanisticSweepManifest {
   readonly scenarioVersion: string;
   readonly normalizationProfileId: string;
   readonly splitPolicyVersion: string;
+  readonly splitCoveragePolicyVersion: string;
   readonly groupCount: number;
   readonly trajectoryCount: number;
+  readonly splitGroupCounts: Readonly<Record<DatasetSplit, number>>;
   readonly splitCounts: Readonly<Record<DatasetSplit, number>>;
   readonly trajectories: readonly SweepManifestTrajectory[];
 }
@@ -97,7 +152,10 @@ export function planMechanisticSweep(
 ): MechanisticSweepPlan {
   validateSweepDefinition(definition);
   const splitPolicy = definition.splitPolicy ?? DEFAULT_SPLIT_POLICY;
+  const splitCoveragePolicy =
+    definition.splitCoveragePolicy ?? DEFAULT_SPLIT_COVERAGE_POLICY;
   validateSplitPolicy(splitPolicy);
+  validateSplitCoveragePolicy(splitCoveragePolicy);
 
   const groupCount =
     definition.parameterPoints.length * definition.interventionFamilies.length;
@@ -112,7 +170,15 @@ export function planMechanisticSweep(
     );
   }
 
-  const tasks: MechanisticSweepTask[] = [];
+  const splitGroupCounts = emptySplitCounts();
+  const splitTrajectoryCounts = emptySplitCounts();
+  const groups: Array<{
+    readonly parameterPoint: SweepParameterPoint;
+    readonly interventionFamily: SweepInterventionFamily;
+    readonly group: DatasetGroupIdentity;
+    readonly split: DatasetSplit;
+    readonly groupKey: string;
+  }> = [];
 
   for (const parameterPoint of definition.parameterPoints) {
     for (const interventionFamily of definition.interventionFamilies) {
@@ -125,27 +191,49 @@ export function planMechanisticSweep(
       };
       const split = assignDatasetSplit(group, splitPolicy);
       const groupKey = splitGroupKey(group);
+      splitGroupCounts[split] += 1;
+      splitTrajectoryCounts[split] += definition.seeds.length;
+      groups.push({
+        parameterPoint,
+        interventionFamily,
+        group,
+        split,
+        groupKey,
+      });
+    }
+  }
 
-      for (const seed of definition.seeds) {
-        const trajectory: TrajectoryIdentity = {
-          group,
-          seed,
-          interventionFingerprint: interventionFamily.fingerprint,
-        };
-        const key = trajectoryKey(trajectory);
+  enforceSplitCoverage({
+    policy: splitCoveragePolicy,
+    groupCounts: splitGroupCounts,
+    trajectoryCounts: splitTrajectoryCounts,
+  });
 
-        tasks.push({
-          taskId: stableTaskId(definition.planVersion, key),
-          datasetVersion: definition.datasetVersion,
-          normalizationProfileId: definition.normalizationProfileId,
-          parameterPointId: parameterPoint.id,
-          interventionFamilyId: interventionFamily.id,
-          split,
-          trajectory,
-          splitGroupKey: groupKey,
-          trajectoryKey: key,
-        });
-      }
+  const tasks: MechanisticSweepTask[] = [];
+
+  for (const plannedGroup of groups) {
+    const { parameterPoint, interventionFamily, group, split, groupKey } =
+      plannedGroup;
+
+    for (const seed of definition.seeds) {
+      const trajectory: TrajectoryIdentity = {
+        group,
+        seed,
+        interventionFingerprint: interventionFamily.fingerprint,
+      };
+      const key = trajectoryKey(trajectory);
+
+      tasks.push({
+        taskId: stableTaskId(definition.planVersion, key),
+        datasetVersion: definition.datasetVersion,
+        normalizationProfileId: definition.normalizationProfileId,
+        parameterPointId: parameterPoint.id,
+        interventionFamilyId: interventionFamily.id,
+        split,
+        trajectory,
+        splitGroupKey: groupKey,
+        trajectoryKey: key,
+      });
     }
   }
 
@@ -157,8 +245,11 @@ export function planMechanisticSweep(
     scenarioVersion: definition.scenarioVersion,
     normalizationProfileId: definition.normalizationProfileId,
     splitPolicy,
+    splitCoveragePolicy,
     groupCount,
     trajectoryCount,
+    splitGroupCounts: Object.freeze({ ...splitGroupCounts }),
+    splitTrajectoryCounts: Object.freeze({ ...splitTrajectoryCounts }),
     tasks,
   };
 }
@@ -166,18 +257,10 @@ export function planMechanisticSweep(
 export function buildMechanisticSweepManifest(
   plan: MechanisticSweepPlan,
 ): MechanisticSweepManifest {
-  const splitCounts: Record<DatasetSplit, number> = {
-    train: 0,
-    validation: 0,
-    test: 0,
-  };
-
-  for (const task of plan.tasks) {
-    splitCounts[task.split] += 1;
-  }
+  const splitCounts = { ...plan.splitTrajectoryCounts };
 
   return {
-    schemaVersion: "petra-ml-sweep-manifest-v1",
+    schemaVersion: "petra-ml-sweep-manifest-v2",
     planVersion: plan.planVersion,
     datasetVersion: plan.datasetVersion,
     engineVersion: plan.engineVersion,
@@ -185,8 +268,10 @@ export function buildMechanisticSweepManifest(
     scenarioVersion: plan.scenarioVersion,
     normalizationProfileId: plan.normalizationProfileId,
     splitPolicyVersion: plan.splitPolicy.version,
+    splitCoveragePolicyVersion: plan.splitCoveragePolicy.version,
     groupCount: plan.groupCount,
     trajectoryCount: plan.trajectoryCount,
+    splitGroupCounts: { ...plan.splitGroupCounts },
     splitCounts,
     trajectories: plan.tasks.map((task) => ({
       taskId: task.taskId,
@@ -197,6 +282,70 @@ export function buildMechanisticSweepManifest(
       splitGroupKey: task.splitGroupKey,
       trajectoryKey: task.trajectoryKey,
     })),
+  };
+}
+
+export function validateSplitCoveragePolicy(
+  policy: SplitCoveragePolicy,
+): void {
+  requireNonEmpty("split coverage policy version", policy.version);
+  if (
+    !Number.isSafeInteger(policy.minimumGroupsPerSplit) ||
+    policy.minimumGroupsPerSplit < 1
+  ) {
+    throw new RangeError(
+      "split coverage minimumGroupsPerSplit must be a positive safe integer",
+    );
+  }
+  if (policy.requiredSplits.length === 0) {
+    throw new RangeError("split coverage policy requires at least one split");
+  }
+
+  const seen = new Set<DatasetSplit>();
+  for (const split of policy.requiredSplits) {
+    if (split !== "train" && split !== "validation" && split !== "test") {
+      throw new RangeError(`unknown required dataset split: ${String(split)}`);
+    }
+    if (seen.has(split)) {
+      throw new RangeError(`duplicate required dataset split: ${split}`);
+    }
+    seen.add(split);
+  }
+}
+
+function enforceSplitCoverage(args: {
+  readonly policy: SplitCoveragePolicy;
+  readonly groupCounts: Readonly<Record<DatasetSplit, number>>;
+  readonly trajectoryCounts: Readonly<Record<DatasetSplit, number>>;
+}): void {
+  const gaps: SplitCoverageGap[] = [];
+  for (const split of args.policy.requiredSplits) {
+    const observedGroups = args.groupCounts[split];
+    if (observedGroups < args.policy.minimumGroupsPerSplit) {
+      gaps.push({
+        split,
+        requiredGroups: args.policy.minimumGroupsPerSplit,
+        observedGroups,
+        observedTrajectories: args.trajectoryCounts[split],
+      });
+    }
+  }
+
+  if (gaps.length > 0) {
+    throw new SweepSplitCoverageError({
+      policyVersion: args.policy.version,
+      gaps,
+      groupCounts: args.groupCounts,
+      trajectoryCounts: args.trajectoryCounts,
+    });
+  }
+}
+
+function emptySplitCounts(): Record<DatasetSplit, number> {
+  return {
+    train: 0,
+    validation: 0,
+    test: 0,
   };
 }
 

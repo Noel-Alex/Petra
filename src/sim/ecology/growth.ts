@@ -99,6 +99,11 @@ export function assertLocalCapacityInvariant(
     let representationTolerance = 0
     for (const lineage of lineages) {
       const amount = lineage[index]!
+      if (!Number.isFinite(amount) || amount < 0) {
+        throw new Error(
+          `${context} lineage biomass must be finite and non-negative at cell ${index}`,
+        )
+      }
       localBiomass += amount
       representationTolerance += float32StorageTolerance(amount)
     }

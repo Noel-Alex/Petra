@@ -129,6 +129,11 @@ describe('CircularScalarField', () => {
 
     expect(() => field.diffuse(1e15, 10)).toThrow(/safe integer/)
     expect(field.values).toEqual(before)
+
+    expect(() => field.diffuse(Number.MAX_VALUE, 1)).toThrow(
+      /non-representable stable substep interval/,
+    )
+    expect(field.values).toEqual(before)
   })
 
   it('preserves reflection symmetry for a centered impulse', () => {

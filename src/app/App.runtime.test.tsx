@@ -29,6 +29,10 @@ describe("App authoritative runtime boundary", () => {
     expect(html).toContain('aria-keyshortcuts="1"');
     expect(html).toContain('aria-keyshortcuts="2"');
     expect(html).toContain('aria-keyshortcuts="3"');
+    expect(html).toContain('aria-keyshortcuts="."');
+    expect(html).toContain('aria-label="Run controls"');
+    expect(html).toContain("Seed —");
+    expect(html).toContain("New seed run");
   });
 
   it("checks runtime availability before dispatching global shortcuts", () => {
@@ -37,7 +41,8 @@ describe("App authoritative runtime boundary", () => {
 
     expect(gateIndex).toBeGreaterThan(-1);
     expect(dispatchIndex).toBeGreaterThan(gateIndex);
-    expect(appSource).toContain('canStep: experiment.view.status === "ready"');
+    expect(appSource).toContain('canStep: experiment.view.runControls.canStep');
+    expect(appSource).toContain("<ExperimentRunControls");
   });
 
 });

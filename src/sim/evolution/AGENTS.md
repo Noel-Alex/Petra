@@ -6,7 +6,7 @@
 ## Mutation opportunity boundary
 - `sampleDivisionMutations(divisions, targets, rng)` consumes a **non-negative safe-integer count of reviewed discrete division/event opportunities**.
 - `src/sim/ecology/**` currently reports `divisionBiomass` as continuous aggregate flux. It is not an integer birth count and must never be rounded, scaled, or passed directly into the exact mutation sampler.
-- The continuous-biomass → discrete-event bridge is intentionally unresolved until #5/#37 land an implementation and validation contract. Do not choose a convenience conversion inside composition code.
+- `../populationAuthority.ts` is the reviewed shared continuous-biomass → discrete-event bridge. Mutation composition consumes its non-negative safe-integer per-lineage/per-cell division opportunities; it must never independently round/scale `divisionBiomass`. Fractional division supply is carried explicitly in replay-critical residual state.
 - Mutation targets/probabilities are scenario + provenance inputs. The current mutation sampler has no antibiotic/selective-pressure input.
 - Antibiotic may change survival, growth, or lineage frequency through sourced mechanisms; it must not directly raise mutation probability unless a separately researched mechanism is intentionally introduced and versioned.
 
@@ -54,6 +54,6 @@ Deterministic tests for this subtree should cover zero opportunities, probabilit
 Any accelerated sampler additionally requires many-seed distribution comparison against the exact bounded reference path.
 
 ## Coordination
-- #5 owns mutation/evolution semantics and the reviewed discrete-event bridge.
+- #5 owns mutation/evolution semantics and consumes the shared discrete-event authority from #562 / `../populationAuthority.ts`.
 - #37 must consume this contract when authoritative composition connects ecology to evolution.
 - Renderer/UI work consumes emitted lineage state/events only.

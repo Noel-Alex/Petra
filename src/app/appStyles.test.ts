@@ -7,6 +7,8 @@ import { describe, expect, it } from "vitest";
 import appCss from "./app.css?raw";
 // @ts-expect-error Vite raw asset import is runtime-supported but not declared in tsconfig types.
 import timelineHistoryCss from "./timelineHistory.css?raw";
+// @ts-expect-error Vite raw asset import is runtime-supported but not declared in tsconfig types.
+import analysisSurfaceCss from "./analysisSurface.css?raw";
 
 const appSource = readFileSync(fileURLToPath(new URL("./App.tsx", import.meta.url)), "utf8");
 
@@ -124,5 +126,46 @@ describe("localized placement motion authority", () => {
     expect(appCss).toContain("@keyframes petra-placement-target-reveal");
     expect(appCss).not.toContain("petra-placement-ring-drift");
     expect(appCss).not.toContain("4.8s linear infinite");
+  });
+});
+
+describe("Analysis shell shared visual theme", () => {
+  it("derives stable wrapper chrome from Petra visual tokens without a local palette", () => {
+    expect(analysisSurfaceCss).toContain(
+      "rgb(var(--petra-rgb-ink-deep) / 0.78)",
+    );
+    expect(analysisSurfaceCss).toContain(
+      "rgb(var(--petra-rgb-cream-muted) / 0.16)",
+    );
+    expect(analysisSurfaceCss).toContain("var(--petra-color-cream-muted)");
+    expect(analysisSurfaceCss).toContain(
+      "rgb(var(--petra-rgb-teal) / 0.08)",
+    );
+    expect(analysisSurfaceCss).not.toMatch(/\brgba?\(\s*\d/);
+    expect(analysisSurfaceCss).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+  });
+
+  it("preserves native disclosure touch and keyboard-focus geometry", () => {
+    const summary = ruleBody(
+      ".analysis-surface--available > summary",
+      analysisSurfaceCss,
+    );
+    const focus = ruleBody(
+      ".analysis-surface--available > summary:focus-visible",
+      analysisSurfaceCss,
+    );
+    const panel = ruleBody(
+      ".analysis-surface--available .analysis-panel",
+      analysisSurfaceCss,
+    );
+
+    expect(summary).toContain("min-height: 4.25rem;");
+    expect(summary).toContain("cursor: pointer;");
+    expect(focus).toContain("outline: 3px solid var(--petra-focus-ring);");
+    expect(focus).toContain("outline-offset: 3px;");
+    expect(panel).toContain("border: 0;");
+    expect(panel).toContain("border-radius: 0 0 20px 20px;");
+    expect(analysisSurfaceCss).not.toContain("transition:");
+    expect(analysisSurfaceCss).not.toContain("animation:");
   });
 });

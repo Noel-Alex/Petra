@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { COMPOSED_PARAMETER_SET_BINDING_SCHEMA_VERSION } from "../../sim/parameterSetBinding";
 import type { CounterfactualBranch } from "../counterfactual";
 import {
   createCounterfactualExportManifest,
@@ -17,11 +18,18 @@ const origin = {
 
 const replayContext = {
   engineVersion: "petra-ts-core/0.1.0",
-  protocolVersion: 1,
+  protocolVersion: 4,
   scenarioId: "flagship",
   scenarioVersion: "1",
   parameterSetId: "flagship-parameters",
   parameterSetVersion: "1",
+  parameterSetBinding: {
+    schemaVersion: COMPOSED_PARAMETER_SET_BINDING_SCHEMA_VERSION,
+    authority: "provenance",
+    parameterSetId: "flagship-parameters",
+    parameterSetVersion: "1",
+    configurationFingerprint: "composed-config-fingerprint-v1",
+  },
 } as const;
 
 function branch(
@@ -53,6 +61,9 @@ describe("counterfactual export manifest", () => {
     });
     expect(manifest.branches.right.interventionCommandIds).toEqual(["dose-2"]);
     expect(manifest.replayContext).toEqual(replayContext);
+    expect(manifest.replayContext.parameterSetBinding?.configurationFingerprint).toBe(
+      "composed-config-fingerprint-v1",
+    );
     expect(manifest.capabilities).toEqual({
       checkpointPayloadIncluded: false,
       commandPayloadsIncluded: false,
@@ -137,6 +148,22 @@ describe("counterfactual export manifest", () => {
     expect(() => validateCounterfactualExportManifest(tampered)).toThrow(
       /does not match branch metadata/,
     );
+  });
+
+  it("rejects replay metadata that relabels a bound parameter set", () => {
+    expect(() =>
+      createCounterfactualExportManifest({
+        left: branch("left", 42, []),
+        right: branch("right", 42, []),
+        replayContext: {
+          ...replayContext,
+          parameterSetBinding: {
+            ...replayContext.parameterSetBinding,
+            parameterSetId: "other-parameters",
+          },
+        },
+      }),
+    ).toThrow(/must match parameterSetId/);
   });
 
   it("rejects incomplete replay provenance instead of inventing versions", () => {

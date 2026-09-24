@@ -47,6 +47,27 @@ The adsorption constant has volume/time units. It only becomes an infection haza
 
 A simulation implementation therefore needs an explicit population/concentration unit bridge before this measured adsorption constant can become Science-Mode authority.
 
+### Adsorption to productive infection
+
+The Nabergoj adsorption assay estimates adsorption from loss of free phage after adding T4 to MG1655. Its protocol then kills bacterial cells (thereby removing infected cells) before free-phage titration. That directly supports an adsorption constant, but it does **not** estimate the probability that one adsorbed PFU produces a productive infected host.
+
+A targeted review for #491 did not identify a compatible productive-entry efficiency measurement for the exact T4 DSM 4505 / MG1655 DSM 18039 calibration pair. Petra must therefore not invent or relabel such a probability as measured.
+
+For the first executable phage composition, Petra adopts one deliberately narrow **mechanistic approximation**:
+
+- adsorption is resolved against the authoritative pre-step susceptible-host pool;
+- the caller supplies an authoritative **discrete safe-integer** susceptible-host opportunity count; renderer glyphs and continuous biomass/cell-equivalents are not rounded into host counts here;
+- each adsorbed PFU is assigned to one distinct susceptible host until that discrete pool is exhausted;
+- therefore `productiveInfections = min(adsorbedPfu, susceptibleHostOpportunities)`;
+- adsorption beyond that bound is non-productive for infection bookkeeping;
+- an already infected host cannot create a second latent cohort under this policy; superinfection has no productive effect;
+- lysis from without and other high-MOI mechanisms remain OFF until separately sourced;
+- the complete policy identity is replay/configuration-critical once enabled in composed checkpoints.
+
+This is a **single-hit unique-host closure**, not a measured infection-efficiency law. It is intentionally optimistic about unique-host assignment at high multiplicity because it does not sample phage-to-host occupancy collisions. General lytic-phage models sometimes make the same style of one-infection-per-cell/all-adsorbed-phage-productively-infect assumption explicitly (for example Mudgal et al. 2006, DOI `10.1128/AEM.02429-05`); that paper is modeling precedent, **not** T4/MG1655 parameter evidence. If compatible target-pair entry-efficiency or multiplicity data are later enabled, they require a new versioned policy rather than silently changing this one.
+
+**#491 research flag: OFF.** The evidence question needed for this bounded policy is resolved; broad phage research should not continue unless a new concrete mechanism requires it.
+
 ## Host-state dependence
 
 The selected source directly shows strong host-growth dependence:

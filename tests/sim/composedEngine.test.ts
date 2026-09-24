@@ -2,8 +2,15 @@ import { describe, expect, it } from 'vitest'
 import {
   ComposedSimulationEngine,
 } from '../../src/sim/composedEngine'
-import type { ComposedSimulationConfig } from '../../src/sim/authoritative'
+import {
+  composedConfigurationFingerprint,
+  type ComposedSimulationConfig,
+} from '../../src/sim/authoritative'
 import type { CuratedMutationGraph } from '../../src/sim/evolution/graph'
+import {
+  COMPOSED_PARAMETER_SET_BINDING_SCHEMA_VERSION,
+  createFixtureComposedParameterSetBinding,
+} from '../../src/sim/parameterSetBinding'
 import { createRunIdentity } from '../../src/sim/protocol'
 
 const evolutionGraph: CuratedMutationGraph = {
@@ -16,13 +23,8 @@ const evolutionGraph: CuratedMutationGraph = {
   transitions: [],
 }
 
-const identity = createRunIdentity({
-  scenarioId: 'composed-worker-fixture',
-  scenarioVersion: '1',
-  parameterSetId: 'explicit-test-config',
-  parameterSetVersion: '1',
-  seed: 0x5eed1234,
-})
+const parameterSetId = 'fixture:explicit-test-config'
+const parameterSetVersion = '1'
 
 const config: ComposedSimulationConfig = {
   width: 2,
@@ -49,7 +51,81 @@ const config: ComposedSimulationConfig = {
   hoursPerTick: 0.01,
 }
 
+const identity = createRunIdentity({
+  scenarioId: 'composed-worker-fixture',
+  scenarioVersion: '1',
+  parameterSetId,
+  parameterSetVersion,
+  parameterSetBinding: createFixtureComposedParameterSetBinding(
+    parameterSetId,
+    parameterSetVersion,
+    config,
+  ),
+  seed: 0x5eed1234,
+})
+
 describe('ComposedSimulationEngine', () => {
+  it('requires the declared parameter set to own the exact composed config', () => {
+    const unbound = createRunIdentity({
+      scenarioId: 'composed-worker-fixture',
+      scenarioVersion: '1',
+      parameterSetId,
+      parameterSetVersion,
+      seed: identity.seed,
+    })
+    expect(() => new ComposedSimulationEngine(unbound, config)).toThrow(
+      /parameter-set configuration binding/,
+    )
+
+    const wrongId = {
+      ...identity,
+      parameterSetId: 'fixture:other-config',
+    }
+    expect(() => new ComposedSimulationEngine(wrongId, config)).toThrow(
+      /id does not match composed binding/,
+    )
+
+    const wrongFingerprint = structuredClone(identity)
+    ;(
+      wrongFingerprint.parameterSetBinding as {
+        configurationFingerprint: string
+      }
+    ).configurationFingerprint += '-tampered'
+    expect(() => new ComposedSimulationEngine(wrongFingerprint, config)).toThrow(
+      /fingerprint does not match parameter-set binding/,
+    )
+  })
+
+  it('preserves a provenance-owned binding in checkpoint/replay identity', () => {
+    const provenanceParameterSetId = 'test-provenance-set'
+    const provenanceParameterSetVersion = '1'
+    const binding = {
+      schemaVersion: COMPOSED_PARAMETER_SET_BINDING_SCHEMA_VERSION,
+      authority: 'provenance' as const,
+      parameterSetId: provenanceParameterSetId,
+      parameterSetVersion: provenanceParameterSetVersion,
+      configurationFingerprint: composedConfigurationFingerprint(config),
+    }
+    const provenanceIdentity = createRunIdentity({
+      scenarioId: 'composed-worker-fixture',
+      scenarioVersion: '1',
+      parameterSetId: provenanceParameterSetId,
+      parameterSetVersion: provenanceParameterSetVersion,
+      parameterSetBinding: binding,
+      seed: identity.seed,
+    })
+
+    const engine = new ComposedSimulationEngine(provenanceIdentity, config)
+    const checkpoint = engine.snapshot().checkpoint
+    expect(checkpoint.identity.parameterSetBinding).toEqual(binding)
+
+    const restored = new ComposedSimulationEngine(provenanceIdentity, config)
+    restored.execute({ id: 'restore', type: 'restore', checkpoint })
+    expect(restored.snapshot().checkpoint.identity.parameterSetBinding).toEqual(
+      binding,
+    )
+  })
+
   it('advances real composed ecology instead of synthetic fixture state', () => {
     const engine = new ComposedSimulationEngine(identity, config)
     const initial = engine.snapshot().checkpoint
@@ -156,6 +232,26 @@ describe('ComposedSimulationEngine', () => {
         checkpoint: metricCorrupt,
       }),
     ).toThrow(/metrics do not match/)
+  })
+
+  it('rejects an over-capacity composed checkpoint atomically at restore', () => {
+    const source = new ComposedSimulationEngine(identity, config)
+    const checkpoint = source.snapshot().checkpoint
+    checkpoint.composedState.lineageBiomass[0]![0] = 15
+    checkpoint.composedState.lineageBiomass[1]![0] = 10
+
+    const target = new ComposedSimulationEngine(identity, config)
+    const before = target.snapshot()
+
+    expect(() =>
+      target.execute({
+        id: 'restore-over-capacity',
+        type: 'restore',
+        checkpoint,
+      }),
+    ).toThrow(/ecology biomass exceeds localCapacity/)
+
+    expect(target.snapshot()).toEqual(before)
   })
 
   it('keeps synthetic fixture commands out of biological authority', () => {

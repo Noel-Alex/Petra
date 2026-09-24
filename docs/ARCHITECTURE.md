@@ -15,13 +15,15 @@ The frontend explains and controls the model. It does not become the model.
 
 ## Current implementation boundary
 
-Current `main` contains tested mechanism-level pieces—spatial fields, ecology, ciprofloxacin pharmacodynamic composition, mutation/lineage helpers, render contracts, UI planning, and worker/replay infrastructure—but the flagship mechanisms are **not yet one fully composed authoritative browser state**.
+Current `main` already contains a real composed-worker capability alongside the narrow synthetic infrastructure fixture path. `src/sim/protocol.ts` is protocol v4, `src/worker/simulation.worker.ts` selects `ComposedSimulationEngine` when an explicit `composedConfig` is supplied, and composed checkpoints/snapshots carry `authority: 'composed'`.
 
-Issue #37 owns that composition and the migration away from the synthetic worker scaffold. Until that lands:
+That does **not** mean the flagship product path is complete. Issue #37 now owns the remaining product/flagship activation and integration work rather than the existence of a composed worker loop:
 
-- `src/sim/protocol.ts` protocol v2 is infrastructure/replay scaffolding, not the flagship biological protocol;
-- `syntheticPopulation` and `synthetic-pulse` are explicitly synthetic fixtures and must never be presented or adapted as real biology/interventions;
-- product UI must not invent scientific readouts when authoritative state is unavailable;
+- protocol v4 keeps synthetic and composed authority explicitly distinct; omitted `composedConfig` is the infrastructure/test fixture path, not product biology;
+- composed runs require a validated parameter-set binding in `RunIdentity`, tying the friendly parameter-set ID/version to the exact deterministic composed-configuration fingerprint;
+- `syntheticPopulation` and `synthetic-pulse` remain explicitly synthetic fixtures and must never be presented or adapted as real biology/interventions;
+- real flagship intervention commands, the reviewed continuous-biomass → discrete evolution bridge, and product-default flagship activation remain separate #37 gates;
+- product UI must not invent scientific readouts when the active runtime does not supply the required authoritative records;
 - renderer demo fixtures remain presentation-only and visibly disclosed.
 
 ## Domain and state layout
@@ -40,13 +42,13 @@ Lineages use compact metadata plus aggregate spatial biomass/density channels. A
 
 ## Worker protocol
 
-### Implemented protocol v2 on current main
+### Implemented protocol v4 on current main
 
 The current versioned types in `src/sim/protocol.ts` define:
 
 Main → worker:
 
-- `initialize` with a versioned `RunIdentity`;
+- `initialize` with a versioned `RunIdentity` plus optional `composedConfig`; supplying composed configuration selects composed biological authority, while omission retains only the synthetic infrastructure fixture;
 - `command` carrying one of:
   - `advance`;
   - `synthetic-pulse` (**infrastructure fixture only**);
@@ -61,11 +63,11 @@ Worker → main:
 - `snapshot`;
 - `error`.
 
-The current checkpoint contains synthetic infrastructure state. Do not translate real inoculation, nutrient, or antibiotic interactions into `synthetic-pulse`.
+Protocol v4 checkpoints are a tagged union: `SyntheticSimulationCheckpoint` is infrastructure-only, while `ComposedSimulationCheckpoint` carries real composed state plus metrics and `authority: 'composed'`. Composed authority validates its parameter-set/configuration binding and rejects synthetic fixture commands. Do not translate real inoculation, nutrient, or antibiotic interactions into `synthetic-pulse`.
 
-### Target flagship protocol
+### Remaining flagship protocol/product integration
 
-#37 may evolve/version the protocol so the authoritative composed simulator can accept real typed scenario/intervention commands and publish scientific snapshots/events/metrics. The exact message names and payloads must come from the merged versioned source types, not from this planning document.
+The composed worker substrate is already implemented. #37 may still evolve/version the protocol where the flagship needs real typed intervention commands, additional authoritative product records, or other wire-shape changes. The exact message names and payloads must come from the merged versioned source types, not from this planning document.
 
 Required target properties:
 
@@ -80,7 +82,7 @@ A protocol change is a replay/integration change and requires deterministic test
 
 ## Mechanism composition and update ordering
 
-The end-to-end flagship update loop is still being composed under #37. Treat the sequence below as the **target mechanism pipeline**, not evidence that current `main` already executes every step together:
+Current `ComposedSimulationEngine` already executes a deterministic worker-facing loop over the bounded composed resource/biomass ecology authority. The full flagship mechanism pipeline is still incomplete under #37, so treat the sequence below as the **target complete pipeline**, not evidence that current `main` already executes every listed intervention/evolution stage together:
 
 1. accept queued, typed authoritative interventions;
 2. update/diffuse active environmental fields under their numerical contracts;

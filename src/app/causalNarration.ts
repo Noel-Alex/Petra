@@ -1,5 +1,6 @@
 import type { RunIdentity } from "../sim/protocol";
 import {
+  CAUSAL_LIVE_REGION_POLICY,
   INITIAL_CAUSAL_ANNOUNCEMENT_CURSOR,
   planCausalAnnouncements,
   type CausalAnnouncementCursor,
@@ -24,6 +25,8 @@ export interface AuthoritativeCausalEventStream {
 export interface CausalNarrationSession {
   readonly activeRunKey: string | null;
   readonly streamIdentity: string | null;
+  readonly acceptedEventCount: number;
+  readonly acceptedHistoryKey: string;
   readonly cursor: CausalAnnouncementCursor;
   readonly plan: CausalAnnouncementPlan;
 }
@@ -32,6 +35,8 @@ export function createCausalNarrationSession(): CausalNarrationSession {
   return {
     activeRunKey: null,
     streamIdentity: null,
+    acceptedEventCount: 0,
+    acceptedHistoryKey: causalEventHistoryKey([]),
     cursor: INITIAL_CAUSAL_ANNOUNCEMENT_CURSOR,
     plan: silentPlan(INITIAL_CAUSAL_ANNOUNCEMENT_CURSOR),
   };
@@ -60,11 +65,17 @@ export function advanceCausalNarrationSession(
     ? INITIAL_CAUSAL_ANNOUNCEMENT_CURSOR
     : session.cursor;
   const baseStreamIdentity = runChanged ? null : session.streamIdentity;
+  const baseAcceptedEventCount = runChanged ? 0 : session.acceptedEventCount;
+  const baseAcceptedHistoryKey = runChanged
+    ? causalEventHistoryKey([])
+    : session.acceptedHistoryKey;
 
   if (stream === null || stream === undefined) {
     return {
       activeRunKey,
       streamIdentity: baseStreamIdentity,
+      acceptedEventCount: baseAcceptedEventCount,
+      acceptedHistoryKey: baseAcceptedHistoryKey,
       cursor: baseCursor,
       plan: silentPlan(baseCursor),
     };
@@ -76,6 +87,8 @@ export function advanceCausalNarrationSession(
     return {
       activeRunKey,
       streamIdentity: baseStreamIdentity,
+      acceptedEventCount: baseAcceptedEventCount,
+      acceptedHistoryKey: baseAcceptedHistoryKey,
       cursor: baseCursor,
       plan: silentPlan(baseCursor),
     };
@@ -87,11 +100,24 @@ export function advanceCausalNarrationSession(
   const cursor = streamChanged
     ? INITIAL_CAUSAL_ANNOUNCEMENT_CURSOR
     : baseCursor;
+  const acceptedEventCount = streamChanged ? 0 : baseAcceptedEventCount;
+  const acceptedHistoryKey = streamChanged
+    ? causalEventHistoryKey([])
+    : baseAcceptedHistoryKey;
+
+  assertAppendOnlyCausalHistory(
+    stream.events,
+    acceptedEventCount,
+    acceptedHistoryKey,
+  );
+
   const plan = planCausalAnnouncements(stream.events, cursor);
 
   return {
     activeRunKey,
     streamIdentity,
+    acceptedEventCount: stream.events.length,
+    acceptedHistoryKey: causalEventHistoryKey(stream.events),
     cursor: plan.nextCursor,
     plan,
   };
@@ -112,28 +138,78 @@ export function causalRunIdentityKey(identity: RunIdentity): string {
 /**
  * Dependency key for the React adapter.
  *
- * Streams are append-only within one runBranchIdentity, so the accepted
- * frontier is enough to detect new authority without serializing the complete
- * scientific history on every React render.
+ * The key includes every replay-relevant causal event field, not object
+ * identity or only the final frontier. This makes a same-length replacement of
+ * earlier authority observable to React so the append-only guard runs again.
+ *
+ * Cost is O(n) in the causal-event history length and intentionally limited to
+ * the three primitive fields currently owned by CausalEventBurstItem. If the
+ * authoritative runtime later supplies a collision-resistant rolling history
+ * identity, that may replace this presentation-side scan only with an explicit
+ * protocol contract.
  */
 export function causalEventStreamRevisionKey(
   stream: AuthoritativeCausalEventStream | null | undefined,
 ): string {
   if (stream === null || stream === undefined) return "none";
 
-  const last = stream.events[stream.events.length - 1];
   return JSON.stringify([
     causalRunIdentityKey(stream.runIdentity),
     stream.runBranchIdentity,
-    stream.events.length,
-    last?.sequence ?? null,
-    last?.id ?? null,
-    last?.eventKind ?? null,
+    causalEventHistoryKey(stream.events),
   ]);
 }
 
+function causalEventHistoryKey(
+  events: readonly CausalEventBurstItem[],
+): string {
+  return JSON.stringify(
+    events.map((event) => [event.sequence, event.id, event.eventKind]),
+  );
+}
+
+function assertAppendOnlyCausalHistory(
+  events: readonly CausalEventBurstItem[],
+  acceptedEventCount: number,
+  acceptedHistoryKey: string,
+): void {
+  if (
+    !Number.isSafeInteger(acceptedEventCount) ||
+    acceptedEventCount < 0 ||
+    acceptedEventCount > events.length
+  ) {
+    throw new RangeError(
+      "causal narration accepted history must remain present in the append-only authority stream",
+    );
+  }
+
+  const currentAcceptedHistoryKey = causalEventHistoryKey(
+    events.slice(0, acceptedEventCount),
+  );
+  if (currentAcceptedHistoryKey !== acceptedHistoryKey) {
+    throw new RangeError(
+      "causal narration accepted history cannot be replaced within one run/branch identity",
+    );
+  }
+}
+
 function silentPlan(cursor: CausalAnnouncementCursor): CausalAnnouncementPlan {
-  return planCausalAnnouncements([], cursor);
+  // No authority stream is supplied in this lifecycle state, so there is
+  // nothing to run append-only stream validation against. Preserve the exact
+  // accepted cursor while keeping the stable live region silent. Once a stream
+  // is supplied again, normal #501/#508 continuity validation resumes.
+  return {
+    presentation: "none",
+    message: null,
+    eventIds: [],
+    firstSequence: null,
+    lastSequence: null,
+    nextCursor: cursor,
+    liveRegion: CAUSAL_LIVE_REGION_POLICY,
+    orderMeaning: "authoritative-sequence-only",
+    timingMeaning: "independent-of-animation-wall-time",
+    historyPolicy: "scientific-timeline-remains-complete",
+  };
 }
 
 function assertRunBranchIdentity(runBranchIdentity: string): void {

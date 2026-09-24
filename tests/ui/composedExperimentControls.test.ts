@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ComposedSimulationConfig } from '../../src/sim/authoritative'
 import type { CuratedMutationGraph } from '../../src/sim/evolution/graph'
+import { createFixtureComposedParameterSetBinding } from '../../src/sim/parameterSetBinding'
 import { createRunIdentity } from '../../src/sim/protocol'
 import {
   createExperimentControlState,
@@ -15,13 +16,8 @@ const evolutionGraph: CuratedMutationGraph = {
   transitions: [],
 }
 
-const identity = createRunIdentity({
-  scenarioId: 'composed-controls-fixture',
-  scenarioVersion: '1',
-  parameterSetId: 'explicit-config',
-  parameterSetVersion: '1',
-  seed: 7,
-})
+const parameterSetId = 'fixture:explicit-config'
+const parameterSetVersion = '1'
 
 const composedConfig: ComposedSimulationConfig = {
   width: 1,
@@ -46,6 +42,19 @@ const composedConfig: ComposedSimulationConfig = {
   ],
   hoursPerTick: 0.02,
 }
+
+const identity = createRunIdentity({
+  scenarioId: 'composed-controls-fixture',
+  scenarioVersion: '1',
+  parameterSetId,
+  parameterSetVersion,
+  parameterSetBinding: createFixtureComposedParameterSetBinding(
+    parameterSetId,
+    parameterSetVersion,
+    composedConfig,
+  ),
+  seed: 7,
+})
 
 function firstInitialize(action: 'reset' | 'replay' | 'set-seed') {
   let state = createExperimentControlState(identity)
@@ -79,6 +88,9 @@ describe('composed experiment-control lifecycle', () => {
       const request = firstInitialize(action)
       expect(request.composedConfig).toEqual(composedConfig)
       expect(request.composedConfig).not.toBe(composedConfig)
+      expect(request.identity.parameterSetBinding).toEqual(
+        identity.parameterSetBinding,
+      )
     }
   })
 

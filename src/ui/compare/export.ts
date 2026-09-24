@@ -1,11 +1,15 @@
 import {
+  assertComposedParameterSetBindingRecord,
+  type ComposedParameterSetBinding,
+} from "../../sim/parameterSetBinding";
+import {
   describeComparison,
   type ComparisonIdentity,
   type CounterfactualBranch,
   type ForkOrigin,
 } from "../counterfactual";
 
-export const COUNTERFACTUAL_EXPORT_SCHEMA_VERSION = 1 as const;
+export const COUNTERFACTUAL_EXPORT_SCHEMA_VERSION = 2 as const;
 
 export interface CounterfactualReplayContext {
   readonly engineVersion: string;
@@ -14,6 +18,7 @@ export interface CounterfactualReplayContext {
   readonly scenarioVersion: string;
   readonly parameterSetId: string;
   readonly parameterSetVersion: string;
+  readonly parameterSetBinding: ComposedParameterSetBinding | null;
 }
 
 export interface CounterfactualBranchExport {
@@ -63,7 +68,13 @@ export function createCounterfactualExportManifest(args: {
   const manifest: CounterfactualExportManifest = {
     kind: "petra-counterfactual-export",
     schemaVersion: COUNTERFACTUAL_EXPORT_SCHEMA_VERSION,
-    replayContext: { ...args.replayContext },
+    replayContext: {
+      ...args.replayContext,
+      parameterSetBinding:
+        args.replayContext.parameterSetBinding === null
+          ? null
+          : { ...args.replayContext.parameterSetBinding },
+    },
     comparison: { ...describeComparison(args.left, args.right) },
     branches: {
       left: copyBranch(args.left),
@@ -136,6 +147,21 @@ export function serializeCounterfactualExportManifest(
       scenarioVersion: manifest.replayContext.scenarioVersion,
       parameterSetId: manifest.replayContext.parameterSetId,
       parameterSetVersion: manifest.replayContext.parameterSetVersion,
+      parameterSetBinding:
+        manifest.replayContext.parameterSetBinding === null
+          ? null
+          : {
+              schemaVersion:
+                manifest.replayContext.parameterSetBinding.schemaVersion,
+              authority: manifest.replayContext.parameterSetBinding.authority,
+              parameterSetId:
+                manifest.replayContext.parameterSetBinding.parameterSetId,
+              parameterSetVersion:
+                manifest.replayContext.parameterSetBinding.parameterSetVersion,
+              configurationFingerprint:
+                manifest.replayContext.parameterSetBinding
+                  .configurationFingerprint,
+            },
     },
     comparison: {
       leftBranchId: manifest.comparison.leftBranchId,
@@ -192,6 +218,22 @@ function validateReplayContext(context: CounterfactualReplayContext): void {
   assertNonEmpty(context.scenarioVersion, "scenarioVersion");
   assertNonEmpty(context.parameterSetId, "parameterSetId");
   assertNonEmpty(context.parameterSetVersion, "parameterSetVersion");
+  if (context.parameterSetBinding !== null) {
+    assertComposedParameterSetBindingRecord(context.parameterSetBinding);
+    if (context.parameterSetBinding.parameterSetId !== context.parameterSetId) {
+      throw new Error(
+        "parameterSetBinding.parameterSetId must match parameterSetId",
+      );
+    }
+    if (
+      context.parameterSetBinding.parameterSetVersion !==
+      context.parameterSetVersion
+    ) {
+      throw new Error(
+        "parameterSetBinding.parameterSetVersion must match parameterSetVersion",
+      );
+    }
+  }
 }
 
 function validateBranch(branch: CounterfactualBranchExport): void {

@@ -1,9 +1,9 @@
 .analysis-surface {
   min-width: 0;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgb(var(--petra-rgb-cream-muted) / 0.16);
   border-radius: 20px;
-  background: rgba(9, 21, 39, 0.72);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.16);
+  background: rgb(var(--petra-rgb-ink-deep) / 0.78);
+  box-shadow: 0 16px 48px rgb(var(--petra-rgb-ink-deep) / 0.38);
 }
 
 .analysis-surface--unavailable {
@@ -21,12 +21,13 @@
 }
 
 .analysis-surface--unavailable h2 {
+  color: var(--petra-color-cream);
   font-size: 1rem;
 }
 
 .analysis-surface--unavailable > p {
   max-width: 38rem;
-  color: #93a0b4;
+  color: var(--petra-color-cream-muted);
   font-size: var(--petra-type-caption);
   line-height: 1.5;
   text-align: right;
@@ -40,12 +41,13 @@
   gap: 1rem;
   padding: 0.75rem 1rem;
   border-radius: inherit;
+  color: var(--petra-color-cream);
   cursor: pointer;
   list-style-position: inside;
 }
 
 .analysis-surface--available > summary:hover {
-  background: rgba(143, 220, 255, 0.035);
+  background: rgb(var(--petra-rgb-teal) / 0.08);
 }
 
 .analysis-surface--available > summary:focus-visible {
@@ -60,14 +62,14 @@
 }
 
 .analysis-surface__identity {
-  color: #91a0b5;
+  color: var(--petra-color-cream-muted);
   font-size: var(--petra-type-caption);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .analysis-surface--available[open] > summary {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid rgb(var(--petra-rgb-cream-muted) / 0.14);
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }

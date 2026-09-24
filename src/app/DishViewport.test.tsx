@@ -73,6 +73,18 @@ describe("DishViewport render-source truth boundary", () => {
   });
 
 
+  it("projects live dish continuity through the shared app motion adapter", () => {
+    expect(dishViewportSource).toContain(
+      'import { resolveDishVisualMotion } from "./dishVisualMotion";',
+    );
+    expect(dishViewportSource).toContain(
+      "const visualPlan = useMemo(",
+    );
+    expect(dishViewportSource).toContain(
+      "visualMotion={visualPlan.visualMotion}",
+    );
+  });
+
   it("renders explicit Automatic and None overlay identities from one selection authority", () => {
     const authoritative = {
       ...createRendererDemoSnapshot(12),

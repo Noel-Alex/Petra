@@ -5,12 +5,18 @@ import {
   useRef,
   useState,
 } from "react";
+import type { RunIdentity } from "../sim/protocol";
 import type { ExperimentControlAction } from "../ui/experimentControls";
 import {
   type ControlDispatchResult,
   ExperimentRuntime,
   type ExperimentRuntimeState,
 } from "./experimentRuntime";
+import {
+  normalizeRuntimeFailure,
+  PetraRuntimeError,
+  type RuntimeFailure,
+} from "./runtimeRecovery";
 import {
   projectExperimentRuntimeView,
   type ExperimentRuntimeView,
@@ -24,6 +30,12 @@ export interface ExperimentRuntimeBinding {
   readonly state: ExperimentRuntimeState | null;
   readonly view: ExperimentRuntimeView;
   dispatch(action: ExperimentControlAction): ControlDispatchResult | null;
+  /**
+   * Explicitly construct a fresh runtime after failure. When a failed runtime
+   * already established run identity, recovery refuses a factory result that
+   * changes that identity or seed.
+   */
+  restart(): boolean;
 }
 
 /**
@@ -37,13 +49,15 @@ export function useExperimentRuntime(
   factory?: ExperimentRuntimeFactory,
 ): ExperimentRuntimeBinding {
   const runtimeRef = useRef<ExperimentRuntime | null>(null);
+  const restartIdentityRef = useRef<RunIdentity | null>(null);
+  const [restartGeneration, setRestartGeneration] = useState(0);
   const [state, setState] = useState<ExperimentRuntimeState | null>(null);
-  const [setupError, setSetupError] = useState<string | null>(null);
+  const [setupFailure, setSetupFailure] = useState<RuntimeFailure | null>(null);
 
   useEffect(() => {
     runtimeRef.current = null;
     setState(null);
-    setSetupError(null);
+    setSetupFailure(null);
 
     if (factory === undefined) return;
 
@@ -55,18 +69,40 @@ export function useExperimentRuntime(
       runtime = factory();
 
       if (runtime.state.worker.phase !== "idle") {
-        throw new Error(
+        throw new PetraRuntimeError(
+          "runtime",
+          "setup",
           "ExperimentRuntimeFactory must return a fresh idle runtime",
         );
       }
 
+      const expectedRecoveryIdentity = restartIdentityRef.current;
+      if (
+        expectedRecoveryIdentity !== null &&
+        !sameRunIdentity(
+          expectedRecoveryIdentity,
+          runtime.state.controls.identity,
+        )
+      ) {
+        throw new PetraRuntimeError(
+          "runtime",
+          "setup",
+          "Explicit runtime retry attempted to change the active run identity or seed",
+        );
+      }
+
+      restartIdentityRef.current = null;
       runtimeRef.current = runtime;
       unsubscribe = runtime.subscribe((nextState) => {
         setState(nextState);
       });
 
       if (!runtime.start()) {
-        throw new Error("ExperimentRuntime could not start from idle state");
+        throw new PetraRuntimeError(
+          "runtime",
+          "setup",
+          "ExperimentRuntime could not start from idle state",
+        );
       }
 
       // Wall-clock cadence is orchestration/presentation policy only.
@@ -80,7 +116,7 @@ export function useExperimentRuntime(
       runtime?.dispose();
       if (runtimeRef.current === runtime) runtimeRef.current = null;
       setState(null);
-      setSetupError(error instanceof Error ? error.message : String(error));
+      setSetupFailure(normalizeRuntimeFailure(error, "setup"));
     }
 
     return () => {
@@ -93,7 +129,7 @@ export function useExperimentRuntime(
       runtime?.dispose();
       if (runtimeRef.current === runtime) runtimeRef.current = null;
     };
-  }, [factory]);
+  }, [factory, restartGeneration]);
 
   const dispatch = useCallback(
     (action: ExperimentControlAction): ControlDispatchResult | null => {
@@ -102,10 +138,34 @@ export function useExperimentRuntime(
     [],
   );
 
+  const restart = useCallback((): boolean => {
+    if (factory === undefined) return false;
+
+    const identity = runtimeRef.current?.state.controls.identity;
+    restartIdentityRef.current =
+      identity === undefined ? null : structuredClone(identity);
+    setRestartGeneration((generation) => generation + 1);
+    return true;
+  }, [factory]);
+
   const view = useMemo(
-    () => projectExperimentRuntimeView(state, setupError),
-    [setupError, state],
+    () => projectExperimentRuntimeView(state, setupFailure),
+    [setupFailure, state],
   );
 
-  return { state, view, dispatch };
+  return { state, view, dispatch, restart };
+}
+
+function sameRunIdentity(left: RunIdentity, right: RunIdentity): boolean {
+  return (
+    left.engineVersion === right.engineVersion &&
+    left.protocolVersion === right.protocolVersion &&
+    left.scenarioId === right.scenarioId &&
+    left.scenarioVersion === right.scenarioVersion &&
+    left.parameterSetId === right.parameterSetId &&
+    left.parameterSetVersion === right.parameterSetVersion &&
+    left.seed === right.seed &&
+    JSON.stringify(left.parameterSetBinding ?? null) ===
+      JSON.stringify(right.parameterSetBinding ?? null)
+  );
 }

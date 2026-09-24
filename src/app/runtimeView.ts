@@ -3,6 +3,10 @@ import type { TimelineEntry } from "../ui/timeline";
 import type {
   ExperimentRuntimeState,
 } from "./experimentRuntime";
+import {
+  normalizeRuntimeFailure,
+  type RuntimeFailure,
+} from "./runtimeRecovery";
 import type { WorkerSessionPhase } from "./workerSession";
 
 export type RuntimeUiStatus =
@@ -25,7 +29,9 @@ export interface ExperimentRuntimeView {
   readonly canChangeSpeed: boolean;
   readonly simulationTimeLabel: string;
   readonly timeline: readonly TimelineEntry[];
+  /** Internal diagnostic retained for logs/tests; never render directly. */
   readonly error: string | null;
+  readonly failure: RuntimeFailure | null;
 }
 
 /**
@@ -34,12 +40,12 @@ export interface ExperimentRuntimeView {
  */
 export function projectExperimentRuntimeView(
   state: ExperimentRuntimeState | null,
-  setupError: string | null = null,
+  setupFailure: RuntimeFailure | null = null,
 ): ExperimentRuntimeView {
-  if (setupError !== null) {
+  if (setupFailure !== null) {
     return {
       status: "error",
-      statusText: setupError,
+      statusText: setupFailure.userMessage,
       statusRole: "alert",
       workerPhase: state?.worker.phase ?? null,
       playing: false,
@@ -48,7 +54,8 @@ export function projectExperimentRuntimeView(
       canChangeSpeed: false,
       simulationTimeLabel: simulationTimeLabel(state),
       timeline: state?.timeline ?? [],
-      error: setupError,
+      error: setupFailure.diagnostic,
+      failure: setupFailure,
     };
   }
 
@@ -65,15 +72,20 @@ export function projectExperimentRuntimeView(
       simulationTimeLabel: simulationTimeLabel(state),
       timeline: state?.timeline ?? [],
       error: null,
+      failure: null,
     };
   }
 
   const runtimeError = state.integrationError ?? state.worker.error;
   if (runtimeError !== null || state.worker.phase === "error") {
-    const error = runtimeError ?? "Simulation runtime failed";
+    const diagnostic = runtimeError ?? "Simulation runtime failed";
+    const failure = normalizeRuntimeFailure(
+      diagnostic,
+      state.integrationError !== null ? "integration" : "worker",
+    );
     return {
       status: "error",
-      statusText: error,
+      statusText: failure.userMessage,
       statusRole: "alert",
       workerPhase: state.worker.phase,
       playing: false,
@@ -82,7 +94,8 @@ export function projectExperimentRuntimeView(
       canChangeSpeed: false,
       simulationTimeLabel: simulationTimeLabel(state),
       timeline: state.timeline,
-      error,
+      error: failure.diagnostic,
+      failure,
     };
   }
 
@@ -99,6 +112,7 @@ export function projectExperimentRuntimeView(
       simulationTimeLabel: simulationTimeLabel(state),
       timeline: state.timeline,
       error: null,
+      failure: null,
     };
   }
 
@@ -121,6 +135,7 @@ export function projectExperimentRuntimeView(
       simulationTimeLabel: simulationTimeLabel(state),
       timeline: state.timeline,
       error: null,
+      failure: null,
     };
   }
 
@@ -138,6 +153,7 @@ export function projectExperimentRuntimeView(
     simulationTimeLabel: simulationTimeLabel(state),
     timeline: state.timeline,
     error: null,
+    failure: null,
   };
 }
 

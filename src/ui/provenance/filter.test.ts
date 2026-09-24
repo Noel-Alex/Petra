@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  assertUniqueProvenanceRecordIds,
   filterProvenanceRecords,
   parseProvenanceEvidenceFilter,
 } from "./filter";
@@ -99,5 +100,48 @@ describe("provenance record discovery", () => {
 
     expect(result.records).toHaveLength(1);
     expect(result.pinnedNeedsProvenanceCount).toBe(0);
+  });
+
+  it("preserves caller order for distinct stable record identities", () => {
+    expect(() =>
+      assertUniqueProvenanceRecordIds([transferred, measured, incomplete]),
+    ).not.toThrow();
+
+    const result = filterProvenanceRecords(
+      [transferred, measured, incomplete],
+      { query: "", evidence: "all" },
+    );
+
+    expect(result.records.map((record) => record.id)).toEqual([
+      "drug-shape",
+      "mic",
+      "missing-class",
+    ]);
+  });
+
+  it("rejects duplicate provenance record ids before filtering", () => {
+    const conflicting = {
+      ...transferred,
+      id: measured.id,
+      label: "Conflicting MIC provenance",
+    };
+
+    expect(() =>
+      filterProvenanceRecords([measured, conflicting], {
+        query: "",
+        evidence: "all",
+      }),
+    ).toThrow(/duplicate provenance record id: mic/);
+  });
+
+  it("rejects duplicate ids even when one record needs provenance", () => {
+    const conflictingIncomplete = { ...incomplete, id: measured.id };
+
+    expect(() =>
+      filterProvenanceRecords([measured, conflictingIncomplete], {
+        query: "does-not-match-anything",
+        evidence: "measured",
+      }),
+    ).toThrow(/duplicate provenance record id: mic/);
   });
 });

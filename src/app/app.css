@@ -1214,3 +1214,59 @@ button:hover {
 .dish-placement-target__glyph {
   stroke: var(--petra-color-ink-deep);
 }
+
+
+/* #559 explicit runtime/presentation recovery surfaces. */
+.petra-runtime-recovery,
+.petra-recovery-card {
+  border: 1px solid rgb(var(--petra-rgb-coral) / 0.32);
+  border-radius: 20px;
+  background: rgb(var(--petra-rgb-ink-deep) / 0.94);
+  color: var(--petra-color-cream);
+  box-shadow: 0 18px 60px rgb(var(--petra-rgb-ink-deep) / 0.28);
+}
+
+.petra-runtime-recovery {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+}
+
+.petra-runtime-recovery h2,
+.petra-recovery-card h1 {
+  margin: 0;
+}
+
+.petra-runtime-recovery p:not(.petra-kicker),
+.petra-recovery-card p:not(.petra-kicker) {
+  color: var(--petra-color-cream-muted);
+  line-height: 1.5;
+}
+
+.petra-runtime-recovery button,
+.petra-recovery-card button {
+  border-color: rgb(var(--petra-rgb-coral) / 0.42);
+  background: rgb(var(--petra-rgb-coral) / 0.12);
+  color: var(--petra-color-cream);
+}
+
+.petra-fatal-recovery {
+  grid-template-rows: 1fr;
+  place-items: center;
+}
+
+.petra-recovery-card {
+  width: min(36rem, 100%);
+  display: grid;
+  gap: 0.85rem;
+  padding: clamp(1rem, 4vw, 1.6rem);
+}
+
+@media (max-width: 640px) {
+  .petra-runtime-recovery {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

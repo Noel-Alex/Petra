@@ -8,6 +8,8 @@ import {
   type ComposedSimulationConfig,
   type ComposedSimulationState,
 } from './authoritative'
+import { assertEcologyLocalCapacity } from './ecology/capacity'
+import { assertComposedParameterSetBinding } from './parameterSetBinding'
 import type {
   ComposedSimulationCheckpoint,
   ComposedSimulationSnapshot,
@@ -167,6 +169,20 @@ function validateState(
       }
     })
   })
+
+  for (let cell = 0; cell < cells; cell += 1) {
+    if (state.mask[cell] !== 1) continue
+    let totalBiomass = 0
+    for (const channel of state.lineageBiomass) {
+      totalBiomass += channel[cell]!
+    }
+    assertEcologyLocalCapacity(
+      totalBiomass,
+      config.growth.localCapacity,
+      state.lineageBiomass.length,
+      cell,
+    )
+  }
 }
 
 function validateMetrics(
@@ -253,6 +269,8 @@ export class ComposedSimulationEngine {
   private readonly events: SimulationEvent[] = []
 
   constructor(identity: RunIdentity, config: ComposedSimulationConfig) {
+    assertComposedParameterSetBinding(identity, config)
+
     if (
       identity.scenarioId !== config.evolutionScenario.scenarioId ||
       identity.scenarioVersion !== config.evolutionScenario.scenarioVersion
@@ -299,10 +317,18 @@ export class ComposedSimulationEngine {
       throw new Error('advance would exceed the safe integer command-count domain')
     }
 
+    // Execute the whole command against detached authority first. A biological
+    // or numerical refusal on any later tick must not leave a partially advanced
+    // live checkpoint behind: rejected commands are replay no-ops.
+    const workingState = cloneComposedState(this.state)
+    let workingMetrics = cloneMetrics(this.metrics)
     for (let index = 0; index < command.ticks; index += 1) {
-      this.metrics = stepComposedState(this.state, this.config)
-      this.tick += 1
+      workingMetrics = stepComposedState(workingState, this.config)
     }
+
+    this.state = workingState
+    this.metrics = workingMetrics
+    this.tick += command.ticks
     this.commandCount += 1
     this.pushEvent({
       type: 'advanced',

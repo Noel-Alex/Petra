@@ -64,8 +64,10 @@ import { createSemanticZoomLevelObserver } from "../semanticZoomObserver";
 import { wheelZoomFactor } from "./wheelZoom";
 import {
   advanceDishVisualTransition,
+  copyDishVisualMotionSpec,
   planDishVisualTransition,
   type DishDrawableState,
+  type DishVisualMotionSpec,
   type DishVisualState,
   type DishVisualTransition,
 } from "../visualInterpolation";
@@ -80,6 +82,7 @@ export type RendererMotionMode = "full" | "reduced" | "off";
 export interface PixiDishOptions {
   readonly motion?: RendererMotionMode;
   readonly cameraMotion: CameraMotionSpec;
+  readonly visualMotion: DishVisualMotionSpec;
   readonly overlayId?: string | null;
   readonly maxRepresentativeGlyphs?: number;
   readonly onSemanticZoomLevelChange?: (level: SemanticZoomLevel) => void;
@@ -93,6 +96,7 @@ export interface PixiDishRenderer {
   ): void;
   setOverlay(overlayId: string | null): void;
   setCameraMotion(spec: CameraMotionSpec): void;
+  setVisualMotion(spec: DishVisualMotionSpec): void;
   setMotionMode(mode: RendererMotionMode): void;
   setCamera(camera: CameraView): void;
   focusDishPoint(point: ScreenPoint, zoom?: number): void;
@@ -149,6 +153,7 @@ export async function createPixiDishRenderer(
   let overlayId = options.overlayId ?? null;
   let motion: RendererMotionMode = options.motion ?? "full";
   let cameraMotion = copyCameraMotionSpec(options.cameraMotion);
+  let visualMotion = copyDishVisualMotionSpec(options.visualMotion);
   let camera: CameraView = { centerX: 0.5, centerY: 0.5, zoom: 1 };
   let transitionStartCamera = camera;
   let targetCamera = camera;
@@ -212,7 +217,11 @@ export async function createPixiDishRenderer(
 
     const from = drawableState;
     if (motion === "full" && from !== null) {
-      const plan = planDishVisualTransition(from, next.snapshot);
+      const plan = planDishVisualTransition(
+        from,
+        next.snapshot,
+        visualMotion,
+      );
       if (plan.kind === "interpolate") {
         const initial = advanceDishVisualTransition(plan.transition, 0);
         drawableState = initial.state;
@@ -520,6 +529,10 @@ export async function createPixiDishRenderer(
       cameraMotion = update.state.spec;
       writeCameraTransitionState(update.state.transition);
       render();
+    },
+
+    setVisualMotion(nextSpec) {
+      visualMotion = copyDishVisualMotionSpec(nextSpec);
     },
 
     setMotionMode(nextMode) {

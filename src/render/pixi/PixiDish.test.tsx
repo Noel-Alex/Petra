@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import pixiDishCss from "./PixiDish.css?raw";
 import pixiDishSource from "./PixiDish.tsx?raw";
+import type { DishVisualMotionSpec } from "../visualInterpolation";
 import type { CameraMotionSpec } from "./cameraMotion";
 import {
   PixiDish,
@@ -11,6 +12,7 @@ import {
 import { createRendererDemoSnapshot } from "./demoSnapshot";
 
 const CAMERA_MOTION: CameraMotionSpec = { durationMs: 0, easing: [0, 0, 1, 1] };
+const VISUAL_MOTION: DishVisualMotionSpec = { durationMs: 0, easing: [0, 0, 1, 1] };
 
 describe("PixiDish committed renderer inputs", () => {
   it("leaves live touch-action ownership to the renderer camera policy", () => {
@@ -31,6 +33,7 @@ describe("PixiDish committed renderer inputs", () => {
     for (const assignment of [
       "motionRef.current = motion;",
       "cameraMotionRef.current = cameraMotion;",
+      "visualMotionRef.current = visualMotion;",
       "overlayRef.current = overlayId;",
       "semanticZoomCallbackRef.current = onSemanticZoomLevelChange;",
       "snapshotRef.current = renderSnapshot;",
@@ -53,6 +56,9 @@ describe("PixiDish committed renderer inputs", () => {
       "renderer.setCameraMotion(cameraMotionRef.current);",
     );
     expect(onReadySource).toContain(
+      "renderer.setVisualMotion(visualMotionRef.current);",
+    );
+    expect(onReadySource).toContain(
       "renderer.setMotionMode(motionRef.current);",
     );
     expect(onReadySource).toContain(
@@ -71,6 +77,7 @@ describe("PixiDish render-source boundary", () => {
         snapshot={null}
         sourceKind="awaiting-authoritative-snapshot"
         cameraMotion={CAMERA_MOTION}
+        visualMotion={VISUAL_MOTION}
       />,
     );
     expect(html).toContain('data-render-source="awaiting-authoritative-snapshot"');
@@ -86,6 +93,7 @@ describe("PixiDish render-source boundary", () => {
         snapshot={demo}
         sourceKind="visual-demo"
         cameraMotion={CAMERA_MOTION}
+        visualMotion={VISUAL_MOTION}
       />,
     );
     expect(html).toContain('data-render-source="visual-demo"');
@@ -99,6 +107,7 @@ describe("PixiDish render-source boundary", () => {
         snapshot={createRendererDemoSnapshot(12)}
         sourceKind="authoritative-snapshot"
         cameraMotion={CAMERA_MOTION}
+        visualMotion={VISUAL_MOTION}
       />,
     );
     expect(html).toContain('data-render-source="authoritative-snapshot"');
@@ -112,6 +121,7 @@ describe("PixiDish render-source boundary", () => {
           snapshot={createRendererDemoSnapshot(12)}
           sourceKind="awaiting-authoritative-snapshot"
           cameraMotion={CAMERA_MOTION}
+        visualMotion={VISUAL_MOTION}
         />,
       ),
     ).toThrow(/must not include a snapshot/);
@@ -122,6 +132,7 @@ describe("PixiDish render-source boundary", () => {
           snapshot={null}
           sourceKind="visual-demo"
           cameraMotion={CAMERA_MOTION}
+        visualMotion={VISUAL_MOTION}
         />,
       ),
     ).toThrow(/visual-demo dish render source requires a snapshot/);
@@ -129,7 +140,8 @@ describe("PixiDish render-source boundary", () => {
 
   it("keeps one stable polite atomic renderer-status region mounted", () => {
     const html = renderToStaticMarkup(
-      <PixiDish snapshot={null} cameraMotion={CAMERA_MOTION} />,
+      <PixiDish snapshot={null} cameraMotion={CAMERA_MOTION}
+        visualMotion={VISUAL_MOTION} />,
     );
 
     expect(html.match(/role="status"/g)).toHaveLength(1);

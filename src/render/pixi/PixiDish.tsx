@@ -1,6 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { PetraCompactAction } from "../../ui/PetraCompactAction";
 import type { DishRenderSnapshot, SemanticZoomLevel } from "../model";
+import type { DishVisualMotionSpec } from "../visualInterpolation";
 import type { CameraMotionSpec } from "./cameraMotion";
 import {
   createPixiDishRenderer,
@@ -21,6 +22,7 @@ export interface PixiDishProps {
   readonly sourceKind: PixiDishSourceKind;
   readonly motion?: RendererMotionMode;
   readonly cameraMotion: CameraMotionSpec;
+  readonly visualMotion: DishVisualMotionSpec;
   readonly overlayId?: string | null;
   readonly className?: string;
   readonly ariaLabel?: string;
@@ -61,6 +63,7 @@ export function PixiDish({
   sourceKind,
   motion = "full",
   cameraMotion,
+  visualMotion,
   overlayId = null,
   className,
   ariaLabel,
@@ -72,6 +75,7 @@ export function PixiDish({
   const rendererRef = useRef<PixiDishRenderer | null>(null);
   const motionRef = useRef(motion);
   const cameraMotionRef = useRef(cameraMotion);
+  const visualMotionRef = useRef(visualMotion);
   const overlayRef = useRef(overlayId);
   const semanticZoomCallbackRef = useRef(onSemanticZoomLevelChange);
   const resetCameraSignalRef = useRef(resetCameraSignal);
@@ -89,6 +93,7 @@ export function PixiDish({
   useLayoutEffect(() => {
     motionRef.current = motion;
     cameraMotionRef.current = cameraMotion;
+    visualMotionRef.current = visualMotion;
     overlayRef.current = overlayId;
     semanticZoomCallbackRef.current = onSemanticZoomLevelChange;
     snapshotRef.current = renderSnapshot;
@@ -98,6 +103,7 @@ export function PixiDish({
     onSemanticZoomLevelChange,
     overlayId,
     renderSnapshot,
+    visualMotion,
   ]);
 
   useEffect(() => {
@@ -119,6 +125,7 @@ export function PixiDish({
         createPixiDishRenderer(host, {
           motion,
           cameraMotion,
+          visualMotion,
           overlayId,
           onSemanticZoomLevelChange(level) {
             semanticZoomCallbackRef.current?.(level);
@@ -128,6 +135,7 @@ export function PixiDish({
         onReady(renderer) {
           rendererRef.current = renderer;
           renderer.setCameraMotion(cameraMotionRef.current);
+          renderer.setVisualMotion(visualMotionRef.current);
           renderer.setMotionMode(motionRef.current);
           const currentSnapshot = snapshotRef.current;
           if (currentSnapshot !== null) {
@@ -153,8 +161,9 @@ export function PixiDish({
     const renderer = rendererRef.current;
     if (renderer === null) return;
     renderer.setCameraMotion(cameraMotion);
+    renderer.setVisualMotion(visualMotion);
     renderer.setMotionMode(motion);
-  }, [cameraMotion, motion]);
+  }, [cameraMotion, motion, visualMotion]);
 
   useEffect(() => {
     if (resetCameraSignal === resetCameraSignalRef.current) return;

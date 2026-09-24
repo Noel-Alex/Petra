@@ -29,6 +29,7 @@
 - Hadas, H. et al. (1997). Bacteriophage T4 development depends on the physiology of its host E. coli. DOI `10.1099/00221287-143-1-179`.
 - You, L., Suthers, P.F., Yin, J. (2002). Effects of E. coli physiology on growth of phage T7 in vivo and in silico. DOI `10.1128/JB.184.7.1888-1894.2002`.
 - Nabergoj, D., Modic, P., Podgornik, A. (2018). Effect of bacterial growth rate on bacteriophage population growth rate. DOI `10.1002/mbo3.558`.
+- Mudgal, P., Breidt, F. Jr., Lubkin, S.R., Sandeep, K.P. (2006). Quantifying the Significance of Phage Attack on Starter Cultures: a Mechanistic Model for Population Dynamics of Phage and Their Hosts Isolated from Fermenting Sauerkraut. DOI `10.1128/AEM.02429-05`. Modeling precedent only for explicit one-infection-per-cell/productive-adsorption assumptions; not T4/MG1655 parameter evidence.
 - Hu, J., Miyanaga, K., Tanji, Y. (2010). Diffusion properties of bacteriophages through agarose gel membrane. DOI `10.1002/btpr.447`.
 - Hu, J., Miyanaga, K., Tanji, Y. (2012). Diffusion of bacteriophages through artificial biofilm models. DOI `10.1002/btpr.742`.
 

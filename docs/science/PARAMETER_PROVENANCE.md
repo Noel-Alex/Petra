@@ -50,6 +50,39 @@ provenance-owned Monod `mu_max` must not be silently treated as the same value.
 ## Engineering parameters
 Grid resolution, display scale, LOD thresholds, normalized diffusion CFL coefficients, and visual particle counts can be engineering parameters. They must be kept separate from physical measurements and must not be shown in the UI as “real bacterial constants.”
 
+### Research-stage flagship ecology execution profile
+
+Scenario `ecoli-ciprofloxacin-spatial@1.4.0-research` selects the versioned
+`ecoli-ciprofloxacin-ecology-engineering@1.1.0` profile so the composed
+resource-limited ecology loop can execute before a source-compatible physical
+Monod package exists.
+
+The profile is explicitly `engineering` and uses only `hour`,
+`model-resource`, and `model-biomass` units. Its values are chosen to exercise
+stable positive growth, resource depletion, capacity bounds, zero-resource
+no-growth, and conservative neighbour spread. They are **not** fitted glucose,
+CFU, dry-weight, colony-speed, or measured MG1655 constants.
+
+The physical growth requirements in the science registry remain UNBOUND. A
+future physical/calibrated profile must use a new versioned scenario/profile
+identity and satisfy the #227 compatibility gate rather than silently replacing
+these model-unit semantics.
+
+
+The same scenario also selects
+`ecoli-ciprofloxacin-baseline-composed@1.0.0` as its baseline composed
+parameter set. That record owns engineering mechanism identity: circular
+model-grid geometry, the `founder-wt` → `WT` lineage/genotype channel, the
+active resource×drug loss-policy identity, and an exact zero *incremental
+ciprofloxacin-loss* hazard before any drug intervention is active. Zero here is
+not a measured MG1655 background-death rate.
+
+Initial model-resource level, founder placement, founder biomass, and random seed
+remain explicit run-state inputs. They are intentionally not silently promoted
+into parameter constants or used to change the mechanism fingerprint. Likewise,
+the continuous model-biomass growth channel remains distinct from discrete
+cell/division-event authority; #562 owns that future bridge.
+
 ## Uncertainty
 Where papers provide uncertainty, preserve it. Petra can later support ensemble runs that sample parameter distributions. A single pretty run must not imply certainty.
 

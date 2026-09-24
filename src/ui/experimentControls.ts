@@ -1,4 +1,5 @@
 import type { ComposedSimulationConfig } from '../sim/authoritative'
+import { sameComposedParameterSetBinding } from '../sim/parameterSetBinding'
 import {
   PROTOCOL_VERSION,
   assertSimulationSeed,
@@ -128,6 +129,10 @@ export function snapshotMatchesControlIdentity(
     checkpoint.identity.scenarioVersion === state.identity.scenarioVersion &&
     checkpoint.identity.parameterSetId === state.identity.parameterSetId &&
     checkpoint.identity.parameterSetVersion === state.identity.parameterSetVersion &&
+    sameComposedParameterSetBinding(
+      checkpoint.identity.parameterSetBinding,
+      state.identity.parameterSetBinding,
+    ) &&
     checkpoint.identity.seed === state.identity.seed
   )
 }

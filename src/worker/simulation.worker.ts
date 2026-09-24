@@ -34,6 +34,9 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
 
   try {
     if (request.type === 'initialize') {
+      // Reinitialization is a run-authority boundary. Never retain a previous
+      // run if construction of the requested replacement fails.
+      engine = undefined
       engine =
         request.composedConfig === undefined
           ? new SimulationEngine(request.identity)

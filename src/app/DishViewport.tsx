@@ -39,6 +39,7 @@ import {
   dishEscapeAllowsFirstRefusal,
 } from "./dishKeyboard";
 import { resolveDishCameraMotion } from "./dishCameraMotion";
+import { resolveDishVisualMotion } from "./dishVisualMotion";
 
 export interface DishViewportProps {
   readonly motion: RendererMotionMode;
@@ -115,6 +116,10 @@ export function DishViewport({
     activeOverlay === null ? null : buildOverlayLegend(activeOverlay);
   const renderEnabled = activeSnapshot !== null;
   const cameraPlan = resolveDishCameraMotion(motion);
+  const visualPlan = useMemo(
+    () => resolveDishVisualMotion(motion),
+    [motion],
+  );
   const overlayMotion = useMemo(
     () =>
       surfaceMotionCss(
@@ -205,6 +210,7 @@ export function DishViewport({
           sourceKind={renderSource.kind}
           motion={cameraPlan.mode}
           cameraMotion={cameraPlan.cameraMotion}
+          visualMotion={visualPlan.visualMotion}
           overlayId={resolvedOverlayId}
           resetCameraSignal={cameraResetSignal}
           onSemanticZoomLevelChange={handleSemanticZoomLevelChange}

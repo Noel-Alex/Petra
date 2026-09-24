@@ -4,6 +4,7 @@ import visualInterpolationSource from "./visualInterpolation.ts?raw";
 import type { DishRenderSnapshot, RenderLineage } from "./model";
 import {
   advanceDishVisualTransition,
+  copyDishVisualMotionSpec,
   evaluateDishVisualTransitionAtProgress,
   planDishVisualTransition,
   type DishPresentationFrame,
@@ -71,6 +72,28 @@ describe("dish visual continuity", () => {
     expect(visualInterpolationSource).toContain('from "./motionMath"');
     expect(visualInterpolationSource).not.toContain("/pixi/");
     expect(visualInterpolationSource).not.toContain("pixi.js");
+  });
+
+  it("requires caller-owned validated motion instead of a renderer default", () => {
+    expect(visualInterpolationSource).not.toContain("DEFAULT_DISH_VISUAL_MOTION");
+    expect(visualInterpolationSource).toContain(
+      "motion: DishVisualMotionSpec,",
+    );
+
+    const source = {
+      durationMs: 600,
+      easing: [0.18, 0.74, 0.24, 1] as const,
+    };
+    const copied = copyDishVisualMotionSpec(source);
+
+    expect(copied).toEqual(source);
+    expect(copied).not.toBe(source);
+    expect(copied.easing).not.toBe(source.easing);
+    expect(Object.isFrozen(copied)).toBe(true);
+    expect(Object.isFrozen(copied.easing)).toBe(true);
+    expect(() =>
+      copyDishVisualMotionSpec({ durationMs: -1, easing: [0, 0, 1, 1] }),
+    ).toThrow(/duration/);
   });
 
   it("interpolates only presentation channels and completes at exact authority", () => {

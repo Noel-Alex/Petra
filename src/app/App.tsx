@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { PLAYBACK_SPEEDS } from "../ui/experimentControls";
+import { playbackSpeedShortcut } from "../ui/keyboard";
 import { PetraCompactAction } from "../ui/PetraCompactAction";
 import {
   loadMotionSetting,
@@ -24,7 +25,7 @@ import {
   projectOnboardingRuntime,
   reconcileOnboardingRuntimeSession,
 } from "./onboardingRuntime";
-import { shouldCloseSourcesOnEscape } from "./sourcesKeyboard";
+import { planAppKeyboardShortcut } from "./appKeyboard";
 import {
   closeSourcesSurface,
   completeSourcesExit,
@@ -187,19 +188,25 @@ export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
       className="petra-app"
       data-motion={motionPreference}
       onKeyDown={(event) => {
-        if (
-          !shouldCloseSourcesOnEscape({
-            open: sourcesLifecycle.requestedOpen,
-            key: event.key,
-            defaultPrevented: event.defaultPrevented,
-            target: event.target,
-          })
-        ) {
+        const plan = planAppKeyboardShortcut({
+          sourcesOpen: sourcesLifecycle.requestedOpen,
+          key: event.key,
+          defaultPrevented: event.defaultPrevented,
+          target: event.target,
+        });
+
+        if (plan.type === "none") return;
+
+        if (plan.type === "close-sources") {
+          event.preventDefault();
+          closeSources();
           return;
         }
 
-        event.preventDefault();
-        closeSources();
+        const result = experiment.dispatch(plan.action);
+        if (result?.accepted === true) {
+          event.preventDefault();
+        }
       }}
       data-panel-transition={panelMotion.treatment}
       style={{
@@ -392,6 +399,7 @@ export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
           <PetraCompactAction
             motionPreference={motionPreference}
             disabled={!experiment.view.canTogglePlayback}
+            aria-keyshortcuts="Space"
             onClick={() => {
               experiment.dispatch({
                 type: experiment.view.playing ? "pause" : "play",
@@ -406,6 +414,7 @@ export function App({ runtimeFactory, analysisRecords = null }: AppProps) {
               motionPreference={motionPreference}
               selected={experiment.view.speed === speed}
               disabled={!experiment.view.canChangeSpeed}
+              aria-keyshortcuts={playbackSpeedShortcut(speed)}
               onClick={() => {
                 experiment.dispatch({ type: "set-speed", speed });
               }}

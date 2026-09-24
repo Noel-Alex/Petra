@@ -1,5 +1,4 @@
 import {
-  PROTOCOL_VERSION,
   type SimulationSnapshot,
   type WorkerRequest,
   type WorkerResponse,

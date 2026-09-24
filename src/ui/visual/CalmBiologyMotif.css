@@ -17,53 +17,49 @@
   stroke-width: 1;
 }
 
+.petra-biology-motif :where([data-tone="cream"]) {
+  --petra-motif-tone: var(--petra-calm-cream);
+}
+
+.petra-biology-motif :where([data-tone="mist"]) {
+  --petra-motif-tone: var(--petra-calm-mist);
+}
+
+.petra-biology-motif :where([data-tone="teal"]) {
+  --petra-motif-tone: var(--petra-calm-teal);
+}
+
+.petra-biology-motif :where([data-tone="mint"]) {
+  --petra-motif-tone: var(--petra-calm-mint);
+}
+
+.petra-biology-motif :where([data-tone="amber"]) {
+  --petra-motif-tone: var(--petra-calm-amber);
+}
+
+.petra-biology-motif :where([data-tone="coral"]) {
+  --petra-motif-tone: var(--petra-calm-coral);
+}
+
+.petra-biology-motif :where([data-tone="olive"]) {
+  --petra-motif-tone: var(--petra-calm-olive);
+}
+
 .petra-biology-motif__field {
+  fill: var(--petra-motif-tone);
   transform-box: fill-box;
   transform-origin: center;
 }
 
 .petra-biology-motif__rod {
+  fill: var(--petra-motif-tone);
   stroke: color-mix(in srgb, var(--petra-calm-ink) 42%, transparent);
   stroke-width: 1.25;
 }
 
 .petra-biology-motif__branch {
   fill: none;
+  stroke: var(--petra-motif-tone);
   stroke-linecap: round;
   stroke-linejoin: round;
-}
-
-.petra-biology-motif :where([data-tone="cream"]) {
-  fill: var(--petra-calm-cream);
-  stroke: var(--petra-calm-cream);
-}
-
-.petra-biology-motif :where([data-tone="mist"]) {
-  fill: var(--petra-calm-mist);
-  stroke: var(--petra-calm-mist);
-}
-
-.petra-biology-motif :where([data-tone="teal"]) {
-  fill: var(--petra-calm-teal);
-  stroke: var(--petra-calm-teal);
-}
-
-.petra-biology-motif :where([data-tone="mint"]) {
-  fill: var(--petra-calm-mint);
-  stroke: var(--petra-calm-mint);
-}
-
-.petra-biology-motif :where([data-tone="amber"]) {
-  fill: var(--petra-calm-amber);
-  stroke: var(--petra-calm-amber);
-}
-
-.petra-biology-motif :where([data-tone="coral"]) {
-  fill: var(--petra-calm-coral);
-  stroke: var(--petra-calm-coral);
-}
-
-.petra-biology-motif :where([data-tone="olive"]) {
-  fill: var(--petra-calm-olive);
-  stroke: var(--petra-calm-olive);
 }

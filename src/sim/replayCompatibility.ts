@@ -110,18 +110,20 @@ export function assessReplayCompatibility(args: {
     )
   }
 
-  const comparisons: readonly [
-    keyof Pick<
-      SerializedRunIdentity,
-      | 'scenarioId'
-      | 'scenarioVersion'
-      | 'parameterSetId'
-      | 'parameterSetVersion'
-      | 'seed'
-    >,
-    ReplayCompatibilityReason,
-    string,
-  ][] = [
+  const comparisons: ReadonlyArray<
+    readonly [
+      keyof Pick<
+        SerializedRunIdentity,
+        | 'scenarioId'
+        | 'scenarioVersion'
+        | 'parameterSetId'
+        | 'parameterSetVersion'
+        | 'seed'
+      >,
+      ReplayCompatibilityReason,
+      string,
+    ]
+  > = [
     ['scenarioId', 'scenario-id-mismatch', 'scenario id'],
     ['scenarioVersion', 'scenario-version-mismatch', 'scenario version'],
     ['parameterSetId', 'parameter-set-id-mismatch', 'parameter-set id'],

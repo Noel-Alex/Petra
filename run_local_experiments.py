@@ -178,7 +178,7 @@ def run_experiment(item: dict[str, Any], run_id: str, log_tail_bytes: int) -> di
     try:
         with log_path.open("wb") as log_handle:
             proc = subprocess.run(
-                resolve_local_command(item["command"]),
+                resolve_local_command(item["command"], env=env),
                 cwd=cwd,
                 env=env,
                 stdout=log_handle,

@@ -74,8 +74,18 @@ describe('authoritative region inspector', () => {
     expect(inspection.totalResource).toBe(6)
     expect(inspection.totalBiomass).toBe(21)
     expect(inspection.lineageBiomass).toEqual([
-      { lineageId: 'ancestor', biomass: 6, fractionOfRegionBiomass: 6 / 21 },
-      { lineageId: 'variant', biomass: 15, fractionOfRegionBiomass: 15 / 21 },
+      {
+        lineageId: 'ancestor',
+        genotypeId: 'WT',
+        biomass: 6,
+        fractionOfRegionBiomass: 6 / 21,
+      },
+      {
+        lineageId: 'variant',
+        genotypeId: 'VAR',
+        biomass: 15,
+        fractionOfRegionBiomass: 15 / 21,
+      },
     ])
     expect(inspection.biomassUnit).toBe('model-biomass')
     expect(inspection.resourceUnit).toBe('model-resource')
@@ -148,9 +158,33 @@ describe('authoritative region inspector', () => {
     expect(inspection.totalResource).toBe(0)
     expect(inspection.totalBiomass).toBe(0)
     expect(inspection.lineageBiomass).toEqual([
-      { lineageId: 'ancestor', biomass: 0, fractionOfRegionBiomass: 0 },
-      { lineageId: 'variant', biomass: 0, fractionOfRegionBiomass: 0 },
+      {
+        lineageId: 'ancestor',
+        genotypeId: 'WT',
+        biomass: 0,
+        fractionOfRegionBiomass: 0,
+      },
+      {
+        lineageId: 'variant',
+        genotypeId: 'VAR',
+        biomass: 0,
+        fractionOfRegionBiomass: 0,
+      },
     ])
+  })
+
+  it('fails closed when authoritative lineage and genotype identities are misaligned', () => {
+    const state = createComposedState(config)
+    state.genotypeIds.pop()
+
+    expect(() =>
+      inspectAuthoritativeRegion(state, {
+        id: 'whole-grid',
+        centerX: 0.5,
+        centerY: 0.5,
+        radius: 1,
+      }),
+    ).toThrow(/lineage ids, genotype ids, and channels must align/)
   })
 
   it('rejects invalid selection geometry rather than clamping or inventing it', () => {

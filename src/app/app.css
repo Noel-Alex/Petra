@@ -6,6 +6,8 @@
   background: #081120;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+  --petra-focus-ring: #f2d98e;
+  --petra-focus-edge: #081120;
 }
 
 * {
@@ -39,11 +41,28 @@ button {
   cursor: pointer;
 }
 
-button:hover,
-button:focus-visible,
-select:focus-visible {
+button:hover {
   border-color: rgba(137, 211, 255, 0.65);
-  outline: none;
+}
+
+:where(button, select):focus-visible {
+  border-color: rgba(242, 217, 142, 0.92);
+  outline: 3px solid var(--petra-focus-ring);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 0 1px var(--petra-focus-edge),
+    inset 0 0 0 2px rgba(242, 217, 142, 0.38);
+}
+
+:where(button, select):disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+:where(button, select):disabled:hover,
+[aria-disabled="true"]:hover {
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .petra-app {

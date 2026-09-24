@@ -231,6 +231,45 @@ describe("sampleRepresentativeGlyphs", () => {
     }
   });
 
+  it("does not let off-aperture candidates consume the bounded glyph budget", () => {
+    const density = new Float32Array(100);
+    density[57] = 100;
+    density[56] = 1;
+
+    const snapshot: DishRenderSnapshot = {
+      snapshotId: "aperture-budget",
+      samplingIdentity: "aperture-budget-run",
+      simulationTimeHours: 1,
+      gridWidth: 10,
+      gridHeight: 10,
+      dishMask: new Uint8Array(100).fill(1),
+      biomass: Float32Array.from(density),
+      fields: [],
+      lineages: [
+        {
+          id: "ancestor",
+          label: "Ancestor",
+          appearanceToken: "lineage-cyan",
+          patternToken: "solid-ring",
+          density,
+        },
+      ],
+      events: [],
+    };
+
+    const glyphs = sampleRepresentativeGlyphs(
+      snapshot,
+      { centerX: 0.5, centerY: 0.5, zoom: 2 },
+      "colony",
+      { maxGlyphs: 1, minimumDensity: 0.1 },
+    );
+
+    expect(glyphs).toHaveLength(1);
+    expect(glyphs[0]?.cellIndex).toBe(56);
+    expect(glyphs[0]?.x).toBeCloseTo(0.65);
+    expect(glyphs[0]?.y).toBeCloseTo(0.55);
+  });
+
   it("does not mutate authoritative buffers", () => {
     const snapshot = fixture();
     const before = Array.from(snapshot.lineages[0]!.density);

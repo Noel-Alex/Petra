@@ -20,6 +20,7 @@ Own Petra's optional learned-surrogate infrastructure without granting ML author
 - Never randomly split adjacent snapshots from the same trajectory.
 - Split assignment policy is versioned and deterministic.
 - Split **coverage** policy is separately versioned. A generation plan intended for held-out evaluation must satisfy its required group coverage before trajectory tasks are accepted; Petra never moves individual seeds/frames between splits to fill a quota.
+- Future-horizon aggregate rows use the versioned contract in `forecastRows.ts`: each observation must carry its exact authoritative checkpoint tick, horizons are positive exact tick offsets, and a row may pair only source `t` with an observed target at exactly `t + Δtick` on the same trajectory. Snapshot index/cadence and floating simulation-time proximity never define a horizon; missing exact targets are explicit omissions, and trajectory/dataset/normalization/schema drift fails closed. The row input comes from the source observation and the training target from the future observation, never the source-time target.
 
 ## OOD policy
 

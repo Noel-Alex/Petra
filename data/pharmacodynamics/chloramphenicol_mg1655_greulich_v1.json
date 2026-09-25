@@ -16,7 +16,8 @@
     "id": "greulich-ribosome-cubic-v1",
     "equation": "Greulich-2015-equation-7",
     "sourceKey": "greulich_2015",
-    "doi": "10.15252/MSB.20145949"
+    "doi": "10.15252/MSB.20145949",
+    "classification": "source-fitted-mechanistic-model"
   },
   "environmentFamilies": [
     {

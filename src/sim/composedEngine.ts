@@ -20,6 +20,7 @@ import {
 } from './composedEcologyObservation'
 import { applyCiprofloxacinIntervention } from './ciprofloxacinIntervention'
 import { assertReplayCompatibility } from './replayCompatibility'
+import { SimulationRng, type RngState } from './rng'
 import {
   simulationSnapshotTraceHash,
   stableSnapshotStringify,
@@ -180,6 +181,7 @@ export class ComposedSimulationEngine {
   private tick = 0
   private commandCount = 0
   private readonly events: SimulationEvent[] = []
+  private readonly rng: SimulationRng
   private readonly advanceExecutionPolicy: AdvanceExecutionPolicy
 
   constructor(
@@ -201,6 +203,7 @@ export class ComposedSimulationEngine {
 
     this.identity = structuredClone(identity)
     this.config = structuredClone(config)
+    this.rng = new SimulationRng(this.identity.seed)
     this.advanceExecutionPolicy = Object.freeze({ ...advanceExecutionPolicy })
     this.state = createComposedState(this.config)
     this.metrics = aggregateState(this.state)
@@ -294,6 +297,7 @@ export class ComposedSimulationEngine {
       candidateTick,
       candidateCommandCount,
       candidateSimulationTimeHours,
+      this.rng.snapshot(),
     )
     const candidateEvent: SimulationEvent = {
       sequence: this.events.length,
@@ -342,6 +346,7 @@ export class ComposedSimulationEngine {
       this.tick,
       this.commandCount,
       this.currentSimulationTimeHours(),
+      this.rng.snapshot(),
     )
     const events = this.events.map((event) => structuredClone(event))
     return {
@@ -357,6 +362,7 @@ export class ComposedSimulationEngine {
     tick: number,
     commandCount: number,
     simulationTimeHours: number,
+    rngState: RngState,
   ): ComposedSimulationCheckpoint {
     return {
       authority: 'composed',
@@ -364,6 +370,7 @@ export class ComposedSimulationEngine {
       tick,
       simulationTimeHours,
       commandCount,
+      rngState: new SimulationRng(rngState).snapshot(),
       composedState: cloneComposedState(state),
       metrics: cloneMetrics(metrics),
     }
@@ -422,6 +429,9 @@ export class ComposedSimulationEngine {
       )
     }
 
+    // Validate stochastic continuation on a detached stream before any live
+    // authority changes. A malformed RNG checkpoint is an exact restore no-op.
+    const restoredRng = new SimulationRng(checkpoint.rngState)
     validateComposedStateAgainstConfig(checkpoint.composedState, this.config)
     const restoredState = cloneComposedState(checkpoint.composedState)
     const restoredMetrics = validateMetrics(checkpoint.metrics, restoredState)
@@ -430,6 +440,7 @@ export class ComposedSimulationEngine {
     this.commandCount = checkpoint.commandCount
     this.state = restoredState
     this.metrics = restoredMetrics
+    this.rng.restore(restoredRng.snapshot())
     this.events.length = 0
   }
 }

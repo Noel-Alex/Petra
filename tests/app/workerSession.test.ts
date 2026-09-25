@@ -5,6 +5,10 @@ import {
   type WorkerPort,
   type WorkerPortHandlers,
 } from "../../src/app/workerSession";
+import type { ComposedSimulationConfig } from "../../src/sim/authoritative";
+import { ComposedSimulationEngine } from "../../src/sim/composedEngine";
+import type { CuratedMutationGraph } from "../../src/sim/evolution/graph";
+import { createFixtureComposedParameterSetBinding } from "../../src/sim/parameterSetBinding";
 import {
   PROTOCOL_VERSION,
   createRunIdentity,
@@ -19,6 +23,65 @@ const identity = createRunIdentity({
   parameterSetVersion: "1",
   seed: 17,
 });
+
+const composedGraph: CuratedMutationGraph = {
+  scenarioId: "worker-session-composed",
+  scenarioVersion: "1",
+  genotypes: [
+    { id: "WT", relativeFitness: 1, sourceOrder: 0 },
+    { id: "VAR", relativeFitness: 0.9, sourceOrder: 1 },
+  ],
+  transitions: [],
+};
+
+const composedConfig: ComposedSimulationConfig = {
+  width: 2,
+  height: 1,
+  mask: [1, 1],
+  initialResource: [8, 8],
+  ciprofloxacinConcentrationMgPerL: [0, 0],
+  initialLineageBiomass: [[1, 0], [0, 1]],
+  growth: {
+    maxDivisionRate: 0.8,
+    halfSaturation: 2,
+    biomassYield: 0.5,
+    localCapacity: 20,
+    spreadRate: 0,
+  },
+  lineages: [
+    { id: "ancestor", genotypeId: "WT", deathHazardPerHour: 0 },
+    { id: "variant", genotypeId: "VAR", deathHazardPerHour: 0 },
+  ],
+  evolutionGraph: composedGraph,
+  evolutionScenario: {
+    scenarioId: "worker-session-composed",
+    scenarioVersion: "1",
+  },
+  ciprofloxacin: null,
+  samplingExecutionPolicy: null,
+  dynamicLineageLossPolicy: null,
+  populationAuthority: null,
+  hoursPerTick: 0.01,
+};
+
+const composedParameterSetId = "fixture:worker-session-composed";
+const composedParameterSetVersion = "1";
+const composedIdentity = createRunIdentity({
+  scenarioId: "worker-session-composed",
+  scenarioVersion: "1",
+  parameterSetId: composedParameterSetId,
+  parameterSetVersion: composedParameterSetVersion,
+  parameterSetBinding: createFixtureComposedParameterSetBinding(
+    composedParameterSetId,
+    composedParameterSetVersion,
+    composedConfig,
+  ),
+  seed: 23,
+});
+
+function composedSnapshot(): SimulationSnapshot {
+  return new ComposedSimulationEngine(composedIdentity, composedConfig).snapshot();
+}
 
 function snapshot(tick: number, commandCount = 0): SimulationSnapshot {
   return {
@@ -448,7 +511,7 @@ describe("worker session", () => {
 
     expect(samples).toHaveLength(2);
     expect(samples[0]).toMatchObject({
-      version: 2,
+      version: 3,
       requestType: "initialize",
       queuedRequestsBehindAtDispatch: 1,
       senderPostMessageCallMs: 0,
@@ -457,10 +520,11 @@ describe("worker session", () => {
       workerExecutionMs: 2,
       nonWorkerRoundTripMs: 4,
       authoritativeEventArrayLength: 0,
+      authoritativeActiveLineageCount: null,
       outcome: "success",
     });
     expect(samples[1]).toMatchObject({
-      version: 2,
+      version: 3,
       requestType: "command",
       commandType: "advance",
       commandId: "advance-profiled",
@@ -473,10 +537,49 @@ describe("worker session", () => {
       workerExecutionMsPerTick: 0.75,
       nonWorkerRoundTripMs: 1,
       authoritativeEventArrayLength: 2,
+      authoritativeActiveLineageCount: null,
       outcome: "success",
     });
     expect(samples[0]?.requestPayloadBytes).toBeGreaterThan(0);
     expect(samples[1]?.responsePayloadBytes).toBeGreaterThan(0);
+    expect(session.state.phase).toBe("ready");
+  });
+
+
+  it("records authoritative active lineage load only for composed snapshots", () => {
+    const port = new FakePort();
+    const samples: import("../../src/app/workerSession").WorkerSessionPerformanceSample[] = [];
+    let now = 200;
+    const session = new WorkerSession(port, {
+      observe: (sample) => samples.push(sample),
+      now: () => now,
+    });
+
+    session.enqueue([
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "initialize",
+        identity: composedIdentity,
+        composedConfig,
+      },
+    ]);
+    now = 205;
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: composedSnapshot(),
+      performanceDiagnostics: {
+        version: 1,
+        executionDurationMs: 1,
+      },
+    });
+
+    expect(samples).toHaveLength(1);
+    expect(samples[0]).toMatchObject({
+      version: 3,
+      authoritativeActiveLineageCount: composedConfig.lineages.length,
+      outcome: "success",
+    });
     expect(session.state.phase).toBe("ready");
   });
 
@@ -508,7 +611,7 @@ describe("worker session", () => {
 
     expect(samples).toHaveLength(1);
     expect(samples[0]).toMatchObject({
-      version: 2,
+      version: 3,
       completedAtMs: 108,
       senderPostMessageCallMs: 1.25,
       mainThreadSnapshotCloneMs: 1.5,

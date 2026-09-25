@@ -8,6 +8,7 @@ Presentation-only transformation of authoritative Petra simulation snapshots int
 
 - Renderer code never owns biological truth and never mutates simulation state.
 - Renderer inputs are immutable/read-only snapshots or view models derived from authoritative simulation output.
+- `acceptedInterventionFootprint.ts` is the lossless presentation projection for accepted spatial intervention events whose exact geometry already exists in protocol authority. It preserves event order/time/command identity plus the full source `global | radial | stripe | paint` ciprofloxacin footprint and exact `mg/L`/blend semantics; it must never coerce non-point geometry into an invented `x/y` marker or infer biological effect, diffusion, delivery, or affected population. Returned geometry is detached from authoritative event history.
 - Camera, interpolation, LOD, particles, shaders, contours, highlights, and animation are visual-only.
 - A rendered glyph/particle is a **visual proxy** unless a feature explicitly proves one-to-one identity with a simulated entity. Never infer cell count from glyph count.
 - Render interpolation may smooth between snapshots but must not feed interpolated values back into simulation commands or scientific metrics.

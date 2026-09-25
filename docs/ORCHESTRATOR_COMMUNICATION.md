@@ -144,3 +144,14 @@ Contributor: Noel-Alex
 - Local verification: four focused Vitest files passed (10 tests); `python tools/verify.py quick` passed all four registered quick checks; direct `vite build` succeeded. Repository `npm run typecheck` / `npm run build` stop at broad existing TypeScript errors. A separate run including `tests/app/experimentRuntime.test.ts` found 7 failing cases out of 11 on current main; the worker-fixture rejection was reported on #158 and was not changed in this branch. No hosted CI.
 
 Contributor: Noel-Alex
+
+## 2026-09-25 — flagship ciprofloxacin source-domain control authority
+
+- #795 records and implements the conservative product-control decision for the bundled flagship: `0–2 mg/L`, neutral/default `0 mg/L`, three-decimal presentation precision, `set` product semantics, and global/radial/stripe/paint as model concentration-field geometry.
+- The upper bound comes from the Regoes et al. 2004 CAB1/LB/37 °C time-kill experimental domain already used by the flagship reference PD. It is explicitly transferred as a product guardrail, not relabeled as an MG1655, clinical, or physical-delivery range.
+- The default `0 mg/L` is an engineering interaction choice matching the exact all-zero initial flagship landscape; it is not an effective-dose or biological-optimum claim.
+- Genotype MIC authority remains separate. The Marcusson table includes a 32 mg/L resistant genotype, but that value cannot widen the Regoes source-tested product domain.
+- Scenario identity advances to `ecoli-ciprofloxacin-spatial@1.5.0-research`. `flagshipInterventionControl.ts` validates the scenario record fail-closed and projects app-compatible tool metadata separately from source/default/limitation provenance; displayed bounds must exactly equal the declared source-tested range.
+- #158 should consume `buildFlagshipComposedRunPlan(...).ciprofloxacinToolAuthority` (or a lossless runtime projection) through the existing `parseCiprofloxacinToolAuthority` / preview→command adapter. Do not re-enter these values in React. #457's active App/dish projection work remains intentionally untouched by this slice.
+- This change does not add drug diffusion, decay/clearance, physical plate delivery, clinical dosing, or a broader PD validity claim. The registered local evidence path remains `python run_local_experiments.py --only flagship-ciprofloxacin-validation --push`.
+

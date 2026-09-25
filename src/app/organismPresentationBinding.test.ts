@@ -6,10 +6,13 @@ import {
   type OrganismPresentationIdentity,
 } from "../render/organismPresentationIdentity";
 import { createRunIdentity } from "../sim/protocol";
+import { buildDefaultFlagshipRun } from "./flagshipRunPreset";
 import {
+  FLAGSHIP_COMPOSED_ORGANISM_PRESENTATION_BINDING,
   FLAGSHIP_ORGANISM_PRESENTATION_SCENARIO,
   assertOrganismPresentationMatchesScenario,
   parseOrganismPresentationScenarioIdentity,
+  resolveComposedDishOrganismPresentationAuthority,
   resolveOrganismPresentationForRun,
 } from "./organismPresentationBinding";
 
@@ -26,8 +29,54 @@ function runIdentity(
   });
 }
 
+function exactFlagshipRunIdentity(
+  parameterSetId = flagshipScenario.composedParameterSet.id,
+  parameterSetVersion = flagshipScenario.composedParameterSet.version,
+) {
+  return createRunIdentity({
+    scenarioId: flagshipScenario.id,
+    scenarioVersion: flagshipScenario.version,
+    parameterSetId,
+    parameterSetVersion,
+    seed: 7,
+  });
+}
+
 describe("organism presentation runtime binding", () => {
-  it("resolves presentation evidence only for the exact current flagship scenario", () => {
+  it("resolves exact per-lineage presentation authority only for the current composed identity", () => {
+    const resolved = resolveComposedDishOrganismPresentationAuthority(
+      exactFlagshipRunIdentity(),
+    );
+    expect(resolved).toBe(
+      FLAGSHIP_COMPOSED_ORGANISM_PRESENTATION_BINDING.authority,
+    );
+    expect(resolved?.taxonRegistry).toEqual(
+      buildDefaultFlagshipRun().plan.config.taxonRegistry,
+    );
+    expect(resolved?.presentationCatalog.bindings).toHaveLength(1);
+    expect(resolved?.presentationCatalog.bindings[0]).toMatchObject({
+      taxonId: flagshipScenario.organism.authoritativeTaxon.id,
+      taxonContentVersion:
+        flagshipScenario.organism.authoritativeTaxon.contentVersion,
+    });
+
+    expect(
+      resolveComposedDishOrganismPresentationAuthority(
+        exactFlagshipRunIdentity("foreign-parameter-set"),
+      ),
+    ).toBeNull();
+    expect(
+      resolveComposedDishOrganismPresentationAuthority(
+        exactFlagshipRunIdentity(
+          flagshipScenario.composedParameterSet.id,
+          "stale-parameter-set-version",
+        ),
+      ),
+    ).toBeNull();
+    expect(resolveComposedDishOrganismPresentationAuthority(null)).toBeNull();
+  });
+
+  it("resolves legacy run-wide presentation evidence only for the exact current flagship scenario", () => {
     expect(resolveOrganismPresentationForRun(runIdentity())).toBe(
       FLAGSHIP_ECOLI_ORGANISM_PRESENTATION,
     );

@@ -127,6 +127,7 @@ describe("authoritative composed dish projection", () => {
     );
     expect(dish.snapshotId).toBe(`composed-trace:${simulation.traceHash}`);
     expect(dish.samplingIdentity).toBe("runtime-branch:fixture-branch-0");
+    expect(dish.acceptedInterventionFootprints).toEqual([]);
     expect(dish.events).toEqual([]);
 
     const resource = dish.fields.find(
@@ -255,6 +256,32 @@ describe("authoritative composed dish projection", () => {
       0.125, 0.125, 0.125, 0,
     ]);
     expect(dish.simulationTimeHours).toBe(0);
+
+    expect(dish.acceptedInterventionFootprints).toHaveLength(1);
+    const footprint = dish.acceptedInterventionFootprints?.[0];
+    const sourceEvent = simulation.events.find(
+      (event) => event.type === "ciprofloxacin-applied",
+    );
+    expect(footprint).toMatchObject({
+      sourceEventType: "ciprofloxacin-applied",
+      eventSequence: sourceEvent?.sequence,
+      tick: sourceEvent?.tick,
+      simulationTimeHours: sourceEvent?.simulationTimeHours,
+      commandId: "dose",
+      intervention: {
+        concentrationMgPerL: 0.125,
+        concentrationUnit: "mg/L",
+        blendMode: "set",
+        geometry: { kind: "global" },
+      },
+    });
+    expect(footprint).not.toHaveProperty("x");
+    expect(footprint).not.toHaveProperty("y");
+    expect(footprint?.intervention).not.toBe(sourceEvent?.intervention);
+    expect(footprint?.intervention.geometry).not.toBe(
+      sourceEvent?.intervention?.geometry,
+    );
+    expect(dish.events).toEqual([]);
   });
 
 

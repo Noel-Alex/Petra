@@ -1,6 +1,4 @@
-import { closeSync, openSync, readSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
-import { StringDecoder } from "node:string_decoder";
 
 import {
   buildMechanisticDatasetGenerationEvidence,
@@ -9,11 +7,11 @@ import {
 import type { MechanisticDatasetFinalization } from "../incrementalGenerator";
 import type { MechanisticSweepPlan } from "../sweep";
 import {
+  readFilesystemDatasetLines,
   readFilesystemFinalization,
 } from "./filesystemStore.mjs";
 import type { NodeMechanisticDatasetRunResult } from "./datasetRuntime";
 
-const READ_CHUNK_BYTES = 64 * 1024;
 
 export interface BuildNodeMechanisticDatasetEvidenceArgs {
   readonly artifactDirectory: string;
@@ -95,7 +93,7 @@ export function buildNodeMechanisticDatasetGenerationEvidence(
     repositoryDirty: args.repositoryDirty,
     runtime,
     finalization,
-    datasetLines: () => readUtf8Lines(datasetPath),
+    datasetLines: () => readFilesystemDatasetLines(datasetPath),
   });
 }
 
@@ -123,41 +121,6 @@ function resolveArtifactFile(
     throw new TypeError(`${fieldName} escapes the artifact directory`);
   }
   return target;
-}
-
-function* readUtf8Lines(path: string): Iterable<string> {
-  const descriptor = openSync(path, "r");
-  const decoder = new StringDecoder("utf8");
-  const buffer = Buffer.allocUnsafe(READ_CHUNK_BYTES);
-  let carry = "";
-
-  try {
-    while (true) {
-      const bytesRead = readSync(descriptor, buffer, 0, buffer.length, null);
-      if (bytesRead === 0) break;
-      carry += decoder.write(buffer.subarray(0, bytesRead));
-      let newline = carry.indexOf("\n");
-      while (newline >= 0) {
-        const line = carry.slice(0, newline);
-        carry = carry.slice(newline + 1);
-        if (line.endsWith("\r")) {
-          throw new TypeError("final dataset rows must use LF newlines");
-        }
-        if (line.length > 0) yield line;
-        newline = carry.indexOf("\n");
-      }
-    }
-
-    carry += decoder.end();
-    if (carry.length > 0) {
-      if (carry.endsWith("\r")) {
-        throw new TypeError("final dataset rows must use LF newlines");
-      }
-      yield carry;
-    }
-  } finally {
-    closeSync(descriptor);
-  }
 }
 
 function requireDurationSeconds(durationMilliseconds: number): number {

@@ -48,6 +48,24 @@ export interface AdmittedPhageHostLineage {
 export const T4_FLAGSHIP_MG1655_HOST_ADMISSION =
   parsePhageHostAdmissionAuthority(rawHostAdmission as unknown);
 
+export function phageHostAdmissionAuthorityIdentity(
+  authority: PhageHostAdmissionAuthority = T4_FLAGSHIP_MG1655_HOST_ADMISSION,
+): string {
+  validatePhageHostAdmissionAuthority(authority);
+  return JSON.stringify({
+    schemaVersion: authority.schemaVersion,
+    id: authority.id,
+    phage: authority.phage,
+    sourceHost: authority.sourceHost,
+    runtimeHost: authority.runtimeHost,
+    admissionRule: authority.admissionRule,
+    provenance: {
+      classification: authority.provenance.classification,
+      sourceKeys: [...authority.provenance.sourceKeys].sort(),
+    },
+  });
+}
+
 /**
  * Resolve only runtime lineages explicitly supported by one reviewed host
  * admission authority.

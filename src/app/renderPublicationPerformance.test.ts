@@ -33,7 +33,10 @@ function snapshot(): ComposedSimulationSnapshot {
       simulationTimeHours: 2,
       commandCount: 3,
       composedState: {} as ComposedSimulationSnapshot["checkpoint"]["composedState"],
-      metrics: {} as ComposedSimulationSnapshot["checkpoint"]["metrics"],
+      metrics: {
+        totalBiomass: 42,
+        occupiedCells: 7,
+      } as ComposedSimulationSnapshot["checkpoint"]["metrics"],
     },
   };
 }
@@ -71,7 +74,7 @@ describe("render publication performance diagnostics", () => {
   it("stays disabled until the local experiment probe is explicitly installed", () => {
     expect(isRenderPublicationPerformanceEnabled()).toBe(false);
     globalThis.__petraRenderPublicationPerformanceProbe = {
-      version: 1,
+      version: 2,
       observe: () => {},
     };
     expect(isRenderPublicationPerformanceEnabled()).toBe(true);
@@ -98,7 +101,7 @@ describe("render publication performance diagnostics", () => {
     const samples: RenderPublicationPerformanceSample[] = [];
     const times = [10, 12, 15, 16, 17, 20];
     globalThis.__petraRenderPublicationPerformanceProbe = {
-      version: 1,
+      version: 2,
       now: () => times.shift() ?? 20,
       observe: (sample) => samples.push(sample),
     };
@@ -131,6 +134,16 @@ describe("render publication performance diagnostics", () => {
       ["branch-1", "trace-1", 4, 3, 2],
       ["branch-1", "trace-1", 4, 3, 2],
     ]);
+    expect(
+      samples.map((sample) => [
+        sample.authoritativeTotalBiomass,
+        sample.authoritativeOccupiedCells,
+      ]),
+    ).toEqual([
+      [42, 7],
+      [42, 7],
+      [42, 7],
+    ]);
 
     const projection = samples[1];
     if (projection?.phase !== "dish-projection") {
@@ -145,7 +158,7 @@ describe("render publication performance diagnostics", () => {
 
   it("swallows diagnostic observer failures without changing product behavior", () => {
     globalThis.__petraRenderPublicationPerformanceProbe = {
-      version: 1,
+      version: 2,
       now: () => 1,
       observe: () => {
         throw new Error("diagnostic sink failed");
@@ -167,7 +180,7 @@ describe("render publication performance diagnostics", () => {
   it("rethrows product projection failures after recording diagnostics", () => {
     const samples: RenderPublicationPerformanceSample[] = [];
     globalThis.__petraRenderPublicationPerformanceProbe = {
-      version: 1,
+      version: 2,
       now: () => 5,
       observe: (sample) => samples.push(sample),
     };

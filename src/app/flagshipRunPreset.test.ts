@@ -13,11 +13,13 @@ describe("default flagship run preset", () => {
     expect(preset.classification).toBe("engineering");
     expect(preset.usageScope).toBe("research-expo-engineering-default");
     expect(plan.identity.scenarioId).toBe("ecoli-ciprofloxacin-spatial");
-    expect(plan.identity.scenarioVersion).toBe("1.4.0-research");
+    expect(plan.identity.scenarioVersion).toBe("1.5.0-research");
     expect(plan.identity.parameterSetId).toBe(
       "ecoli-ciprofloxacin-baseline-composed",
     );
-    expect(plan.identity.parameterSetVersion).toBe("1.1.0");
+    expect(plan.identity.parameterSetVersion).toBe("1.2.0");
+    expect(preset.version).toBe("1.1.0");
+    expect(preset.protocolVersion).toBe(6);
     expect(plan.identity.seed).toBe(preset.seed);
     expect(plan.config.ciprofloxacinConcentrationMgPerL.every((value) => value === 0)).toBe(true);
   });

@@ -39,6 +39,10 @@ interface FixtureTarget {
 const ENGINE = "engine-v1";
 const SCENARIO = "fixture-scenario";
 const SCENARIO_VERSION = "1";
+const RUN_CONDITION = Object.freeze({
+  id: "condition-a",
+  fingerprint: "fixture-run-condition-v1",
+});
 const DATASET_SCHEMA = {
   schemaVersion: "mechanistic-dataset-schema-v1" as const,
   inputSchemaVersion: "aggregate-input-v1",
@@ -58,6 +62,7 @@ function splitParameterPoints(): SweepParameterPoint[] {
       parameterSetHash,
       scenarioId: SCENARIO,
       scenarioVersion: SCENARIO_VERSION,
+      runConditionFingerprint: RUN_CONDITION.fingerprint,
       groupId,
     });
     if (!wanted.has(split)) continue;
@@ -84,6 +89,7 @@ function plan(seeds: readonly number[] = [11, 22]): MechanisticSweepPlan {
     normalizationProfileId: "none-v1",
     datasetSchema: DATASET_SCHEMA,
     parameterPoints: splitParameterPoints(),
+    runConditions: [RUN_CONDITION],
     interventionFamilies: [createNoInterventionSweepFamily("untreated")],
     seeds,
     maxTrajectories: 32,

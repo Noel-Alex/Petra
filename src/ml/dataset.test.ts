@@ -23,6 +23,7 @@ const group: DatasetGroupIdentity = {
   parameterSetHash: "params-123",
   scenarioId: "selection-not-mutation",
   scenarioVersion: "1",
+  runConditionFingerprint: "initial-resource=8|founder=wt@80,80:1",
   groupId: "drug-gradient-family-a",
 };
 
@@ -43,6 +44,18 @@ describe("mechanistic ML dataset contract", () => {
       const identity = trajectory(seed);
       expect(assignDatasetSplit(identity.group)).toBe(split);
     }
+  });
+
+  it("treats authoritative run conditions as part of the held-out group", () => {
+    const changed = {
+      ...group,
+      runConditionFingerprint: "initial-resource=4|founder=wt@80,80:1",
+    };
+
+    expect(splitGroupKey(changed)).not.toBe(splitGroupKey(group));
+    expect(trajectoryKey({ ...trajectory(1), group: changed })).not.toBe(
+      trajectoryKey(trajectory(1)),
+    );
   });
 
   it("keeps trajectory identity distinct without using it for split leakage", () => {

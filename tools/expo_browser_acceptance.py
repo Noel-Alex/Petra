@@ -2188,8 +2188,11 @@ def main() -> int:
         "evidence_boundary": (
             "Headless browser evidence checks layout, accessibility plumbing, motion modes, "
             "input event ownership/cancellation, pointer continuity, screenshots, representative renderer frame/redraw time, WebGL draw-call "
-            "counts from a separate profiled redraw workload, Chromium heap/DOM trends, and "
-            "long-task/GC symptoms where exposed. The GPU "
+            "counts from a separate profiled redraw workload, and real 1x/4x/16x authoritative-playback "
+            "diagnostic windows. Playback frame distributions are valid only when actual WebGL drawing "
+            "occurs in the same window; rounded UI biological time is used only to prove the run advanced, "
+            "not as simulator throughput. Worker execution/transport timing remains a separate registered "
+            "profile. Chromium heap/DOM/layout/style/task and long-task/GC symptoms are browser evidence. The GPU "
             "record is explicitly a canvas/capability proxy, not measured VRAM. Human visible-browser "
             "review remains required for final aesthetic judgment; this run does not validate "
             "scientific correctness or simulator throughput."

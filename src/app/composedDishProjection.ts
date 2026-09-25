@@ -42,6 +42,7 @@ export function projectComposedDishSnapshot(
   ecologyObservation: RuntimeEcologyObservation | null = null,
   organismPresentationAuthority: ComposedDishOrganismPresentationAuthority | null = null,
   lineageDensityPresentationScale: SourceOwnedFixedLineageDensityPresentationScale | null = null,
+  interventionFootprintFrame: RuntimeInterventionFootprintFrame | null = null,
 ): DishRenderSnapshot | null {
   if (snapshot?.checkpoint.authority !== "composed") return null;
   return projectAuthoritativeComposedDishSnapshot(
@@ -50,6 +51,7 @@ export function projectComposedDishSnapshot(
     ecologyObservation,
     organismPresentationAuthority,
     lineageDensityPresentationScale,
+    interventionFootprintFrame,
   );
 }
 
@@ -59,6 +61,7 @@ export function projectAuthoritativeComposedDishSnapshot(
   ecologyObservation: RuntimeEcologyObservation | null = null,
   organismPresentationAuthority: ComposedDishOrganismPresentationAuthority | null = null,
   lineageDensityPresentationScale: SourceOwnedFixedLineageDensityPresentationScale | null = null,
+  interventionFootprintFrame: RuntimeInterventionFootprintFrame | null = null,
 ): DishRenderSnapshot {
   if (lineageDensityPresentationScale !== null) {
     validateLineageDensityPresentationScale(lineageDensityPresentationScale);

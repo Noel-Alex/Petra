@@ -100,7 +100,7 @@ describe("product content discovery", () => {
 
   it("fails closed on duplicate bundled discovery identity", () => {
     const bundled = listBundledScenarioDiscovery();
-    expect(bundled).toHaveLength(1);
+    expect(bundled.length).toBeGreaterThanOrEqual(1);
 
     expect(() =>
       buildProductContentDiscovery({

@@ -39,7 +39,7 @@ preserved.
 The repository's flagship composed-run contract currently asserts:
 
 - scenario ID: `ecoli-ciprofloxacin-spatial`
-- scenario version: `1.4.0-research`
+- scenario version: `1.5.0-research`
 - parameter-set ID: `ecoli-ciprofloxacin-baseline-composed`
 - parameter-set version: `1.1.0`
 - engine version: `petra-ts-core/0.1.0`

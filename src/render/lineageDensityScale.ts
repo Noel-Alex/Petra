@@ -78,14 +78,22 @@ export function assertLineageDensityWithinPresentationScale(
   density: number,
   scale: LineageDensityPresentationScale | undefined,
 ): void {
-  finiteNonNegative("lineage density", density);
   const resolved = resolveLineageDensityPresentationScale(scale);
-  if (resolved.mode !== "stable-source") return;
+  assertDensityAgainstResolvedScale(density, resolved);
+}
 
-  if (density - resolved.maximum > resolved.maximumTolerance) {
-    throw new RangeError(
-      "lineage density exceeds stable source maximum beyond source-owned representation tolerance",
-    );
+/**
+ * Validate one complete density channel in the same pass that already checks
+ * renderer admission. Stable-source authority therefore adds no separate
+ * O(cells × lineages) scan.
+ */
+export function assertLineageDensityArrayWithinPresentationScale(
+  density: ArrayLike<number>,
+  scale: LineageDensityPresentationScale | undefined,
+): void {
+  const resolved = resolveLineageDensityPresentationScale(scale);
+  for (let index = 0; index < density.length; index += 1) {
+    assertDensityAgainstResolvedScale(density[index]!, resolved, index);
   }
 }
 
@@ -117,6 +125,24 @@ export function stableLineageDensityMaximum(
 ): number | null {
   const resolved = resolveLineageDensityPresentationScale(scale);
   return resolved.mode === "stable-source" ? resolved.maximum : null;
+}
+
+function assertDensityAgainstResolvedScale(
+  density: number,
+  scale: LineageDensityPresentationScale,
+  index?: number,
+): void {
+  finiteNonNegative(
+    index === undefined ? "lineage density" : `lineage density[${index}]`,
+    density,
+  );
+  if (scale.mode !== "stable-source") return;
+
+  if (density - scale.maximum > scale.maximumTolerance) {
+    throw new RangeError(
+      "lineage density exceeds stable source maximum beyond source-owned representation tolerance",
+    );
+  }
 }
 
 function canonicalText(name: string, value: string): void {

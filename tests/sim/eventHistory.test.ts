@@ -21,7 +21,7 @@ describe('immutable simulation event history', () => {
         geometry: {
           kind: 'radial' as const,
           center: { x: 0.5, y: 0.5 },
-          radius: 0.25,
+          radiusFraction: 0.25,
         },
       },
     }

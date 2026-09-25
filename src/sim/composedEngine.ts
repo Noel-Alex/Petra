@@ -261,9 +261,18 @@ export class ComposedSimulationEngine {
       throw new Error('advance would exceed the safe integer command-count domain')
     }
 
-    // Execute the whole command against detached authority first. A biological
-    // or numerical refusal on any later tick must not leave a partially advanced
-    // live checkpoint behind: rejected commands are replay no-ops.
+    const candidateTick = this.tick + command.ticks
+    const candidateCommandCount = this.commandCount + 1
+    // Biological time is part of the accepted transaction. Validate the
+    // candidate scalar before doing detached work so a representability failure
+    // can never occur after live state has been committed.
+    const candidateSimulationTimeHours =
+      this.simulationTimeHoursAtTick(candidateTick)
+
+    // Execute the whole command against detached authority first. A biological,
+    // numerical, snapshot, trace, or derived-observation refusal must not leave
+    // a partially advanced live checkpoint behind: rejected commands are replay
+    // no-ops.
     const workingState = cloneComposedState(this.state)
     let workingMetrics = cloneMetrics(this.metrics)
     let finalEcologyObservation = null as ReturnType<
@@ -275,35 +284,65 @@ export class ComposedSimulationEngine {
       finalEcologyObservation = step.ecologyObservation
     }
 
-    this.state = workingState
-    this.metrics = workingMetrics
-    this.tick += command.ticks
-    this.commandCount += 1
-    this.pushEvent({
+    // Build every externally visible accepted-transaction artifact while the
+    // engine is still detached. In particular, ecology-observation validation
+    // is allowed to refuse; it must do so before biology/tick/event authority
+    // changes.
+    const candidateCheckpoint = this.createCheckpoint(
+      workingState,
+      workingMetrics,
+      candidateTick,
+      candidateCommandCount,
+      candidateSimulationTimeHours,
+    )
+    const candidateEvent: SimulationEvent = {
+      sequence: this.events.length,
+      tick: candidateTick,
+      simulationTimeHours: candidateSimulationTimeHours,
       type: 'advanced',
       commandId: command.id,
       value: command.ticks,
-    })
-    if (finalEcologyObservation === null) return this.snapshot()
+    }
+    const candidateEvents = [
+      ...this.events.map((event) => structuredClone(event)),
+      structuredClone(candidateEvent),
+    ]
+    const accepted: ComposedSimulationSnapshot = {
+      checkpoint: candidateCheckpoint,
+      events: candidateEvents,
+      traceHash: simulationSnapshotTraceHash({
+        checkpoint: candidateCheckpoint,
+        events: candidateEvents,
+      }),
+    }
+    const ecologyObservation =
+      finalEcologyObservation === null
+        ? null
+        : createComposedEcologyObservationEnvelope(
+            createComposedStepObservationPosition(candidateCheckpoint),
+            finalEcologyObservation,
+          )
 
-    const accepted = this.snapshot()
-    const ecologyObservation = createComposedEcologyObservationEnvelope(
-      createComposedStepObservationPosition(accepted.checkpoint),
-      finalEcologyObservation,
-    )
-    return { ...accepted, ecologyObservation }
+    // No validation or projection that can refuse remains after this point.
+    this.state = workingState
+    this.metrics = workingMetrics
+    this.tick = candidateTick
+    this.commandCount = candidateCommandCount
+    this.events.push(candidateEvent)
+
+    return ecologyObservation === null
+      ? accepted
+      : { ...accepted, ecologyObservation }
   }
 
   snapshot(): ComposedSimulationSnapshot {
-    const checkpoint: ComposedSimulationCheckpoint = {
-      authority: 'composed',
-      identity: structuredClone(this.identity),
-      tick: this.tick,
-      simulationTimeHours: this.currentSimulationTimeHours(),
-      commandCount: this.commandCount,
-      composedState: cloneComposedState(this.state),
-      metrics: cloneMetrics(this.metrics),
-    }
+    const checkpoint = this.createCheckpoint(
+      this.state,
+      this.metrics,
+      this.tick,
+      this.commandCount,
+      this.currentSimulationTimeHours(),
+    )
     const events = this.events.map((event) => structuredClone(event))
     return {
       checkpoint,
@@ -312,12 +351,34 @@ export class ComposedSimulationEngine {
     }
   }
 
-  private currentSimulationTimeHours(): number {
-    const value = this.tick * this.config.hoursPerTick
+  private createCheckpoint(
+    state: ComposedSimulationState,
+    metrics: ComposedMetrics,
+    tick: number,
+    commandCount: number,
+    simulationTimeHours: number,
+  ): ComposedSimulationCheckpoint {
+    return {
+      authority: 'composed',
+      identity: structuredClone(this.identity),
+      tick,
+      simulationTimeHours,
+      commandCount,
+      composedState: cloneComposedState(state),
+      metrics: cloneMetrics(metrics),
+    }
+  }
+
+  private simulationTimeHoursAtTick(tick: number): number {
+    const value = tick * this.config.hoursPerTick
     if (!Number.isFinite(value) || value < 0) {
       throw new Error('composed simulation time became invalid')
     }
     return value
+  }
+
+  private currentSimulationTimeHours(): number {
+    return this.simulationTimeHoursAtTick(this.tick)
   }
 
   private pushEvent(

@@ -55,6 +55,7 @@ const config: ComposedSimulationConfig = {
     { id: 'variant', genotypeId: 'VAR', deathHazardPerHour: 0.1 },
   ],
   samplingExecutionPolicy: null,
+  dynamicLineageLossPolicy: null,
   hoursPerTick: 0.01,
 }
 

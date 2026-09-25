@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { ComposedSimulationEngine } from "../sim/composedEngine";
 import { buildFlagshipComposedRunPlan } from "../sim/flagshipComposition";
-import { projectRuntimeEcologyNetGrowthField } from "./runtimeEcologyRenderField";
+import {
+  projectRuntimeEcologyNetGrowthField,
+  projectRuntimeEcologyRateFields,
+} from "./runtimeEcologyRenderField";
 
 const initialization = Object.freeze({
   seed: 0x605,
@@ -17,8 +20,8 @@ const initialization = Object.freeze({
   ]),
 });
 
-describe("runtime ecology render field", () => {
-  it("projects only an observation bound to the exact snapshot and runtime branch", () => {
+describe("runtime ecology render fields", () => {
+  it("projects one coherent rate-field bundle only from the exact snapshot and runtime branch", () => {
     const plan = buildFlagshipComposedRunPlan(initialization);
     const engine = new ComposedSimulationEngine(plan.identity, plan.config);
     const snapshot = engine.execute({ id: "advance", type: "advance", ticks: 1 });
@@ -29,29 +32,40 @@ describe("runtime ecology render field", () => {
       throw new Error("expected composed step-local ecology observation");
     }
 
-    const field = projectRuntimeEcologyNetGrowthField(
+    const bound = {
+      runBranchIdentity: "branch-0",
+      envelope: snapshot.ecologyObservation,
+    };
+    const fields = projectRuntimeEcologyRateFields(
       snapshot,
       "branch-0",
-      {
-        runBranchIdentity: "branch-0",
-        envelope: snapshot.ecologyObservation,
-      },
+      bound,
     );
 
-    expect(field).toMatchObject({
-      kind: "net-growth",
-      unit: "model-biomass/hour",
-      rangeMode: "snapshot-extrema",
-      width: snapshot.checkpoint.composedState.width,
-      height: snapshot.checkpoint.composedState.height,
-    });
-    expect(field?.values.length).toBe(
-      snapshot.checkpoint.composedState.width *
-        snapshot.checkpoint.composedState.height,
-    );
+    expect(fields.map((field) => field.kind)).toEqual([
+      "net-growth",
+      "division-rate",
+      "death-rate",
+    ]);
+    for (const field of fields) {
+      expect(field).toMatchObject({
+        unit: "model-biomass/hour",
+        rangeMode: "snapshot-extrema",
+        width: snapshot.checkpoint.composedState.width,
+        height: snapshot.checkpoint.composedState.height,
+      });
+      expect(field.values.length).toBe(
+        snapshot.checkpoint.composedState.width *
+          snapshot.checkpoint.composedState.height,
+      );
+    }
+
+    expect(
+      projectRuntimeEcologyNetGrowthField(snapshot, "branch-0", bound),
+    ).toMatchObject({ kind: "net-growth" });
   });
 
-  it("fails closed across branch/state positions and stays absent without step evidence", () => {
+  it("fails closed across branch/state positions and stays atomically absent without step evidence", () => {
     const plan = buildFlagshipComposedRunPlan(initialization);
     const engine = new ComposedSimulationEngine(plan.identity, plan.config);
     const observed = engine.execute({ id: "advance", type: "advance", ticks: 1 });
@@ -67,7 +81,7 @@ describe("runtime ecology render field", () => {
     };
 
     expect(() =>
-      projectRuntimeEcologyNetGrowthField(observed, "branch-1", bound),
+      projectRuntimeEcologyRateFields(observed, "branch-1", bound),
     ).toThrow(/different runtime history generation/);
 
     const later = engine.execute({
@@ -82,9 +96,12 @@ describe("runtime ecology render field", () => {
       },
     });
     expect(() =>
-      projectRuntimeEcologyNetGrowthField(later, "branch-0", bound),
+      projectRuntimeEcologyRateFields(later, "branch-0", bound),
     ).toThrow(/observation position/i);
 
+    expect(
+      projectRuntimeEcologyRateFields(later, "branch-0", null),
+    ).toEqual([]);
     expect(
       projectRuntimeEcologyNetGrowthField(later, "branch-0", null),
     ).toBeNull();

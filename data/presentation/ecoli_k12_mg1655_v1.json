@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "id": "ecoli-k12-mg1655-representative-morphology-v1",
   "scientificName": "Escherichia coli",
-  "background": "K-12 MG1655",
+  "background": "K-12 MG1655 for curated resistance phenotypes",
   "organismKind": "bacterium",
   "morphology": "rod",
   "provenance": {

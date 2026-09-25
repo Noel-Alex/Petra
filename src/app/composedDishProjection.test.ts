@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { resolveLineageVisualIdentity } from "../design/lineageIdentity";
 import { FLAGSHIP_ECOLI_ORGANISM_PRESENTATION } from "../render/organismPresentationIdentity";
+import {
+  LINEAGE_DENSITY_PRESENTATION_SCALE_SCHEMA_VERSION,
+  type SourceOwnedFixedLineageDensityPresentationScale,
+} from "../render/lineageDensityScale";
 import type { ComposedSimulationConfig } from "../sim/authoritative";
 import { ComposedSimulationEngine } from "../sim/composedEngine";
 import type { CuratedMutationGraph } from "../sim/evolution/graph";
@@ -107,6 +111,15 @@ const config: ComposedSimulationConfig = {
   dynamicLineageLossPolicy: null,
   populationAuthority: null,
   hoursPerTick: 0.01,
+};
+
+const FIXED_DENSITY_SCALE: SourceOwnedFixedLineageDensityPresentationScale = {
+  schemaVersion: LINEAGE_DENSITY_PRESENTATION_SCALE_SCHEMA_VERSION,
+  mode: "source-owned-fixed",
+  unit: "model-biomass",
+  maximum: config.growth.localCapacity,
+  sourceIdentity: "fixture:dish-projection:fixed-density-scale",
+  overflowTolerance: 0,
 };
 
 function composedEngine(
@@ -222,6 +235,50 @@ describe("authoritative composed dish projection", () => {
       minimum: 0.75,
       maximum: 2,
     });
+  });
+
+  it("admits a source-owned fixed density scale while copying authoritative channels", () => {
+    const simulation = composedEngine().snapshot();
+    if (simulation.checkpoint.authority !== "composed") {
+      throw new Error("expected composed snapshot");
+    }
+
+    expect(() =>
+      projectAuthoritativeComposedDishSnapshot(
+        simulation,
+        "fixture-branch-0",
+        null,
+        null,
+        FIXED_DENSITY_SCALE,
+      ),
+    ).not.toThrow();
+  });
+
+  it("fails closed on incompatible or under-declared fixed density authority", () => {
+    const simulation = composedEngine().snapshot();
+    if (simulation.checkpoint.authority !== "composed") {
+      throw new Error("expected composed snapshot");
+    }
+
+    expect(() =>
+      projectAuthoritativeComposedDishSnapshot(
+        simulation,
+        "fixture-branch-0",
+        null,
+        null,
+        { ...FIXED_DENSITY_SCALE, unit: "cells" },
+      ),
+    ).toThrow(/source-owned-fixed model-biomass lineage density scale/);
+
+    expect(() =>
+      projectAuthoritativeComposedDishSnapshot(
+        simulation,
+        "fixture-branch-0",
+        null,
+        null,
+        { ...FIXED_DENSITY_SCALE, maximum: 1.5 },
+      ),
+    ).toThrow(/exceeds declared source-owned-fixed presentation maximum/);
   });
 
   it("admits historical origin markers after their lineage leaves the active render channels", () => {

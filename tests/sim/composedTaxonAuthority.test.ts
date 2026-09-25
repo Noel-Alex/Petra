@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   composedConfigurationFingerprint,
   createComposedState,
+  stepComposedState,
   validateComposedStateAgainstConfig,
   type ComposedSimulationConfig,
 } from "../../src/sim/authoritative";
@@ -83,6 +84,18 @@ describe("composed taxon authority", () => {
       taxonIds: ["fixture-bacterium"],
       taxonContentVersions: ["1.0.0"],
     });
+    expect(() =>
+      validateComposedStateAgainstConfig(state, authority),
+    ).not.toThrow();
+  });
+
+  it("advances a taxon-bearing composed state through an actual ecology step", () => {
+    const authority = config();
+    const state = createComposedState(authority);
+    const initialTaxonMap = structuredClone(state.lineageTaxonMap);
+
+    expect(() => stepComposedState(state, authority)).not.toThrow();
+    expect(state.lineageTaxonMap).toEqual(initialTaxonMap);
     expect(() =>
       validateComposedStateAgainstConfig(state, authority),
     ).not.toThrow();

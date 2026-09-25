@@ -35,17 +35,16 @@ describe("authoritative timeline history", () => {
     expect(plan.all[0]).toBe(entries[0]);
   });
 
-  it("renders the oldest event and command identity in the complete history", () => {
+  it("keeps complete history rows out of the DOM until the disclosure opens", () => {
     const entries = Array.from({ length: 6 }, (_, index) => event(index));
     const markup = renderToStaticMarkup(<TimelineHistory entries={entries} />);
 
     expect(markup).toContain("Full history");
     expect(markup).toContain("6 events · 2 older");
-    expect(markup).toContain("Run initialized");
-    expect(markup).toContain("Event #0 · tick 0");
-    expect(markup).toContain("command command-5");
-    expect(markup).toContain('data-event-sequence="0"');
-    expect(markup).toContain('data-command-id="command-5"');
+    expect(markup).not.toContain('data-event-sequence="0"');
+    expect(markup).not.toContain('class="timeline-history__events"');
+    expect(markup).toContain('data-event-sequence="2"');
+    expect(markup).toContain('data-event-sequence="5"');
   });
 
   it("does not add a history disclosure when all records fit the recent view", () => {
@@ -128,10 +127,8 @@ describe("authoritative timeline history", () => {
   });
 
   it("wires local Space ownership only onto the complete-history scroller", () => {
-    expect(timelineHistorySource).toContain(
-      'aria-label="Complete authoritative simulation event history"\n' +
-        "            tabIndex={0}\n" +
-        "            onKeyDown={keepTimelineHistorySpaceLocal}",
+    expect(timelineHistorySource).toMatch(
+      /aria-label="Complete authoritative simulation event history"\s+tabIndex=\{0\}\s+onKeyDown=\{keepTimelineHistorySpaceLocal\}/,
     );
     expect(
       timelineHistorySource.match(/onKeyDown=\{keepTimelineHistorySpaceLocal\}/g),

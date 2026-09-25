@@ -1,6 +1,6 @@
 import {
   DEFAULT_COLONY_MASS_PRESENTATION_POLICY,
-  projectColonyMassAlpha,
+  createColonyMassAlphaProjector,
   type ColonyMassPresentationPolicy,
 } from "./colonyMass";
 import { resolveLineageAppearance } from "./lineageAppearance";
@@ -27,6 +27,7 @@ export function writeDensityRaster(
   }
 
   output.fill(0);
+  const colonyAlpha = createColonyMassAlphaProjector(maximum, policy);
   for (const lineage of snapshot.lineages) {
     const color = resolveLineageAppearance(lineage.appearanceToken).color;
     const r = (color >> 16) & 255;
@@ -36,11 +37,7 @@ export function writeDensityRaster(
     for (let index = 0; index < cells; index += 1) {
       if (snapshot.dishMask[index] !== 1) continue;
 
-      const alpha = projectColonyMassAlpha(
-        lineage.density[index] ?? 0,
-        maximum,
-        policy,
-      );
+      const alpha = colonyAlpha(lineage.density[index] ?? 0);
       if (alpha < 1 / 255) continue;
 
       const pixel = index * 4;

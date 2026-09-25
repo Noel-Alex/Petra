@@ -1,4 +1,8 @@
 import rawMatrix from "../data/content_support/v1.json";
+import {
+  createAuthoritativeTaxonRegistry,
+  type AuthoritativeTaxonRegistry,
+} from "./sim/taxonIdentity";
 
 export const CONTENT_SUPPORT_MATRIX_KIND =
   "petra-supported-content-matrix" as const;
@@ -69,7 +73,13 @@ export interface SupportedScenarioReference {
   readonly version: string;
 }
 
+export interface SupportedTaxonReference {
+  readonly id: string;
+  readonly contentVersion: string;
+}
+
 export interface SupportedOrganism {
+  readonly taxon: SupportedTaxonReference | null;
   readonly scientificName: string;
   readonly background: string;
   readonly microbialGroup: SupportedMicrobialGroup;
@@ -137,7 +147,9 @@ const SUPPORTED_SCENARIO_KEYS = new Set([
   "limitations",
 ]);
 const SCENARIO_REFERENCE_KEYS = new Set(["id", "version"]);
+const TAXON_REFERENCE_KEYS = new Set(["id", "contentVersion"]);
 const ORGANISM_KEYS = new Set([
+  "taxon",
   "scientificName",
   "background",
   "microbialGroup",
@@ -226,6 +238,14 @@ export function parseSupportedContentMatrix(
         "enabled-science content cannot use an unbound resource context",
       );
     }
+    if (
+      entry.availability === "enabled-science" &&
+      entry.organisms.some((organism) => organism.taxon === null)
+    ) {
+      throw new RangeError(
+        "enabled-science content requires exact taxon id + contentVersion authority",
+      );
+    }
   }
 
   return Object.freeze({
@@ -250,6 +270,44 @@ export function findSupportedScenario(
         entry.scenario.id === id && entry.scenario.version === version,
     ) ?? null
   );
+}
+
+export function validateSupportedScenarioTaxonAuthority(
+  scenario: SupportedScenario,
+  registry: AuthoritativeTaxonRegistry,
+): void {
+  const validatedRegistry = createAuthoritativeTaxonRegistry(registry.taxa);
+  const taxaById = new Map(
+    validatedRegistry.taxa.map((taxon) => [taxon.id, taxon] as const),
+  );
+
+  for (const organism of scenario.organisms) {
+    if (organism.taxon === null) {
+      throw new Error(
+        `supported scenario ${scenario.id} has no exact taxon revision binding`,
+      );
+    }
+    const taxon = taxaById.get(organism.taxon.id);
+    if (taxon === undefined) {
+      throw new Error(
+        `supported scenario ${scenario.id} references unknown taxon ${organism.taxon.id}`,
+      );
+    }
+    if (taxon.contentVersion !== organism.taxon.contentVersion) {
+      throw new Error(
+        `supported scenario ${scenario.id} taxon content version mismatch for ${taxon.id}: expected ${taxon.contentVersion}, received ${organism.taxon.contentVersion}`,
+      );
+    }
+    if (
+      taxon.scientificName !== organism.scientificName ||
+      taxon.background !== organism.background ||
+      taxon.microbialGroup !== organism.microbialGroup
+    ) {
+      throw new Error(
+        `supported scenario ${scenario.id} taxon metadata does not match exact biological authority`,
+      );
+    }
+  }
 }
 
 export const SUPPORTED_CONTENT_MATRIX =
@@ -350,6 +408,18 @@ function parseSupportedScenario(
 function parseOrganism(value: unknown, name: string): SupportedOrganism {
   const record = requireRecord(value, name);
   assertExactKeys(record, ORGANISM_KEYS, name);
+  let taxon: SupportedTaxonReference | null = null;
+  if (record.taxon !== null) {
+    const taxonRecord = requireRecord(record.taxon, `${name}.taxon`);
+    assertExactKeys(taxonRecord, TAXON_REFERENCE_KEYS, `${name}.taxon`);
+    taxon = Object.freeze({
+      id: canonicalText(taxonRecord.id, `${name}.taxon.id`),
+      contentVersion: canonicalText(
+        taxonRecord.contentVersion,
+        `${name}.taxon.contentVersion`,
+      ),
+    });
+  }
   const presentationIdentityId =
     record.presentationIdentityId === null
       ? null
@@ -359,6 +429,7 @@ function parseOrganism(value: unknown, name: string): SupportedOrganism {
         );
 
   return Object.freeze({
+    taxon,
     scientificName: canonicalText(
       record.scientificName,
       `${name}.scientificName`,

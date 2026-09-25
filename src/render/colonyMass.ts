@@ -51,17 +51,14 @@ export function validateColonyMassPresentationPolicy(
  * forbidden because it can make a rare lineage look as visually strong as the
  * dominant population.
  */
-export function projectColonyMassAlpha(
-  density: number,
+export type ColonyMassAlphaProjector = (density: number) => number;
+
+export function createColonyMassAlphaProjector(
   sharedDensityMaximum: number,
   policy: ColonyMassPresentationPolicy =
     DEFAULT_COLONY_MASS_PRESENTATION_POLICY,
-): number {
+): ColonyMassAlphaProjector {
   validateColonyMassPresentationPolicy(policy);
-
-  if (!Number.isFinite(density) || density < 0) {
-    throw new RangeError("colony-mass density must be finite and non-negative");
-  }
   if (
     !Number.isFinite(sharedDensityMaximum) ||
     sharedDensityMaximum < 0
@@ -70,21 +67,46 @@ export function projectColonyMassAlpha(
       "colony-mass shared density maximum must be finite and non-negative",
     );
   }
-  if (sharedDensityMaximum === 0) {
-    if (density !== 0) {
+
+  const inverseMaximum =
+    sharedDensityMaximum === 0 ? 0 : 1 / sharedDensityMaximum;
+  const maximumAlpha = policy.maximumAlpha;
+  const densityExponent = policy.densityExponent;
+
+  return (density: number): number => {
+    if (!Number.isFinite(density) || density < 0) {
       throw new RangeError(
-        "positive colony density cannot use a zero shared density maximum",
+        "colony-mass density must be finite and non-negative",
       );
     }
-    return 0;
-  }
-  if (density > sharedDensityMaximum) {
-    throw new RangeError(
-      "colony density cannot exceed the shared density maximum",
-    );
-  }
-  if (density === 0) return 0;
+    if (sharedDensityMaximum === 0) {
+      if (density !== 0) {
+        throw new RangeError(
+          "positive colony density cannot use a zero shared density maximum",
+        );
+      }
+      return 0;
+    }
+    if (density > sharedDensityMaximum) {
+      throw new RangeError(
+        "colony density cannot exceed the shared density maximum",
+      );
+    }
+    if (density === 0) return 0;
 
-  const normalized = density / sharedDensityMaximum;
-  return Math.pow(normalized, policy.densityExponent) * policy.maximumAlpha;
+    const normalized = density * inverseMaximum;
+    return Math.pow(normalized, densityExponent) * maximumAlpha;
+  };
+}
+
+export function projectColonyMassAlpha(
+  density: number,
+  sharedDensityMaximum: number,
+  policy: ColonyMassPresentationPolicy =
+    DEFAULT_COLONY_MASS_PRESENTATION_POLICY,
+): number {
+  return createColonyMassAlphaProjector(
+    sharedDensityMaximum,
+    policy,
+  )(density);
 }

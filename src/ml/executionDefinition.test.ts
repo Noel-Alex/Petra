@@ -135,6 +135,7 @@ function executionDefinition(familyId = "untreated") {
       "baseline-condition",
       config,
     ),
+    executionSchedule: createMechanisticExecutionSchedule({ totalTicks: 4, snapshotEveryTicks: 2 }),
     intervention: createNoInterventionExecutionDefinition(familyId),
   });
 }
@@ -229,6 +230,7 @@ describe("mechanistic execution-definition provenance", () => {
           "baseline-condition",
           config,
         ),
+    executionSchedule: createMechanisticExecutionSchedule({ totalTicks: 4, snapshotEveryTicks: 2 }),
         intervention: createNoInterventionExecutionDefinition("untreated"),
       }),
     ).toThrow(/require provenance parameter-set authority/);

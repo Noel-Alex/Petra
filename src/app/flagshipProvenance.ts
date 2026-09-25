@@ -101,6 +101,26 @@ export function buildFlagshipProvenanceView(
       "ψ rates: log10-density slope per hour; κ: dimensionless; concentrations: mg/L",
   });
 
+  const interventionEnvelope = resolveScenarioProvenance({
+    id: "drug-intervention-envelope:ciprofloxacin",
+    label: "Ciprofloxacin intervention control envelope",
+    record: scenario.drug.interventionControl.sourceTestedDomain as ProvenanceRecord,
+    scenario: context,
+    valueText:
+      `${scenario.drug.interventionControl.sourceTestedDomain.minimumMgPerL}–${scenario.drug.interventionControl.sourceTestedDomain.maximumMgPerL} mg/L`,
+    units: "mg/L",
+  });
+
+  const interventionDefault = resolveScenarioProvenance({
+    id: "drug-intervention-default:ciprofloxacin",
+    label: "Initial ciprofloxacin control reference",
+    record: scenario.drug.interventionControl.defaultSelection as ProvenanceRecord,
+    scenario: context,
+    valueText:
+      `${scenario.drug.interventionControl.defaultSelection.valueMgPerL} mg/L`,
+    units: "mg/L",
+  });
+
   const mutationRecords = scenario.mutationTransitions.map((transition) =>
     resolveScenarioProvenance({
       id: `mutation:${transition.from}->${transition.to}`,
@@ -123,6 +143,8 @@ export function buildFlagshipProvenanceView(
       executionProfile,
       resourceContext,
       referencePharmacodynamics,
+      interventionEnvelope,
+      interventionDefault,
       composition,
       ...genotypeRecords,
       ...mutationRecords,

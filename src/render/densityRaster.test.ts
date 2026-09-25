@@ -17,13 +17,21 @@ describe("bounded density and overlay textures", () => {
     const state = fixture(), output = new Uint8ClampedArray(144 * 4);
     writeDensityRaster(state, 2, output);
     expect(output[3]).toBe(0); expect(output[7]).toBe(0);
-    expect(output[11]).toBe(83); expect(output[15]).toBe(166); expect(output[19]).toBe(0);
+    expect(output[11]).toBe(87); expect(output[15]).toBe(199); expect(output[19]).toBe(0);
     expect(state.lineages[0]!.density[3]).toBe(2);
   });
-  it("clears reusable storage and rejects a mismatched buffer", () => {
+  it("clears reusable storage, validates the shared scale, and rejects a mismatched buffer", () => {
     const state = fixture(), output = new Uint8ClampedArray(144 * 4).fill(255);
-    writeDensityRaster(state, 0, output);
+    const empty = {
+      ...state,
+      lineages: state.lineages.map((lineage) => ({
+        ...lineage,
+        density: new Float32Array(lineage.density.length),
+      })),
+    };
+    writeDensityRaster(empty, 0, output);
     expect(output.every(value => value === 0)).toBe(true);
+    expect(() => writeDensityRaster(state, 0, output)).toThrow(/zero shared/);
     expect(() => writeDensityRaster(state, 1, new Uint8ClampedArray(4))).toThrow();
   });
   it("keeps dense overlays on the same transfer and pattern policy as the legend", () => {

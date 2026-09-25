@@ -18,6 +18,45 @@ export interface AcceptedInterventionFootprint {
   readonly intervention: CiprofloxacinIntervention;
 }
 
+export function assertAcceptedInterventionFootprint(
+  value: unknown,
+): asserts value is AcceptedInterventionFootprint {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError("accepted intervention footprint must be an object");
+  }
+  const footprint = value as Record<string, unknown>;
+  if (footprint.version !== ACCEPTED_INTERVENTION_FOOTPRINT_VERSION) {
+    throw new RangeError("unsupported accepted intervention footprint version");
+  }
+  if (footprint.sourceEventType !== "ciprofloxacin-applied") {
+    throw new RangeError(
+      "accepted intervention footprint must come from ciprofloxacin-applied authority",
+    );
+  }
+  assertNonNegativeSafeInteger(
+    "accepted intervention footprint eventSequence",
+    footprint.eventSequence,
+  );
+  assertNonNegativeSafeInteger(
+    "accepted intervention footprint tick",
+    footprint.tick,
+  );
+  if (
+    typeof footprint.simulationTimeHours !== "number" ||
+    !Number.isFinite(footprint.simulationTimeHours) ||
+    footprint.simulationTimeHours < 0
+  ) {
+    throw new RangeError(
+      "accepted intervention footprint simulationTimeHours must be finite and non-negative",
+    );
+  }
+  assertCanonicalText(
+    "accepted intervention footprint commandId",
+    footprint.commandId,
+  );
+  assertCiprofloxacinIntervention(footprint.intervention);
+}
+
 /**
  * Losslessly projects accepted spatial intervention authority into detached
  * render data. The geometry remains source-shaped: global is global, stripes
@@ -43,9 +82,7 @@ export function projectAcceptedInterventionFootprint(
     );
   }
 
-  assertCiprofloxacinIntervention(event.intervention);
-
-  return {
+  const projected: AcceptedInterventionFootprint = {
     version: ACCEPTED_INTERVENTION_FOOTPRINT_VERSION,
     sourceEventType: "ciprofloxacin-applied",
     eventSequence: event.sequence,
@@ -54,6 +91,8 @@ export function projectAcceptedInterventionFootprint(
     commandId: event.commandId,
     intervention: cloneIntervention(event.intervention),
   };
+  assertAcceptedInterventionFootprint(projected);
+  return projected;
 }
 
 function cloneIntervention(
@@ -100,4 +139,24 @@ function clonePoint(
   point: NormalizedInterventionPoint,
 ): NormalizedInterventionPoint {
   return { x: point.x, y: point.y };
+}
+
+function assertNonNegativeSafeInteger(name: string, value: unknown): void {
+  if (
+    typeof value !== "number" ||
+    !Number.isSafeInteger(value) ||
+    value < 0
+  ) {
+    throw new RangeError(`${name} must be a non-negative safe integer`);
+  }
+}
+
+function assertCanonicalText(name: string, value: unknown): void {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value !== value.trim()
+  ) {
+    throw new TypeError(`${name} must be canonical non-empty text`);
+  }
 }

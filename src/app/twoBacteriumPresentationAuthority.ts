@@ -2,6 +2,10 @@ import {
   BACILLUS_168_SIGE_ORGANISM_PRESENTATION,
   FLAGSHIP_ECOLI_ORGANISM_PRESENTATION,
 } from "../render/organismPresentationIdentity";
+import {
+  assertComposedParameterSetBinding,
+  sameComposedParameterSetBinding,
+} from "../sim/parameterSetBinding";
 import type { TwoBacteriumComposedRunPlan } from "../sim/twoBacteriumComposition";
 import type { ComposedDishOrganismPresentationAuthority } from "./composedDishProjection";
 import { createOrganismPresentationTaxonCatalog } from "./lineageOrganismPresentation";
@@ -38,6 +42,18 @@ export function createTwoBacteriumDishOrganismPresentationAuthority(
   ) {
     throw new Error(
       "two-bacterium organism presentation authority requires the exact bundled run identity",
+    );
+  }
+
+  assertComposedParameterSetBinding(plan.identity, plan.config);
+  if (
+    !sameComposedParameterSetBinding(
+      plan.identity.parameterSetBinding,
+      plan.parameterSetBinding,
+    )
+  ) {
+    throw new Error(
+      "two-bacterium organism presentation authority requires the plan parameter-set binding to match run identity",
     );
   }
 

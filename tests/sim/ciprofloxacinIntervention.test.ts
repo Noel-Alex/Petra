@@ -62,6 +62,7 @@ const config: ComposedSimulationConfig = {
     genotypeMicMgPerL: [{ genotypeId: 'WT', micMgPerL: 0.016 }],
   },
   samplingExecutionPolicy: null,
+  populationAuthority: null,
   hoursPerTick: 0.01,
 }
 

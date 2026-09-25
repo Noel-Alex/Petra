@@ -47,7 +47,7 @@ For an MVP, decay may be zero unless a calibrated scenario requires it.
 
 ### Current composed-runtime authority boundary
 
-Protocol-v5 / composed-state-v3 runs carry the **current** full-grid
+Protocol-v6 / composed-state-v4 runs carry the **current** full-grid
 ciprofloxacin landscape in `mg/L` as replay-critical checkpoint state. The
 configuration still binds the initial landscape plus the supported source-backed
 PD/MIC authority. Current concentrations must remain finite/non-negative and

@@ -50,6 +50,7 @@ const config: ComposedSimulationConfig = {
     scenarioVersion: graph.scenarioVersion,
   },
   samplingExecutionPolicy: null,
+  populationAuthority: null,
   hoursPerTick: 0.01,
 }
 

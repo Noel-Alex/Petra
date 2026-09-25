@@ -16,7 +16,7 @@ export const CIPROFLOXACIN_INTENT_ADAPTER_SCHEMA_VERSION = 1 as const
  * App-layer mapping metadata supplied by authoritative scenario/runtime tooling.
  *
  * This object does not define biological values. It binds the UI parameter key
- * and allowed range to the protocol-v5 ciprofloxacin command contract so the
+ * and allowed range to the protocol-v6 ciprofloxacin command contract so the
  * adapter never invents units, bounds, or set/add semantics.
  */
 export interface CiprofloxacinIntentAuthority {
@@ -34,11 +34,11 @@ export type ApplyCiprofloxacinCommand = Extract<
 >
 
 /**
- * Convert one already-previewed UI intent into the exact protocol-v5 mutation.
+ * Convert one already-previewed UI intent into the exact protocol-v6 mutation.
  *
  * The conversion is deliberately fail-closed:
  * - only the antibiotic tool is supported;
- * - point geometry remains preview-only because protocol v5 has no point dose;
+ * - point geometry remains preview-only because protocol v6 has no point dose;
  * - exactly one caller-declared concentration parameter must be present;
  * - unit/range/blend semantics come from supplied authority, never defaults;
  * - unsupported/extra UI meaning is rejected rather than silently dropped.
@@ -121,7 +121,7 @@ function assertIntentEnvelope(intent: InterventionCommitIntent): void {
   canonicalText('intervention intent id', intent.intentId)
   if (intent.tool !== 'antibiotic') {
     throw new Error(
-      'only antibiotic intents can map to protocol-v5 ciprofloxacin authority',
+      'only antibiotic intents can map to protocol-v6 ciprofloxacin authority',
     )
   }
   if (!Array.isArray(intent.parameters)) {
@@ -191,7 +191,7 @@ function mapGeometry(
       }
     case 'point':
       throw new Error(
-        'point geometry is preview-only and unsupported by protocol-v5 ciprofloxacin interventions',
+        'point geometry is preview-only and unsupported by protocol-v6 ciprofloxacin interventions',
       )
   }
 }

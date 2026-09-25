@@ -20,7 +20,7 @@ Deliver a reproducible spatial *E. coli + ciprofloxacin* vertical slice that is 
 
 The current project scheduling directive is to make the **working flagship simulation/runtime the number-one priority**. The repository has many strong isolated pieces, but current `main` is still not one complete authoritative browser experiment. Until that changes:
 
-1. prioritize #37 and every concrete prerequisite/blocker needed to finish the product-facing protocol-v5 composed worker flagship loop;
+1. prioritize #37 and every concrete prerequisite/blocker needed to finish the product-facing protocol-v6 composed worker flagship loop;
 2. prioritize numerical/scientific validation, parameter binding, local experiments, data generation, and tooling when they unblock that loop;
 3. keep UI, visual-system, and motion work moving only on spare/non-conflicting capacity or when the functional path is blocked;
 4. keep learned-model authority downstream of authoritative mechanistic trajectories and explicit promotion/validation gates, while preparing batch/dataset/training/benchmark infrastructure early enough that local compute can start immediately once those trajectories exist.

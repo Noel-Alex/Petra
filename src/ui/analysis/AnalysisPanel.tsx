@@ -23,6 +23,8 @@ export interface AnalysisPanelProps {
   readonly motion: MotionPreference;
   readonly title?: string;
   readonly className?: string;
+  readonly selectedLineageId?: string | null;
+  readonly onLineageSelect?: (lineageId: string) => void;
 }
 
 const CHART = {
@@ -56,7 +58,14 @@ export function AnalysisPanel({
   motion,
   title = "Live analysis",
   className,
+  selectedLineageId = null,
+  onLineageSelect,
 }: AnalysisPanelProps): ReactElement {
+  const resolvedSelectedLineageId = lineageTree.nodes.some(
+    (node) => node.lineageId === selectedLineageId,
+  )
+    ? selectedLineageId
+    : null;
   const titleId = useId();
   const treeTitleId = useId();
   const motionPlan = resolveAnalysisMotion(motion);
@@ -106,14 +115,22 @@ export function AnalysisPanel({
             <LineageStatusLegend />
           </header>
 
-          <LineageTree tree={lineageTree} />
+          <LineageTree
+            tree={lineageTree}
+            selectedLineageId={resolvedSelectedLineageId}
+            onLineageSelect={onLineageSelect}
+          />
 
           <p className="analysis-card__note">
             Horizontal position is lineage creation time. Circle means extant;
             diamond means extinct. Ancestry comes from simulation records.
           </p>
 
-          <LineageSourceData tree={lineageTree} />
+          <LineageSourceData
+            tree={lineageTree}
+            selectedLineageId={resolvedSelectedLineageId}
+            onLineageSelect={onLineageSelect}
+          />
         </section>
       </div>
     </section>
@@ -330,8 +347,12 @@ function ScientificSourceData({
 
 function LineageSourceData({
   tree,
+  selectedLineageId,
+  onLineageSelect,
 }: {
   readonly tree: LineageTreeLayout;
+  readonly selectedLineageId: string | null;
+  readonly onLineageSelect?: (lineageId: string) => void;
 }): ReactElement {
   if (tree.nodes.length === 0) {
     return <></>;
@@ -357,6 +378,7 @@ function LineageSourceData({
           <thead>
             <tr>
               <th scope="col">Lineage</th>
+              {onLineageSelect === undefined ? null : <th scope="col">Selection</th>}
               <th scope="col">Parent lineage</th>
               <th scope="col">Genotype ID</th>
               <th scope="col">Genotype label</th>
@@ -380,6 +402,18 @@ function LineageSourceData({
                 data-lineage-record-id={node.lineageId}
               >
                 <th scope="row">{node.lineageId}</th>
+                {onLineageSelect === undefined ? null : (
+                  <td>
+                    <button
+                      type="button"
+                      className="analysis-lineage__select"
+                      aria-pressed={selectedLineageId === node.lineageId}
+                      onClick={() => onLineageSelect(node.lineageId)}
+                    >
+                      {selectedLineageId === node.lineageId ? "Selected" : "Select"}
+                    </button>
+                  </td>
+                )}
                 <td>{node.parentLineageId ?? "root"}</td>
                 <td><code>{node.genotypeId}</code></td>
                 <td>
@@ -521,8 +555,12 @@ function ScientificSeries({
 
 function LineageTree({
   tree,
+  selectedLineageId,
+  onLineageSelect,
 }: {
   readonly tree: LineageTreeLayout;
+  readonly selectedLineageId: string | null;
+  readonly onLineageSelect?: (lineageId: string) => void;
 }): ReactElement {
   if (tree.nodes.length === 0) {
     return (
@@ -602,6 +640,8 @@ function LineageTree({
               node={node}
               x={position.x}
               y={position.y}
+              selected={selectedLineageId === node.lineageId}
+              onSelect={onLineageSelect}
             />
           );
         })}
@@ -614,10 +654,14 @@ function LineageNode({
   node,
   x,
   y,
+  selected,
+  onSelect,
 }: {
   readonly node: LineageTreeNode;
   readonly x: number;
   readonly y: number;
+  readonly selected: boolean;
+  readonly onSelect?: (lineageId: string) => void;
 }): ReactElement {
   const identityStyle = {
     "--analysis-lineage-color": `var(${petraVisualColorCssVariableName(node.colorToken)})`,
@@ -632,8 +676,17 @@ function LineageNode({
       data-lineage-appearance={node.appearanceToken}
       data-lineage-pattern={node.patternToken}
       data-contrast-mode={node.contrastMode}
-      role="img"
+      role={onSelect === undefined ? "img" : "button"}
       aria-label={node.ariaLabel}
+      aria-pressed={onSelect === undefined ? undefined : selected}
+      tabIndex={onSelect === undefined ? undefined : 0}
+      data-selected={selected ? "true" : "false"}
+      onClick={onSelect === undefined ? undefined : () => onSelect(node.lineageId)}
+      onKeyDown={onSelect === undefined ? undefined : (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        onSelect(node.lineageId);
+      }}
       style={identityStyle}
       transform={`translate(${x} ${y})`}
     >

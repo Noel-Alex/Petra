@@ -306,6 +306,10 @@ export function App({
       : historicalSimulationTimeLabel(historicalPresentation);
 
   useEffect(() => {
+    setRegionInspectionRequest(null);
+  }, [runBranchIdentity]);
+
+  useEffect(() => {
     setOnboardingSession((current) =>
       reconcileOnboardingRuntimeSession(current, onboardingProjection),
     );

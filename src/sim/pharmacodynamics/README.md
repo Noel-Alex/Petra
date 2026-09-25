@@ -42,6 +42,21 @@ Crucially, Regoes `psi_max` is the baseline of the **source PD curve**. Petra's 
 
 Applying this PD-derived loss under zero resource is a declared composition policy and sensitivity target, **not** a quantitatively calibrated stationary-phase claim.
 
+## Chloramphenicol growth-inhibition authority
+
+`chloramphenicol.ts` implements the Greulich et al. (2015), DOI `10.15252/MSB.20145949`, equation-7 steady-state growth response for wild-type *E. coli* K-12 MG1655. Biological fit parameters remain data-owned in `data/pharmacodynamics/chloramphenicol_mg1655_greulich_v1.json`; the evaluator carries no hidden glucose/glycerol defaults.
+
+The response is expressed as `x = lambda / lambda0` and is admitted only on the real physical branch in `[0, 1]`. Root isolation uses the cubic derivative to bracket every possible in-range root and rejects zero or multiple physical roots rather than choosing an arbitrary branch. At zero chloramphenicol the multiplier is exactly 1.
+
+The reviewed MOPS glycerol and glucose fit families are separate source records. Callers must select one explicit family, supply a positive drug-free growth rate for that source-compatible context, and provide chloramphenicol concentration in `uM`. An unknown family, `mg/L`, a relabelled resistant background, or non-finite/invalid input fails closed.
+
+Chloramphenicol contributes:
+
+- `divisionMultiplier = lambda / lambda0`;
+- `incrementalLossHazardPerHour = 0`.
+
+That zero loss means this pack authorizes no chloramphenicol killing law; it is not a universal statement about every chloramphenicol condition. CAT resistance evidence remains phenotype-only and cannot be converted into an MIC-shifted Greulich curve. The current dimensionless `model-resource` flagship is not a source-compatible MOPS binding, so product selection remains blocked by #928.
+
 ## Authority boundary
 
 - scenario/preset data owns biological parameter values, policy version, classification, and citations;

@@ -50,10 +50,22 @@ export type DishVisualTransitionRefusalReason =
   | "field-metadata-mismatch"
   | "lineage-metadata-mismatch";
 
+interface MutableRenderField {
+  readonly id: string;
+  readonly kind: RenderField["kind"];
+  readonly label: string;
+  readonly unit: string;
+  readonly width: number;
+  readonly height: number;
+  readonly values: Float32Array;
+  minimum: number;
+  maximum: number;
+}
+
 interface FieldTransitionChannel {
   readonly from: RenderField;
   readonly to: RenderField;
-  readonly output: RenderField;
+  readonly output: MutableRenderField;
 }
 
 interface LineageTransitionChannel {
@@ -137,7 +149,7 @@ export function planDishVisualTransition(
     if (sourceField === undefined) {
       return { kind: "snap", reason: "field-set-mismatch" };
     }
-    if (!fieldMetadataEqual(sourceField, targetField)) {
+    if (!fieldIdentityMetadataEqual(sourceField, targetField)) {
       return { kind: "snap", reason: "field-metadata-mismatch" };
     }
     fieldChannels.push({
@@ -300,6 +312,20 @@ function writeFrame(
       channel.to.values,
       easedProgress,
     );
+    // Field bounds are source-supplied scalar-range metadata at exact
+    // authoritative keyframes. When that range changes between compatible
+    // snapshots, only the presentation frame interpolates it so transfer
+    // functions/legends evolve continuously without rewriting source values.
+    channel.output.minimum = mixNumber(
+      channel.from.minimum,
+      channel.to.minimum,
+      easedProgress,
+    );
+    channel.output.maximum = mixNumber(
+      channel.from.maximum,
+      channel.to.maximum,
+      easedProgress,
+    );
   }
 
   for (const channel of transition.lineageChannels) {
@@ -325,6 +351,14 @@ function mixArray(
   }
 }
 
+function mixNumber(
+  from: number,
+  to: number,
+  amount: number,
+): number {
+  return from + (to - from) * amount;
+}
+
 function mixOptionalArray(
   output: Float32Array,
   from: Float32Array | null,
@@ -338,7 +372,7 @@ function mixOptionalArray(
   }
 }
 
-function fieldMetadataEqual(
+function fieldIdentityMetadataEqual(
   left: RenderField,
   right: RenderField,
 ): boolean {
@@ -348,9 +382,7 @@ function fieldMetadataEqual(
     left.label === right.label &&
     left.unit === right.unit &&
     left.width === right.width &&
-    left.height === right.height &&
-    left.minimum === right.minimum &&
-    left.maximum === right.maximum
+    left.height === right.height
   );
 }
 
@@ -418,6 +450,17 @@ function assertVisualState(state: DishVisualState): void {
       throw new RangeError("visual state field geometry must match grid");
     }
     assertFiniteArray(field.values, false, "visual state field");
+    if (
+      !Number.isFinite(field.minimum) ||
+      !Number.isFinite(field.maximum)
+    ) {
+      throw new TypeError("visual state field bounds must be finite");
+    }
+    if (field.maximum < field.minimum) {
+      throw new RangeError(
+        "visual state field maximum must be >= minimum",
+      );
+    }
   }
 
   const lineageIds = new Set<string>();

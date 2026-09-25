@@ -27,6 +27,7 @@ export interface PhageHostAdmissionAuthority {
     readonly taxonContentVersion: string;
     readonly scientificName: string;
     readonly background: string;
+    readonly taxonSourceKey: string;
     readonly genotypeId: string;
   }>;
   readonly admissionRule: "exact-runtime-taxon-content-and-genotype";
@@ -117,7 +118,10 @@ export function resolveAdmittedPhageHostLineages(args: {
   if (
     runtimeTaxon.contentVersion !== authority.runtimeHost.taxonContentVersion ||
     runtimeTaxon.scientificName !== authority.runtimeHost.scientificName ||
-    runtimeTaxon.background !== authority.runtimeHost.background
+    runtimeTaxon.background !== authority.runtimeHost.background ||
+    !runtimeTaxon.provenance.sourceKeys.includes(
+      authority.runtimeHost.taxonSourceKey,
+    )
   ) {
     throw new Error(
       "phage host admission runtime taxon identity does not match reviewed authority",
@@ -221,6 +225,10 @@ export function validatePhageHostAdmissionAuthority(
     authority.runtimeHost.background,
   );
   canonicalText(
+    "phage host admission runtime taxon source key",
+    authority.runtimeHost.taxonSourceKey,
+  );
+  canonicalText(
     "phage host admission runtime genotype id",
     authority.runtimeHost.genotypeId,
   );
@@ -284,6 +292,15 @@ export function validatePhageHostAdmissionAuthority(
   if (!authority.provenance.sourceKeys.includes(lifeHistory.source.key)) {
     throw new Error(
       "phage host admission provenance must include the canonical life-history source key",
+    );
+  }
+  if (
+    !authority.provenance.sourceKeys.includes(
+      authority.runtimeHost.taxonSourceKey,
+    )
+  ) {
+    throw new Error(
+      "phage host admission provenance must include the runtime taxon source key",
     );
   }
 }

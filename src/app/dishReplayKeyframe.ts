@@ -35,11 +35,41 @@ export function createRuntimeDishReplayKeyframe(
     );
   }
 
-  return createAuthoritativeDishReplayKeyframe({
+  const keyframe = createAuthoritativeDishReplayKeyframe({
     runBranchIdentity: args.runtimeState.runBranchIdentity,
     simulationSnapshot,
     dishSnapshot: args.dishSnapshot,
   });
+
+  validateComposedRuntimeDishProjectionIdentity(
+    simulationSnapshot,
+    args.runtimeState.runBranchIdentity,
+    args.dishSnapshot,
+  );
+
+  return keyframe;
+}
+
+function validateComposedRuntimeDishProjectionIdentity(
+  simulationSnapshot: SimulationSnapshot,
+  runBranchIdentity: string,
+  dishSnapshot: DishRenderSnapshot,
+): void {
+  if (simulationSnapshot.checkpoint.authority !== "composed") return;
+
+  const expectedSnapshotId = `composed-trace:${simulationSnapshot.traceHash}`;
+  if (dishSnapshot.snapshotId !== expectedSnapshotId) {
+    throw new Error(
+      "runtime composed dish replay keyframe trace identity does not match the accepted simulation snapshot",
+    );
+  }
+
+  const expectedSamplingIdentity = `runtime-branch:${runBranchIdentity}`;
+  if (dishSnapshot.samplingIdentity !== expectedSamplingIdentity) {
+    throw new Error(
+      "runtime composed dish replay keyframe sampling identity does not match the runtime branch",
+    );
+  }
 }
 
 /**

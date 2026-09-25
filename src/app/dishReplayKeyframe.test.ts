@@ -39,6 +39,20 @@ function simulationSnapshot(
   };
 }
 
+function composedSimulationSnapshot(
+  simulationTimeHours: number,
+  commandCount: number,
+): SimulationSnapshot {
+  const fixture = simulationSnapshot(simulationTimeHours, commandCount);
+  return {
+    ...fixture,
+    checkpoint: {
+      ...fixture.checkpoint,
+      authority: "composed",
+    },
+  } as unknown as SimulationSnapshot;
+}
+
 function experimentRuntimeState(
   snapshot: SimulationSnapshot,
   runBranchIdentity: string,
@@ -169,6 +183,44 @@ describe("authoritative dish replay keyframe bridge", () => {
       }),
     ).toThrow(/acceptedCommandCount/);
   });
+  it("rejects composed runtime dish frames from a different trace or branch", () => {
+    const snapshot = composedSimulationSnapshot(1, 9);
+    const branchIdentity = "run-1/generation-1";
+    const matchingDish = {
+      ...createRendererDemoSnapshot(8),
+      snapshotId: `composed-trace:${snapshot.traceHash}`,
+      samplingIdentity: `runtime-branch:${branchIdentity}`,
+      simulationTimeHours: 1,
+    };
+
+    const keyframe = createRuntimeDishReplayKeyframe({
+      runtimeState: experimentRuntimeState(snapshot, branchIdentity),
+      dishSnapshot: matchingDish,
+    });
+
+    expect(keyframe.snapshot).toBe(matchingDish);
+
+    expect(() =>
+      createRuntimeDishReplayKeyframe({
+        runtimeState: experimentRuntimeState(snapshot, branchIdentity),
+        dishSnapshot: {
+          ...matchingDish,
+          snapshotId: "composed-trace:foreign-trace",
+        },
+      }),
+    ).toThrow(/trace identity/);
+
+    expect(() =>
+      createRuntimeDishReplayKeyframe({
+        runtimeState: experimentRuntimeState(snapshot, branchIdentity),
+        dishSnapshot: {
+          ...matchingDish,
+          samplingIdentity: "runtime-branch:other-generation",
+        },
+      }),
+    ).toThrow(/sampling identity/);
+  });
+
   it("binds equal command positions to distinct runtime-owned history generations", () => {
     const snapshot = simulationSnapshot(1, 9);
     const dish = {

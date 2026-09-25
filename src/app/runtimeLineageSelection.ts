@@ -1,3 +1,4 @@
+import { LINEAGE_ANALYSIS_SCHEMA_VERSION } from "../sim/evolution/analysis";
 import { assertReplayCompatibility } from "../sim/replayCompatibility";
 import {
   DISH_SCENE_TRANSACTION_SCHEMA_VERSION,
@@ -99,7 +100,7 @@ export function createRuntimeLineageSelection(args: {
       "runtime lineage selection requires authoritative lineage analysis",
     );
   }
-  if (lineageAnalysis.schemaVersion !== 1) {
+  if (lineageAnalysis.schemaVersion !== LINEAGE_ANALYSIS_SCHEMA_VERSION) {
     throw new Error("unsupported authoritative lineage analysis schema");
   }
   if (

@@ -23,7 +23,7 @@ Current runtime identity:
 | Field | Current release requirement |
 | --- | --- |
 | engine version | `petra-ts-core/0.1.0` |
-| worker protocol | `6` |
+| worker protocol | `8` |
 | authority kind | exact `synthetic` or `composed` match |
 | scenario ID/version | exact artifact ↔ active-run match |
 | parameter-set ID/version | exact artifact ↔ active-run match |
@@ -41,10 +41,11 @@ The repository's flagship composed-run contract currently asserts:
 - scenario ID: `ecoli-ciprofloxacin-spatial`
 - scenario version: `1.5.0-research`
 - parameter-set ID: `ecoli-ciprofloxacin-baseline-composed`
-- parameter-set version: `1.1.0`
+- parameter-set version: `1.2.0`
 - engine version: `petra-ts-core/0.1.0`
-- protocol version: `6`
+- protocol version: `8`
 - parameter-set binding: exact provenance-owned composed configuration fingerprint
+- founder biological taxon identity: exact `ecoli-k12-mg1655@1.0.0` revision inside that fingerprint/checkpoint authority
 - seed: exact seed carried by the saved run/bundle
 
 The seed is intentionally not a single global "expo seed". Each saved demo run

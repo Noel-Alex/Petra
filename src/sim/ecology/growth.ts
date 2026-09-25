@@ -371,14 +371,27 @@ function validateEcologyInterphase(
     }
 
     const expected = internal.postLocalBiomass[index]!
+    assertEcologyLocalCapacity(
+      totalBiomass,
+      internal.localCapacity,
+      state.lineages.length,
+      index,
+    )
+
     const channels = Math.max(
       1,
       internal.originalLineageCount,
       state.lineages.length,
     )
     const referenceMagnitude = Math.max(expected, totalBiomass)
+    // For non-negative cohort channels, the sum of per-channel relative
+    // Float32 rounding envelopes scales with total biomass, not with
+    // (total biomass × lineage count). Only the minimum-subnormal floor grows
+    // with channel count. Two relative spacings cover the parent decrement and
+    // child-allocation round trips without making large lineage counts a source
+    // of biological slack.
     const representationTolerance = Math.max(
-      referenceMagnitude * FLOAT32_RELATIVE_SPACING * channels,
+      referenceMagnitude * FLOAT32_RELATIVE_SPACING * 2,
       FLOAT32_MIN_SUBNORMAL * channels,
     )
     if (Math.abs(totalBiomass - expected) > representationTolerance) {

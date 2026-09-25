@@ -5,6 +5,7 @@ import { FLAGSHIP_ECOLI_ORGANISM_PRESENTATION } from "../render/organismPresenta
 import type { ComposedSimulationConfig } from "../sim/authoritative";
 import { ComposedSimulationEngine } from "../sim/composedEngine";
 import type { CuratedMutationGraph } from "../sim/evolution/graph";
+import { LineageRegistry } from "../sim/evolution/lineage";
 import { createFixtureComposedParameterSetBinding } from "../sim/parameterSetBinding";
 import {
   AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION,
@@ -221,6 +222,46 @@ describe("authoritative composed dish projection", () => {
       minimum: 0.75,
       maximum: 2,
     });
+  });
+
+  it("admits historical origin markers after their lineage leaves the active render channels", () => {
+    const simulation = composedEngine().snapshot();
+    if (simulation.checkpoint.authority !== "composed") {
+      throw new Error("expected composed snapshot");
+    }
+
+    const registry = LineageRegistry.restore(
+      simulation.checkpoint.composedState.lineageRegistry,
+    );
+    const historicalChild = registry.create({
+      parentLineageId: simulation.checkpoint.composedState.lineageIds[0]!,
+      genotypeId: "VAR",
+      createdAtHours: 0,
+      originCellIndex: 1,
+      mutationClass: "fixture-extinct",
+    });
+    registry.markExtinct(historicalChild.lineageId, 0);
+
+    const historicalSnapshot = structuredClone(simulation);
+    historicalSnapshot.checkpoint.composedState.lineageRegistry =
+      registry.checkpoint();
+
+    const dish = projectAuthoritativeComposedDishSnapshot(
+      historicalSnapshot,
+      "fixture-branch-0",
+    );
+
+    expect(dish.events).toEqual([
+      {
+        id: `lineage-origin:${historicalChild.lineageId}`,
+        kind: "lineage-created",
+        simulationTimeHours: 0,
+        x: 0.75,
+        y: 0.25,
+        label: `Lineage ${historicalChild.lineageId} originated: fixture-extinct`,
+      },
+    ]);
+    expect(dish.events[0]).not.toHaveProperty("lineageId");
   });
 
   it("uses deterministic neutral lineage presentation identity without phenotype inference", () => {

@@ -58,6 +58,8 @@ export interface EcologyMetrics {
 }
 
 export interface EcologyStepResult {
+  /** Exact validated duration used to execute this ecology step. */
+  readonly stepDuration: number
   metrics: EcologyMetrics
   fluxes: EcologyFluxLedger
 }
@@ -195,6 +197,7 @@ interface EcologyInterphaseInternal {
   localCapacity: number
   spreadFractionPerNeighbour: number
   originalLineageCount: number
+  stepDuration: number
   divisionBiomass: number
   deathBiomass: number
   resourceConsumed: number
@@ -325,6 +328,7 @@ export function beginEcologyStep(
     localCapacity: p.localCapacity,
     spreadFractionPerNeighbour: p.spreadRate * dt,
     originalLineageCount: lineageCount,
+    stepDuration: dt,
     divisionBiomass: totalDivisionBiomass,
     deathBiomass: totalDeathBiomass,
     resourceConsumed,
@@ -443,6 +447,7 @@ export function completeEcologyStep(
   }
 
   return {
+    stepDuration: internal.stepDuration,
     metrics: {
       divisionBiomass: internal.divisionBiomass,
       deathBiomass: internal.deathBiomass,

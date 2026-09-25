@@ -12,6 +12,7 @@ Machine-readable science and scenario configuration.
 ## Local contracts
 - Values that affect simulation authority must carry units and provenance or an explicit engineering/synthetic classification.
 - A preset must declare an engine/schema version and warning/usage scope.
+- A run-initialization preset under `data/run_presets/` is engineering run-state authority, not a science-parameter pack: it must bind the current engine/protocol/scenario/composed-parameter-set identity, carry an explicit engineering classification + limitation, and keep seed, model-resource level, founder position, and founder model-biomass visibly non-physical.
 - Do not average conflicting assays. Keep separate records and choose explicitly at scenario composition time.
 - Engineering-normalized values must never be labeled physical measurements.
 - A scenario resource field must carry an explicit `environment.resourceContext`. When physical substrate/medium/biomass mapping is unbound, expose it as dimensionless `model-resource` with engineering provenance; UI/render/runtime code must not relabel it glucose or attach physical concentration units. A later physical/calibrated binding requires a scenario-version change and compatible source context.

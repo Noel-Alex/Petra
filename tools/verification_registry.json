@@ -22,6 +22,11 @@
       "command": ["python", "tools/verify.py", "_scenario"]
     },
     {
+      "id": "run-preset-contracts",
+      "modes": ["quick", "premerge"],
+      "command": ["python", "tools/verify.py", "_run_preset"]
+    },
+    {
       "id": "local-command-resolution",
       "modes": ["quick", "premerge"],
       "command": ["python", "tools/local_command_test.py"]

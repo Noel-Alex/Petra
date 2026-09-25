@@ -5,7 +5,11 @@ import {
   ASPERGILLUS_NO10_ORGANISM_PRESENTATION,
 } from "../organismPresentationIdentity";
 import type { RenderLineage } from "../model";
-import { indexLineageGlyphPresentations } from "./lineagePresentation";
+import {
+  indexLineageGlyphPresentations,
+  lineageGlyphPresentationContractEqual,
+  organismPresentationIdentityEqual,
+} from "./lineagePresentation";
 
 function lineage(
   id: string,
@@ -76,6 +80,42 @@ describe("lineage-local representative glyph presentation", () => {
     );
     expect(omittedPeer.perLineageMode).toBe(true);
     expect(omittedPeer.byLineageId.get("L2")?.presentation).toBeNull();
+  });
+
+  it("distinguishes omitted legacy mode from explicit neutral per-lineage mode", () => {
+    expect(
+      lineageGlyphPresentationContractEqual(
+        [lineage("L1")],
+        [lineage("L1", null)],
+      ),
+    ).toBe(false);
+  });
+
+  it("compares validated presentation metadata semantically instead of by object identity", () => {
+    const clone = structuredClone(FLAGSHIP_ECOLI_ORGANISM_PRESENTATION);
+    expect(
+      organismPresentationIdentityEqual(
+        FLAGSHIP_ECOLI_ORGANISM_PRESENTATION,
+        clone,
+      ),
+    ).toBe(true);
+    expect(
+      lineageGlyphPresentationContractEqual(
+        [lineage("L1", FLAGSHIP_ECOLI_ORGANISM_PRESENTATION)],
+        [lineage("L1", clone)],
+      ),
+    ).toBe(true);
+
+    const changed = {
+      ...clone,
+      id: clone.id + "-changed",
+    };
+    expect(
+      organismPresentationIdentityEqual(
+        FLAGSHIP_ECOLI_ORGANISM_PRESENTATION,
+        changed,
+      ),
+    ).toBe(false);
   });
 
   it("does not treat unsupported hyphal evidence as authorization for the current rod overview glyph", () => {

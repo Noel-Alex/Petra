@@ -1152,14 +1152,11 @@ function drawScene(args: {
   const centerX = geometry.centerX;
   const centerY = geometry.centerY;
   const radius = geometry.radius;
-  const level = semanticZoomLevel(camera.zoom);
-
   for (const layer of [
     plateLayer,
     dishInteriorMask,
     fieldLayer,
     densityLayer,
-    glyphLayer,
     accentLayer,
   ]) {
     layer.clear();
@@ -1219,17 +1216,75 @@ function drawScene(args: {
     );
   });
 
+  drawGlyphAndSelectionLayer({
+    app,
+    snapshot,
+    representativeGlyphsForCamera,
+    organismPresentation,
+    selection,
+    camera,
+    maxRepresentativeGlyphs,
+    lineageDensityMaximum,
+    glyphLayer,
+  });
+
+  const accentAlpha = motion === "off" ? 0.12 : 0.16;
+  accentLayer
+    .circle(centerX, centerY, radius * 0.985)
+    .stroke({ color: DISH_ACCENT_COLOR, alpha: accentAlpha, width: Math.max(1, dishSize * 0.003) });
+}
+
+function drawGlyphAndSelectionLayer(args: {
+  readonly app: Application;
+  readonly snapshot: DishDrawableState;
+  readonly representativeGlyphsForCamera: (
+    camera: CameraView,
+    maxGlyphs: number,
+    minimumDensity: number,
+  ) => readonly GlyphSample[];
+  readonly organismPresentation: OrganismPresentationIdentity | null;
+  readonly selection: DishSelectionHighlight | null;
+  readonly camera: CameraView;
+  readonly maxRepresentativeGlyphs: number;
+  readonly lineageDensityMaximum: number;
+  readonly glyphLayer: Graphics;
+}): void {
+  const {
+    app,
+    snapshot,
+    representativeGlyphsForCamera,
+    organismPresentation,
+    selection,
+    camera,
+    maxRepresentativeGlyphs,
+    lineageDensityMaximum,
+    glyphLayer,
+  } = args;
+
+  glyphLayer.clear();
+  const geometry = resolveDishViewportGeometry({
+    width: app.screen.width,
+    height: app.screen.height,
+  });
+  const dishSize = geometry.diameter;
+  const centerX = geometry.centerX;
+  const centerY = geometry.centerY;
+  const level = semanticZoomLevel(camera.zoom);
   const lineagePresentations = indexLineageGlyphPresentations(
     snapshot.lineages,
     organismPresentation,
   );
+
   if (
     lineagePresentations.hasAnySupportedDishGlyphPresentation ||
     level !== "dish"
   ) {
     const glyphs = representativeGlyphsForCamera(
       camera,
-      Math.min(maxRepresentativeGlyphs, level === "dish" ? 140 : 260),
+      Math.min(
+        maxRepresentativeGlyphs,
+        level === "dish" ? 140 : 260,
+      ),
       lineageDensityMaximum * 0.12,
     );
     const occupiedGlyphPositions: ScreenPoint[] = [];
@@ -1239,7 +1294,9 @@ function drawScene(args: {
       );
       if (indexedLineage === undefined) continue;
       const { lineage, presentation } = indexedLineage;
-      const color = resolveLineageAppearance(lineage.appearanceToken).color;
+      const color = resolveLineageAppearance(
+        lineage.appearanceToken,
+      ).color;
       const point = dishToScreen(
         glyph.x,
         glyph.y,
@@ -1249,41 +1306,142 @@ function drawScene(args: {
         dishSize,
       );
       const spacing = level === "dish" ? 11 : 16;
-      if (occupiedGlyphPositions.some(previous => (previous.x - point.x) ** 2 + (previous.y - point.y) ** 2 < spacing ** 2)) continue;
+      if (
+        occupiedGlyphPositions.some(
+          (previous) =>
+            (previous.x - point.x) ** 2 +
+              (previous.y - point.y) ** 2 <
+            spacing ** 2,
+        )
+      ) {
+        continue;
+      }
       occupiedGlyphPositions.push(point);
-      const strength = Math.sqrt(glyph.weight / Math.max(lineageDensityMaximum, Number.EPSILON));
-      const glyphRadius = Math.max(2.2, (level === "dish" ? 4.3 : 5.2) * Math.min(camera.zoom, 3)) * (0.55 + strength * 0.45);
+      const strength = Math.sqrt(
+        glyph.weight /
+          Math.max(
+            lineageDensityMaximum,
+            Number.EPSILON,
+          ),
+      );
+      const glyphRadius =
+        Math.max(
+          2.2,
+          (level === "dish" ? 4.3 : 5.2) *
+            Math.min(camera.zoom, 3),
+        ) *
+        (0.55 + strength * 0.45);
       if (presentation?.morphology === "rod") {
         // Stable illustration pose, NOT orientation, motility, cell size, or a cell count.
-        const angle = (glyph.cellIndex * 2.399963 + glyph.lineageId.length) % Math.PI;
+        const angle =
+          (glyph.cellIndex * 2.399963 +
+            glyph.lineageId.length) %
+          Math.PI;
         const dx = Math.cos(angle) * glyphRadius;
         const dy = Math.sin(angle) * glyphRadius;
-        glyphLayer.moveTo(point.x - dx, point.y - dy + 1.5).lineTo(point.x + dx, point.y + dy + 1.5)
-          .stroke({ color: DISH_GLYPH_EDGE_COLOR, alpha: 0.3, width: glyphRadius * 1.5, cap: "round" });
-        glyphLayer.moveTo(point.x - dx, point.y - dy).lineTo(point.x + dx, point.y + dy)
-          .stroke({ color, alpha: 0.65 + strength * 0.3, width: glyphRadius * 1.4, cap: "round" });
-        glyphLayer.moveTo(point.x - dx * 0.65 - .6, point.y - dy * .65 - .8).lineTo(point.x + dx * .3 - .6, point.y + dy * .3 - .8)
-          .stroke({ color: DISH_HIGHLIGHT_COLOR, alpha: .35, width: Math.max(.8, glyphRadius * .3), cap: "round" });
-        if (lineage.patternToken === "double-ring") {
-          glyphLayer.circle(point.x, point.y, glyphRadius * .45).stroke({ color: LINEAGE_PATTERN_COLOR, alpha: .8, width: 1 });
+        glyphLayer
+          .moveTo(
+            point.x - dx,
+            point.y - dy + 1.5,
+          )
+          .lineTo(
+            point.x + dx,
+            point.y + dy + 1.5,
+          )
+          .stroke({
+            color: DISH_GLYPH_EDGE_COLOR,
+            alpha: 0.3,
+            width: glyphRadius * 1.5,
+            cap: "round",
+          });
+        glyphLayer
+          .moveTo(point.x - dx, point.y - dy)
+          .lineTo(point.x + dx, point.y + dy)
+          .stroke({
+            color,
+            alpha: 0.65 + strength * 0.3,
+            width: glyphRadius * 1.4,
+            cap: "round",
+          });
+        glyphLayer
+          .moveTo(
+            point.x - dx * 0.65 - 0.6,
+            point.y - dy * 0.65 - 0.8,
+          )
+          .lineTo(
+            point.x + dx * 0.3 - 0.6,
+            point.y + dy * 0.3 - 0.8,
+          )
+          .stroke({
+            color: DISH_HIGHLIGHT_COLOR,
+            alpha: 0.35,
+            width: Math.max(
+              0.8,
+              glyphRadius * 0.3,
+            ),
+            cap: "round",
+          });
+        if (
+          lineage.patternToken === "double-ring"
+        ) {
+          glyphLayer
+            .circle(
+              point.x,
+              point.y,
+              glyphRadius * 0.45,
+            )
+            .stroke({
+              color: LINEAGE_PATTERN_COLOR,
+              alpha: 0.8,
+              width: 1,
+            });
         }
       } else {
-        glyphLayer.circle(point.x, point.y, glyphRadius).fill({ color, alpha: .88 });
-        drawLineagePatternRings(glyphLayer, point, glyphRadius + 1.8, lineage.patternToken, .72, 1.1);
+        glyphLayer
+          .circle(
+            point.x,
+            point.y,
+            glyphRadius,
+          )
+          .fill({ color, alpha: 0.88 });
+        drawLineagePatternRings(
+          glyphLayer,
+          point,
+          glyphRadius + 1.8,
+          lineage.patternToken,
+          0.72,
+          1.1,
+        );
       }
     }
   }
 
   if (selection !== null) {
-    const selected = dishToScreen(selection.centerX, selection.centerY, camera, centerX, centerY, dishSize);
-    glyphLayer.circle(selected.x, selected.y, selection.radius * dishSize * camera.zoom)
-      .stroke({ color: petraVisualColor("mint"), width: 2, alpha: .95 });
-    glyphLayer.circle(selected.x, selected.y, 3).fill({ color: petraVisualColor("mint") });
+    const selected = dishToScreen(
+      selection.centerX,
+      selection.centerY,
+      camera,
+      centerX,
+      centerY,
+      dishSize,
+    );
+    glyphLayer
+      .circle(
+        selected.x,
+        selected.y,
+        selection.radius *
+          dishSize *
+          camera.zoom,
+      )
+      .stroke({
+        color: petraVisualColor("mint"),
+        width: 2,
+        alpha: 0.95,
+      });
+    glyphLayer
+      .circle(selected.x, selected.y, 3)
+      .fill({ color: petraVisualColor("mint") });
   }
-  const accentAlpha = motion === "off" ? 0.12 : 0.16;
-  accentLayer
-    .circle(centerX, centerY, radius * 0.985)
-    .stroke({ color: DISH_ACCENT_COLOR, alpha: accentAlpha, width: Math.max(1, dishSize * 0.003) });
 }
 
 function drawField(

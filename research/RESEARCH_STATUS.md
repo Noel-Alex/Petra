@@ -34,6 +34,20 @@ Accordingly, #633 research is **OFF for the current flagship**. Petra stays on e
 
 None of these gaps should block a scientifically honest first build if the transfer/calibration status remains visible.
 
+## First post-ciprofloxacin antibiotic: chloramphenicol
+
+### Selected quantitative authority
+Greulich et al. 2015 (DOI `10.15252/MSB.20145949`) directly measured *E. coli* K-12 MG1655 growth inhibition by chloramphenicol in defined MOPS media at 37 °C and fit a mechanistic ribosome transport/binding model. The selected full response is their equation 7 cubic, with separate fitted parameter pairs for glycerol and glucose media. See `chloramphenicol_mg1655_pack.md`.
+
+The pack is **growth-inhibition authority, not a killing/loss law**. It must reduce the division/growth channel rather than reuse the ciprofloxacin incremental-loss composition.
+
+Graf et al. 2024 (DOI `10.1038/s41467-024-53391-2`) supplies an exact MG1655 genotype-phenotype control: constitutively expressed functional `catA1`/`catA2`/`catB3` variants produce MIC >512 µg/mL in their pEB1 framework while `catB4` remains at the 8 µg/mL control MIC. This authorizes a resistance-identity record, **not** an MIC-shifted Greulich response curve or mutation rate.
+
+### Product gate
+The current flagship ecology is still `model-resource`, not a named glucose/glycerol MOPS physical context. Therefore the chloramphenicol equation/parameter records are implementation-ready, but a scientifically grounded selectable scenario remains **context-gated**. Do not infer which Greulich fit applies from the current dimensionless nutrient field.
+
+Status: **candidate/model-family research OFF; numerical authority ready to implement; physical scenario binding, resistant-genotype response, resistance evolution, multi-drug interactions and physical transport remain separately gated.**
+
 ## Persistence / tolerance
 
 ### Strong mechanism

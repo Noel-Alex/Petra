@@ -208,6 +208,9 @@ describe('experiment export bundle', () => {
       provenanceSourceIds: ['doi:fixture'],
     })
     expect(bundle.authority).toBe('composed')
+    expect(bundle.replay.originCheckpoint.rngState).toEqual(
+      origin.checkpoint.rngState,
+    )
 
     const replayed = replayExperimentBundle(bundle)
     expect(replayed.checkpoint).toEqual(expected.checkpoint)
@@ -368,6 +371,32 @@ describe('experiment export bundle', () => {
         composedConfig: config,
       }),
     ).toThrow(/pharmacodynamic authority/)
+  })
+
+  it('rejects malformed composed RNG continuation in bundle replay authority', () => {
+    const identity = createRunIdentity({
+      scenarioId: evolutionGraph.scenarioId,
+      scenarioVersion: evolutionGraph.scenarioVersion,
+      parameterSetId: binding.parameterSetId,
+      parameterSetVersion: binding.parameterSetVersion,
+      parameterSetBinding: binding,
+      seed: 23,
+    })
+    const origin = new ComposedSimulationEngine(identity, config).snapshot()
+    const bundle = createExperimentBundle({
+      originCheckpoint: origin.checkpoint,
+      commands: [],
+      composedConfig: config,
+    })
+    const corrupt = structuredClone(bundle)
+    ;(corrupt.replay.originCheckpoint.rngState as unknown as number[]).fill(0)
+
+    expect(() => validateExperimentBundle(corrupt)).toThrowError(
+      expect.objectContaining({
+        code: 'checkpoint-invalid',
+        message: expect.stringMatching(/RNG state/),
+      }),
+    )
   })
 
   it('rejects composed config drift before replay', () => {

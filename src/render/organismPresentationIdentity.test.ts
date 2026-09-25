@@ -18,7 +18,7 @@ describe("organism presentation identity", () => {
       kind: "petra-organism-presentation-identity",
       schemaVersion: 1,
       scientificName: "Escherichia coli",
-      background: "K-12 MG1655",
+      background: "K-12 MG1655 for curated resistance phenotypes",
       organismKind: "bacterium",
       morphology: "rod",
       provenance: {

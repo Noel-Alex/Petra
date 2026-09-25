@@ -31,6 +31,7 @@ Experiment readiness is project work, not an end-of-project cleanup step.
 - Prioritize work that lets the human operator start expensive laptop time immediately after pulling a prerequisite commit.
 - Dataset generation, statistical replicates, calibration, model training/benchmarking, profiling, soak runs, browser acceptance, offline rehearsal, and release performance runs all belong in this queue when they require local capability.
 - Do not discover a known expensive experiment for the first time during final release hours.
+- Render-projection parity evidence is an integrity check, not biological validation. When authoritative JS-number channels are intentionally projected into Float32 renderer storage, verify exact equality to the declared `Math.fround` storage/aggregation policy and report quantization separately; preserve source units and caller-supplied runtime branch/sampling identity, and never reconstruct branch identity from checkpoint fields.
 
 ## Registration contract
 Each manifest experiment must include:

@@ -171,11 +171,12 @@ function parseScenarioGenotypeMics(
   if (!Array.isArray(scenario.genotypes) || scenario.genotypes.length === 0) {
     throw new Error("flagship scenario genotypes must be a non-empty array");
   }
+  const genotypeValues = scenario.genotypes;
 
   const seen = new Set<string>();
   return Object.freeze(
-    scenario.genotypes.map((value, index) => {
-      if (!(index in scenario.genotypes!)) {
+    genotypeValues.map((value, index) => {
+      if (!(index in genotypeValues)) {
         throw new Error("flagship scenario genotypes must be a dense array");
       }
       const genotype = requireRecord(`scenario.genotypes[${index}]`, value);
@@ -217,9 +218,10 @@ function parseConfiguredFounderGenotypeIds(
       "flagship composed parameter set lineages must be a non-empty array",
     );
   }
+  const lineageValues = parameterSet.lineages;
 
-  const founderIds = parameterSet.lineages.map((value, index) => {
-    if (!(index in parameterSet.lineages!)) {
+  const founderIds = lineageValues.map((value, index) => {
+    if (!(index in lineageValues)) {
       throw new Error(
         "flagship composed parameter set lineages must be a dense array",
       );

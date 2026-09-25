@@ -7,9 +7,21 @@ import {
 export const CHLORAMPHENICOL_RESPONSE_AUTHORITY_KIND =
   "petra-antimicrobial-response-authority" as const;
 export const CHLORAMPHENICOL_RESPONSE_SCHEMA_VERSION = 1 as const;
+export const CHLORAMPHENICOL_RESPONSE_AUTHORITY_ID =
+  "chloramphenicol-mg1655-greulich-v1" as const;
+export const CHLORAMPHENICOL_RESPONSE_AUTHORITY_VERSION =
+  "1.0.0-research" as const;
 export const CHLORAMPHENICOL_RESPONSE_MODEL_ID =
   "greulich-ribosome-cubic-v1" as const;
 export const CHLORAMPHENICOL_CONCENTRATION_UNIT = "uM" as const;
+export const CHLORAMPHENICOL_SOURCE_ORGANISM =
+  "Escherichia coli" as const;
+export const CHLORAMPHENICOL_SOURCE_BACKGROUND =
+  "K-12 MG1655" as const;
+export const CHLORAMPHENICOL_ENVIRONMENT_FAMILY_IDS = [
+  "mops-glycerol",
+  "mops-glucose",
+] as const;
 
 export interface ChloramphenicolEnvironmentFamily {
   readonly id: string;
@@ -26,15 +38,15 @@ export interface ChloramphenicolEnvironmentFamily {
 export interface ChloramphenicolResponseAuthority {
   readonly kind: typeof CHLORAMPHENICOL_RESPONSE_AUTHORITY_KIND;
   readonly schemaVersion: typeof CHLORAMPHENICOL_RESPONSE_SCHEMA_VERSION;
-  readonly id: string;
-  readonly version: string;
+  readonly id: typeof CHLORAMPHENICOL_RESPONSE_AUTHORITY_ID;
+  readonly version: typeof CHLORAMPHENICOL_RESPONSE_AUTHORITY_VERSION;
   readonly drug: Readonly<{
     id: "chloramphenicol";
     concentrationUnit: typeof CHLORAMPHENICOL_CONCENTRATION_UNIT;
   }>;
   readonly organism: Readonly<{
-    scientificName: string;
-    background: string;
+    scientificName: typeof CHLORAMPHENICOL_SOURCE_ORGANISM;
+    background: typeof CHLORAMPHENICOL_SOURCE_BACKGROUND;
   }>;
   readonly responseModel: Readonly<{
     kind: "growth-inhibition";
@@ -222,11 +234,16 @@ export function parseChloramphenicolResponseAuthority(
   const organism = expectRecord(root.organism, "organism");
   expectExactKeys(organism, ["scientificName", "background"], "organism");
   const parsedOrganism = Object.freeze({
-    scientificName: expectString(
+    scientificName: expectLiteral(
       organism.scientificName,
+      CHLORAMPHENICOL_SOURCE_ORGANISM,
       "organism.scientificName",
     ),
-    background: expectString(organism.background, "organism.background"),
+    background: expectLiteral(
+      organism.background,
+      CHLORAMPHENICOL_SOURCE_BACKGROUND,
+      "organism.background",
+    ),
   });
 
   const responseModel = expectRecord(root.responseModel, "responseModel");
@@ -275,6 +292,16 @@ export function parseChloramphenicolResponseAuthority(
       throw new TypeError("environment family IDs must be unique");
     }
     environmentIds.add(family.id);
+  }
+  if (
+    environmentIds.size !== CHLORAMPHENICOL_ENVIRONMENT_FAMILY_IDS.length ||
+    CHLORAMPHENICOL_ENVIRONMENT_FAMILY_IDS.some(
+      (id) => !environmentIds.has(id),
+    )
+  ) {
+    throw new TypeError(
+      "chloramphenicol authority must contain exactly the reviewed MOPS glycerol and glucose environment families",
+    );
   }
 
   const effectSemantics = expectRecord(
@@ -330,8 +357,16 @@ export function parseChloramphenicolResponseAuthority(
       CHLORAMPHENICOL_RESPONSE_SCHEMA_VERSION,
       "schemaVersion",
     ),
-    id: expectString(root.id, "id"),
-    version: expectString(root.version, "version"),
+    id: expectLiteral(
+      root.id,
+      CHLORAMPHENICOL_RESPONSE_AUTHORITY_ID,
+      "id",
+    ),
+    version: expectLiteral(
+      root.version,
+      CHLORAMPHENICOL_RESPONSE_AUTHORITY_VERSION,
+      "version",
+    ),
     drug: parsedDrug,
     organism: parsedOrganism,
     responseModel: parsedResponseModel,

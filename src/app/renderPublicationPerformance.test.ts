@@ -4,6 +4,7 @@ import { PROTOCOL_VERSION, type ComposedSimulationSnapshot } from "../sim/protoc
 import {
   isRenderPublicationPerformanceEnabled,
   measureDishProjectionPublication,
+  RENDER_PUBLICATION_PERFORMANCE_SAMPLE_VERSION,
   observeDishReactCommit,
   observeRuntimeSnapshotPublication,
   type RenderPublicationPerformanceSample,
@@ -33,7 +34,10 @@ function snapshot(): ComposedSimulationSnapshot {
       simulationTimeHours: 2,
       commandCount: 3,
       composedState: {} as ComposedSimulationSnapshot["checkpoint"]["composedState"],
-      metrics: {} as ComposedSimulationSnapshot["checkpoint"]["metrics"],
+      metrics: {
+        totalBiomass: 2.5,
+        occupiedCells: 1,
+      } as ComposedSimulationSnapshot["checkpoint"]["metrics"],
     },
   };
 }
@@ -71,7 +75,7 @@ describe("render publication performance diagnostics", () => {
   it("stays disabled until the local experiment probe is explicitly installed", () => {
     expect(isRenderPublicationPerformanceEnabled()).toBe(false);
     globalThis.__petraRenderPublicationPerformanceProbe = {
-      version: 1,
+      version: RENDER_PUBLICATION_PERFORMANCE_SAMPLE_VERSION,
       observe: () => {},
     };
     expect(isRenderPublicationPerformanceEnabled()).toBe(true);
@@ -98,7 +102,7 @@ describe("render publication performance diagnostics", () => {
     const samples: RenderPublicationPerformanceSample[] = [];
     const times = [10, 12, 15, 16, 17, 20];
     globalThis.__petraRenderPublicationPerformanceProbe = {
-      version: 1,
+      version: RENDER_PUBLICATION_PERFORMANCE_SAMPLE_VERSION,
       now: () => times.shift() ?? 20,
       observe: (sample) => samples.push(sample),
     };
@@ -132,6 +136,13 @@ describe("render publication performance diagnostics", () => {
       ["branch-1", "trace-1", 4, 3, 2],
     ]);
 
+    const runtime = samples[0];
+    if (runtime?.phase !== "runtime-snapshot-published") {
+      throw new Error("expected runtime snapshot publication sample");
+    }
+    expect(runtime.totalBiomass).toBe(2.5);
+    expect(runtime.occupiedCells).toBe(1);
+
     const projection = samples[1];
     if (projection?.phase !== "dish-projection") {
       throw new Error("expected dish projection sample");
@@ -145,7 +156,7 @@ describe("render publication performance diagnostics", () => {
 
   it("swallows diagnostic observer failures without changing product behavior", () => {
     globalThis.__petraRenderPublicationPerformanceProbe = {
-      version: 1,
+      version: RENDER_PUBLICATION_PERFORMANCE_SAMPLE_VERSION,
       now: () => 1,
       observe: () => {
         throw new Error("diagnostic sink failed");
@@ -167,7 +178,7 @@ describe("render publication performance diagnostics", () => {
   it("rethrows product projection failures after recording diagnostics", () => {
     const samples: RenderPublicationPerformanceSample[] = [];
     globalThis.__petraRenderPublicationPerformanceProbe = {
-      version: 1,
+      version: RENDER_PUBLICATION_PERFORMANCE_SAMPLE_VERSION,
       now: () => 5,
       observe: (sample) => samples.push(sample),
     };

@@ -85,7 +85,11 @@ import {
   rendererTouchActionForNextGesture,
 } from "./touchOwnership";
 import { resolveDishActivationPoint } from "./dishActivation";
-import { indexLineageGlyphPresentations } from "./lineagePresentation";
+import {
+  indexLineageGlyphPresentations,
+  lineageGlyphPresentationContractEqual,
+  organismPresentationIdentityEqual,
+} from "./lineagePresentation";
 
 export type RendererMotionMode = "full" | "reduced" | "off";
 
@@ -335,13 +339,28 @@ export async function createPixiDishRenderer(
     nextSnapshot: DishRenderSnapshot,
     requestedOverlayId: string | null,
   ) => {
-    const previousSnapshotId = snapshot?.snapshotId ?? null;
-    const previousSamplingIdentity = snapshot?.samplingIdentity ?? null;
+    const previousSnapshot = snapshot;
+    const previousSnapshotId = previousSnapshot?.snapshotId ?? null;
+    const previousSamplingIdentity =
+      previousSnapshot?.samplingIdentity ?? null;
     const next = resolveSnapshotOverlayUpdate(
       { snapshot, overlayId },
       nextSnapshot,
       requestedOverlayId,
     );
+    const lineagePresentationChanged =
+      previousSnapshot !== null &&
+      !lineageGlyphPresentationContractEqual(
+        previousSnapshot.lineages,
+        next.snapshot.lineages,
+      );
+    if (lineagePresentationChanged) {
+      renderPreparationRevision =
+        advanceDishRenderPreparationRevision(
+          renderPreparationRevision,
+          "organism-presentation",
+        );
+    }
     snapshot = next.snapshot;
     if (overlayId !== next.overlayId) {
       renderPreparationRevision =
@@ -356,6 +375,11 @@ export async function createPixiDishRenderer(
       previousSnapshotId === next.snapshot.snapshotId &&
       previousSamplingIdentity === next.snapshot.samplingIdentity
     ) {
+      if (lineagePresentationChanged) {
+        visualTransition = null;
+        visualElapsedMs = 0;
+        drawableState = next.snapshot;
+      }
       render();
       return;
     }
@@ -749,7 +773,12 @@ export async function createPixiDishRenderer(
         presentation === null
           ? null
           : parseOrganismPresentationIdentity(presentation);
-      if (organismPresentation !== nextOrganismPresentation) {
+      if (
+        !organismPresentationIdentityEqual(
+          organismPresentation,
+          nextOrganismPresentation,
+        )
+      ) {
         renderPreparationRevision =
           advanceDishRenderPreparationRevision(
             renderPreparationRevision,

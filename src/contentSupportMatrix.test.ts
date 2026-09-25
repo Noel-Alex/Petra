@@ -75,18 +75,18 @@ describe("supported content matrix", () => {
     ).toEqual([
       {
         id: "first-shared-resource-bacterial-competitor",
-        availability: "blocked-implementation",
-        issues: [553, 866],
+        availability: "blocked-validation",
+        issues: [907, 992, 946, 999],
       },
       {
         id: "first-grounded-fungal-competitor",
-        availability: "blocked-research",
-        issues: [556, 615, 866],
+        availability: "blocked-implementation",
+        issues: [615, 974, 1005, 976],
       },
       {
         id: "first-post-ciprofloxacin-antibiotic",
-        availability: "blocked-implementation",
-        issues: [926, 928],
+        availability: "blocked-research",
+        issues: [928, 938],
       },
       {
         id: "named-microbial-interactions",

@@ -55,6 +55,13 @@ export const COMPOSED_STATE_VERSION = 5 as const
 export interface ComposedLineageConfig {
   readonly id: string
   readonly genotypeId: string
+  /**
+   * Optional replay-critical organism/lineage baseline growth-rate scale.
+   *
+   * This is separate from genotype relativeFitness. Omission preserves the
+   * legacy neutral value 1 and the legacy configuration fingerprint.
+   */
+  readonly baselineGrowthRateScale?: number
   readonly deathHazardPerHour: number
 }
 
@@ -545,6 +552,12 @@ function validateConfig(config: ComposedSimulationConfig): void {
     config.growth.localCapacity,
   )
   config.lineages.forEach((lineage) => {
+    if (lineage.baselineGrowthRateScale !== undefined) {
+      finiteNonNegative(
+        'baselineGrowthRateScale(' + lineage.id + ')',
+        lineage.baselineGrowthRateScale,
+      )
+    }
     finiteNonNegative(
       'deathHazardPerHour(' + lineage.id + ')',
       lineage.deathHazardPerHour,
@@ -610,6 +623,9 @@ export function composedConfigurationFingerprint(
       id: lineage.id,
       genotypeId: lineage.genotypeId,
       relativeFitness: fitness[index]!.relativeFitness,
+      ...(lineage.baselineGrowthRateScale === undefined
+        ? {}
+        : { baselineGrowthRateScale: lineage.baselineGrowthRateScale }),
       deathHazardPerHour: lineage.deathHazardPerHour,
     })),
     hoursPerTick: config.hoursPerTick,
@@ -839,6 +855,52 @@ function asEcologyState(state: ComposedSimulationState): EcologyState {
   }
 }
 
+function runtimeLineageBaselineGrowthRateScales(
+  state: ComposedSimulationState,
+  config: ComposedSimulationConfig,
+): readonly number[] {
+  const configuredFounderState = initializeDynamicLineageAuthority(
+    composedFounderAuthority(config),
+  )
+  const founderScaleByRuntimeLineage = new Map<string, number>()
+  configuredFounderState.lineageIds.forEach((lineageId, index) => {
+    const scale = config.lineages[index]!.baselineGrowthRateScale ?? 1
+    founderScaleByRuntimeLineage.set(lineageId, scale)
+  })
+
+  const records = new Map(
+    state.lineageRegistry.records.map((record) => [record.lineageId, record] as const),
+  )
+
+  return state.lineageIds.map((lineageId) => {
+    let record = records.get(lineageId)
+    if (record === undefined) {
+      throw new Error(
+        'baseline growth-rate scale requires lineage registry record ' + lineageId,
+      )
+    }
+
+    while (record.parentLineageId !== null) {
+      const parent = records.get(record.parentLineageId)
+      if (parent === undefined) {
+        throw new Error(
+          'baseline growth-rate scale requires registered lineage parent ' +
+            record.parentLineageId,
+        )
+      }
+      record = parent
+    }
+
+    const scale = founderScaleByRuntimeLineage.get(record.lineageId)
+    if (scale === undefined) {
+      throw new Error(
+        'runtime lineage root is not a configured founder: ' + record.lineageId,
+      )
+    }
+    return scale
+  })
+}
+
 interface PreparedComposedLineageParameters {
   readonly configurationFingerprint: string
   readonly runtimeLineageIdentity: string
@@ -867,6 +929,8 @@ function preparedLineageParameters(
   }
 
   const fitness = runtimeLineageFitness(state, config)
+  const baselineGrowthRateScales =
+    runtimeLineageBaselineGrowthRateScales(state, config)
   const ciprofloxacin = composedCiprofloxacinIdentity(config.ciprofloxacin)
   const hasDrugExposure =
     ciprofloxacin !== null &&
@@ -914,6 +978,7 @@ function preparedLineageParameters(
 
       if (drugHazardByGenotype === null) {
         return {
+          baselineGrowthRateScale: baselineGrowthRateScales[index]!,
           relativeFitness: fitness[index]!.relativeFitness,
           deathHazardPerTime: baselineDeathHazardPerHour,
         }
@@ -935,6 +1000,7 @@ function preparedLineageParameters(
         combinedHazard[cell] = value
       }
       return {
+        baselineGrowthRateScale: baselineGrowthRateScales[index]!,
         relativeFitness: fitness[index]!.relativeFitness,
         deathHazardPerTime: combinedHazard,
       }

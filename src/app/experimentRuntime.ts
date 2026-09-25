@@ -466,13 +466,14 @@ export class ExperimentRuntime {
       });
 
       let controls = this.current.controls;
-      for (const [commandId, command] of this.pendingAcceptance) {
-        const confirmed = timelineUpdate.appendedEvents.some((event) =>
-          eventConfirmsCommand(event, command),
-        );
-        if (!confirmed) continue;
+      for (const event of timelineUpdate.appendedEvents) {
+        if (event.commandId === undefined) continue;
+        const command = this.pendingAcceptance.get(event.commandId);
+        if (command === undefined || !eventConfirmsCommand(event, command)) {
+          continue;
+        }
         controls = recordAcceptedCommand(controls, command);
-        this.pendingAcceptance.delete(commandId);
+        this.pendingAcceptance.delete(command.id);
       }
 
       const runBranchIdentity = this.current.runBranchIdentity;

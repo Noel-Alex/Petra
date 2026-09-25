@@ -5,6 +5,7 @@ import { dirname } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { projectAuthoritativeComposedDishSnapshot } from '../src/app/composedDishProjection'
+import { projectLineageOriginRenderEvents } from '../src/app/lineageRenderEvents'
 import type { RuntimeEcologyObservation } from '../src/app/experimentRuntime'
 import { projectRuntimeEcologyNetGrowthField } from '../src/app/runtimeEcologyRenderField'
 import { ECOLOGY_NET_GROWTH_RENDER_FIELD_ID } from '../src/render/ecologyFluxField'
@@ -13,10 +14,12 @@ import {
   CIPROFLOXACIN_INTERVENTION_SCHEMA_VERSION,
 } from '../src/sim/ciprofloxacinIntervention'
 import { ComposedSimulationEngine } from '../src/sim/composedEngine'
+import { LineageRegistry } from '../src/sim/evolution/lineage'
 import { buildFlagshipComposedRunPlan } from '../src/sim/flagshipComposition'
 import type { ComposedSimulationSnapshot } from '../src/sim/protocol'
 import {
   renderProjectionAuthorityFromComposedSnapshot,
+  verifyLineageOriginRenderEventParity,
   verifyRenderProjectionParity,
   verifyRuntimeEcologyNetGrowthParity,
   type RenderProjectionParityContract,
@@ -183,6 +186,75 @@ function parity(
   )
 }
 
+function buildLineageOriginEventParityFixture() {
+  const gridWidth = 4
+  const gridHeight = 4
+  const dishMask = new Uint8Array(gridWidth * gridHeight).fill(1)
+  const snapshotSimulationTimeHours = 2.5
+
+  const registry = new LineageRegistry()
+  const founder = registry.create({
+    parentLineageId: null,
+    genotypeId: 'WT',
+    createdAtHours: 0,
+    originCellIndex: null,
+    mutationClass: null,
+  })
+  const activeChild = registry.create({
+    parentLineageId: founder.lineageId,
+    genotypeId: 'active-mutant',
+    createdAtHours: 1.25,
+    originCellIndex: 5,
+    mutationClass: 'target-change',
+  })
+  const extinctChild = registry.create({
+    parentLineageId: founder.lineageId,
+    genotypeId: 'historical-mutant',
+    createdAtHours: 1.25,
+    originCellIndex: 10,
+    mutationClass: 'efflux-regulation',
+  })
+  registry.markExtinct(extinctChild.lineageId, 2)
+
+  const lineageRegistry = registry.checkpoint()
+  const activeLineageIds = [founder.lineageId, activeChild.lineageId] as const
+  const projectedEvents = projectLineageOriginRenderEvents({
+    lineageRegistry,
+    activeLineageIds,
+    gridWidth,
+    gridHeight,
+    dishMask,
+    snapshotSimulationTimeHours,
+  })
+
+  return {
+    lineageRegistry,
+    activeLineageIds,
+    gridWidth,
+    gridHeight,
+    dishMask,
+    snapshotSimulationTimeHours,
+    projectedEvents,
+    activeChild,
+    extinctChild,
+  }
+}
+
+function verifyLineageOriginFixture(
+  fixture: ReturnType<typeof buildLineageOriginEventParityFixture>,
+  projectedEvents = fixture.projectedEvents,
+) {
+  return verifyLineageOriginRenderEventParity({
+    lineageRegistry: fixture.lineageRegistry,
+    activeLineageIds: fixture.activeLineageIds,
+    gridWidth: fixture.gridWidth,
+    gridHeight: fixture.gridHeight,
+    dishMask: fixture.dishMask,
+    snapshotSimulationTimeHours: fixture.snapshotSimulationTimeHours,
+    projectedEvents,
+  })
+}
+
 describe('authoritative composed-to-dish render projection parity', () => {
   it('projects the real flagship composed state through the product adapter without scientific channel drift', () => {
     const { plan, snapshot, projected } = buildProductProjection()
@@ -238,6 +310,18 @@ describe('authoritative composed-to-dish render projection parity', () => {
     expect(netGrowthEvidence.unit).toBe('model-biomass/hour')
     expect(netGrowthEvidence.rangeMode).toBe('snapshot-extrema')
 
+    const lineageOriginFixture = buildLineageOriginEventParityFixture()
+    const lineageOriginEventEvidence = verifyLineageOriginFixture(
+      lineageOriginFixture,
+    )
+    expect(lineageOriginEventEvidence).toMatchObject({
+      sourceLineageRecordCount: 3,
+      omittedFounderOrUnpositionedCreationCount: 1,
+      projectedOriginEventCount: 2,
+      activeLineageCrossLinkCount: 1,
+      historicalEventWithoutLiveCrossLinkCount: 1,
+    })
+
     writeCompactResult({
       experimentId: EXPERIMENT_ID,
       status: 'pass',
@@ -255,6 +339,7 @@ describe('authoritative composed-to-dish render projection parity', () => {
       renderBranchIdentity: RUN_BRANCH_IDENTITY,
       evidence,
       netGrowthEvidence,
+      lineageOriginEventEvidence,
       negativeCases: [
         'one-cell-resource-channel-drift',
         'lineage-identity-drift',
@@ -267,6 +352,14 @@ describe('authoritative composed-to-dish render projection parity', () => {
         'accepted-intervention-geometry-drift',
         'runtime-ecology-cross-branch-drift',
         'net-growth-one-cell-drift',
+        'lineage-origin-event-count-drift',
+        'lineage-origin-event-order-drift',
+        'lineage-origin-event-identity-drift',
+        'lineage-origin-event-time-drift',
+        'lineage-origin-event-coordinate-drift',
+        'lineage-origin-event-label-drift',
+        'lineage-origin-live-cross-link-drift',
+        'lineage-origin-canonical-registry-drift',
       ],
       limitations: [
         'This establishes product render-projection integrity for the tested authoritative keyframe, not biological validation or physical calibration.',
@@ -274,6 +367,7 @@ describe('authoritative composed-to-dish render projection parity', () => {
         'Render transfer-domain semantics remain owned by the renderer range contract and are not redefined here.',
         'Accepted intervention footprint parity proves exact event-to-render geometry transport; it does not prove biological efficacy beyond the authoritative simulator state.',
         'Runtime net-growth parity proves the product adapter preserves the accepted step-local rate field; it does not prove that the current Pixi/UI selection visibly displays that overlay.',
+        'Lineage-origin event parity proves exact registry-to-point-event transport for the deterministic fixture; it does not validate mutation probability, fitness, selection, or Pixi marker visibility.',
         'Browser/GPU visual correctness and performance remain separate local acceptance gates.',
       ],
     })
@@ -437,4 +531,84 @@ describe('authoritative composed-to-dish render projection parity', () => {
       ),
     ).toThrow(/net-growth rate differs/i)
   })
+
+  it('rejects lineage-origin event identity, order, time, point, label, live-link and registry drift', () => {
+    const fixture = buildLineageOriginEventParityFixture()
+    const events = fixture.projectedEvents.map((event) => ({ ...event }))
+    assert.equal(events.length, 2)
+
+    expect(() => verifyLineageOriginFixture(fixture, events.slice(1))).toThrow(
+      /projected event count/i,
+    )
+    expect(() =>
+      verifyLineageOriginFixture(fixture, [...events].reverse()),
+    ).toThrow(/event id/i)
+
+    const first = events[0]
+    const second = events[1]
+    assert.ok(first !== undefined && second !== undefined)
+    assert.equal(first.lineageId, fixture.activeChild.lineageId)
+    assert.equal(second.lineageId, undefined)
+
+    expect(() =>
+      verifyLineageOriginFixture(fixture, [
+        { ...first, id: first.id + '-drift' },
+        second,
+      ]),
+    ).toThrow(/event id/i)
+    expect(() =>
+      verifyLineageOriginFixture(fixture, [
+        { ...first, simulationTimeHours: first.simulationTimeHours + 0.01 },
+        second,
+      ]),
+    ).toThrow(/event time/i)
+    expect(() =>
+      verifyLineageOriginFixture(fixture, [
+        { ...first, x: first.x + 0.01 },
+        second,
+      ]),
+    ).toThrow(/event x/i)
+    expect(() =>
+      verifyLineageOriginFixture(fixture, [
+        { ...first, label: first.label + ' drift' },
+        second,
+      ]),
+    ).toThrow(/event label/i)
+    const firstWithoutLiveLineageLink = {
+      id: first.id,
+      kind: first.kind,
+      simulationTimeHours: first.simulationTimeHours,
+      x: first.x,
+      y: first.y,
+      label: first.label,
+    }
+    expect(() =>
+      verifyLineageOriginFixture(fixture, [
+        firstWithoutLiveLineageLink,
+        second,
+      ]),
+    ).toThrow(/live lineage link/i)
+    expect(() =>
+      verifyLineageOriginFixture(fixture, [
+        first,
+        { ...second, lineageId: fixture.extinctChild.lineageId },
+      ]),
+    ).toThrow(/live lineage link/i)
+
+    expect(() =>
+      verifyLineageOriginRenderEventParity({
+        lineageRegistry: {
+          ...fixture.lineageRegistry,
+          events: [...fixture.lineageRegistry.events].reverse(),
+        },
+        activeLineageIds: fixture.activeLineageIds,
+        gridWidth: fixture.gridWidth,
+        gridHeight: fixture.gridHeight,
+        dishMask: fixture.dishMask,
+        snapshotSimulationTimeHours: fixture.snapshotSimulationTimeHours,
+        projectedEvents: fixture.projectedEvents,
+      }),
+    ).toThrow(/lineage|event|creation/i)
+  })
+
 })

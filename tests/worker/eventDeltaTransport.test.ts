@@ -224,11 +224,11 @@ describe('worker append-only event delta transport', () => {
     })
     const created = createWorkerSnapshotTransportResponse({
       commandId: 'advance-one',
-      previousEvents: engine.snapshot().events.slice(0, 1),
+      previousEvents: structuredClone(baseline.events),
       snapshot: next,
     })
 
-    // A sliced prefix does not share Worker-owned immutable event identity,
+    // A cloned prefix does not share Worker-owned immutable event identity,
     // therefore creation itself refuses delta transport.
     expect(created.type).toBe('snapshot')
 

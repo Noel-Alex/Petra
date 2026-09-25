@@ -302,7 +302,7 @@ describe('experiment export bundle', () => {
       composedConfig: config,
     })
     const corrupt = structuredClone(bundle)
-    ;(corrupt.replay.originCheckpoint.rngState as number[]).fill(0)
+    ;(corrupt.replay.originCheckpoint.rngState as unknown as number[]).fill(0)
 
     expect(() => validateExperimentBundle(corrupt)).toThrowError(
       expect.objectContaining({

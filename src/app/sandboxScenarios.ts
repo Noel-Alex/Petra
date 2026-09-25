@@ -136,8 +136,8 @@ const TWO_BACTERIUM_SANDBOX_SCENARIO_VERSION = "1.0.0-experimental";
  * Executable Sandbox runtimes are explicit product authority.
  *
  * A scenario becoming bundled/discoverable does not make it runnable here.
- * The validated two-bacterium authority from #890 intentionally remains
- * unregistered until #907/#879 promotion evidence is accepted.
+ * The two-bacterium authority from #890 is prebound only as blocked readiness
+ * metadata. It remains non-executable until #907 promotion evidence is accepted.
  */
 const SANDBOX_RUNTIME_REGISTRATIONS: readonly SandboxRuntimeRegistration[] =
   Object.freeze([

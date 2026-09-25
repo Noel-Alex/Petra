@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   ExperimentRuntime,
 } from "../../src/app/experimentRuntime";
+import { buildDefaultFlagshipRun } from "../../src/app/flagshipRunPreset";
 import { ComposedSimulationEngine } from "../../src/sim/composedEngine";
 import { createRunBranchIdentity } from "../../src/app/runBranchIdentity";
 import {
@@ -148,16 +149,17 @@ function readyRuntime(ids: string[] = ["step-1"]) {
   return { port, session, runtime };
 }
 
-function readyComposedRuntime(ids: string[] = ["step-1"]) {
+function readyCiprofloxacinRuntime(ids: string[] = ["step-1"]) {
+  const { plan } = buildDefaultFlagshipRun();
   const port = new FakePort();
   const session = new WorkerSession(port);
   const runtime = new ExperimentRuntime(
     session,
-    composedIdentity,
+    plan.identity,
     commandIds(...ids),
-    composedConfig,
+    plan.config,
   );
-  const engine = new ComposedSimulationEngine(composedIdentity, composedConfig);
+  const engine = new ComposedSimulationEngine(plan.identity, plan.config);
   expect(runtime.start()).toBe(true);
   port.emit({
     protocolVersion: PROTOCOL_VERSION,
@@ -277,7 +279,7 @@ describe("experiment runtime", () => {
   });
 
   it("routes a validated intervention only after ciprofloxacin acceptance evidence", () => {
-    const { port, runtime, engine } = readyComposedRuntime();
+    const { port, runtime, engine } = readyCiprofloxacinRuntime();
     const command = {
       id: "intervention-1",
       type: "apply-ciprofloxacin" as const,
@@ -322,7 +324,7 @@ describe("experiment runtime", () => {
   });
 
   it("does not promote a same-id intervention on the wrong authoritative event type", () => {
-    const { port, runtime, engine } = readyComposedRuntime();
+    const { port, runtime, engine } = readyCiprofloxacinRuntime();
     const command = {
       id: "intervention-1",
       type: "apply-ciprofloxacin" as const,

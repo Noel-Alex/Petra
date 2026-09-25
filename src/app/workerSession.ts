@@ -1,3 +1,4 @@
+import { cloneSimulationEventHistory } from "../sim/eventHistory";
 import {
   type SimulationCommand,
   type SimulationSnapshot,
@@ -335,13 +336,16 @@ export class WorkerSession {
     const options = this.performanceOptions;
     const measurement = this.activePerformance;
     if (options === null || measurement === null) {
-      return { snapshot: structuredClone(snapshot), cloneDurationMs: null };
+      return {
+        snapshot: materializeOwnedFullSnapshot(snapshot),
+        cloneDurationMs: null,
+      };
     }
 
     const startedAtMs = options.now();
-    const cloned = structuredClone(snapshot);
+    const owned = materializeOwnedFullSnapshot(snapshot);
     return {
-      snapshot: cloned,
+      snapshot: owned,
       cloneDurationMs: Math.max(0, options.now() - startedAtMs),
     };
   }
@@ -564,6 +568,22 @@ export class WorkerSession {
       throw new Error("WorkerSession is disposed");
     }
   }
+}
+
+function materializeOwnedFullSnapshot(
+  snapshot: SimulationSnapshot,
+): SimulationSnapshot {
+  return {
+    checkpoint: structuredClone(snapshot.checkpoint),
+    events: cloneSimulationEventHistory(snapshot.events),
+    traceHash: snapshot.traceHash,
+    ...("ecologyObservation" in snapshot &&
+    snapshot.ecologyObservation !== undefined
+      ? {
+          ecologyObservation: structuredClone(snapshot.ecologyObservation),
+        }
+      : {}),
+  } as SimulationSnapshot;
 }
 
 export function createBrowserWorkerPort(worker: Worker): WorkerPort {

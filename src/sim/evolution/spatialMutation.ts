@@ -1,4 +1,4 @@
-import type { DiscretePopulationAdvanceResult } from '../populationAuthority'
+import type { DiscreteDivisionOpportunityResult } from '../populationAuthority'
 import { SimulationRng } from '../rng'
 import {
   runSamplingTransaction,
@@ -66,7 +66,7 @@ interface LineageMutationPlan {
  * consumed after earlier cells.
  */
 export function sampleSpatialDivisionMutations(args: {
-  readonly population: DiscretePopulationAdvanceResult
+  readonly population: DiscreteDivisionOpportunityResult
   readonly genotypeIds: readonly string[]
   readonly graph: CuratedMutationGraph
   readonly rng: SimulationRng

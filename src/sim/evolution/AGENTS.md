@@ -27,6 +27,12 @@
 - The returned diagnostics include canonical sampling-policy identity, mode, and RNG-draw count. That policy identity is replay-critical and must join any authoritative configuration fingerprint before this sampler participates in checkpointed composition.
 - Do not “fix” unsafe accelerated draws by clamping negative populations or excess mutant counts after the fact; use bounded exact sampling or explicit refusal. See `../SAMPLING.md`.
 
+## Baseline non-drug lineage loss authority
+- `baselineLossPolicy.ts` owns the versioned static authority for the non-drug first-order loss assigned to an active genotype. The only current rule is an explicit genotype table with per-entry provenance; it never derives background loss from relative fitness, MIC, ciprofloxacin exposure, parent-lineage state, or genotype names.
+- Missing genotype authority fails closed. Engineering entries may intentionally use values such as zero only when the policy explicitly carries engineering classification, context, and limitation; such values are model policy, not measured mortality.
+- Transferred/calibrated entries require source keys. Duplicate genotype entries, invalid hazards, malformed provenance, and non-canonical identities are refused.
+- Policy identity is semantic and replay-stable: genotype/source ordering does not create a different identity, while numerical or provenance changes do. A composed runtime that activates dynamic mutation children must bind the selected policy identity into static run configuration before using it and checkpoint the resolved child parameter with dynamic lineage state.
+
 ## RNG and replay
 - All stochastic evolution consumes an explicit `SimulationRng`; never call `Math.random()`.
 - RNG consumption order is replay-sensitive model state. Changing target iteration, draw order, or accelerated sampling can change trajectories and requires engine/version + deterministic-test review.

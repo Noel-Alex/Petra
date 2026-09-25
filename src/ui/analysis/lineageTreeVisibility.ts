@@ -89,7 +89,17 @@ export function buildLineageTreeVisibilityPlan(
   const budgetExceededForPreservedAncestry =
     visibleIds.size > options.maxVisibleNodes;
 
-  for (const node of tree.nodes) {
+  const canonicalIndex = new Map(
+    tree.nodes.map((node, index) => [node.lineageId, index]),
+  );
+  const candidates = [...tree.nodes].sort(
+    (left, right) =>
+      left.depth - right.depth ||
+      canonicalIndex.get(left.lineageId)! -
+        canonicalIndex.get(right.lineageId)!,
+  );
+
+  for (const node of candidates) {
     if (visibleIds.has(node.lineageId)) continue;
     if (visibleIds.size >= options.maxVisibleNodes) break;
     if (

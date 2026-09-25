@@ -286,6 +286,59 @@ describe("authoritative composed dish projection", () => {
   });
 
 
+  it("binds fresh runtime ecology observations into the same dish transaction and rejects stale identity", () => {
+    const engine = composedEngine();
+    const advanced = engine.execute({
+      id: "advance-with-observation",
+      type: "advance",
+      ticks: 1,
+    });
+    if (
+      advanced.checkpoint.authority !== "composed" ||
+      advanced.ecologyObservation === undefined
+    ) {
+      throw new Error("expected composed advance ecology observation");
+    }
+
+    const dish = projectAuthoritativeComposedDishSnapshot(
+      advanced,
+      "fixture-branch-0",
+      {
+        runBranchIdentity: "fixture-branch-0",
+        envelope: advanced.ecologyObservation,
+      },
+    );
+    const netGrowth = dish.fields.find(
+      (field) => field.id === "authoritative-net-local-biomass-rate",
+    );
+    expect(netGrowth).toMatchObject({
+      kind: "net-growth",
+      unit: "model-biomass/hour",
+      rangeMode: "snapshot-extrema",
+    });
+
+    expect(() =>
+      projectAuthoritativeComposedDishSnapshot(
+        advanced,
+        "fixture-branch-0",
+        {
+          runBranchIdentity: "fixture-branch-foreign",
+          envelope: advanced.ecologyObservation!,
+        },
+      ),
+    ).toThrow(/must match runtime branch identity/);
+
+    const plainSnapshot = engine.snapshot();
+    expect(plainSnapshot.ecologyObservation).toBeUndefined();
+    const plainDish = projectAuthoritativeComposedDishSnapshot(
+      plainSnapshot,
+      "fixture-branch-0",
+    );
+    expect(
+      plainDish.fields.some((field) => field.kind === "net-growth"),
+    ).toBe(false);
+  });
+
   it("rejects cross-channel checkpoint drift before publishing render data", () => {
     const simulation = composedEngine().snapshot();
     if (simulation.checkpoint.authority !== "composed") {

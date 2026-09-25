@@ -24,6 +24,7 @@ import {
   projectComposedDishSnapshot,
 } from "./composedDishProjection";
 import { RuntimeInterventionFootprintAccumulator } from "./runtimeInterventionFootprints";
+import { projectRuntimeLineageDensityPresentationScale } from "./runtimeLineageDensityPresentationScale";
 import { createOrganismPresentationTaxonCatalog } from "./lineageOrganismPresentation";
 
 const graph: CuratedMutationGraph = {
@@ -114,7 +115,7 @@ const config: ComposedSimulationConfig = {
   hoursPerTick: 0.01,
 };
 
-const FIXED_DENSITY_SCALE: SourceOwnedFixedLineageDensityPresentationScale = {
+const UNBOUND_exactDensityScale(simulation, "fixture-branch-0"): SourceOwnedFixedLineageDensityPresentationScale = {
   schemaVersion: LINEAGE_DENSITY_PRESENTATION_SCALE_SCHEMA_VERSION,
   mode: "source-owned-fixed",
   unit: "model-biomass",
@@ -141,6 +142,17 @@ function composedEngine(
     seed,
   });
   return new ComposedSimulationEngine(identity, composedConfig);
+}
+
+function exactDensityScale(
+  simulation: Extract<SimulationSnapshot, { checkpoint: { authority: "composed" } }>,
+  runBranchIdentity: string,
+): SourceOwnedFixedLineageDensityPresentationScale {
+  return projectRuntimeLineageDensityPresentationScale(
+    config,
+    simulation.checkpoint.identity,
+    runBranchIdentity,
+  );
 }
 
 function taxonAuthoritativeConfig(): ComposedSimulationConfig {
@@ -250,9 +262,38 @@ describe("authoritative composed dish projection", () => {
         "fixture-branch-0",
         null,
         null,
-        FIXED_DENSITY_SCALE,
+        exactDensityScale(simulation, "fixture-branch-0"),
       ),
     ).not.toThrow();
+  });
+
+
+  it("rejects a valid fixed density scale from another runtime branch or binding", () => {
+    const simulation = composedEngine().snapshot();
+    if (simulation.checkpoint.authority !== "composed") {
+      throw new Error("expected composed snapshot");
+    }
+    const scale = exactDensityScale(simulation, "fixture-branch-0");
+
+    expect(() =>
+      projectAuthoritativeComposedDishSnapshot(
+        simulation,
+        "fixture-branch-1",
+        null,
+        null,
+        scale,
+      ),
+    ).toThrow(/source identity does not match exact dish transaction/);
+
+    expect(() =>
+      projectAuthoritativeComposedDishSnapshot(
+        simulation,
+        "fixture-branch-0",
+        null,
+        null,
+        { ...scale, sourceIdentity: UNBOUND_FIXED_DENSITY_SCALE.sourceIdentity },
+      ),
+    ).toThrow(/source identity does not match exact dish transaction/);
   });
 
   it("fails closed on incompatible or under-declared fixed density authority", () => {
@@ -267,7 +308,7 @@ describe("authoritative composed dish projection", () => {
         "fixture-branch-0",
         null,
         null,
-        { ...FIXED_DENSITY_SCALE, unit: "cells" },
+        { ...exactDensityScale(simulation, "fixture-branch-0"), unit: "cells" },
       ),
     ).toThrow(/source-owned-fixed model-biomass lineage density scale/);
 
@@ -277,7 +318,7 @@ describe("authoritative composed dish projection", () => {
         "fixture-branch-0",
         null,
         null,
-        { ...FIXED_DENSITY_SCALE, maximum: 1.5 },
+        { ...exactDensityScale(simulation, "fixture-branch-0"), maximum: 1.5 },
       ),
     ).toThrow(/exceeds declared source-owned-fixed presentation maximum/);
   });
@@ -582,14 +623,14 @@ describe("authoritative composed dish projection", () => {
       "fixture-branch-0",
       null,
       null,
-      FIXED_DENSITY_SCALE,
+      exactDensityScale(simulation, "fixture-branch-0"),
     );
     const prepared = projectAuthoritativeComposedDishSnapshot(
       simulation,
       "fixture-branch-0",
       null,
       null,
-      FIXED_DENSITY_SCALE,
+      exactDensityScale(simulation, "fixture-branch-0"),
       frame,
     );
 
@@ -609,7 +650,7 @@ describe("authoritative composed dish projection", () => {
         "fixture-branch-0",
         null,
         null,
-        FIXED_DENSITY_SCALE,
+        exactDensityScale(simulation, "fixture-branch-0"),
         frame,
       ),
     ).toThrow(/exact dish snapshot frontier/);

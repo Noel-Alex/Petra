@@ -240,7 +240,7 @@ def install_render_publication_probe(cdp: CDP) -> None:
             configurable: true,
             enumerable: false,
             value: {
-              version: 1,
+              version: 2,
               observe(sample) {
                 if (state.samples.length >= state.maxSamples) {
                   state.dropped += 1;
@@ -283,6 +283,112 @@ def render_publication_probe_snapshot(cdp: CDP) -> dict[str, Any] | None:
         })()"""
     )
     return result if isinstance(result, dict) else None
+
+
+def remove_render_publication_probe(cdp: CDP) -> bool:
+    """Remove the instrumented publication observer before frame/jank timing."""
+    return (
+        cdp.eval(
+            """(() => {
+              const hadProbe =
+                globalThis.__petraRenderPublicationPerformanceProbe !== undefined ||
+                globalThis.__petraRenderPublicationPerformanceState !== undefined;
+              delete globalThis.__petraRenderPublicationPerformanceProbe;
+              delete globalThis.__petraRenderPublicationPerformanceState;
+              return hadProbe;
+            })()"""
+        )
+        is True
+    )
+
+
+def authoritative_load_for_command(
+    samples: list[dict[str, Any]],
+    command_count: int,
+) -> dict[str, Any] | None:
+    """Resolve exact source-owned load for the last complete matching transaction."""
+    transactions: dict[tuple[Any, ...], dict[str, list[dict[str, Any]]]] = {}
+    order: list[tuple[Any, ...]] = []
+    for sample in samples:
+        phase = sample.get("phase")
+        if phase not in {
+            "runtime-snapshot-published",
+            "dish-projection",
+            "react-dish-committed",
+        }:
+            continue
+        identity = (
+            sample.get("runBranchIdentity"),
+            sample.get("traceHash"),
+            sample.get("tick"),
+            sample.get("commandCount"),
+            sample.get("simulationTimeHours"),
+        )
+        if identity not in transactions:
+            transactions[identity] = {}
+            order.append(identity)
+        transactions[identity].setdefault(phase, []).append(sample)
+
+    for identity in reversed(order):
+        if identity[3] != command_count:
+            continue
+        phases = transactions[identity]
+        runtime = phases.get("runtime-snapshot-published", [])
+        projection = phases.get("dish-projection", [])
+        react = phases.get("react-dish-committed", [])
+        if len(runtime) != 1 or len(projection) != 1 or len(react) != 1:
+            continue
+
+        loads = [
+            (
+                sample.get("authoritativeTotalBiomass"),
+                sample.get("authoritativeOccupiedCells"),
+            )
+            for sample in (runtime[0], projection[0], react[0])
+        ]
+        total_biomass, occupied_cells = loads[0]
+        valid = (
+            all(load == loads[0] for load in loads[1:])
+            and isinstance(total_biomass, (int, float))
+            and not isinstance(total_biomass, bool)
+            and total_biomass >= 0
+            and isinstance(occupied_cells, int)
+            and not isinstance(occupied_cells, bool)
+            and occupied_cells >= 0
+        )
+        if not valid:
+            continue
+
+        return {
+            "runBranchIdentity": identity[0],
+            "traceHash": identity[1],
+            "tick": identity[2],
+            "commandCount": identity[3],
+            "simulationTimeHours": identity[4],
+            "totalBiomass": float(total_biomass),
+            "occupiedCells": occupied_cells,
+            "biomassUnit": "model-biomass",
+            "occupiedCellMeaning": "authoritative occupied grid cells",
+        }
+
+    return None
+
+
+def wait_authoritative_load_for_command(
+    cdp: CDP,
+    command_count: int,
+    timeout: float = 2.0,
+) -> dict[str, Any] | None:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        probe = render_publication_probe_snapshot(cdp)
+        samples = probe.get("samples", []) if probe else []
+        typed_samples = [sample for sample in samples if isinstance(sample, dict)]
+        load = authoritative_load_for_command(typed_samples, command_count)
+        if load is not None:
+            return load
+        time.sleep(0.01)
+    return None
 
 
 def wait_accepted_command_count(
@@ -387,6 +493,9 @@ def summarize_render_publication_samples(
     event_counts: list[int] = []
     footprint_counts: list[int] = []
     net_growth_count = 0
+    authoritative_total_biomass: list[float] = []
+    authoritative_occupied_cells: list[int] = []
+    authoritative_load_consistent_count = 0
 
     for _, runtime, projection, react in complete:
         projection_duration = projection.get("projectionDurationMs")
@@ -429,6 +538,27 @@ def summarize_render_publication_samples(
         if projection.get("hasNetGrowthField") is True:
             net_growth_count += 1
 
+        loads = [
+            (
+                sample.get("authoritativeTotalBiomass"),
+                sample.get("authoritativeOccupiedCells"),
+            )
+            for sample in (runtime, projection, react)
+        ]
+        total_biomass, occupied_cells = loads[0]
+        if (
+            all(load == loads[0] for load in loads[1:])
+            and isinstance(total_biomass, (int, float))
+            and not isinstance(total_biomass, bool)
+            and total_biomass >= 0
+            and isinstance(occupied_cells, int)
+            and not isinstance(occupied_cells, bool)
+            and occupied_cells >= 0
+        ):
+            authoritative_load_consistent_count += 1
+            authoritative_total_biomass.append(float(total_biomass))
+            authoritative_occupied_cells.append(occupied_cells)
+
     runtime_count = phase_counts.get("runtime-snapshot-published", 0)
     projection_count = phase_counts.get("dish-projection", 0)
     react_count = phase_counts.get("react-dish-committed", 0)
@@ -449,6 +579,11 @@ def summarize_render_publication_samples(
         "completeTransactionCoverage": ratio(len(complete), len(transactions)),
         "malformedTransactionCount": malformed,
         "netGrowthProjectionCount": net_growth_count,
+        "authoritativeLoadConsistentTransactionCount": authoritative_load_consistent_count,
+        "authoritativeTotalBiomass": numeric_summary(authoritative_total_biomass),
+        "authoritativeOccupiedCells": numeric_summary(
+            [float(value) for value in authoritative_occupied_cells]
+        ),
         "projectionDurationMs": numeric_summary(projection_ms),
         "payloadEstimateDurationMs": numeric_summary(estimate_ms),
         "runtimeToProjectionStartMs": numeric_summary(runtime_to_projection_ms),
@@ -476,8 +611,10 @@ def summarize_render_publication_samples(
             "Reset-bounded browser publication observations. Projection timing excludes the "
             "payload-estimator duration; payload bytes are renderer-facing application estimates. "
             "Metadata bytes include projected render events and accepted intervention footprints, "
-            "while typed-array reference bytes retain logical channel references. These are not "
-            "Worker framing, bandwidth, heap, GPU memory, or proof that "
+            "while typed-array reference bytes retain logical channel references. Source-owned "
+            "total biomass and occupied-grid-cell diagnostics are copied from the same accepted "
+            "composed checkpoint and are not renderer-derived occupancy or physical cell counts. "
+            "These are not Worker framing, bandwidth, heap, GPU memory, or proof that "
             "coalescing/transferables are beneficial."
         ),
     }
@@ -545,7 +682,8 @@ def render_publication_pass(cdp: CDP, steps: int = 6) -> list[dict[str, Any]]:
             and complete == steps
             and phase_counts.get("runtime-snapshot-published") == steps
             and phase_counts.get("dish-projection") == steps
-            and phase_counts.get("react-dish-committed") == steps,
+            and phase_counts.get("react-dish-committed") == steps
+            and summary.get("authoritativeLoadConsistentTransactionCount") == steps,
             {
                 **summary,
                 "requestedAdvanceTransactions": steps,
@@ -716,6 +854,8 @@ def continuous_render_publication_pass(
             and projection_count > 0
             and isinstance(react_count, int)
             and react_count > 0
+            and summary.get("authoritativeLoadConsistentTransactionCount")
+            == complete
         )
 
         checks.append(
@@ -2297,9 +2437,9 @@ def profile_post_growth_camera_redraw(
 ) -> dict[str, Any]:
     """Measure renderer-owned camera redraws after real authoritative progress.
 
-    The browser surface currently proves accepted-command and biological-time
-    progress, not biomass/occupancy. Keep this evidence labelled post-growth or
-    later-run until source-owned occupancy authority is exposed.
+    The publication probe is used only to capture exact source-owned load at
+    the initial and paused later frontier. It is removed before camera timing so
+    its bookkeeping cannot contaminate renderer frame/redraw evidence.
     """
     current = run_control_state(cdp)
     if current and current.get("playing") is True:
@@ -2311,53 +2451,90 @@ def profile_post_growth_camera_redraw(
                 f"{pause}, {paused}"
             )
 
-    reset_action = click_run_control(cdp, "Reset")
-    reset_state = wait_run_status(cdp, "ready")
-    camera_reset_action = click_overview_reset(cdp)
-    speed_action = click_run_control(cdp, "16×")
-    time.sleep(0.03)
-    before = run_control_state(cdp)
-    before_count = before.get("acceptedCommandCount") if before else None
-    before_hours = before.get("simulationTimeHours") if before else None
+    install_render_publication_probe(cdp)
+    reset_render_publication_probe(cdp)
+    probe_removed_before_camera = False
+    try:
+        reset_action = click_run_control(cdp, "Reset")
+        reset_state = wait_run_status(cdp, "ready")
+        camera_reset_action = click_overview_reset(cdp)
+        speed_action = click_run_control(cdp, "16×")
+        time.sleep(0.03)
+        before = run_control_state(cdp)
+        before_count = before.get("acceptedCommandCount") if before else None
+        before_hours = before.get("simulationTimeHours") if before else None
 
-    if (
-        reset_action.get("clicked") is not True
-        or reset_state is None
-        or reset_state.get("status") != "ready"
-        or camera_reset_action is not True
-        or speed_action.get("clicked") is not True
-        or not isinstance(before_count, int)
-        or not isinstance(before_hours, (int, float))
-    ):
-        raise RuntimeError(
-            "Could not prepare authoritative post-growth camera workload: "
-            f"reset={reset_action}, reset_state={reset_state}, camera_reset="
-            f"{camera_reset_action}, speed={speed_action}, before={before}"
+        if (
+            reset_action.get("clicked") is not True
+            or reset_state is None
+            or reset_state.get("status") != "ready"
+            or camera_reset_action is not True
+            or speed_action.get("clicked") is not True
+            or not isinstance(before_count, int)
+            or not isinstance(before_hours, (int, float))
+        ):
+            raise RuntimeError(
+                "Could not prepare authoritative post-growth camera workload: "
+                f"reset={reset_action}, reset_state={reset_state}, camera_reset="
+                f"{camera_reset_action}, speed={speed_action}, before={before}"
+            )
+
+        before_load = wait_authoritative_load_for_command(cdp, before_count)
+
+        play_action = click_run_control(cdp, "Play")
+        reached = wait_playback_accepted_command_count(
+            cdp,
+            before_count + target_accepted_commands,
+            timeout=30.0,
         )
+        pause_action = click_run_control(cdp, "Pause")
+        after = wait_run_status(cdp, "ready")
+        if pause_action.get("clicked") is not True or after is None:
+            raise RuntimeError(
+                f"Could not pause authoritative post-growth state: {pause_action}, {after}"
+            )
 
-    play_action = click_run_control(cdp, "Play")
-    reached = wait_playback_accepted_command_count(
-        cdp,
-        before_count + target_accepted_commands,
-        timeout=30.0,
-    )
-    pause_action = click_run_control(cdp, "Pause")
-    after = wait_run_status(cdp, "ready")
-    if pause_action.get("clicked") is not True or after is None:
-        raise RuntimeError(
-            f"Could not pause authoritative post-growth state: {pause_action}, {after}"
+        after_count = after.get("acceptedCommandCount")
+        after_hours = after.get("simulationTimeHours")
+        accepted_delta = (
+            int(after_count) - before_count
+            if isinstance(after_count, (int, float))
+            else None
         )
+        biological_delta = (
+            round(float(after_hours) - float(before_hours), 6)
+            if isinstance(after_hours, (int, float))
+            else None
+        )
+        after_load = (
+            wait_authoritative_load_for_command(cdp, int(after_count))
+            if isinstance(after_count, (int, float))
+            else None
+        )
+    finally:
+        probe_removed_before_camera = remove_render_publication_probe(cdp)
 
-    after_count = after.get("acceptedCommandCount")
-    after_hours = after.get("simulationTimeHours")
-    accepted_delta = (
-        int(after_count) - before_count
-        if isinstance(after_count, (int, float))
-        else None
-    )
-    biological_delta = (
-        round(float(after_hours) - float(before_hours), 6)
-        if isinstance(after_hours, (int, float))
+    load_delta = (
+        {
+            "totalBiomass": round(
+                after_load["totalBiomass"] - before_load["totalBiomass"],
+                9,
+            ),
+            "occupiedCells": (
+                after_load["occupiedCells"] - before_load["occupiedCells"]
+            ),
+            "totalBiomassRatio": (
+                round(after_load["totalBiomass"] / before_load["totalBiomass"], 9)
+                if before_load["totalBiomass"] > 0
+                else None
+            ),
+            "occupiedCellsRatio": (
+                round(after_load["occupiedCells"] / before_load["occupiedCells"], 9)
+                if before_load["occupiedCells"] > 0
+                else None
+            ),
+        }
+        if before_load is not None and after_load is not None
         else None
     )
 
@@ -2385,6 +2562,12 @@ def profile_post_growth_camera_redraw(
         "after": after,
         "acceptedCommandAdvance": accepted_delta,
         "biologicalTimeAdvanceHours": biological_delta,
+        "authoritativeLoad": {
+            "before": before_load,
+            "after": after_load,
+            "deltaAndRatio": load_delta,
+            "probeRemovedBeforeCameraTiming": probe_removed_before_camera,
+        },
         "cameraResetAfterGrowth": camera_reset_after_growth,
         "wholeDish": whole,
         "colonyZoom": zoomed,
@@ -2398,10 +2581,10 @@ def profile_post_growth_camera_redraw(
         "wholeDishSha256": hashlib.sha256(whole_png).hexdigest(),
         "colonyZoomSha256": hashlib.sha256(zoom_png).hexdigest(),
         "limitation": (
-            "This workload proves a later accepted authoritative state by "
-            "command/time progress. It does not label that state dense or "
-            "high-biomass because the product DOM does not expose a source-owned "
-            "occupancy measurement."
+            "Source load is copied from the exact accepted composed checkpoint: "
+            "model-biomass total plus occupied authoritative grid-cell count. "
+            "These diagnostics are not physical cells, CFU, gCDW, fractional "
+            "pixel coverage, or a threshold-based claim that the state is dense."
         ),
     }
 
@@ -2527,6 +2710,30 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
         and post_growth["biologicalTimeAdvanceHours"] > 0
         and post_growth_after.get("renderSource") == "authoritative"
         and post_growth_after.get("rendererStatus") == "ready"
+    )
+    post_growth_load = (
+        post_growth.get("authoritativeLoad")
+        if isinstance(post_growth.get("authoritativeLoad"), dict)
+        else {}
+    )
+    post_growth_before_load = (
+        post_growth_load.get("before")
+        if isinstance(post_growth_load.get("before"), dict)
+        else None
+    )
+    post_growth_after_load = (
+        post_growth_load.get("after")
+        if isinstance(post_growth_load.get("after"), dict)
+        else None
+    )
+    post_growth_load_ok = (
+        post_growth_load.get("probeRemovedBeforeCameraTiming") is True
+        and post_growth_before_load is not None
+        and post_growth_after_load is not None
+        and post_growth_before_load.get("commandCount")
+        == (post_growth.get("before") or {}).get("acceptedCommandCount")
+        and post_growth_after_load.get("commandCount")
+        == post_growth_after.get("acceptedCommandCount")
     )
     initial_whole_p95 = whole.get("p95FrameMs")
     initial_zoom_p95 = zoomed.get("p95FrameMs")
@@ -2676,6 +2883,21 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
                 post_growth_progress_ok,
                 post_growth,
                 "blocked" if not post_growth_progress_ok else None,
+            ),
+            check(
+                "performance post-growth: authoritative load diagnostics captured",
+                post_growth_progress_ok and post_growth_load_ok,
+                {
+                    "load": post_growth_load,
+                    "meaning": (
+                        "Exact accepted composed checkpoint load only: total model biomass "
+                        "and occupied authoritative grid cells. No physical cell-count or "
+                        "density threshold is inferred."
+                    ),
+                },
+                "blocked"
+                if not (post_growth_progress_ok and post_growth_load_ok)
+                else None,
             ),
             check(
                 "performance post-growth whole-dish: renderer-owned redraw samples captured",

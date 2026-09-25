@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import sys
 from collections.abc import Mapping, Sequence
 
 
@@ -25,10 +26,13 @@ def resolve_local_command(
 ) -> list[str]:
     """Return launch argv with a Windows PATH/PATHEXT executable resolved.
 
-    Non-Windows argv is copied unchanged. On Windows, a resolvable argv[0] is
-    replaced with the concrete path returned by shutil.which(). If lookup fails,
-    argv is left unchanged so subprocess preserves its normal missing-command
-    failure instead of turning absence into a misleading fallback.
+    Non-Windows argv is copied unchanged. On Windows, Petra's canonical
+    `python` child command is pinned to the interpreter already running the
+    parent tool so a Microsoft Store App Execution Alias cannot shadow the real
+    local Python. Other resolvable argv[0] values are replaced with the concrete
+    path returned by shutil.which(). If lookup fails, argv is left unchanged so
+    subprocess preserves its normal missing-command failure instead of turning
+    absence into a misleading fallback.
     """
 
     if isinstance(argv, (str, bytes)) or not argv:
@@ -40,6 +44,10 @@ def resolve_local_command(
 
     resolved = list(argv)
     if not _uses_windows_command_shims():
+        return resolved
+
+    if resolved[0].casefold() == "python" and sys.executable:
+        resolved[0] = sys.executable
         return resolved
 
     search_path = env.get("PATH") if env is not None else None

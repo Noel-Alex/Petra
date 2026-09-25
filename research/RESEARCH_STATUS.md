@@ -15,7 +15,7 @@ This document answers a practical question for future agents: **what science is 
 ### Explicit composition caveats
 The flagship composes evidence from different strains/assays:
 - Regoes PD reference is not the same MG1655 experiment as Marcusson;
-- genotype PD curves are currently an MIC-ratio transfer approximation;
+- the executable genotype PD curves remain a Regoes-CAB1-to-MG1655 transfer, but exact-background evidence now supports the narrower shared-response-structure + potency/MIC-shift assumption (Khan 2015; Nielsen 2017; Das 2020);
 - spatial spread coefficients need engineering calibration before physical-distance claims;
 - starvation × ciprofloxacin interaction is not yet calibrated as a specific stationary-phase kill model.
 
@@ -26,8 +26,13 @@ For the current flagship/expo release, Petra intentionally does **not** claim a 
 
 Accordingly, #633 research is **OFF for the current flagship**. Petra stays on explicit engineering spatial concentration authority rather than attaching unsupported physical transport semantics. If a future scenario requires physical transport, it must select a named matrix/geometry, source compatible transport evidence, define the grid/time-to-physical mapping, and version that calibration before making mm/time claims.
 
+### Genotype-response research decision (#632)
+
+Research on genotype-specific ciprofloxacin **shape** is now OFF. Khan et al. 2015 fit exact MG1655 WT plus six isogenic resistance mutants with one common viable-count killing structure and strain-specific potency, with `EC50` strongly correlated with MIC. Nielsen et al. 2017 externally predicted additional MG1655-derived mutants from MIC alone. Das et al. 2020 independently found that exact-MG1655 growth-inhibition curves across Petra's five resistance loci collapse after null-fitness/`IC50` rescaling.
+
+This supports retaining a shared response shape with genotype-specific potency/MIC shift rather than adding unsourced genotype-specific `psi_min` or Hill-slope parameters. It does **not** remove the current Regoes CAB1/LB → MG1655/resource-ecology transfer label or authorize importing the Uppsala multi-state PKPD parameters into Petra without a separate model/calibration decision. See `ciprofloxacin_mg1655_response_scaling.md`.
+
 ### Research still useful
-- locate genotype-specific ciprofloxacin time-kill curves for one or more flagship genotypes to replace/shared-shape assumption;
 - curate compatible E. coli growth/resource parameters for a named medium and dish/agar condition;
 - future-only: source an effective drug diffusion coefficient/geometry if a later scenario explicitly chooses physical millimeter/time concentration claims; the current flagship does not make that claim;
 - quantify uncertainty/ranges around selected genotype fitness/MIC measurements where paper data permits.

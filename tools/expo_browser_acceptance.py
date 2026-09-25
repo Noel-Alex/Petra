@@ -312,6 +312,29 @@ def wait_accepted_command_count(
     )
 
 
+def wait_playback_accepted_command_count(
+    cdp: CDP,
+    minimum_accepted_commands: int,
+    timeout: float = 10.0,
+) -> dict[str, Any]:
+    """Wait for continuous playback to accept enough commands without requiring an idle gap."""
+    deadline = time.monotonic() + timeout
+    latest = run_control_state(cdp)
+    while time.monotonic() < deadline:
+        latest = run_control_state(cdp)
+        count = latest.get("acceptedCommandCount") if latest else None
+        if latest and latest.get("status") == "error":
+            raise RuntimeError(
+                f"Authoritative runtime failed during publication playback: {latest}"
+            )
+        if isinstance(count, (int, float)) and int(count) >= minimum_accepted_commands:
+            return latest
+        time.sleep(0.01)
+    raise RuntimeError(
+        f"Timed out waiting for playback command {minimum_accepted_commands}: {latest}"
+    )
+
+
 def numeric_summary(values: list[float]) -> dict[str, float | int | None]:
     if not values:
         return {"count": 0, "average": None, "maximum": None}
@@ -390,11 +413,24 @@ def summarize_render_publication_samples(
         if projection.get("hasNetGrowthField") is True:
             net_growth_count += 1
 
+    runtime_count = phase_counts.get("runtime-snapshot-published", 0)
+    projection_count = phase_counts.get("dish-projection", 0)
+    react_count = phase_counts.get("react-dish-committed", 0)
+    ratio = lambda numerator, denominator: (
+        round(numerator / denominator, 6) if denominator > 0 else None
+    )
+
     return {
         "sampleCount": len(samples),
         "phaseCounts": phase_counts,
+        "phaseRatios": {
+            "projectionPerRuntime": ratio(projection_count, runtime_count),
+            "reactCommitPerProjection": ratio(react_count, projection_count),
+            "reactCommitPerRuntime": ratio(react_count, runtime_count),
+        },
         "transactionCount": len(transactions),
         "completeTransactionCount": len(complete),
+        "completeTransactionCoverage": ratio(len(complete), len(transactions)),
         "malformedTransactionCount": malformed,
         "netGrowthProjectionCount": net_growth_count,
         "projectionDurationMs": numeric_summary(projection_ms),
@@ -498,6 +534,130 @@ def render_publication_pass(cdp: CDP, steps: int = 6) -> list[dict[str, Any]]:
             },
         ),
     ]
+
+
+def continuous_render_publication_pass(
+    cdp: CDP,
+    target_accepted_commands: int = 8,
+) -> list[dict[str, Any]]:
+    """Measure publication behavior under real 1×/4×/16× continuous playback.
+
+    This runs separately from frame/jank profiling so the publication observer's
+    bookkeeping cannot be mistaken for uninstrumented renderer performance.
+    """
+    checks: list[dict[str, Any]] = []
+    install_render_publication_probe(cdp)
+
+    for speed in (1, 4, 16):
+        current = run_control_state(cdp)
+        if current and current.get("playing") is True:
+            click_run_control(cdp, "Pause")
+            wait_run_status(cdp, "ready")
+
+        reset_action = click_run_control(cdp, "Reset")
+        reset_state = wait_run_status(cdp, "ready")
+        speed_action = click_run_control(cdp, f"{speed}×")
+        time.sleep(0.03)
+        before = run_control_state(cdp)
+        before_count = before.get("acceptedCommandCount") if before else None
+
+        if (
+            reset_action.get("clicked") is not True
+            or reset_state is None
+            or reset_state.get("status") != "ready"
+            or speed_action.get("clicked") is not True
+            or not isinstance(before_count, int)
+        ):
+            checks.append(
+                check(
+                    f"render publication playback {speed}x: workload setup",
+                    False,
+                    {
+                        "resetAction": reset_action,
+                        "resetState": reset_state,
+                        "speedAction": speed_action,
+                        "before": before,
+                    },
+                    "blocked",
+                )
+            )
+            continue
+
+        reset_ok = reset_render_publication_probe(cdp)
+        started_at = time.monotonic()
+        play_action = click_run_control(cdp, "Play")
+        reached = wait_playback_accepted_command_count(
+            cdp,
+            before_count + target_accepted_commands,
+        )
+        pause_action = click_run_control(cdp, "Pause")
+        after = wait_run_status(cdp, "ready")
+        elapsed_ms = round((time.monotonic() - started_at) * 1000.0, 3)
+
+        # Let the final accepted snapshot's passive React commit observation land
+        # before reading the bounded probe buffer.
+        time.sleep(0.05)
+        probe = render_publication_probe_snapshot(cdp)
+        samples = probe.get("samples", []) if probe else []
+        typed_samples = [sample for sample in samples if isinstance(sample, dict)]
+        summary = summarize_render_publication_samples(typed_samples)
+        dropped = probe.get("dropped") if probe else None
+        after_count = after.get("acceptedCommandCount") if after else None
+        accepted_delta = (
+            after_count - before_count
+            if isinstance(after_count, int)
+            else None
+        )
+        complete = summary.get("completeTransactionCount")
+        transaction_count = summary.get("transactionCount")
+        net_growth = summary.get("netGrowthProjectionCount")
+        complete_rate = (
+            round(float(complete) * 1000.0 / elapsed_ms, 3)
+            if isinstance(complete, int) and elapsed_ms > 0
+            else None
+        )
+
+        captured = (
+            reset_ok
+            and play_action.get("clicked") is True
+            and pause_action.get("clicked") is True
+            and isinstance(accepted_delta, int)
+            and accepted_delta >= target_accepted_commands
+            and dropped == 0
+            and isinstance(complete, int)
+            and complete > 0
+            and complete == transaction_count
+            and complete == accepted_delta
+            and net_growth == complete
+        )
+
+        checks.append(
+            check(
+                f"render publication playback {speed}x: continuous transactions captured",
+                captured,
+                {
+                    **summary,
+                    "requestedMinimumAcceptedCommands": target_accepted_commands,
+                    "acceptedCommandAdvance": accepted_delta,
+                    "completeTransactionsPerWallSecond": complete_rate,
+                    "elapsedWallMs": elapsed_ms,
+                    "droppedSamples": dropped,
+                    "playAction": play_action,
+                    "pauseAction": pause_action,
+                    "reachedState": reached,
+                    "after": after,
+                    "measurementBoundary": (
+                        "This is a dedicated instrumented publication workload, not "
+                        "renderer frame-time evidence. Counts/ratios may motivate a "
+                        "later publication-policy experiment but do not authorize "
+                        "dropping accepted state or changing biology."
+                    ),
+                },
+                "blocked" if not captured else None,
+            )
+        )
+
+    return checks
 
 
 def install_browser_performance_probes(cdp: CDP) -> None:
@@ -2423,6 +2583,7 @@ def main() -> int:
         checks += accessibility_pass(cdp)
         checks += touch_pass(cdp)
         checks += performance_pass(cdp)
+        checks += continuous_render_publication_pass(cdp)
         checks += render_publication_pass(cdp)
 
         checks.append(check("causal cues preserve camera ownership", False, "Requires an authoritative event trigger fixture.", "blocked"))
@@ -2457,7 +2618,9 @@ def main() -> int:
             "Headless browser evidence checks layout, accessibility plumbing, motion modes, "
             "input event ownership/cancellation, pointer continuity, screenshots, representative renderer frame/redraw time, WebGL draw-call "
             "counts from a separate profiled redraw workload, Chromium heap/DOM trends, and "
-            "long-task/GC symptoms where exposed. A separate advance-only workload measures "
+            "long-task/GC symptoms where exposed. A separate instrumented continuous-playback "
+            "workload measures render-publication ratios at 1x/4x/16x without being used as "
+            "frame-time evidence. A separate advance-only workload measures "
             "accepted-runtime-snapshot to dish-projection to React-commit publication timing and "
             "renderer-facing payload estimates without choosing an optimization policy. The GPU "
             "record is explicitly a canvas/capability proxy, not measured VRAM. Human visible-browser "

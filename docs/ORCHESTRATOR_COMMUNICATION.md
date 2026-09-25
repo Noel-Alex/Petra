@@ -144,3 +144,14 @@ Contributor: Noel-Alex
 - Local verification: four focused Vitest files passed (10 tests); `python tools/verify.py quick` passed all four registered quick checks; direct `vite build` succeeded. Repository `npm run typecheck` / `npm run build` stop at broad existing TypeScript errors. A separate run including `tests/app/experimentRuntime.test.ts` found 7 failing cases out of 11 on current main; the worker-fixture rejection was reported on #158 and was not changed in this branch. No hosted CI.
 
 Contributor: Noel-Alex
+
+## 2026-09-25 — runtime-owned checkpoint branch lifecycle
+
+- #512 now gives `ExperimentRuntime` one explicit checkpoint-origin restore/fork primitive. An admitted restore rotates the existing runtime-owned `runBranchIdentity` before a checkpoint can restart or regress accepted `commandCount`; foreign/busy restore attempts do not rotate history identity.
+- A restored checkpoint becomes explicit replay-origin authority. Post-origin accepted commands form the new branch suffix, and Replay executes initialize → the same checkpoint restore → that suffix instead of silently falling back to genesis. Reset/reseed abandon checkpoint-origin ancestry and return to normal genesis initialization.
+- Product adapters can bind dish replay keyframes and already-authoritative causal-event streams directly to `ExperimentRuntimeState.runBranchIdentity`, removing the need for React/Pixi/narration callers to invent parallel branch ids. Causal run identity now also includes the exact composed parameter-set binding/fingerprint.
+- Historical scrubbing remains inspection-only; this does not make cursor movement a hidden restore or create scientific state from renderer/UI history.
+- No simulation biology, checkpoint wire shape, protocol v6 semantics, or renderer visuals changed. Local TypeScript/Vitest execution is not claimed in this connector session because the environment cannot resolve `github.com`; hosted CI remains frozen.
+
+Contributor/session: Noel-Alex
+

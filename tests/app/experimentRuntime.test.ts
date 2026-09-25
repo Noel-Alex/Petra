@@ -580,4 +580,201 @@ describe("experiment runtime", () => {
     ).toThrow(/non-negative safe integer/);
   });
 
+  it("starts a checkpoint history generation and replays from the same origin", () => {
+    const { port, runtime } = readyRuntime([
+      "before-origin",
+      "restore-origin",
+      "after-origin",
+    ]);
+    const origin = structuredClone(runtime.state.snapshot!.checkpoint);
+    const initialBranch = runtime.state.runBranchIdentity;
+
+    expect(runtime.dispatch({ type: "step", ticks: 2 })).toEqual({
+      accepted: true,
+      reason: null,
+    });
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      commandId: "before-origin",
+      snapshot: makeSnapshot({
+        tick: 2,
+        commandCount: 1,
+        events: [
+          {
+            sequence: 1,
+            tick: 2,
+            simulationTimeHours: 2 / 60,
+            type: "advanced",
+            commandId: "before-origin",
+            value: 2,
+          },
+        ],
+      }),
+    });
+    expect(runtime.state.controls.acceptedCommands).toHaveLength(1);
+
+    expect(runtime.restoreCheckpoint(origin)).toEqual({
+      accepted: true,
+      reason: null,
+    });
+    expect(runtime.state.runBranchIdentity).toBe(
+      createRunBranchIdentity(syntheticIdentity, 1),
+    );
+    expect(runtime.state.runBranchIdentity).not.toBe(initialBranch);
+    expect(runtime.state.snapshot).toBeNull();
+    expect(runtime.state.timeline).toEqual([]);
+    expect(runtime.state.controls.acceptedCommands).toEqual([]);
+    expect(port.posted.at(-1)).toEqual({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "command",
+      command: {
+        id: "restore-origin",
+        type: "restore",
+        checkpoint: origin,
+      },
+    });
+
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      commandId: "restore-origin",
+      snapshot: makeSnapshot({
+        tick: 0,
+        commandCount: 0,
+        events: [
+          {
+            sequence: 0,
+            tick: 0,
+            simulationTimeHours: 0,
+            type: "restored",
+            commandId: "restore-origin",
+          },
+        ],
+      }),
+    });
+    expect(runtime.state.snapshot?.checkpoint.commandCount).toBe(0);
+
+    expect(runtime.dispatch({ type: "step", ticks: 1 })).toEqual({
+      accepted: true,
+      reason: null,
+    });
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      commandId: "after-origin",
+      snapshot: makeSnapshot({
+        tick: 1,
+        commandCount: 1,
+        events: [
+          {
+            sequence: 0,
+            tick: 0,
+            simulationTimeHours: 0,
+            type: "restored",
+            commandId: "restore-origin",
+          },
+          {
+            sequence: 1,
+            tick: 1,
+            simulationTimeHours: 1 / 60,
+            type: "advanced",
+            commandId: "after-origin",
+            value: 1,
+          },
+        ],
+      }),
+    });
+    expect(runtime.state.controls.acceptedCommands).toEqual([
+      { id: "after-origin", type: "advance", ticks: 1 },
+    ]);
+
+    expect(runtime.dispatch({ type: "replay" })).toEqual({
+      accepted: true,
+      reason: null,
+    });
+    expect(runtime.state.runBranchIdentity).toBe(
+      createRunBranchIdentity(syntheticIdentity, 2),
+    );
+    expect(port.posted.at(-1)).toMatchObject({
+      type: "initialize",
+      identity: syntheticIdentity,
+    });
+
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: makeSnapshot({
+        tick: 0,
+        commandCount: 0,
+        events: [
+          {
+            sequence: 0,
+            tick: 0,
+            simulationTimeHours: 0,
+            type: "initialized",
+          },
+        ],
+      }),
+    });
+    expect(port.posted.at(-1)).toEqual({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "command",
+      command: {
+        id: "restore-origin",
+        type: "restore",
+        checkpoint: origin,
+      },
+    });
+
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      commandId: "restore-origin",
+      snapshot: makeSnapshot({
+        tick: 0,
+        commandCount: 0,
+        events: [
+          {
+            sequence: 0,
+            tick: 0,
+            simulationTimeHours: 0,
+            type: "restored",
+            commandId: "restore-origin",
+          },
+        ],
+      }),
+    });
+    expect(port.posted.at(-1)).toEqual({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "command",
+      command: { id: "after-origin", type: "advance", ticks: 1 },
+    });
+  });
+
+  it("does not rotate checkpoint history for foreign or busy restore attempts", () => {
+    const { runtime } = readyRuntime(["busy-step"]);
+    const branchIdentity = runtime.state.runBranchIdentity;
+    const origin = structuredClone(runtime.state.snapshot!.checkpoint);
+    const foreign = makeSnapshot({
+      identity: { ...syntheticIdentity, seed: 24 },
+      tick: 0,
+    }).checkpoint;
+
+    expect(() => runtime.restoreCheckpoint(foreign)).toThrow(
+      /checkpoint identity does not match/,
+    );
+    expect(runtime.state.runBranchIdentity).toBe(branchIdentity);
+
+    expect(runtime.dispatch({ type: "step", ticks: 1 })).toEqual({
+      accepted: true,
+      reason: null,
+    });
+    expect(runtime.restoreCheckpoint(origin)).toEqual({
+      accepted: false,
+      reason: "worker-busy",
+    });
+    expect(runtime.state.runBranchIdentity).toBe(branchIdentity);
+  });
+
 });

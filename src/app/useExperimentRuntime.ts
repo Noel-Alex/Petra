@@ -5,7 +5,7 @@ import {
   useRef,
   useState,
 } from "react";
-import type { RunIdentity } from "../sim/protocol";
+import type { RunIdentity, SimulationCheckpoint } from "../sim/protocol";
 import type { ExperimentControlAction } from "../ui/experimentControls";
 import {
   type AuthoritativeInterventionCommand,
@@ -31,6 +31,9 @@ export interface ExperimentRuntimeBinding {
   readonly state: ExperimentRuntimeState | null;
   readonly view: ExperimentRuntimeView;
   dispatch(action: ExperimentControlAction): ControlDispatchResult | null;
+  restoreCheckpoint(
+    checkpoint: SimulationCheckpoint,
+  ): ControlDispatchResult | null;
   /**
    * Route one already-validated biological intervention through the runtime
    * owner. React receives the typed result but never constructs Worker requests.
@@ -155,6 +158,13 @@ export function useExperimentRuntime(
     [],
   );
 
+  const restoreCheckpoint = useCallback(
+    (checkpoint: SimulationCheckpoint): ControlDispatchResult | null => {
+      return runtimeRef.current?.restoreCheckpoint(checkpoint) ?? null;
+    },
+    [],
+  );
+
   const restart = useCallback((): boolean => {
     if (factory === undefined) return false;
 
@@ -170,7 +180,14 @@ export function useExperimentRuntime(
     [setupFailure, state],
   );
 
-  return { state, view, dispatch, dispatchAuthoritativeCommand, restart };
+  return {
+    state,
+    view,
+    dispatch,
+    restoreCheckpoint,
+    dispatchAuthoritativeCommand,
+    restart,
+  };
 }
 
 function sameRunIdentity(left: RunIdentity, right: RunIdentity): boolean {

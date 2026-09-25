@@ -7,10 +7,12 @@ import {
 } from "../sim/protocol";
 import {
   advanceCausalNarrationSession,
+  bindRuntimeCausalEventStream,
   causalEventStreamRevisionKey,
   createCausalNarrationSession,
   type AuthoritativeCausalEventStream,
 } from "./causalNarration";
+import type { ExperimentRuntimeState } from "./experimentRuntime";
 
 const RUN_A: RunIdentity = {
   engineVersion: ENGINE_VERSION,
@@ -27,6 +29,42 @@ const RUN_B: RunIdentity = {
   seed: 8,
 };
 
+function runtimeState(runBranchIdentity: string): ExperimentRuntimeState {
+  const snapshot = {
+    checkpoint: {
+      identity: RUN_A,
+      tick: 0,
+      simulationTimeHours: 0,
+      syntheticPopulation: 1000,
+      rngState: [1, 2, 3, 4] as const,
+      commandCount: 0,
+    },
+    events: [],
+    traceHash: "trace-runtime-causal",
+  } as const;
+
+  return {
+    controls: {
+      identity: RUN_A,
+      playing: false,
+      speed: 1,
+      acceptedCommands: [],
+    },
+    runBranchIdentity,
+    worker: {
+      phase: "ready",
+      latestSnapshot: snapshot,
+      pendingCommandId: null,
+      queuedRequests: 0,
+      error: null,
+      errorCode: null,
+    },
+    snapshot,
+    timeline: [],
+    integrationError: null,
+  };
+}
+
 function stream(
   runIdentity: RunIdentity,
   runBranchIdentity: string,
@@ -36,6 +74,26 @@ function stream(
 }
 
 describe("causal narration app authority boundary", () => {
+  it("binds causal authority to the runtime-owned history generation", () => {
+    const events = [
+      {
+        id: "runtime-event-0",
+        sequence: 0,
+        eventKind: "intervention-applied" as const,
+      },
+    ];
+    const bound = bindRuntimeCausalEventStream(
+      runtimeState("runtime-generation-4"),
+      events,
+    );
+
+    expect(bound.runIdentity).toEqual(RUN_A);
+    expect(bound.runIdentity).not.toBe(RUN_A);
+    expect(bound.runBranchIdentity).toBe("runtime-generation-4");
+    expect(bound.events).toEqual(events);
+    expect(bound.events).not.toBe(events);
+  });
+
   it("stays silent when the causal-event capability is absent", () => {
     const next = advanceCausalNarrationSession(
       createCausalNarrationSession(),

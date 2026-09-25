@@ -3,6 +3,7 @@ import {
   PROTOCOL_VERSION,
   type RunIdentity,
   type SimulationCommand,
+  type SimulationEvent,
   type SimulationSnapshot,
   type WorkerRequest,
 } from "../sim/protocol";
@@ -36,6 +37,11 @@ export interface ControlDispatchResult {
   readonly accepted: boolean;
   readonly reason: "worker-busy" | "worker-not-ready" | "disposed" | null;
 }
+
+export type AuthoritativeInterventionCommand = Extract<
+  SimulationCommand,
+  { readonly type: "apply-ciprofloxacin" }
+>;
 
 export type ExperimentRuntimeListener = (state: ExperimentRuntimeState) => void;
 
@@ -156,6 +162,43 @@ export class ExperimentRuntime {
   }
 
   /**
+   * Dispatches one already-validated biological intervention through the same
+   * WorkerSession used by run controls. Replay history remains pending until
+   * the matching authoritative event type confirms acceptance.
+   */
+  dispatchAuthoritativeCommand(
+    command: AuthoritativeInterventionCommand,
+  ): ControlDispatchResult {
+    if (this.current.worker.phase === "disposed") {
+      return { accepted: false, reason: "disposed" };
+    }
+    if (
+      this.current.integrationError !== null ||
+      this.current.worker.phase === "idle" ||
+      this.current.worker.phase === "error"
+    ) {
+      return { accepted: false, reason: "worker-not-ready" };
+    }
+    if (
+      this.current.worker.phase === "initializing" ||
+      this.current.worker.phase === "pending"
+    ) {
+      return { accepted: false, reason: "worker-busy" };
+    }
+
+    const acceptedCommand = structuredClone(command);
+    this.pendingAcceptance.set(acceptedCommand.id, acceptedCommand);
+    this.session.enqueue([
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: acceptedCommand,
+      },
+    ]);
+    return { accepted: true, reason: null };
+  }
+
+  /**
    * Called by a React timer/animation-frame scheduler. Playback speed changes
    * requested authoritative tick count; wall-clock cadence remains presentation.
    */
@@ -232,8 +275,8 @@ export class ExperimentRuntime {
 
       let controls = this.current.controls;
       for (const [commandId, command] of this.pendingAcceptance) {
-        const confirmed = candidate.events.some(
-          (event) => event.commandId === commandId,
+        const confirmed = candidate.events.some((event) =>
+          eventConfirmsCommand(event, command),
         );
         if (!confirmed) continue;
         controls = recordAcceptedCommand(controls, command);
@@ -273,6 +316,25 @@ export class ExperimentRuntime {
 
 function isReplayableCommand(command: SimulationCommand): boolean {
   return command.type !== "snapshot" && command.type !== "restore";
+}
+
+function eventConfirmsCommand(
+  event: SimulationEvent,
+  command: SimulationCommand,
+): boolean {
+  if (event.commandId !== command.id) return false;
+
+  switch (command.type) {
+    case "advance":
+      return event.type === "advanced";
+    case "apply-ciprofloxacin":
+      return event.type === "ciprofloxacin-applied";
+    case "synthetic-pulse":
+      return event.type === "synthetic-pulse";
+    case "restore":
+    case "snapshot":
+      return false;
+  }
 }
 
 function workerEffectBlockReason(

@@ -35,7 +35,7 @@ requires:
 This includes every field already participating in
 `composedConfigurationFingerprint(...)`, including replay-critical numerical
 execution policy and any explicitly enabled discrete population calibration /
-policy identity. Protocol v6 / composed-state v4 checkpoint the corresponding
+policy identity. Protocol v7 / composed-state v5 checkpoint the corresponding
 standing-host and standing/division residual state. Bundle v2 needs no separate
 schema bump for this because it already carries the exact config/checkpoint
 payload and exact runtime identity; older protocol artifacts remain
@@ -106,7 +106,7 @@ Deterministic fixtures should cover at minimum:
 - synthetic checkpoint + command round-trip;
 - composed checkpoint/config + command round-trip;
 - composed ciprofloxacin command + intervention-bearing event round-trip;
-- protocol-v6/state-v4 composed population count/residual checkpoint round-trip when explicit calibration authority is enabled;
+- protocol-v7/state-v5 composed population count/residual checkpoint round-trip when explicit calibration authority is enabled;
 - canonical serialize/parse stability;
 - configuration drift refusal;
 - old/unsupported runtime refusal;

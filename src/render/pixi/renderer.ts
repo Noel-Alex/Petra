@@ -160,8 +160,6 @@ export async function createPixiDishRenderer(
   let densityTextureSource: DishDrawableState | null = null;
   let preparedSource: DishDrawableState | null = null;
   let preparedLineageDensityMaximum = 0;
-  let preparedGlyphKey = "";
-  let preparedGlyphs: ReturnType<typeof sampleRepresentativeGlyphs> = [];
   const glyphLayer = new Graphics();
   const accentLayer = new Graphics();
 
@@ -259,21 +257,8 @@ export async function createPixiDishRenderer(
         if (preparedSource !== drawableState) {
           preparedSource = drawableState;
           preparedLineageDensityMaximum = resolveSharedLineageDensityMaximum(drawableState!);
-          preparedGlyphKey = "";
         }
         return preparedLineageDensityMaximum;
-      },
-      prepareGlyphs(level, maximum) {
-        const key = `${level}:${maxRepresentativeGlyphs}:${maximum}`;
-        if (preparedSource !== drawableState || preparedGlyphKey !== key) {
-          preparedSource = drawableState;
-          preparedGlyphKey = key;
-          preparedGlyphs = sampleRepresentativeGlyphs(drawableState!, camera, level === "dish" ? "colony" : level, {
-            maxGlyphs: Math.min(maxRepresentativeGlyphs, level === "dish" ? 140 : 260),
-            minimumDensity: maximum * 0.12,
-          });
-        }
-        return preparedGlyphs;
       },
       plateLayer,
       dishInteriorMask,
@@ -786,7 +771,6 @@ function drawScene(args: {
   readonly motion: RendererMotionMode;
   readonly maxRepresentativeGlyphs: number;
   readonly prepareLineageDensityMaximum: () => number;
-  readonly prepareGlyphs: (level: SemanticZoomLevel, maximum: number) => ReturnType<typeof sampleRepresentativeGlyphs>;
   readonly plateLayer: Graphics;
   readonly dishInteriorMask: Graphics;
   readonly fieldLayer: Graphics;
@@ -806,7 +790,6 @@ function drawScene(args: {
     motion,
     maxRepresentativeGlyphs,
     prepareLineageDensityMaximum,
-    prepareGlyphs,
     organismPresentation,
     selection,
     plateLayer,
@@ -886,7 +869,10 @@ function drawScene(args: {
   });
 
   if (organismPresentation !== null || level !== "dish") {
-    const glyphs = prepareGlyphs(level, lineageDensityMaximum);
+    const glyphs = sampleRepresentativeGlyphs(snapshot, camera, level === "dish" ? "colony" : level, {
+      maxGlyphs: Math.min(maxRepresentativeGlyphs, level === "dish" ? 140 : 260),
+      minimumDensity: lineageDensityMaximum * 0.12,
+    });
     const occupiedGlyphPositions: ScreenPoint[] = [];
     for (const glyph of glyphs) {
       const lineage = snapshot.lineages.find(

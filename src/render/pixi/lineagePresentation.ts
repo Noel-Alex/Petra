@@ -13,8 +13,10 @@ export interface LineageGlyphPresentationIndex {
    * never inherit the legacy run-wide presentation companion.
    */
   readonly perLineageMode: boolean;
-  /** Whether at least one lineage has a non-null representative morphology. */
+  /** Whether at least one lineage has a non-null presentation record. */
   readonly hasAnyPresentation: boolean;
+  /** Current dish-overview morphology-specific glyph support is rod-only. */
+  readonly hasAnySupportedDishGlyphPresentation: boolean;
   readonly byLineageId: ReadonlyMap<string, IndexedLineageGlyphPresentation>;
 }
 
@@ -34,18 +36,23 @@ export function indexLineageGlyphPresentations(
   );
   const byLineageId = new Map<string, IndexedLineageGlyphPresentation>();
   let hasAnyPresentation = false;
+  let hasAnySupportedDishGlyphPresentation = false;
 
   for (const lineage of lineages) {
     const presentation = perLineageMode
       ? lineage.organismPresentation ?? null
       : legacyPresentation;
     if (presentation !== null) hasAnyPresentation = true;
+    if (presentation?.morphology === "rod") {
+      hasAnySupportedDishGlyphPresentation = true;
+    }
     byLineageId.set(lineage.id, { lineage, presentation });
   }
 
   return {
     perLineageMode,
     hasAnyPresentation,
+    hasAnySupportedDishGlyphPresentation,
     byLineageId,
   };
 }

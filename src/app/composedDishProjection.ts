@@ -113,12 +113,22 @@ export function projectAuthoritativeComposedDishSnapshot(
           `lineage ${JSON.stringify(lineageId)} biomass`,
           value,
         );
-        sourceBiomassByCell[cell] += value;
+        sourceBiomassByCell[cell] = addFiniteNonNegativeTotal(
+          "aggregate source biomass per cell",
+          sourceBiomassByCell[cell]!,
+          value,
+        );
         biomass[cell] = finiteFloat32(
           "aggregate model biomass",
           biomass[cell]! + density[cell]!,
         );
-        if (state.mask[cell] === 1) lineageTotal += value;
+        if (state.mask[cell] === 1) {
+          lineageTotal = addFiniteNonNegativeTotal(
+            `lineage ${JSON.stringify(lineageId)} source biomass total`,
+            lineageTotal,
+            value,
+          );
+        }
       }
       assertMetricNumberAgreement(
         `lineage ${JSON.stringify(lineageId)} biomass`,
@@ -152,9 +162,17 @@ export function projectAuthoritativeComposedDishSnapshot(
     resource[cell] = finiteFloat32("limiting model resource", value);
 
     if (state.mask[cell] !== 1) continue;
-    totalResource += value;
+    totalResource = addFiniteNonNegativeTotal(
+      "source resource total",
+      totalResource,
+      value,
+    );
     const localBiomass = sourceBiomassByCell[cell]!;
-    totalBiomass += localBiomass;
+    totalBiomass = addFiniteNonNegativeTotal(
+      "source biomass total",
+      totalBiomass,
+      localBiomass,
+    );
     if (localBiomass > 0) occupiedCells += 1;
   }
   assertMetricNumberAgreement("total biomass", metrics.totalBiomass, totalBiomass);
@@ -317,6 +335,20 @@ function assertFiniteNonNegativeSourceValue(
       `composed dish projection ${name} must be finite and non-negative`,
     );
   }
+}
+
+function addFiniteNonNegativeTotal(
+  name: string,
+  current: number,
+  value: number,
+): number {
+  const next = current + value;
+  if (!Number.isFinite(next) || next < 0) {
+    throw new Error(
+      `composed dish projection ${name} accumulation must remain finite and non-negative`,
+    );
+  }
+  return next;
 }
 
 function assertMetricNumberAgreement(

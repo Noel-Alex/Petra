@@ -5,6 +5,11 @@ import {
 import { isLineageAppearanceToken, type LineageAppearanceToken } from "./lineageAppearance";
 import { isLineagePatternToken, type LineagePatternToken } from "./lineagePatterns";
 import {
+  assertLineageDensityArrayWithinPresentationScale,
+  assertLineageDensityPresentationScale,
+  type LineageDensityPresentationScale,
+} from "./lineageDensityScale";
+import {
   parseOrganismPresentationIdentity,
   type OrganismPresentationIdentity,
 } from "./organismPresentationIdentity";
@@ -85,7 +90,7 @@ export interface RenderLineage {
   readonly density: Float32Array;
 }
 export interface RenderEvent { readonly id: string; readonly kind: string; readonly simulationTimeHours: number; readonly x: number; readonly y: number; readonly lineageId?: string; readonly label: string; }
-export interface DishRenderSnapshot { readonly snapshotId: string; /** Stable presentation-only domain for deterministic representative-glyph sampling across related snapshots. */ readonly samplingIdentity: string; readonly simulationTimeHours: number; readonly gridWidth: number; readonly gridHeight: number; readonly dishMask: Uint8Array; readonly biomass: Float32Array; readonly fields: readonly RenderField[]; readonly lineages: readonly RenderLineage[]; /** Accepted non-point intervention geometry. Authoritative composed projections emit this explicitly; omission is retained only for older presentation fixtures. */ readonly acceptedInterventionFootprints?: readonly AcceptedInterventionFootprint[]; readonly events: readonly RenderEvent[]; }
+export interface DishRenderSnapshot { readonly snapshotId: string; /** Stable presentation-only domain for deterministic representative-glyph sampling across related snapshots. */ readonly samplingIdentity: string; readonly simulationTimeHours: number; readonly gridWidth: number; readonly gridHeight: number; readonly dishMask: Uint8Array; readonly biomass: Float32Array; readonly fields: readonly RenderField[]; readonly lineages: readonly RenderLineage[]; /** Source-owned shared scale for lineage-density presentation. Omission is the backward-compatible snapshot-extrema fallback. */ readonly lineageDensityScale?: LineageDensityPresentationScale; /** Accepted non-point intervention geometry. Authoritative composed projections emit this explicitly; omission is retained only for older presentation fixtures. */ readonly acceptedInterventionFootprints?: readonly AcceptedInterventionFootprint[]; readonly events: readonly RenderEvent[]; }
 export interface CameraView { readonly centerX: number; readonly centerY: number; readonly zoom: number; }
 export interface SemanticZoomPolicy { readonly colonyAt: number; readonly representativeCellAt: number; }
 
@@ -127,6 +132,9 @@ export function validateRenderSnapshot(snapshot: DishRenderSnapshot): void {
       }
     }
   }
+  if (snapshot.lineageDensityScale !== undefined) {
+    assertLineageDensityPresentationScale(snapshot.lineageDensityScale);
+  }
   const lineageIds = new Set<string>();
   for (const lineage of snapshot.lineages) {
     if (!lineage.id || !lineage.label) throw new TypeError("render lineages require identity and presentation metadata");
@@ -136,7 +144,11 @@ export function validateRenderSnapshot(snapshot: DishRenderSnapshot): void {
       parseOrganismPresentationIdentity(structuredClone(lineage.organismPresentation));
     }
     if (lineageIds.has(lineage.id)) throw new RangeError(`duplicate lineage id: ${lineage.id}`); lineageIds.add(lineage.id);
-    assertLength(`lineage ${lineage.id}`, lineage.density.length, cells); assertFiniteNonNegativeArray(`lineage ${lineage.id}`, lineage.density);
+    assertLength(`lineage ${lineage.id}`, lineage.density.length, cells);
+    assertLineageDensityArrayWithinPresentationScale(
+      lineage.density,
+      snapshot.lineageDensityScale,
+    );
   }
   if (
     snapshot.acceptedInterventionFootprints !== undefined &&

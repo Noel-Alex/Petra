@@ -109,7 +109,8 @@ export interface SimulationEvent {
     | 'restored'
   commandId?: string
   value?: number
-  intervention?: CiprofloxacinIntervention | ModelResourceIntervention
+  intervention?: CiprofloxacinIntervention
+  resourceIntervention?: ModelResourceIntervention
 }
 
 interface SimulationSnapshotBase {

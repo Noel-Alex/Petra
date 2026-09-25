@@ -4,6 +4,7 @@ import {
   projectLineageOrganismPresentations,
   type OrganismPresentationTaxonCatalog,
 } from "./lineageOrganismPresentation";
+import { projectLineageOriginRenderEvents } from "./lineageRenderEvents";
 import { projectRuntimeEcologyNetGrowthField } from "./runtimeEcologyRenderField";
 import { projectAcceptedInterventionFootprint } from "../render/acceptedInterventionFootprint";
 import {
@@ -284,6 +285,13 @@ export function projectAuthoritativeComposedDishSnapshot(
     const footprint = projectAcceptedInterventionFootprint(event);
     return footprint === null ? [] : [footprint];
   });
+  const lineageOriginEvents = projectLineageOriginRenderEvents({
+    lineageRegistry: state.lineageRegistry,
+    gridWidth: state.width,
+    gridHeight: state.height,
+    dishMask: state.mask,
+    snapshotSimulationTimeHours: snapshot.checkpoint.simulationTimeHours,
+  });
 
   const projected: DishRenderSnapshot = {
     snapshotId: `composed-trace:${snapshot.traceHash}`,
@@ -296,10 +304,10 @@ export function projectAuthoritativeComposedDishSnapshot(
     fields,
     lineages,
     acceptedInterventionFootprints,
-    // Generic lifecycle/mutation events do not carry authoritative dish points.
-    // Accepted spatial interventions are preserved separately as exact footprints.
-    // Do not infer positions from command geometry, lineage density, or Pixi state.
-    events: [],
+    // Only replay-critical child-lineage origins with exact source cell indices
+    // become point events. Intervention geometry remains a separate footprint
+    // collection, and no point is inferred from density or Pixi state.
+    events: lineageOriginEvents,
   };
 
   validateRenderSnapshot(projected);

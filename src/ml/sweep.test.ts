@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createMechanisticExecutionSchedule } from "./executionSchedule";
 
 import {
   SweepSplitCoverageError,
@@ -20,6 +21,7 @@ function definition(): MechanisticSweepDefinition {
       inputSchemaVersion: "aggregate-input-v1",
       targetSchemaVersion: "aggregate-target-v1",
     },
+    executionSchedule: createMechanisticExecutionSchedule({ totalTicks: 4, snapshotEveryTicks: 2 }),
     parameterPoints: [
       { id: "point-a", parameterSetHash: "params-a" },
       { id: "point-b", parameterSetHash: "params-b" },
@@ -325,4 +327,22 @@ describe("mechanistic ML sweep planner", () => {
       }),
     ).toThrow(/minimumGroupsPerSplit must be a positive safe integer/);
   });
+  it("binds execution schedule into task and manifest identity", () => {
+    const first = planMechanisticSweep(definition());
+    const changed = planMechanisticSweep({
+      ...definition(),
+      executionSchedule: createMechanisticExecutionSchedule({
+        totalTicks: 6,
+        snapshotEveryTicks: 2,
+      }),
+    });
+
+    expect(changed.executionScheduleIdentity).not.toBe(first.executionScheduleIdentity);
+    expect(changed.tasks[0]!.trajectoryKey).toBe(first.tasks[0]!.trajectoryKey);
+    expect(changed.tasks[0]!.taskId).not.toBe(first.tasks[0]!.taskId);
+    const manifest = buildMechanisticSweepManifest(changed);
+    expect(manifest.executionScheduleIdentity).toBe(changed.executionScheduleIdentity);
+    expect(manifest.trajectories[0]!.executionScheduleIdentity).toBe(changed.executionScheduleIdentity);
+  });
+
 });

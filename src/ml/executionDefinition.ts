@@ -7,6 +7,11 @@ import {
   assertComposedParameterSetBindingRecord,
   type ComposedParameterSetBinding,
 } from "../sim/parameterSetBinding";
+import {
+  assertMechanisticExecutionScheduleMatches,
+  validateMechanisticExecutionSchedule,
+  type MechanisticExecutionSchedule,
+} from "./executionSchedule";
 import type {
   MechanisticSweepTask,
   SweepInterventionFamily,
@@ -15,7 +20,7 @@ import type {
 } from "./sweep";
 
 export const MECHANISTIC_EXECUTION_DEFINITION_SCHEMA_VERSION =
-  "petra-ml-execution-definition-v2" as const;
+  "petra-ml-execution-definition-v3" as const;
 export const MECHANISTIC_PARAMETER_IDENTITY_SCHEMA_VERSION =
   "petra-ml-parameter-execution-v3" as const;
 export const MECHANISTIC_RUN_CONDITION_SCHEMA_VERSION =
@@ -42,6 +47,7 @@ export interface MechanisticExecutionDefinition {
   readonly schemaVersion: typeof MECHANISTIC_EXECUTION_DEFINITION_SCHEMA_VERSION;
   readonly parameterSetBinding: ComposedParameterSetBinding;
   readonly runCondition: MechanisticRunConditionExecutionDefinition;
+  readonly executionSchedule: MechanisticExecutionSchedule;
   readonly intervention: NoInterventionExecutionDefinition;
 }
 
@@ -178,6 +184,7 @@ export function createNoInterventionSweepFamily(
 export function createMechanisticExecutionDefinition(args: {
   readonly parameterSetBinding: ComposedParameterSetBinding;
   readonly runCondition: MechanisticRunConditionExecutionDefinition;
+  readonly executionSchedule: MechanisticExecutionSchedule;
   readonly intervention: NoInterventionExecutionDefinition;
 }): MechanisticExecutionDefinition {
   assertComposedParameterSetBindingRecord(args.parameterSetBinding);
@@ -187,11 +194,13 @@ export function createMechanisticExecutionDefinition(args: {
     );
   }
   validateMechanisticRunConditionExecutionDefinition(args.runCondition);
+  validateMechanisticExecutionSchedule(args.executionSchedule);
   validateNoInterventionExecutionDefinition(args.intervention);
   return Object.freeze({
     schemaVersion: MECHANISTIC_EXECUTION_DEFINITION_SCHEMA_VERSION,
     parameterSetBinding: Object.freeze(structuredClone(args.parameterSetBinding)),
     runCondition: Object.freeze({ ...args.runCondition }),
+    executionSchedule: Object.freeze({ ...args.executionSchedule }),
     intervention: Object.freeze({
       ...args.intervention,
       commands: Object.freeze([]) as readonly [],
@@ -232,6 +241,8 @@ export function assertTaskMatchesMechanisticExecutionDefinition(
     config,
   );
   validateMechanisticRunConditionExecutionDefinition(definition.runCondition);
+  validateMechanisticExecutionSchedule(definition.executionSchedule);
+  assertMechanisticExecutionScheduleMatches(task.executionSchedule, definition.executionSchedule);
   validateNoInterventionExecutionDefinition(definition.intervention);
 
   const expectedParameterSetHash = mechanisticParameterSetHash(

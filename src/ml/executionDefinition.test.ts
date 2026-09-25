@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createMechanisticExecutionSchedule } from "./executionSchedule";
 
 import {
   composedConfigurationFingerprint,
@@ -134,6 +135,7 @@ function executionDefinition(familyId = "untreated") {
       "baseline-condition",
       config,
     ),
+    executionSchedule: createMechanisticExecutionSchedule({ totalTicks: 4, snapshotEveryTicks: 2 }),
     intervention: createNoInterventionExecutionDefinition(familyId),
   });
 }
@@ -228,6 +230,7 @@ describe("mechanistic execution-definition provenance", () => {
           "baseline-condition",
           config,
         ),
+    executionSchedule: createMechanisticExecutionSchedule({ totalTicks: 4, snapshotEveryTicks: 2 }),
         intervention: createNoInterventionExecutionDefinition("untreated"),
       }),
     ).toThrow(/require provenance parameter-set authority/);
@@ -304,8 +307,6 @@ describe("mechanistic execution-definition provenance", () => {
     const executor = createComposedMechanisticTaskExecutor(() => ({
       executionDefinition: executionDefinition(),
       config: driftedInitialState,
-      totalTicks: 0,
-      snapshotEveryTicks: 1,
       project: () => {
         projected = true;
         return {
@@ -357,8 +358,6 @@ describe("mechanistic execution-definition provenance", () => {
     const executor = createComposedMechanisticTaskExecutor(() => ({
       executionDefinition: executionDefinition(),
       config,
-      totalTicks: 0,
-      snapshotEveryTicks: 1,
       project: () => {
         projected = true;
         return {
@@ -380,8 +379,6 @@ describe("mechanistic execution-definition provenance", () => {
     const executor = createComposedMechanisticTaskExecutor(() => ({
       executionDefinition: executionDefinition(),
       config,
-      totalTicks: 0,
-      snapshotEveryTicks: 1,
       project: (snapshot) => ({
         input: { biomass: snapshot.checkpoint.metrics.totalBiomass },
         target: { resource: snapshot.checkpoint.metrics.totalResource },

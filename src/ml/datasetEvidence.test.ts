@@ -26,6 +26,7 @@ import {
   type MechanisticSweepPlan,
   type SweepParameterPoint,
 } from "./sweep";
+import { createMechanisticExecutionSchedule } from "./executionSchedule";
 
 interface FixtureInput {
   readonly population: number;
@@ -88,6 +89,7 @@ function plan(seeds: readonly number[] = [11, 22]): MechanisticSweepPlan {
     scenarioVersion: SCENARIO_VERSION,
     normalizationProfileId: "none-v1",
     datasetSchema: DATASET_SCHEMA,
+    executionSchedule: createMechanisticExecutionSchedule({ totalTicks: 4, snapshotEveryTicks: 2 }),
     parameterPoints: splitParameterPoints(),
     runConditions: [RUN_CONDITION],
     interventionFamilies: [createNoInterventionSweepFamily("untreated")],

@@ -53,8 +53,6 @@ export function resolveNodeAuthoritativeProfileDefinition(
   return {
     executionDefinition: structuredClone(data.executionDefinition),
     config: structuredClone(data.config),
-    totalTicks: data.schedule.totalTicks,
-    snapshotEveryTicks: data.schedule.snapshotEveryTicks,
     project: projectNodeAuthoritativeProfileSnapshot,
     terminationReason: "node-authoritative-profile-complete",
   };

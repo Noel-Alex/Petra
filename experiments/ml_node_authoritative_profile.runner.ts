@@ -206,6 +206,7 @@ async function main(): Promise<void> {
   const executionDefinition = createMechanisticExecutionDefinition({
     parameterSetBinding: flagship.parameterSetBinding,
     runCondition,
+    executionSchedule: schedule,
     intervention,
   });
   const parameterPoint = createSweepParameterPointForBinding(
@@ -217,8 +218,7 @@ async function main(): Promise<void> {
     createNoInterventionSweepFamily("no-intervention");
 
   const plan = planMechanisticSweep({
-    planVersion:
-      "ml-node-authoritative-profile-v1|schedule=" + scheduleIdentity,
+    planVersion: "ml-node-authoritative-profile-v2",
     datasetVersion: "ml-node-authoritative-profile-v1",
     engineVersion: flagship.identity.engineVersion,
     scenarioId: flagship.identity.scenarioId,
@@ -229,6 +229,7 @@ async function main(): Promise<void> {
       inputSchemaVersion: "node-authoritative-profile-input-v1",
       targetSchemaVersion: "node-authoritative-profile-target-v1",
     },
+    executionSchedule: schedule,
     parameterPoints: [parameterPoint],
     runConditions: [sweepRunCondition],
     interventionFamilies: [interventionFamily],
@@ -251,8 +252,6 @@ async function main(): Promise<void> {
     join(dataDir, "sweep-manifest.json"),
     {
       ...manifest,
-      executionScheduleIdentity: scheduleIdentity,
-      executionSchedule: schedule,
       evidenceBoundary:
         "Infrastructure-only multicore/parity/resume profile; not training data, biological validation, or promotion evidence.",
     },

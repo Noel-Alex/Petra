@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createMechanisticExecutionSchedule } from "./executionSchedule";
 
 import {
   buildMechanisticDatasetArtifact,
@@ -43,6 +44,7 @@ function definition(): MechanisticSweepDefinition {
       inputSchemaVersion: "aggregate-input-v1",
       targetSchemaVersion: "aggregate-target-v1",
     },
+    executionSchedule: createMechanisticExecutionSchedule({ totalTicks: 4, snapshotEveryTicks: 2 }),
     parameterPoints: [
       { id: "point-a", parameterSetHash: "params-a" },
       { id: "point-b", parameterSetHash: "params-b" },
@@ -363,4 +365,18 @@ describe("incremental mechanistic ML dataset collector", () => {
       verifyMechanisticDatasetFinalization(mutated, finalization),
     ).toThrow(/digest mismatch/);
   });
+  it("refuses resume when only execution schedule changes", () => {
+    const plan = planMechanisticSweep(definition());
+    const staging = new MemoryStagingStore();
+    const collector = new IncrementalMechanisticDatasetCollector<FixtureInput, FixtureTarget>(plan, staging);
+    collector.stageTrajectory(trajectoryResult(plan.tasks[0]!));
+
+    const changedPlan = planMechanisticSweep({
+      ...definition(),
+      executionSchedule: createMechanisticExecutionSchedule({ totalTicks: 6, snapshotEveryTicks: 2 }),
+    });
+
+    expect(() => new IncrementalMechanisticDatasetCollector<FixtureInput, FixtureTarget>(changedPlan, staging)).toThrow(/different sweep plan/);
+  });
+
 });

@@ -234,18 +234,16 @@
     },
     {
       "id": "evolution-replicate-statistics",
-      "description": "PREPARED; BLOCKED on #5/#37 composed evolution integration: #562 discrete population/opportunity authority is on main, but truthful end-to-end emergence still requires replay-critical child-lineage mutation state and flagship exposure.",
+      "description": "Prepared 4,096-seed mutation-sampler statistics over the repository-owned flagship mutation graph: per-edge configured-law agreement, at-least-one-event frequency, exact replay digest, and bounded exact accelerated-sampler guardrails; numerical/model-contract evidence only, not biological calibration.",
       "command": [
-        "python",
-        "experiments/blocked.py",
-        "--experiment-id",
-        "evolution-replicate-statistics",
-        "--blocked-on",
-        "5",
-        "--blocked-on",
-        "37",
-        "--reason",
-        "PR #765 prepared the repository-owned many-seed sampler harness and PR #793 integrated #562 discrete population/opportunity authority into composed checkpoints/runtime. #5 must still integrate sampled child-lineage mutation state/materialization, and #37 must expose the resulting authoritative composed evolution path before this stable experiment can run truthful end-to-end emergence statistics."
+        "npm",
+        "exec",
+        "--offline",
+        "--",
+        "vitest",
+        "run",
+        "--config",
+        "experiments/vitest.evolution_replicate_statistics.config.ts"
       ],
       "issues": [
         5,
@@ -254,7 +252,7 @@
         562,
         740
       ],
-      "timeout_seconds": 30
+      "timeout_seconds": 1800
     },
     {
       "id": "phage-mechanism-statistics",

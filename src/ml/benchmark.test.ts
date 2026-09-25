@@ -32,7 +32,7 @@ const datasetSchema = {
 };
 
 const datasetSummary: MechanisticDatasetSummary = {
-  schemaVersion: "petra-ml-dataset-artifact-v3",
+  schemaVersion: "petra-ml-dataset-artifact-v4",
   planVersion: "aggregate-sweep-v1",
   datasetVersion: "mechanistic-v1",
   engineVersion: "engine-a",

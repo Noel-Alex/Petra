@@ -1,5 +1,5 @@
 /*
- * Petra calm flat-vector theme.
+ * Petra deep blue editorial simulation theme.
  *
  * Values come from src/design/visualTokens.ts and are installed on :root by
  * main.tsx before React mounts. This file owns presentation only: no selector
@@ -14,13 +14,7 @@
 }
 
 body {
-  background:
-    radial-gradient(
-      circle at 50% 8%,
-      rgb(var(--petra-rgb-teal) / 0.1),
-      transparent 32rem
-    ),
-    var(--petra-color-ink-deep);
+  background: var(--petra-color-ink-deep);
 }
 
 button {
@@ -47,9 +41,9 @@ button:hover {
 .petra-topbar,
 .timeline-shell,
 .petra-panel {
-  border-color: rgb(var(--petra-rgb-cream) / 0.11);
+  border-color: rgb(var(--petra-rgb-cream-muted) / 0.13);
   background: var(--petra-color-ink);
-  box-shadow: 0 16px 40px rgb(var(--petra-rgb-ink-deep) / 0.34);
+  box-shadow: 0 12px 34px rgb(var(--petra-rgb-ink-deep) / 0.28);
   backdrop-filter: none;
 }
 
@@ -76,13 +70,7 @@ button:hover {
 }
 
 .dish-stage {
-  background:
-    radial-gradient(
-      circle at center,
-      rgb(var(--petra-rgb-teal) / 0.09),
-      transparent 64%
-    ),
-    var(--petra-color-ink-deep);
+  background: var(--petra-color-ink-deep);
 }
 
 .dish-stage__halo {
@@ -128,18 +116,16 @@ button:hover {
 
 .dish-mount,
 .dish-renderer-frame {
-  border-color: rgb(var(--petra-rgb-cream-muted) / 0.52);
-  background:
-    radial-gradient(
-      circle at 34% 26%,
-      rgb(var(--petra-rgb-cream) / 0.12),
-      transparent 13%
-    ),
-    var(--petra-color-ink);
+  border-color: rgb(var(--petra-rgb-cream) / 0.78);
+  background: var(--petra-color-ink-soft);
   box-shadow:
-    inset 0 0 0 8px rgb(var(--petra-rgb-cream) / 0.025),
-    inset 0 0 44px rgb(var(--petra-rgb-teal) / 0.045),
-    0 28px 72px rgb(var(--petra-rgb-ink-deep) / 0.4);
+    inset 0 0 0 6px rgb(var(--petra-rgb-mint) / 0.24),
+    inset 0 0 0 10px rgb(var(--petra-rgb-cream) / 0.2),
+    inset 0 0 0 15px rgb(var(--petra-rgb-teal) / 0.13),
+    inset 0 0 42px rgb(var(--petra-rgb-ink-deep) / 0.22),
+    0 0 0 3px rgb(var(--petra-rgb-teal) / 0.24),
+    0 0 0 7px rgb(var(--petra-rgb-cream) / 0.58),
+    0 22px 62px rgb(var(--petra-rgb-ink-deep) / 0.46);
 }
 
 .dish-placeholder__colony--a {
@@ -237,4 +223,121 @@ button:hover {
 .timeline-controls button[aria-pressed="true"] {
   border-color: rgb(var(--petra-rgb-teal) / 0.48);
   background: rgb(var(--petra-rgb-teal) / 0.14);
+}
+
+.petra-brand__mark {
+  border: 0;
+}
+
+.petra-primary-nav__link,
+.petra-primary-nav__action {
+  border-color: transparent;
+  background: transparent;
+  color: var(--petra-color-cream-muted);
+}
+
+.petra-primary-nav__link:hover,
+.petra-primary-nav__action:hover {
+  border-color: transparent;
+  background: rgb(var(--petra-rgb-teal) / 0.09);
+  color: var(--petra-color-cream);
+}
+
+.search-trigger {
+  border-color: rgb(var(--petra-rgb-cream) / 0.08);
+  background: var(--petra-color-ink-soft);
+}
+
+.search-trigger:hover {
+  border-color: rgb(var(--petra-rgb-teal) / 0.55);
+  background: var(--petra-color-ink-soft);
+}
+
+.petra-panel__intro,
+.tool-action__copy small {
+  color: var(--petra-color-cream-muted);
+}
+
+.tool-stack button {
+  border-color: rgb(var(--petra-rgb-cream-muted) / 0.13);
+  background: var(--petra-color-ink-soft);
+}
+
+.tool-stack button[data-intervention-tool] {
+  --intervention-accent: var(--petra-color-teal);
+  --intervention-accent-rgb: var(--petra-rgb-teal);
+}
+
+.tool-stack button[data-intervention-tool="inoculate"] {
+  --intervention-accent: var(--petra-color-coral);
+  --intervention-accent-rgb: var(--petra-rgb-coral);
+}
+
+.tool-stack button[data-intervention-tool="fungus"] {
+  --intervention-accent: var(--petra-color-amber);
+  --intervention-accent-rgb: var(--petra-rgb-amber);
+}
+
+.tool-stack button[data-intervention-tool="nutrient"] {
+  --intervention-accent: var(--petra-color-mint);
+  --intervention-accent-rgb: var(--petra-rgb-mint);
+}
+
+.tool-stack button[data-intervention-tool] .tool-action__icon {
+  background: rgb(var(--intervention-accent-rgb) / 0.24);
+  color: var(--intervention-accent);
+  box-shadow: inset 0 0 0 1px rgb(var(--intervention-accent-rgb) / 0.16);
+}
+
+.tool-stack button[data-intervention-tool]:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--intervention-accent) 58%, transparent);
+  background: color-mix(in srgb, var(--intervention-accent) 10%, var(--petra-color-ink-soft));
+}
+
+.tool-stack button[data-intervention-tool][aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--intervention-accent) 66%, transparent);
+  background: color-mix(in srgb, var(--intervention-accent) 13%, var(--petra-color-ink-soft));
+}
+
+.petra-panel--tools .tool-stack button[data-emphasis="disabled"] {
+  opacity: 0.82;
+}
+
+.tool-action__arrow {
+  color: var(--petra-color-cream-muted);
+}
+
+.metric-list div {
+  border-bottom-color: rgb(var(--petra-rgb-cream-muted) / 0.13);
+}
+
+.metric-list dt {
+  color: var(--petra-color-cream-muted);
+}
+
+.timeline-shell {
+  border-color: rgb(var(--petra-rgb-cream-muted) / 0.14);
+}
+
+.timeline-empty {
+  color: var(--petra-color-cream-muted);
+}
+
+.experiment-run-controls__primary button:first-child:not(:disabled) {
+  border-color: rgb(var(--petra-rgb-mint) / 0.5);
+  background: var(--petra-color-mint);
+  color: var(--petra-color-ink-deep);
+  font-weight: 800;
+}
+
+.experiment-run-controls__primary button:first-child:not(:disabled):hover {
+  border-color: var(--petra-color-mint);
+  background: var(--petra-color-mint);
+}
+
+.petra-app[data-visual-contrast="high-contrast"] .petra-topbar,
+.petra-app[data-visual-contrast="high-contrast"] .timeline-shell,
+.petra-app[data-visual-contrast="high-contrast"] .petra-panel,
+.petra-app[data-visual-contrast="high-contrast"] .tool-stack button {
+  border-color: rgb(var(--petra-rgb-cream) / 0.46);
 }

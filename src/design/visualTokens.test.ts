@@ -29,9 +29,9 @@ describe("Petra visual token authority", () => {
   });
 
   it("derives CSS and renderer representations from the same numeric value", () => {
-    expect(petraVisualColor("teal")).toBe(0x68aaa4);
-    expect(petraVisualColorCss("teal")).toBe("#68aaa4");
-    expect(petraVisualColorRgbChannels("teal")).toBe("104 170 164");
+    expect(petraVisualColor("teal")).toBe(0x62b7b6);
+    expect(petraVisualColorCss("teal")).toBe("#62b7b6");
+    expect(petraVisualColorRgbChannels("teal")).toBe("98 183 182");
   });
 
   it("projects every color into both CSS hex and RGB channel variables", () => {
@@ -39,11 +39,11 @@ describe("Petra visual token authority", () => {
     expect(entries).toHaveLength(Object.keys(PETRA_VISUAL_COLORS).length * 2);
     expect(entries).toContainEqual([
       "--petra-color-cream",
-      "#f4ead7",
+      "#f2e8d4",
     ]);
     expect(entries).toContainEqual([
       "--petra-rgb-coral",
-      "223 131 121",
+      "236 108 120",
     ]);
   });
 
@@ -55,8 +55,8 @@ describe("Petra visual token authority", () => {
       },
     });
 
-    expect(variables.get("--petra-color-ink-deep")).toBe("#172033");
-    expect(variables.get("--petra-rgb-mint")).toBe("131 184 154");
+    expect(variables.get("--petra-color-ink-deep")).toBe("#0f1f2c");
+    expect(variables.get("--petra-rgb-mint")).toBe("127 202 168");
   });
 
   it("keeps core normal-text accent pairs at WCAG AA contrast", () => {

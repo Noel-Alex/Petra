@@ -234,25 +234,26 @@
     },
     {
       "id": "evolution-replicate-statistics",
-      "description": "PREPARED; BLOCKED on #5/#37 composed evolution integration: #562 discrete population/opportunity authority is on main, but truthful end-to-end emergence still requires replay-critical child-lineage mutation state and flagship exposure.",
+      "description": "PREPARED; BLOCKED on #796/#37 flagship evolution activation: #562 discrete population/opportunity authority and #5 composed mutation/child-lineage replay authority are on main, but the flagship remains population-unbound pending local calibration evidence and explicit exposure.",
       "command": [
         "python",
         "experiments/blocked.py",
         "--experiment-id",
         "evolution-replicate-statistics",
         "--blocked-on",
-        "5",
+        "796",
         "--blocked-on",
         "37",
         "--reason",
-        "PR #765 prepared the repository-owned many-seed sampler harness and PR #793 integrated #562 discrete population/opportunity authority into composed checkpoints/runtime. #5 must still integrate sampled child-lineage mutation state/materialization, and #37 must expose the resulting authoritative composed evolution path before this stable experiment can run truthful end-to-end emergence statistics."
+        "PR #765 prepared the repository-owned many-seed sampler harness, PR #793 integrated #562 discrete population/opportunity authority, and PR #1034 integrated replay-critical composed mutation child-lineage publication. The flagship still has populationAuthority null: #796 must review the registered population-scale-calibration laptop evidence and explicitly promote a scenario-owned effective population scale, then #37 must expose the resulting authoritative flagship evolution path before this experiment can run truthful end-to-end emergence statistics."
       ],
       "issues": [
         5,
         37,
         542,
         562,
-        740
+        740,
+        796
       ],
       "timeout_seconds": 30
     },

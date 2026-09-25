@@ -41,6 +41,12 @@ export const ASPERGILLUS_NO10_PLATE_DIAMETER_CM = 9 as const
 export const ASPERGILLUS_NO10_PLATE_RADIUS_UM = 45_000 as const
 
 /**
+ * Numerical reproduction tolerance for the one-hour source radial-extension
+ * rows. This is a code/transcription check, not a biological fit interval.
+ */
+export const ASPERGILLUS_NO10_RADIAL_REPRODUCTION_TOLERANCE_UM = 1e-9 as const
+
+/**
  * Source-reported mu_calc values are rounded to two decimal places and the
  * source-table inputs are themselves reported at finite precision. This is a
  * reproduction tolerance for the published equation/table transcription only;

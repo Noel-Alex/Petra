@@ -8,12 +8,18 @@ import {
   FIRST_AGGREGATE_DATASET_PACKAGE_ID,
   FIRST_AGGREGATE_DATASET_VERSION,
   FIRST_AGGREGATE_INPUT_SCHEMA_VERSION,
+  FIRST_AGGREGATE_METRIC_SAMPLING_POLICY,
+  FIRST_AGGREGATE_SOURCE_METRIC_SCHEMA_VERSION,
   FIRST_AGGREGATE_TARGET_SCHEMA_VERSION,
   projectFirstAggregateTransition,
   resolveNodeMechanisticDatasetTaskDefinition,
 } from "./firstAggregateDatasetPackage";
 import { ComposedSimulationEngine } from "../sim/composedEngine";
 import { createRunIdentity } from "../sim/protocol";
+import {
+  AUTHORITATIVE_METRIC_SCHEMA_VERSION,
+  METRIC_SAMPLING_POLICY_VERSION,
+} from "../sim/metrics";
 
 describe("first authoritative aggregate dataset package", () => {
   it("builds a bounded leakage-safe 3x3 held-out sweep with three seed replicas per group", () => {
@@ -37,6 +43,14 @@ describe("first authoritative aggregate dataset package", () => {
       schemaVersion: "petra-ml-execution-schedule-v1",
       totalTicks: 1024,
       snapshotEveryTicks: 64,
+    });
+    expect(FIRST_AGGREGATE_SOURCE_METRIC_SCHEMA_VERSION).toBe(
+      AUTHORITATIVE_METRIC_SCHEMA_VERSION,
+    );
+    expect(FIRST_AGGREGATE_METRIC_SAMPLING_POLICY).toEqual({
+      version: METRIC_SAMPLING_POLICY_VERSION,
+      everyTicks: 64,
+      offsetTicks: 0,
     });
 
     expect(plan.splitGroupCounts.train).toBeGreaterThan(0);
@@ -157,7 +171,7 @@ describe("first authoritative aggregate dataset package", () => {
     const target = engine.execute({
       id: "first-aggregate-transition-test",
       type: "advance",
-      ticks: 2,
+      ticks: 64,
     });
     const projected = projectFirstAggregateTransition(source, target, {
       task,
@@ -165,7 +179,7 @@ describe("first authoritative aggregate dataset package", () => {
       sourceSnapshotIndex: 0,
       targetSnapshotIndex: 1,
       sourceTick: 0,
-      targetTick: 2,
+      targetTick: 64,
       final: false,
     });
 
@@ -179,9 +193,9 @@ describe("first authoritative aggregate dataset package", () => {
     });
     expect(projected.target).toEqual({
       targetSnapshotIndex: 1,
-      targetTick: 2,
+      targetTick: 64,
       targetTimeHours: target.checkpoint.simulationTimeHours,
-      forecastHorizonTicks: 2,
+      forecastHorizonTicks: 64,
       forecastHorizonHours:
         target.checkpoint.simulationTimeHours -
         source.checkpoint.simulationTimeHours,
@@ -195,6 +209,84 @@ describe("first authoritative aggregate dataset package", () => {
     expect(projected.target.targetTimeHours).toBeGreaterThan(
       projected.input.sourceTimeHours,
     );
+  });
+
+  it("fails closed when transition context tick identity differs from the accepted snapshots", () => {
+    const datasetPackage = createNodeMechanisticDatasetPackage();
+    const task = datasetPackage.plan.tasks[0]!;
+    const definition = resolveNodeMechanisticDatasetTaskDefinition(
+      task,
+      datasetPackage.executorData,
+    );
+    const binding = definition.executionDefinition.parameterSetBinding;
+    const engine = new ComposedSimulationEngine(
+      createRunIdentity({
+        scenarioId: task.trajectory.group.scenarioId,
+        scenarioVersion: task.trajectory.group.scenarioVersion,
+        parameterSetId: binding.parameterSetId,
+        parameterSetVersion: binding.parameterSetVersion,
+        parameterSetBinding: binding,
+        seed: task.trajectory.seed,
+      }),
+      definition.config,
+    );
+    const source = engine.snapshot();
+    const target = engine.execute({
+      id: "first-aggregate-context-drift-test",
+      type: "advance",
+      ticks: 64,
+    });
+
+    expect(() =>
+      projectFirstAggregateTransition(source, target, {
+        task,
+        snapshotIndex: 0,
+        sourceSnapshotIndex: 0,
+        targetSnapshotIndex: 1,
+        sourceTick: 1,
+        targetTick: 64,
+        final: false,
+      }),
+    ).toThrow(/context ticks must match/);
+  });
+
+  it("refuses off-cadence aggregate snapshots through canonical metric authority", () => {
+    const datasetPackage = createNodeMechanisticDatasetPackage();
+    const task = datasetPackage.plan.tasks[0]!;
+    const definition = resolveNodeMechanisticDatasetTaskDefinition(
+      task,
+      datasetPackage.executorData,
+    );
+    const binding = definition.executionDefinition.parameterSetBinding;
+    const engine = new ComposedSimulationEngine(
+      createRunIdentity({
+        scenarioId: task.trajectory.group.scenarioId,
+        scenarioVersion: task.trajectory.group.scenarioVersion,
+        parameterSetId: binding.parameterSetId,
+        parameterSetVersion: binding.parameterSetVersion,
+        parameterSetBinding: binding,
+        seed: task.trajectory.seed,
+      }),
+      definition.config,
+    );
+    const source = engine.snapshot();
+    const target = engine.execute({
+      id: "first-aggregate-off-cadence-test",
+      type: "advance",
+      ticks: 2,
+    });
+
+    expect(() =>
+      projectFirstAggregateTransition(source, target, {
+        task,
+        snapshotIndex: 0,
+        sourceSnapshotIndex: 0,
+        targetSnapshotIndex: 1,
+        sourceTick: 0,
+        targetTick: 2,
+        final: false,
+      }),
+    ).toThrow(/off the declared metric sampling cadence/);
   });
 
   it("fails closed when worker executor data or task identity is tampered", () => {

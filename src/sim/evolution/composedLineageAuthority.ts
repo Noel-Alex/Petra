@@ -383,14 +383,19 @@ function validateTaxonAuthorityMode(
   founders: readonly ComposedFounderLineageAuthority[],
   taxonRegistry?: AuthoritativeTaxonRegistry,
 ): void {
-  const founderHasTaxon = founders.map(
+  const founderHasAnyTaxon = founders.map(
     (founder) =>
       founder.taxonId !== undefined ||
       founder.taxonContentVersion !== undefined,
   );
+  const founderHasCompleteTaxon = founders.map(
+    (founder) =>
+      founder.taxonId !== undefined &&
+      founder.taxonContentVersion !== undefined,
+  );
 
   if (taxonRegistry === undefined) {
-    if (founderHasTaxon.some(Boolean)) {
+    if (founderHasAnyTaxon.some(Boolean)) {
       throw new Error(
         "composed founder taxon identity requires an authoritative taxon registry",
       );
@@ -403,7 +408,7 @@ function validateTaxonAuthorityMode(
     return;
   }
 
-  if (founderHasTaxon.some((value) => !value)) {
+  if (founderHasCompleteTaxon.some((value) => !value)) {
     throw new Error(
       "every composed founder requires exact taxon id and content version when taxon authority is enabled",
     );

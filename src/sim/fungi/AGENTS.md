@@ -27,6 +27,18 @@ Until separately sourced, reviewed, versioned, and admitted:
 - no generic bacteria↔fungus attack/cooperation coefficient;
 - no biomass↔literal hyphal-length conversion inferred from renderer geometry.
 
+## Dormant composed-runtime preparation
+
+`fungalRuntimeAuthority.ts` is the Phase-A carrier for future composed fungal authority. Schema v1 is deliberately non-executable:
+
+- `disabled` is an exact no-op authority;
+- `dormant-source-validation` may bind only the existing exact *A. niger* no. 10 taxon/content/source-pack revision and one supported fixed 1997 treatment;
+- v1 runtime envelopes must keep both `acceptedComposedPosition` and `mechanismState` null. A standalone source-validation checkpoint is **not** a live composed checkpoint merely because time/taxon/treatment match;
+- the canonical authority identity is fingerprint-ready input only. It is not itself a composed configuration fingerprint and does not authorize mutation of composed state;
+- a future live schema must version the change and bind mechanism state plus the exact accepted composed transaction atomically. Resource-aware stepping remains blocked on the reviewed physical resource contract owned by #974.
+
+Do not use the dormant carrier to infer glucose transport/depletion, fungal biomass, branch topology, bacteria↔fungus interactions, antifungal/drug response, or renderer state.
+
 ## Replay and rendering
 
 - Fungal checkpoints are immutable scientific authority. Validation rejects identity, source-treatment, geometry, time, or radius drift rather than repairing it.

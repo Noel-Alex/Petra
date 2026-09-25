@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 
 import type { TimelineEntry } from "../ui/timeline";
 import "./timelineHistory.css";
@@ -59,6 +59,8 @@ export function TimelineHistory({
   entries,
   recentLimit = 4,
 }: TimelineHistoryProps): ReactElement {
+  const [completeHistoryOpen, setCompleteHistoryOpen] = useState(false);
+
   if (entries.length === 0) {
     return <p className="timeline-empty">No authoritative events yet</p>;
   }
@@ -77,7 +79,12 @@ export function TimelineHistory({
       </ol>
 
       {plan.olderCount > 0 ? (
-        <details className="timeline-history">
+        <details
+          className="timeline-history"
+          onToggle={(event) =>
+            setCompleteHistoryOpen(event.currentTarget.open)
+          }
+        >
           <summary>
             <span>Full history</span>
             <span className="timeline-history__count">
@@ -85,19 +92,21 @@ export function TimelineHistory({
             </span>
           </summary>
 
-          <div
-            className="timeline-history__scroll"
-            role="region"
-            aria-label="Complete authoritative simulation event history"
-            tabIndex={0}
-            onKeyDown={keepTimelineHistorySpaceLocal}
-          >
-            <ol className="timeline-history__events">
-              {plan.all.map((entry) => (
-                <TimelineEventRow key={entry.id} entry={entry} />
-              ))}
-            </ol>
-          </div>
+          {completeHistoryOpen ? (
+            <div
+              className="timeline-history__scroll"
+              role="region"
+              aria-label="Complete authoritative simulation event history"
+              tabIndex={0}
+              onKeyDown={keepTimelineHistorySpaceLocal}
+            >
+              <ol className="timeline-history__events">
+                {plan.all.map((entry) => (
+                  <TimelineEventRow key={entry.id} entry={entry} />
+                ))}
+              </ol>
+            </div>
+          ) : null}
         </details>
       ) : (
         <p className="timeline-history__count">

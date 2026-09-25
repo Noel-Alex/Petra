@@ -8,6 +8,8 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import type { DishRenderSnapshot, DishSelectionHighlight, SemanticZoomLevel } from "../render/model";
+import type { SourceOwnedFixedLineageDensityPresentationScale } from "../render/lineageDensityScale";
+import { createSnapshotExtremaLineageDensityPresentationScale } from "../render/lineageDensityPresentation";
 import { PixiDish } from "../render/pixi/PixiDish";
 import type { NormalizedDishPoint } from "../ui/interventionPreview";
 import type { InterventionPlacementState } from "../ui/interventionPlacement";
@@ -46,6 +48,8 @@ export interface DishViewportProps {
   readonly motion: RendererMotionMode;
   readonly snapshot?: DishRenderSnapshot | null;
   readonly runIdentity?: RunIdentity | null;
+  /** Stable source-owned scale required whenever an authoritative snapshot is rendered. */
+  readonly lineageDensityPresentationScale?: SourceOwnedFixedLineageDensityPresentationScale | null;
   /** Explicit visual-development fixture opt-in. Product/runtime default is false. */
   readonly demoMode?: boolean;
   /**
@@ -78,6 +82,7 @@ export function DishViewport({
   motion,
   snapshot,
   runIdentity = null,
+  lineageDensityPresentationScale = null,
   demoMode = false,
   onEscapeBeforeOverview,
   placement = null,
@@ -108,6 +113,25 @@ export function DishViewport({
   const usingAuthoritative =
     renderSource.kind === "authoritative-snapshot";
   const usingDemo = renderSource.kind === "visual-demo";
+  const activeLineageDensityPresentationScale = useMemo(() => {
+    if (activeSnapshot === null) return null;
+    if (usingAuthoritative) {
+      if (lineageDensityPresentationScale === null) {
+        throw new Error(
+          "authoritative dish snapshots require a source-owned lineage density presentation scale",
+        );
+      }
+      return lineageDensityPresentationScale;
+    }
+    return createSnapshotExtremaLineageDensityPresentationScale(
+      activeSnapshot,
+      "visual-demo-density",
+    );
+  }, [
+    activeSnapshot,
+    lineageDensityPresentationScale,
+    usingAuthoritative,
+  ]);
   const [overlaySelection, setOverlaySelection] =
     useState<DishOverlaySelection>(AUTOMATIC_DISH_OVERLAY);
   const [cameraResetSignal, setCameraResetSignal] = useState(0);
@@ -220,6 +244,7 @@ export function DishViewport({
         <PixiDish
           selection={selection}
           snapshot={activeSnapshot}
+          lineageDensityPresentationScale={activeLineageDensityPresentationScale}
           organismPresentation={renderSource.organismPresentation}
           sourceKind={renderSource.kind}
           motion={cameraPlan.mode}

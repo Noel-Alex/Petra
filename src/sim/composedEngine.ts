@@ -22,6 +22,11 @@ import { applyCiprofloxacinIntervention } from './ciprofloxacinIntervention'
 import { assertReplayCompatibility } from './replayCompatibility'
 import { SimulationRng, type RngState } from './rng'
 import {
+  DEFAULT_MUTATION_EXECUTION_POLICY,
+  validateMutationExecutionPolicy,
+  type MutationExecutionPolicy,
+} from './mutationExecutionPolicy'
+import {
   simulationSnapshotTraceHash,
   stableSnapshotStringify,
 } from './snapshotTrace'
@@ -183,13 +188,16 @@ export class ComposedSimulationEngine {
   private commandCount = 0
   private readonly events: SimulationEvent[] = []
   private readonly advanceExecutionPolicy: AdvanceExecutionPolicy
+  private readonly mutationExecutionPolicy: MutationExecutionPolicy
 
   constructor(
     identity: RunIdentity,
     config: ComposedSimulationConfig,
     advanceExecutionPolicy: AdvanceExecutionPolicy = DEFAULT_ADVANCE_EXECUTION_POLICY,
+    mutationExecutionPolicy: MutationExecutionPolicy = DEFAULT_MUTATION_EXECUTION_POLICY,
   ) {
     validateAdvanceExecutionPolicy(advanceExecutionPolicy)
+    validateMutationExecutionPolicy(mutationExecutionPolicy)
     assertComposedParameterSetBinding(identity, config)
 
     if (
@@ -204,6 +212,7 @@ export class ComposedSimulationEngine {
     this.identity = structuredClone(identity)
     this.config = structuredClone(config)
     this.advanceExecutionPolicy = Object.freeze({ ...advanceExecutionPolicy })
+    this.mutationExecutionPolicy = Object.freeze({ ...mutationExecutionPolicy })
     this.rng = new SimulationRng(identity.seed)
     this.state = createComposedState(this.config)
     this.metrics = aggregateState(this.state)
@@ -283,7 +292,17 @@ export class ComposedSimulationEngine {
       typeof stepComposedStateDetailed
     >['ecologyObservation'] | null
     for (let index = 0; index < command.ticks; index += 1) {
-      const step = stepComposedStateDetailed(workingState, this.config)
+      const stepTick = this.tick + index + 1
+      const step = stepComposedStateDetailed(
+        workingState,
+        this.config,
+        {
+          rng: workingRng,
+          createdAtHours: this.simulationTimeHoursAtTick(stepTick),
+          maxMaterializedChildren:
+            this.mutationExecutionPolicy.maximumMaterializedChildrenPerTick,
+        },
+      )
       workingMetrics = step.metrics
       finalEcologyObservation = step.ecologyObservation
     }

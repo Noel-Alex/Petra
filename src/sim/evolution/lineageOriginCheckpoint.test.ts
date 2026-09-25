@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { LineageRegistry } from "./lineage";
 import {
-  appendLineageOriginV2,
+  appendRuntimeLineageOriginV2,
   LINEAGE_ORIGIN_CHECKPOINT_VERSION,
   migrateLineageRegistryCheckpointV1ToOriginV2,
   validateLineageOriginCheckpointV2,
+  type RuntimeLineageOriginV2,
 } from "./lineageOriginCheckpoint";
 
 describe("lineage origin checkpoint v2", () => {
@@ -82,7 +83,7 @@ describe("lineage origin checkpoint v2", () => {
       configuredFounderCount: 1,
     });
 
-    const external = appendLineageOriginV2(founderOnly, {
+    const external = appendRuntimeLineageOriginV2(founderOnly, {
       originKind: "external-inoculation",
       parentLineageId: null,
       genotypeId: "BS168",
@@ -99,7 +100,7 @@ describe("lineage origin checkpoint v2", () => {
       mutationClass: null,
     });
 
-    const child = appendLineageOriginV2(external.checkpoint, {
+    const child = appendRuntimeLineageOriginV2(external.checkpoint, {
       originKind: "mutation-child",
       parentLineageId: "L2",
       genotypeId: "BS168-mut",
@@ -124,15 +125,18 @@ describe("lineage origin checkpoint v2", () => {
     ]);
 
     expect(() =>
-      appendLineageOriginV2(child.checkpoint, {
-        originKind: "configured-founder",
-        parentLineageId: null,
-        genotypeId: "late-founder",
-        createdAtHours: 0,
-        originCellIndex: null,
-        mutationClass: null,
-      }),
-    ).toThrow(/cannot precede|genesis prefix/);
+      appendRuntimeLineageOriginV2(
+        child.checkpoint,
+        {
+          originKind: "configured-founder",
+          parentLineageId: null,
+          genotypeId: "late-founder",
+          createdAtHours: 0,
+          originCellIndex: null,
+          mutationClass: null,
+        } as unknown as RuntimeLineageOriginV2,
+      ),
+    ).toThrow(/genesis-only/);
   });
 
   it("requires explicit v2 authority instead of accepting a legacy checkpoint implicitly", () => {
@@ -163,7 +167,7 @@ describe("lineage origin checkpoint v2", () => {
       checkpoint: legacy.checkpoint(),
       configuredFounderCount: 1,
     });
-    const external = appendLineageOriginV2(base, {
+    const external = appendRuntimeLineageOriginV2(base, {
       originKind: "external-inoculation",
       parentLineageId: null,
       genotypeId: "OTHER",
@@ -197,13 +201,56 @@ describe("lineage origin checkpoint v2", () => {
     ).toThrow(/mutation-child parent/);
   });
 
+  it("refuses a runtime root without a configured-founder genesis prefix", () => {
+    expect(() =>
+      validateLineageOriginCheckpointV2({
+        version: 2,
+        nextId: 2,
+        records: [
+          {
+            lineageId: "L1",
+            originKind: "external-inoculation",
+            parentLineageId: null,
+            genotypeId: "OTHER",
+            createdAtHours: 0,
+            originCellIndex: 3,
+            mutationClass: null,
+            extinctAtHours: null,
+          },
+        ],
+        events: [
+          {
+            kind: "lineage-created",
+            lineageId: "L1",
+            timeHours: 0,
+            originKind: "external-inoculation",
+            parentLineageId: null,
+            genotypeId: "OTHER",
+            originCellIndex: 3,
+            mutationClass: null,
+          },
+        ],
+      }),
+    ).toThrow(/configured-founder genesis prefix/);
+  });
+
   it("keeps mutation creation inside the authoritative parent lifetime", () => {
     const checkpoint = validateLineageOriginCheckpointV2({
       version: 2,
-      nextId: 2,
+      nextId: 3,
       records: [
         {
           lineageId: "L1",
+          originKind: "configured-founder",
+          parentLineageId: null,
+          genotypeId: "WT",
+          createdAtHours: 0,
+          originCellIndex: null,
+          mutationClass: null,
+          extinctAtHours: null,
+        },
+        {
+          lineageId: "L2",
           originKind: "external-inoculation",
           parentLineageId: null,
           genotypeId: "OTHER",
@@ -217,6 +264,16 @@ describe("lineage origin checkpoint v2", () => {
         {
           kind: "lineage-created",
           lineageId: "L1",
+          timeHours: 0,
+          originKind: "configured-founder",
+          parentLineageId: null,
+          genotypeId: "WT",
+          originCellIndex: null,
+          mutationClass: null,
+        },
+        {
+          kind: "lineage-created",
+          lineageId: "L2",
           timeHours: 1,
           originKind: "external-inoculation",
           parentLineageId: null,
@@ -226,7 +283,7 @@ describe("lineage origin checkpoint v2", () => {
         },
         {
           kind: "lineage-extinct",
-          lineageId: "L1",
+          lineageId: "L2",
           timeHours: 2,
           originKind: "external-inoculation",
         },
@@ -234,9 +291,9 @@ describe("lineage origin checkpoint v2", () => {
     });
 
     expect(() =>
-      appendLineageOriginV2(checkpoint, {
+      appendRuntimeLineageOriginV2(checkpoint, {
         originKind: "mutation-child",
-        parentLineageId: "L1",
+        parentLineageId: "L2",
         genotypeId: "OTHER-mut",
         createdAtHours: 2.1,
         originCellIndex: 6,

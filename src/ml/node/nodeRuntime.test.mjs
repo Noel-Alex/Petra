@@ -19,6 +19,8 @@ import {
 import { WorkerThreadMechanisticExecutor } from "./workerThreadExecutor.mjs";
 import {
   NODE_MECHANISTIC_DATASET_PACKAGE_SCHEMA_VERSION,
+  createNodeMechanisticDatasetWorkerEnvelope,
+  validateNodeMechanisticDatasetWorkerEnvelope,
   runNodeMechanisticDatasetPackage,
 } from "./datasetRuntime.ts";
 
@@ -180,6 +182,36 @@ describe("Node mechanistic sweep adapters", () => {
     expect(second.runReport.completedTrajectoryCount).toBe(0);
     expect(second.runReport.resumedTrajectoryCount).toBe(plan.trajectoryCount);
     expect(second.dataset).toEqual(first.dataset);
+  });
+
+  it("wraps package executor data in a local, structured-cloneable worker envelope", () => {
+    const packageUrl = new URL(
+      "../../../experiments/ml_node_authoritative_profile.shared.ts",
+      import.meta.url,
+    ).href;
+    const envelope = createNodeMechanisticDatasetWorkerEnvelope(
+      packageUrl,
+      { executionIdentity: "fixture-v1" },
+    );
+
+    expect(() =>
+      validateNodeMechanisticDatasetWorkerEnvelope(envelope),
+    ).not.toThrow();
+    expect(envelope.packageModuleUrl).toBe(packageUrl);
+    expect(envelope.packageExecutorData).toEqual({
+      executionIdentity: "fixture-v1",
+    });
+    expect(() =>
+      createNodeMechanisticDatasetWorkerEnvelope(
+        "https://example.test/package.mjs",
+        {},
+      ),
+    ).toThrow(/local file: URL/);
+    expect(() =>
+      createNodeMechanisticDatasetWorkerEnvelope(packageUrl, {
+        invalid: () => 1,
+      }),
+    ).toThrow(/structured-cloneable/);
   });
 
   it("keeps aborted trajectory writes invisible to resume", () => {

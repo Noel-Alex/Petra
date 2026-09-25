@@ -32,6 +32,7 @@ describe("lineage-local representative glyph presentation", () => {
 
     expect(indexed.perLineageMode).toBe(false);
     expect(indexed.hasAnyPresentation).toBe(true);
+    expect(indexed.hasAnySupportedDishGlyphPresentation).toBe(true);
     expect(indexed.byLineageId.get("L1")?.presentation).toBe(
       FLAGSHIP_ECOLI_ORGANISM_PRESENTATION,
     );
@@ -77,6 +78,16 @@ describe("lineage-local representative glyph presentation", () => {
     expect(omittedPeer.byLineageId.get("L2")?.presentation).toBeNull();
   });
 
+  it("does not treat unsupported hyphal evidence as authorization for the current rod overview glyph", () => {
+    const indexed = indexLineageGlyphPresentations(
+      [lineage("L1", ASPERGILLUS_NO10_ORGANISM_PRESENTATION)],
+      null,
+    );
+
+    expect(indexed.hasAnyPresentation).toBe(true);
+    expect(indexed.hasAnySupportedDishGlyphPresentation).toBe(false);
+  });
+
   it("does not enable dish-level morphology merely because a legacy record exists in per-lineage neutral mode", () => {
     const indexed = indexLineageGlyphPresentations(
       [lineage("L1", null), lineage("L2", null)],
@@ -85,5 +96,6 @@ describe("lineage-local representative glyph presentation", () => {
 
     expect(indexed.perLineageMode).toBe(true);
     expect(indexed.hasAnyPresentation).toBe(false);
+    expect(indexed.hasAnySupportedDishGlyphPresentation).toBe(false);
   });
 });

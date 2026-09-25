@@ -1,3 +1,4 @@
+import { stableLineageDensityMaximum } from "./lineageDensityScale";
 import type { DishVisualState } from "./visualInterpolation";
 
 export interface LineageDensityPresentation {
@@ -16,6 +17,11 @@ export interface LineageDensityPresentation {
 export function resolveSharedLineageDensityMaximum(
   snapshot: DishVisualState,
 ): number {
+  const stableMaximum = stableLineageDensityMaximum(
+    snapshot.lineageDensityScale,
+  );
+  if (stableMaximum !== null) return stableMaximum;
+
   let maximum = 0;
 
   for (const lineage of snapshot.lineages) {

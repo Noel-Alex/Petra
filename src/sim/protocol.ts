@@ -5,6 +5,7 @@ import type {
 } from './authoritative'
 import type { RngState } from './rng'
 import type { CiprofloxacinIntervention } from './ciprofloxacinIntervention'
+import type { ComposedEcologyObservationEnvelope } from './composedEcologyObservation'
 import {
   assertComposedParameterSetBindingIdentity,
   type ComposedParameterSetBinding,
@@ -113,6 +114,11 @@ export interface SyntheticSimulationSnapshot extends SimulationSnapshotBase {
 
 export interface ComposedSimulationSnapshot extends SimulationSnapshotBase {
   checkpoint: ComposedSimulationCheckpoint
+  /**
+   * Present only on an accepted advance that executed at least one ecology step.
+   * Derived observation authority; excluded from checkpoint continuation and trace identity.
+   */
+  ecologyObservation?: ComposedEcologyObservationEnvelope
 }
 
 export type SimulationSnapshot =

@@ -512,4 +512,55 @@ describe('ComposedSimulationEngine', () => {
     expect(accepted.checkpoint.commandCount).toBe(1)
   })
 
+  it('publishes only the final accepted ecology step observation on advance snapshots', () => {
+    const engine = new ComposedSimulationEngine(identity, config)
+    const advanced = engine.execute({ id: 'observe-advance', type: 'advance', ticks: 2 })
+
+    expect(advanced.ecologyObservation).toBeDefined()
+    expect(advanced.ecologyObservation?.position.tick).toBe(2)
+    expect(advanced.ecologyObservation?.position.commandCount).toBe(1)
+    expect(advanced.ecologyObservation?.position.simulationTimeHours).toBe(
+      advanced.checkpoint.simulationTimeHours,
+    )
+    expect(advanced.ecologyObservation?.observation.stepDuration).toBe(
+      config.hoursPerTick,
+    )
+    expect(advanced.ecologyObservation?.intervalEndSimulationTimeHours).toBe(
+      advanced.checkpoint.simulationTimeHours,
+    )
+    expect(advanced.ecologyObservation?.intervalStartSimulationTimeHours).toBe(
+      advanced.checkpoint.simulationTimeHours - config.hoursPerTick,
+    )
+
+    expect(engine.snapshot().ecologyObservation).toBeUndefined()
+    expect(
+      engine.execute({ id: 'observe-snapshot', type: 'snapshot' })
+        .ecologyObservation,
+    ).toBeUndefined()
+    expect(
+      engine.execute({ id: 'observe-zero', type: 'advance', ticks: 0 })
+        .ecologyObservation,
+    ).toBeUndefined()
+  })
+
+  it('does not leak a prior ecology observation onto intervention or restore snapshots', () => {
+    const engine = new ComposedSimulationEngine(drugIdentity, drugConfig)
+    engine.execute({ id: 'observed-step', type: 'advance', ticks: 1 })
+
+    const intervention = engine.execute({
+      id: 'dose-after-observation',
+      type: 'apply-ciprofloxacin',
+      intervention: drugIntervention,
+    })
+    expect(intervention.ecologyObservation).toBeUndefined()
+
+    const checkpoint = intervention.checkpoint
+    const restored = engine.execute({
+      id: 'restore-after-observation',
+      type: 'restore',
+      checkpoint,
+    })
+    expect(restored.ecologyObservation).toBeUndefined()
+  })
+
 })

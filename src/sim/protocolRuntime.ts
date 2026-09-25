@@ -9,6 +9,11 @@ import {
   assertComposedParameterSetBindingRecord,
 } from './parameterSetBinding'
 import { assertCiprofloxacinIntervention } from './ciprofloxacinIntervention'
+import { createComposedStepObservationPosition } from './composedObservationTransaction'
+import {
+  assertComposedEcologyObservationEnvelopeMatchesPosition,
+  type ComposedEcologyObservationEnvelope,
+} from './composedEcologyObservation'
 import {
   DISCRETE_POPULATION_AUTHORITY_SCHEMA_VERSION,
 } from './populationAuthority'
@@ -318,6 +323,25 @@ function parseSimulationSnapshot(
 
   if (typeof record.traceHash !== 'string') {
     return failure('.traceHash must be a string')
+  }
+
+  if (record.ecologyObservation !== undefined) {
+    if (checkpoint.value.authority !== 'composed') {
+      return failure(
+        '.ecologyObservation is only allowed on composed snapshots',
+      )
+    }
+    try {
+      assertComposedEcologyObservationEnvelopeMatchesPosition(
+        createComposedStepObservationPosition(checkpoint.value),
+        record.ecologyObservation as ComposedEcologyObservationEnvelope,
+      )
+    } catch (error) {
+      return failure(
+        '.ecologyObservation ' +
+          (error instanceof Error ? error.message : String(error)),
+      )
+    }
   }
 
   return { ok: true, value: value as SimulationSnapshot }

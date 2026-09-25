@@ -525,4 +525,33 @@ describe('worker protocol runtime validation', () => {
     })
   })
 
+  it('rejects an ecology observation detached from its composed snapshot position', () => {
+    const observed = new ComposedSimulationEngine(
+      composedIdentity,
+      composedConfig,
+    ).execute({
+      id: 'observed-step',
+      type: 'advance',
+      ticks: 1,
+    })
+    expect(observed.ecologyObservation).toBeDefined()
+
+    const corrupt = structuredClone(observed)
+    if (corrupt.ecologyObservation === undefined) {
+      throw new Error('expected ecology observation')
+    }
+    ;(
+      corrupt.ecologyObservation.position as { commandCount: number }
+    ).commandCount += 1
+
+    const parsed = parseWorkerResponse({
+      protocolVersion: PROTOCOL_VERSION,
+      type: 'snapshot',
+      commandId: 'observed-step',
+      snapshot: corrupt,
+    })
+    expect(parsed).toMatchObject({ ok: false })
+    if (!parsed.ok) expect(parsed.error).toMatch(/ecologyObservation|accepted state transaction/i)
+  })
+
 })

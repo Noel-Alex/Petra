@@ -5,6 +5,10 @@ import type {
   GrowthParameters,
   LineageEcologyParameters,
 } from './ecology/growth'
+import {
+  projectEcologyFluxObservation,
+  type EcologyFluxObservation,
+} from './ecology/fluxObservation'
 import type { CuratedMutationGraph } from './evolution/graph'
 import {
   bindLineageFitness,
@@ -132,6 +136,8 @@ export interface ComposedMetrics {
 
 export interface ComposedStepResult {
   readonly metrics: ComposedMetrics
+  /** Exact local ecology ledger for this accepted step; continuous model units, not cell counts. */
+  readonly ecologyObservation: EcologyFluxObservation
   /**
    * Per-lineage/per-cell safe-integer division opportunities for this exact
    * ecology step, or null when no population calibration is enabled.
@@ -957,6 +963,13 @@ export function stepComposedStateDetailed(
     lineageParameters,
     config.hoursPerTick,
   )
+  const ecologyObservation = projectEcologyFluxObservation({
+    state: ecology,
+    lineageIds: state.lineageIds,
+    biomassUnit: 'model-biomass',
+    timeUnit: 'hour',
+    result,
+  })
 
   const nextResource = Array.from(ecology.resource)
   const nextLineageBiomass = ecology.lineages.map((channel) =>
@@ -1009,6 +1022,7 @@ export function stepComposedStateDetailed(
   })
 
   return {
+    ecologyObservation,
     metrics: {
       totalBiomass: result.metrics.totalBiomass,
       totalResource: sumInMask(state.resource, state.mask),

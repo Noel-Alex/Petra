@@ -1,7 +1,7 @@
 import {
   cloneComposedState,
   createComposedState,
-  stepComposedState,
+  stepComposedStateDetailed,
   validateComposedStateAgainstConfig,
   type ComposedMetrics,
   type ComposedSimulationConfig,
@@ -14,6 +14,10 @@ import {
   type AdvanceExecutionPolicy,
 } from './advanceExecutionPolicy'
 import { assertComposedParameterSetBinding } from './parameterSetBinding'
+import { createComposedStepObservationPosition } from './composedObservationTransaction'
+import {
+  createComposedEcologyObservationEnvelope,
+} from './composedEcologyObservation'
 import { applyCiprofloxacinIntervention } from './ciprofloxacinIntervention'
 import { assertReplayCompatibility } from './replayCompatibility'
 import {
@@ -262,8 +266,13 @@ export class ComposedSimulationEngine {
     // live checkpoint behind: rejected commands are replay no-ops.
     const workingState = cloneComposedState(this.state)
     let workingMetrics = cloneMetrics(this.metrics)
+    let finalEcologyObservation = null as ReturnType<
+      typeof stepComposedStateDetailed
+    >['ecologyObservation'] | null
     for (let index = 0; index < command.ticks; index += 1) {
-      workingMetrics = stepComposedState(workingState, this.config)
+      const step = stepComposedStateDetailed(workingState, this.config)
+      workingMetrics = step.metrics
+      finalEcologyObservation = step.ecologyObservation
     }
 
     this.state = workingState
@@ -275,7 +284,14 @@ export class ComposedSimulationEngine {
       commandId: command.id,
       value: command.ticks,
     })
-    return this.snapshot()
+    if (finalEcologyObservation === null) return this.snapshot()
+
+    const accepted = this.snapshot()
+    const ecologyObservation = createComposedEcologyObservationEnvelope(
+      createComposedStepObservationPosition(accepted.checkpoint),
+      finalEcologyObservation,
+    )
+    return { ...accepted, ecologyObservation }
   }
 
   snapshot(): ComposedSimulationSnapshot {

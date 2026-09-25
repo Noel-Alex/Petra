@@ -1,4 +1,5 @@
 import type { ComposedSimulationConfig } from "../sim/authoritative";
+import type { ComposedEcologyObservationEnvelope } from "../sim/composedEcologyObservation";
 import {
   PROTOCOL_VERSION,
   type RunIdentity,
@@ -27,12 +28,19 @@ import {
 } from "./workerSession";
 import { createRunBranchIdentity } from "./runBranchIdentity";
 
+export interface RuntimeEcologyObservation {
+  readonly runBranchIdentity: string;
+  readonly envelope: ComposedEcologyObservationEnvelope;
+}
+
 export interface ExperimentRuntimeState {
   readonly controls: ExperimentControlState;
   /** Runtime-owned command-history generation shared by replay/narration consumers. */
   readonly runBranchIdentity: string;
   readonly worker: WorkerSessionState;
   readonly snapshot: SimulationSnapshot | null;
+  /** Step-local ecology evidence for exactly the current accepted snapshot/history generation. */
+  readonly ecologyObservation: RuntimeEcologyObservation | null;
   readonly timeline: readonly TimelineEntry[];
   readonly integrationError: string | null;
 }
@@ -81,6 +89,7 @@ export class ExperimentRuntime {
       runBranchIdentity: createRunBranchIdentity(identity, this.runBranchGeneration),
       worker: session.state,
       snapshot: null,
+      ecologyObservation: null,
       timeline: [],
       integrationError: null,
     };
@@ -174,7 +183,9 @@ export class ExperimentRuntime {
         ...this.current,
         controls: planned.state,
         runBranchIdentity,
-        ...(reinitializesRun ? { snapshot: null, timeline: [] } : {}),
+        ...(reinitializesRun
+          ? { snapshot: null, ecologyObservation: null, timeline: [] }
+          : {}),
         integrationError: null,
       };
       this.publish();
@@ -237,6 +248,7 @@ export class ExperimentRuntime {
         this.current.controls.identity,
       ),
       snapshot: null,
+      ecologyObservation: null,
       timeline: [],
       integrationError: null,
     };
@@ -399,9 +411,15 @@ export class ExperimentRuntime {
     }
 
     const candidate = worker.latestSnapshot;
+    // WorkerSession publishes the same snapshot object while a request is pending
+    // and a fresh cloned object for every accepted response transaction. Trace
+    // identity alone is insufficient here because snapshot-only commands can
+    // legitimately return the same scientific trace while intentionally omitting
+    // step-local observations. Treat the accepted Worker transaction as the
+    // freshness boundary so stale derived observations are cleared immediately.
     const isNewSnapshot =
       candidate !== null &&
-      candidate.traceHash !== this.current.snapshot?.traceHash;
+      candidate !== this.current.worker.latestSnapshot;
 
     if (isNewSnapshot) {
       if (!snapshotMatchesControlIdentity(this.current.controls, candidate)) {
@@ -427,11 +445,22 @@ export class ExperimentRuntime {
         this.pendingAcceptance.delete(commandId);
       }
 
+      const runBranchIdentity = this.current.runBranchIdentity;
+      const ecologyObservation =
+        candidate.checkpoint.authority === "composed" &&
+        candidate.ecologyObservation !== undefined
+          ? {
+              runBranchIdentity,
+              envelope: structuredClone(candidate.ecologyObservation),
+            }
+          : null;
+
       this.current = {
         controls,
-        runBranchIdentity: this.current.runBranchIdentity,
+        runBranchIdentity,
         worker,
         snapshot: structuredClone(candidate),
+        ecologyObservation,
         timeline: buildScientificTimeline(candidate),
         integrationError: null,
       };

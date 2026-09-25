@@ -593,7 +593,7 @@ function LineageTree({
       <svg
         className="analysis-lineage__svg"
         viewBox={`0 0 ${TREE.width} ${height}`}
-        role="img"
+        role={onLineageSelect === undefined ? "img" : "group"}
         aria-label={`Lineage ancestry with ${tree.nodes.length} lineages from ${formatNumber(tree.timeMinimumHours)} to ${formatNumber(tree.timeMaximumHours)} hours`}
       >
         <g className="analysis-lineage__time-axis" aria-hidden="true">

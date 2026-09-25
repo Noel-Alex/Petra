@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "id": "mg1655-mops-chloramphenicol-greulich-2015-v1",
+  "status": "source-context-not-spatially-admitted",
+  "organism": {
+    "scientificName": "Escherichia coli",
+    "background": "K-12 MG1655",
+    "taxonIdRequirement": "ecoli-k12-mg1655",
+    "taxonContentVersionRequirement": null,
+    "taxonIdentityLimitation": "The exact production scenario must bind the repository-authoritative taxon contentVersion; this source-context record does not invent one from test fixtures."
+  },
+  "sourceContext": {
+    "primarySourceKey": "greulich_2015_ribosome_antibiotic_growth",
+    "primaryDoi": "10.15252/MSB.20145949",
+    "definedMediumSourceKey": "neidhardt_1974_mops_defined_medium",
+    "definedMediumDoi": "10.1128/jb.119.3.736-747.1974",
+    "temperatureC": 37,
+    "cultureGeometry": "shaken-liquid-batch",
+    "mediumFamily": "modified Neidhardt potassium-MOPS defined medium",
+    "baseCarbonSources": [
+      {
+        "id": "glucose",
+        "concentration": 0.2,
+        "unit": "% w/v"
+      },
+      {
+        "id": "glycerol",
+        "concentration": 0.2,
+        "unit": "% v/v"
+      }
+    ],
+    "richerGrowthConditions": [
+      "base carbon-source medium plus 0.2% w/v casamino acids",
+      "base medium plus nucleotides and all amino acids"
+    ],
+    "responseConditioningVariable": {
+      "id": "lambda0",
+      "label": "drug-free exponential growth rate",
+      "unit": "h^-1",
+      "classification": "measured-or-explicitly-calibrated-environment-input",
+      "limitation": "Not a resource concentration and not inferable from Petra model-resource by naming or normalization."
+    }
+  },
+  "chloramphenicolFamilies": [
+    {
+      "id": "mops-glucose",
+      "carbonSource": "glucose",
+      "lambda0StarPerHour": 1.28,
+      "lambda0StarSdPerHour": 0.02,
+      "ic50StarMicromolar": 4.5,
+      "ic50StarSdMicromolar": 0.05,
+      "classification": "source-derived-fit"
+    },
+    {
+      "id": "mops-glycerol",
+      "carbonSource": "glycerol",
+      "lambda0StarPerHour": 1.83,
+      "lambda0StarSdPerHour": 0.06,
+      "ic50StarMicromolar": 2.49,
+      "ic50StarSdMicromolar": 0.05,
+      "classification": "source-derived-fit"
+    }
+  ],
+  "petraBindingDecision": {
+    "currentFlagshipResourceContext": "unbound-model-resource-v1",
+    "currentFlagshipCanSelectGreulichFamily": false,
+    "sourceCurveValidationAllowed": true,
+    "spatialProductAdmission": "blocked-calibration",
+    "firstCalibrationTargetFamily": "mops-glucose",
+    "blockingIssue": 938,
+    "calibrationFrameworkIssue": 657,
+    "numericalDrugAuthorityIssue": 930,
+    "reason": "No source-owned mapping currently connects dimensionless model-resource/local ecology state to physical MOPS carbon concentration and source-compatible drug-free lambda0."
+  },
+  "requiredSpatialBridge": {
+    "physicalResourceFieldUnits": "unbound",
+    "resourceTransportDiffusion": "unbound",
+    "resourceUptakeConsumption": "unbound",
+    "biomassResourceYield": "unbound",
+    "localPreDrugGrowthMappingToLambda0": "unbound",
+    "geometryAerationTransfer": "unbound",
+    "zeroDrugValidation": "required-before-antibiotic-fit"
+  },
+  "prohibitedTransfers": [
+    "model-resource -> glucose by label",
+    "resource value 1 -> 0.2% glucose by normalization",
+    "instantaneous local net growth -> Greulich lambda0 without validation",
+    "flagship engineering maxDivisionRate -> source MOPS lambda0",
+    "glucose/glycerol family averaging",
+    "liquid-shaker transport -> agar/dish transport by assumption"
+  ],
+  "productNonClaims": [
+    "not clinical dosing",
+    "no chloramphenicol spatial diffusion or decay authority",
+    "no CAT-resistant response curve",
+    "no multi-drug interaction authority"
+  ]
+}

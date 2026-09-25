@@ -211,6 +211,28 @@ describe("Greulich chloramphenicol equation-7 evaluator", () => {
     );
   });
 
+  it("fails closed rather than choosing among multiple physical roots", () => {
+    const syntheticAmbiguousFamily = {
+      id: "synthetic-ambiguous",
+      medium: "synthetic numerical fixture",
+      carbonSource: "synthetic",
+      carbonSourceConcentration: "synthetic",
+      temperatureC: 37,
+      lambda0StarPerHour: 0.001,
+      lambda0StarReportedPlusMinusPerHour: 0,
+      ic50StarMicromolar: 1,
+      ic50StarReportedPlusMinusMicromolar: 0,
+    };
+
+    expect(() =>
+      greulichChloramphenicolDivisionMultiplier(
+        2,
+        1,
+        syntheticAmbiguousFamily,
+      ),
+    ).toThrow(/ambiguous/);
+  });
+
   it("rejects unit, environment, concentration, and growth-context mismatches", () => {
     expect(() =>
       chloramphenicolGrowthInhibitionEffect({

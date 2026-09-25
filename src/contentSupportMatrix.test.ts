@@ -118,6 +118,34 @@ describe("supported content matrix", () => {
     );
   });
 
+  it("rejects physical labels on an unbound resource context", () => {
+    const value = cloneMatrix();
+    const supported = value.supportedScenarios as Array<Record<string, unknown>>;
+    const environment = supported[0]!.environment as Record<string, unknown>;
+    environment.resourceRepresentation = "physical_concentration";
+
+    expect(() => parseSupportedContentMatrix(value)).toThrow(
+      /unbound resource context as physical concentration/i,
+    );
+
+    environment.resourceRepresentation = "dimensionless_model_resource";
+    environment.medium = "LB";
+    expect(() => parseSupportedContentMatrix(value)).toThrow(
+      /cannot name a physical medium/i,
+    );
+  });
+
+  it("rejects Science-Mode enablement while resource authority is unbound", () => {
+    const value = cloneMatrix();
+    const supported = value.supportedScenarios as Array<Record<string, unknown>>;
+    supported[0]!.availability = "enabled-science";
+    supported[0]!.scienceModeStatus = "admitted";
+
+    expect(() => parseSupportedContentMatrix(value)).toThrow(
+      /cannot use an unbound resource context/i,
+    );
+  });
+
   it("rejects malformed issue dependencies and unknown expansion fields", () => {
     const malformedIssue = cloneMatrix();
     const queue = malformedIssue.expansionQueue as Array<

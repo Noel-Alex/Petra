@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "ecoli-ciprofloxacin-live-metrics-v1",
+  "version": "1.0.0",
+  "scenarioId": "ecoli-ciprofloxacin-spatial",
+  "scenarioVersion": "1.5.0-research",
+  "parameterSetId": "ecoli-ciprofloxacin-baseline-composed",
+  "parameterSetVersion": "1.2.0",
+  "resistantCohort": {
+    "id": "elevated-ciprofloxacin-mic-relative-to-founder-v1",
+    "definition": "ciprofloxacin-mic-strictly-greater-than-founder",
+    "founderGenotypeId": "WT",
+    "memberGenotypeIds": [
+      "A",
+      "B",
+      "D",
+      "E",
+      "AB",
+      "AC",
+      "AD",
+      "AE",
+      "BC",
+      "BD",
+      "ACB"
+    ],
+    "micUnit": "mg/L",
+    "claimScope": "within-scenario-relative-mic",
+    "clinicalBreakpointAuthority": false,
+    "provenance": {
+      "classification": "derived",
+      "sourceKeys": [
+        "marcusson_2009"
+      ],
+      "transformation": "Member iff the scenario-owned measured ciprofloxacin MIC is strictly greater than the exact configured founder genotype MIC.",
+      "limitation": "This is a within-scenario elevated-MIC cohort for Petra analysis. It is not a clinical susceptibility/resistance breakpoint, treatment recommendation, or claim that every mutation is resistant."
+    }
+  },
+  "samplingPolicy": {
+    "version": 1,
+    "everyTicks": 1,
+    "offsetTicks": 0,
+    "provenance": {
+      "classification": "engineering",
+      "rationale": "Retain one authoritative aggregate metric sample at every accepted biological tick for the release flagship. Display decimation and render-keyframe publication remain separate downstream presentation policies.",
+      "limitation": "This cadence is an analysis-history engineering policy, not a biological measurement interval and not a renderer frame-rate or performance recommendation."
+    }
+  }
+}

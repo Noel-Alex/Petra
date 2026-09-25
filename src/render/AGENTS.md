@@ -44,6 +44,7 @@ The contract in this directory must remain usable without PixiJS. Pixi/WebGL ada
 ## Verification
 
 Pure render-model helpers get deterministic unit tests. Browser/GPU/FPS claims require actual browser/device measurements and must not be inferred from source review.
+- `renderPayloadEstimate.ts` reports exact logical typed-array view bytes for an already-admitted `DishRenderSnapshot` plus a reproducible JSON UTF-8 metadata-size proxy. Their sum is an application-payload sizing estimate only: never relabel it as structured-clone framing, link bandwidth, receiver deserialization cost, heap usage, or proof that transferables/downsampling are beneficial. The estimator deliberately does not re-run O(cells × channels) snapshot validation inside a profiling hot path.
 
 ## Pixi live-dish adapter
 - PixiJS/WebGL belongs under `src/render/pixi/**`; it consumes `DishRenderSnapshot` and never owns simulation state.

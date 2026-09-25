@@ -1,4 +1,4 @@
-# Local experiment DOX contract
+- A successful `ml-mechanistic-dataset` execution must publish the existing `petra-ml-generation-evidence-v1` contract from the runner: finalized JSONL is re-opened/streamed for digest/range verification, while incomplete execution publishes only incomplete/non-promotable evidence. Raw dataset rows and staging remain local.\n# Local experiment DOX contract
 
 ## Purpose
 Own Petra's **manual, laptop-only** experiment/benchmark queue and compact evidence inbox for work that agents cannot execute in their current environment.

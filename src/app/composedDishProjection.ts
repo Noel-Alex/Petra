@@ -1,5 +1,11 @@
 import { resolveLineageVisualIdentity } from "../design/lineageIdentity";
 import { projectAcceptedInterventionFootprint } from "../render/acceptedInterventionFootprint";
+import { projectEcologyNetGrowthField } from "../render/ecologyFluxField";
+import { createComposedStepObservationPosition } from "../sim/composedObservationTransaction";
+import {
+  assertComposedEcologyObservationEnvelopeMatchesPosition,
+  type ComposedEcologyObservationEnvelope,
+} from "../sim/composedEcologyObservation";
 import {
   validateRenderSnapshot,
   type DishRenderSnapshot,
@@ -15,20 +21,28 @@ const BIOMASS_UNIT = "model-biomass";
 const RESOURCE_UNIT = "model-resource";
 const CIPROFLOXACIN_UNIT = "mg/L";
 
+export interface RuntimeBoundEcologyObservation {
+  readonly runBranchIdentity: string;
+  readonly envelope: ComposedEcologyObservationEnvelope;
+}
+
 export function projectComposedDishSnapshot(
   snapshot: SimulationSnapshot | null,
   runBranchIdentity: string,
+  ecologyObservation: RuntimeBoundEcologyObservation | null = null,
 ): DishRenderSnapshot | null {
   if (snapshot?.checkpoint.authority !== "composed") return null;
   return projectAuthoritativeComposedDishSnapshot(
     snapshot,
     runBranchIdentity,
+    ecologyObservation,
   );
 }
 
 export function projectAuthoritativeComposedDishSnapshot(
   snapshot: ComposedSimulationSnapshot,
   runBranchIdentity: string,
+  ecologyObservation: RuntimeBoundEcologyObservation | null = null,
 ): DishRenderSnapshot {
   const state = snapshot.checkpoint.composedState;
   const cells = state.width * state.height;
@@ -230,6 +244,21 @@ export function projectAuthoritativeComposedDishSnapshot(
       dishMask,
     ),
   ];
+
+  if (ecologyObservation !== null) {
+    if (ecologyObservation.runBranchIdentity !== runBranchIdentity) {
+      throw new Error(
+        "composed dish projection ecology observation must match runtime branch identity",
+      );
+    }
+    assertComposedEcologyObservationEnvelopeMatchesPosition(
+      createComposedStepObservationPosition(snapshot.checkpoint),
+      ecologyObservation.envelope,
+    );
+    fields.push(
+      projectEcologyNetGrowthField(ecologyObservation.envelope.observation),
+    );
+  }
 
   const acceptedInterventionFootprints = snapshot.events.flatMap((event) => {
     const footprint = projectAcceptedInterventionFootprint(event);

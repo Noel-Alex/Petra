@@ -37,6 +37,16 @@ This is a Petra **transferred mechanistic composition rule**, not an additional 
 
 At zero concentration the incremental loss is exactly zero. Under zero resource the current composition can still apply PD-derived loss, but that behavior is a declared modeling choice and must not be presented as quantitatively validated stationary-phase fluoroquinolone action.
 
+## Exact-MG1655 response-shape evidence
+
+Issue #632 found two complementary exact-background evidence sets that support a shared response structure with a genotype-specific potency/concentration shift rather than separate response-shape parameters.
+
+Khan et al. (2015), DOI `10.1093/jac/dkv233`, modeled viable-count ciprofloxacin time-kill data for MG1655 WT plus six isogenic resistance mutants. A common multi-state PKPD structure fit all strains while antibacterial potency (`EC50`) varied by strain; mutant-specific `EC50` was highly correlated with measured MIC (`r^2 = 0.99`). Nielsen et al. (2017), DOI `10.1093/jac/dkx269`, externally predicted additional MG1655-derived mutants from MIC alone in MHII time-kill experiments.
+
+Das et al. (2020), DOI `10.7554/eLife.55155`, independently measured MG1655 growth-rate dose-response curves across the exact five resistance loci used by Petra. After rescaling by each strain's null fitness and `IC50`, WT, all five singles and eight doubles collapsed onto a common normalized inhibition shape.
+
+These sources strengthen the **shared-shape / potency-shift concept**, but they do not make Petra's current curve a direct MG1655 measurement. Khan/Nielsen use a different multi-state MHII PKPD model, while Das measures growth inhibition rather than viable-count killing. Petra therefore keeps the Regoes CAB1 curve + Marcusson MG1655 MIC composition explicitly transferred and does not invent genotype-specific `psi_min` or `kappa`. See `ciprofloxacin_mg1655_response_scaling.md`.
+
 ## Spatial drug field
 
 Minimal spatial equation:

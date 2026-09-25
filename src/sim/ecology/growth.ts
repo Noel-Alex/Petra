@@ -1,4 +1,8 @@
-import { assertEcologyLocalCapacity } from './capacity'
+import {
+  FLOAT32_MIN_SUBNORMAL,
+  FLOAT32_RELATIVE_SPACING,
+  assertEcologyLocalCapacity,
+} from './capacity'
 
 export interface GrowthParameters {
   /** Maximum division-biomass production rate (1 / time). Scenario-owned and provenance-required. */
@@ -169,27 +173,61 @@ function validate(
 }
 
 /**
- * Deterministic ecology flux step.
+ * Opaque handoff between the local ecology flux phase and conservative spread.
  *
- * Division demand and death loss are both computed from the same pre-step
- * lineage biomass. Shared resource/capacity limits then scale division biomass
- * proportionally across lineages, so iteration order cannot award first access.
- *
- * Death uses the exact constant-hazard survival fraction over the step:
- *   removed_fraction = 1 - exp(-hazard * dt)
- * which is bounded to [0, 1) for finite non-negative hazard and dt.
+ * Higher-level composition may use this boundary only to reassign already
+ * produced lineage biomass between cohort channels (for example parent→child
+ * mutation materialization). Resource, mask, dimensions, and total biomass per
+ * spatial cell remain fixed across the interphase.
+ */
+export interface EcologyInterphaseStep {
+  readonly fluxes: EcologyFluxLedger
+}
+
+interface EcologyInterphaseInternal {
+  state: EcologyState
+  width: number
+  height: number
+  maskAfterLocal: Uint8Array
+  resourceAfterLocal: Float32Array
+  postLocalBiomass: Float64Array
+  capacityOccupancy: Float64Array
+  localCapacity: number
+  spreadFractionPerNeighbour: number
+  originalLineageCount: number
+  divisionBiomass: number
+  deathBiomass: number
+  resourceConsumed: number
+  completed: boolean
+}
+
+const ecologyInterphaseInternals = new WeakMap<
+  EcologyInterphaseStep,
+  EcologyInterphaseInternal
+>()
+
+/**
+ * Execute the validated local growth/death/resource phase without spatial
+ * spread. Division demand and death loss are both computed from the same
+ * pre-step lineage biomass. Shared resource/capacity limits then scale division
+ * biomass proportionally across lineages, so iteration order cannot award first
+ * access.
  *
  * The returned division ledger is continuous biomass production, not a count of
- * discrete birth events. A separate reviewed stochastic bridge must convert
- * aggregate division biomass into mutation-event opportunities when the chosen
- * population units make that conversion scientifically defined.
+ * discrete birth events. Higher-level mutation composition must consume the
+ * reviewed discrete opportunities from populationAuthority.ts instead.
+ *
+ * This function mutates the supplied state through the local flux commit. A
+ * caller that can refuse during its interphase must therefore run the full
+ * begin/interphase/complete transaction on detached authoritative state, as the
+ * composed runtime does for mutating commands.
  */
-export function stepEcology(
+export function beginEcologyStep(
   state: EcologyState,
   p: GrowthParameters,
   lineageParameters: readonly LineageEcologyParameters[],
   dt: number,
-): EcologyStepResult {
+): EcologyInterphaseStep {
   validate(state, p, lineageParameters, dt)
   const n = state.width * state.height
   const lineageCount = state.lineages.length
@@ -265,11 +303,138 @@ export function stepEcology(
     }
   }
 
-  if (p.spreadRate > 0 && dt > 0) spread(state, p.spreadRate * dt, p.localCapacity, capacityOccupancy)
+  const postLocalBiomass = new Float64Array(n)
+  for (let index = 0; index < n; index += 1) {
+    if (state.mask[index] === 0) continue
+    let local = 0
+    for (const lineage of state.lineages) local += lineage[index]!
+    postLocalBiomass[index] = local
+  }
+
+  const step: EcologyInterphaseStep = {
+    fluxes: { divisionBiomass, deathBiomass },
+  }
+  ecologyInterphaseInternals.set(step, {
+    state,
+    width: state.width,
+    height: state.height,
+    maskAfterLocal: state.mask.slice(),
+    resourceAfterLocal: state.resource.slice(),
+    postLocalBiomass,
+    capacityOccupancy,
+    localCapacity: p.localCapacity,
+    spreadFractionPerNeighbour: p.spreadRate * dt,
+    originalLineageCount: lineageCount,
+    divisionBiomass: totalDivisionBiomass,
+    deathBiomass: totalDeathBiomass,
+    resourceConsumed,
+    completed: false,
+  })
+  return step
+}
+
+function validateEcologyInterphase(
+  state: EcologyState,
+  internal: EcologyInterphaseInternal,
+): void {
+  if (state !== internal.state) {
+    throw new Error('ecology interphase step must complete against its originating state')
+  }
+  if (state.width !== internal.width || state.height !== internal.height) {
+    throw new Error('ecology dimensions cannot change during interphase')
+  }
+
+  const n = internal.width * internal.height
+  if (state.mask.length !== n || state.resource.length !== n) {
+    throw new Error('ecology arrays must match grid dimensions during interphase')
+  }
+  if (state.lineages.some((lineage) => lineage.length !== n)) {
+    throw new Error('lineage arrays must match grid dimensions during interphase')
+  }
+
+  for (let index = 0; index < n; index += 1) {
+    if (state.mask[index] !== internal.maskAfterLocal[index]) {
+      throw new Error(`ecology mask cannot change during interphase at cell ${index}`)
+    }
+    if (state.resource[index] !== internal.resourceAfterLocal[index]) {
+      throw new Error(`ecology resource cannot change during interphase at cell ${index}`)
+    }
+
+    let totalBiomass = 0
+    for (let lineageIndex = 0; lineageIndex < state.lineages.length; lineageIndex += 1) {
+      const amount = state.lineages[lineageIndex]![index]!
+      finiteNonNegative(`interphase lineage biomass[${lineageIndex}][${index}]`, amount)
+      if (state.mask[index] === 0 && amount !== 0) {
+        throw new Error(`lineage biomass must remain zero outside ecology mask at cell ${index}`)
+      }
+      totalBiomass += amount
+    }
+
+    const expected = internal.postLocalBiomass[index]!
+    assertEcologyLocalCapacity(
+      totalBiomass,
+      internal.localCapacity,
+      state.lineages.length,
+      index,
+    )
+
+    const channels = Math.max(
+      1,
+      internal.originalLineageCount,
+      state.lineages.length,
+    )
+    const referenceMagnitude = Math.max(expected, totalBiomass)
+    // For non-negative cohort channels, the sum of per-channel relative
+    // Float32 rounding envelopes scales with total biomass, not with
+    // (total biomass × lineage count). Only the minimum-subnormal floor grows
+    // with channel count. Two relative spacings cover the parent decrement and
+    // child-allocation round trips without making large lineage counts a source
+    // of biological slack.
+    const representationTolerance = Math.max(
+      referenceMagnitude * FLOAT32_RELATIVE_SPACING * 2,
+      FLOAT32_MIN_SUBNORMAL * channels,
+    )
+    if (Math.abs(totalBiomass - expected) > representationTolerance) {
+      throw new Error(
+        `ecology interphase must conserve total biomass at cell ${index} within Float32 representation tolerance`,
+      )
+    }
+  }
+}
+
+/**
+ * Complete a previously started ecology step after an optional conservative
+ * lineage-cohort reassignment. The local resource state and total biomass in
+ * each spatial cell are checked before spread, and the pre-step capacity
+ * reservation is reused so same-step deaths still do not free spread capacity.
+ */
+export function completeEcologyStep(
+  state: EcologyState,
+  step: EcologyInterphaseStep,
+): EcologyStepResult {
+  const internal = ecologyInterphaseInternals.get(step)
+  if (internal === undefined) {
+    throw new Error('unknown ecology interphase step')
+  }
+  if (internal.completed) {
+    throw new Error('ecology interphase step has already been completed')
+  }
+
+  validateEcologyInterphase(state, internal)
+  internal.completed = true
+
+  if (internal.spreadFractionPerNeighbour > 0) {
+    spread(
+      state,
+      internal.spreadFractionPerNeighbour,
+      internal.localCapacity,
+      internal.capacityOccupancy,
+    )
+  }
 
   let totalBiomass = 0
   let occupiedCells = 0
-  for (let index = 0; index < n; index += 1) {
+  for (let index = 0; index < state.mask.length; index += 1) {
     if (state.mask[index] === 0) continue
     let local = 0
     for (const lineage of state.lineages) local += lineage[index]!
@@ -279,14 +444,29 @@ export function stepEcology(
 
   return {
     metrics: {
-      divisionBiomass: totalDivisionBiomass,
-      deathBiomass: totalDeathBiomass,
-      resourceConsumed,
+      divisionBiomass: internal.divisionBiomass,
+      deathBiomass: internal.deathBiomass,
+      resourceConsumed: internal.resourceConsumed,
       totalBiomass,
       occupiedCells,
     },
-    fluxes: { divisionBiomass, deathBiomass },
+    fluxes: step.fluxes,
   }
+}
+
+/**
+ * Deterministic ecology compatibility wrapper. With no interphase cohort
+ * reassignment this executes the same local flux commit followed immediately by
+ * the same conservative spread operator.
+ */
+export function stepEcology(
+  state: EcologyState,
+  p: GrowthParameters,
+  lineageParameters: readonly LineageEcologyParameters[],
+  dt: number,
+): EcologyStepResult {
+  const step = beginEcologyStep(state, p, lineageParameters, dt)
+  return completeEcologyStep(state, step)
 }
 
 interface SpreadProposal {

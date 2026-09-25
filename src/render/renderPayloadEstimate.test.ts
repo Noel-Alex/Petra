@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DishRenderSnapshot } from "./model";
+import { FLAGSHIP_ECOLI_ORGANISM_PRESENTATION } from "./organismPresentationIdentity";
 import { estimateDishRenderSnapshotPayload } from "./renderPayloadEstimate";
 
 function fixtureSnapshot(): DishRenderSnapshot {
@@ -125,6 +126,30 @@ describe("render payload estimate", () => {
       baseline.metadataJsonUtf8Bytes,
     );
     expect(withEvent.eventCount).toBe(1);
+  });
+
+  it("counts organism presentation evidence only in the metadata-size proxy", () => {
+    const snapshot = fixtureSnapshot();
+    const baseline = estimateDishRenderSnapshotPayload(snapshot);
+    const withPresentation = estimateDishRenderSnapshotPayload({
+      ...snapshot,
+      lineages: [
+        {
+          ...snapshot.lineages[0]!,
+          organismPresentation: FLAGSHIP_ECOLI_ORGANISM_PRESENTATION,
+        },
+      ],
+    });
+
+    expect(withPresentation.typedArrayReferenceBytes).toBe(
+      baseline.typedArrayReferenceBytes,
+    );
+    expect(withPresentation.uniqueBackingBufferBytes).toBe(
+      baseline.uniqueBackingBufferBytes,
+    );
+    expect(withPresentation.metadataJsonUtf8Bytes).toBeGreaterThan(
+      baseline.metadataJsonUtf8Bytes,
+    );
   });
 
   it("scales exact typed-array bytes with added independent fields and lineages", () => {

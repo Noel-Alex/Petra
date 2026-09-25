@@ -36,12 +36,16 @@ const glucose = resolveGreulichChloramphenicolFit(
 
 describe("chloramphenicol authority record", () => {
   it("keeps source contexts, units, and fitted parameter records distinct", () => {
+    expect(authority.version).toBe("1.0.1");
     expect(authority.drug.concentrationUnit).toBe("uM");
     expect(authority.model.effectKind).toBe("growth-inhibition");
+    expect(authority.model.fitErrorMethod).toMatch(/1000 randomized data sets/);
     expect(glycerol).toMatchObject({
       id: "mops-glycerol",
       lambda0StarPerHour: 1.83,
+      lambda0StarReportedFitErrorPerHour: 0.06,
       ic50StarMicromolar: 2.49,
+      ic50StarReportedFitErrorMicromolar: 0.05,
       validatedDrugFreeGrowthRateRangePerHour: {
         minimum: 0.4,
         maximum: 1.35,
@@ -50,12 +54,28 @@ describe("chloramphenicol authority record", () => {
     expect(glucose).toMatchObject({
       id: "mops-glucose",
       lambda0StarPerHour: 1.28,
+      lambda0StarReportedFitErrorPerHour: 0.02,
       ic50StarMicromolar: 4.5,
+      ic50StarReportedFitErrorMicromolar: 0.05,
       validatedDrugFreeGrowthRateRangePerHour: {
         minimum: 0.64,
         maximum: 1.68,
       },
     });
+  });
+
+  it("rejects the superseded standard-deviation alias for fitted-parameter error bars", () => {
+    const legacy = structuredClone(chloramphenicolRecord) as unknown as Record<string, unknown>;
+    const model = legacy.model as Record<string, unknown>;
+    const fits = model.fits as Array<Record<string, unknown>>;
+    const first = fits[0]!;
+    first.lambda0StarStandardDeviationPerHour =
+      first.lambda0StarReportedFitErrorPerHour;
+    delete first.lambda0StarReportedFitErrorPerHour;
+
+    expect(() => parseChloramphenicolAuthority(legacy)).toThrow(
+      /unsupported field|missing required field/,
+    );
   });
 
   it("fails closed on unit aliases and unknown fit selection", () => {

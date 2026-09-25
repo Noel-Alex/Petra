@@ -15,6 +15,8 @@ export const OVERLAY_KINDS = [
   "nutrient",
   "antibiotic",
   "net-growth",
+  "division-rate",
+  "death-rate",
   "lineage",
   "phage",
   "biomass",

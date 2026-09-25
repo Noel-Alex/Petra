@@ -47,7 +47,13 @@ export function baselineNonDrugLossPolicyIdentity(
     id: policy.id,
     rule: policy.rule,
     entries: [...policy.entries]
-      .sort((left, right) => left.genotypeId.localeCompare(right.genotypeId))
+      .sort((left, right) =>
+        left.genotypeId < right.genotypeId
+          ? -1
+          : left.genotypeId > right.genotypeId
+            ? 1
+            : 0,
+      )
       .map((entry) => ({
         genotypeId: entry.genotypeId,
         deathHazardPerHour: entry.deathHazardPerHour,

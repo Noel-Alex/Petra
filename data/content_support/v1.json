@@ -1,7 +1,7 @@
 {
   "kind": "petra-supported-content-matrix",
   "schemaVersion": 1,
-  "version": "1.0.3",
+  "version": "1.0.4",
   "supportedScenarios": [
     {
       "id": "flagship-ecoli-ciprofloxacin",
@@ -55,11 +55,10 @@
       "availability": "blocked-validation",
       "issues": [
         907,
-        992,
         946,
         999
       ],
-      "reason": "The named E. coli MG1655 + Bacillus subtilis 168 trp+ sigE- authoritative model-unit scenario is implemented and its real validation workload is runnable, but product promotion is not yet evidence-complete. #907 is waiting on laptop evidence and has identified that its compact evidence must bind a real inert content-pack identity; #992 owns that manifest. #946 is closing the exact live taxon-to-presentation binding, and #999 owns the fail-closed Sandbox/product registration after validation. Physical glucose/gCDW mapping, direct interaction, Bacillus ciprofloxacin/evolution, and sporulation remain unsupported."
+      "reason": "The named E. coli MG1655 + Bacillus subtilis 168 trp+ sigE- authoritative model-unit scenario and exact inert content pack ecoli-bsubtilis-shared-resource-pack@1.0.0 are implemented, but product promotion is not yet evidence-complete. #907 owns provenance-complete local mechanistic/replay validation and remains the evidence gate; #946 owns the remaining exact presentation-binding hardening, and #999 owns fail-closed Sandbox/product registration after validation. Physical glucose/gCDW mapping, direct interaction, Bacillus ciprofloxacin/evolution, and sporulation remain unsupported."
     },
     {
       "id": "first-grounded-fungal-competitor",

@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   ExperimentRuntime,
 } from "../../src/app/experimentRuntime";
+import { ComposedSimulationEngine } from "../../src/sim/composedEngine";
 import { createRunBranchIdentity } from "../../src/app/runBranchIdentity";
 import {
   WorkerSession,
@@ -58,7 +59,15 @@ const composedConfig: ComposedSimulationConfig = {
   hoursPerTick: 0.01,
 };
 
-const identity = createRunIdentity({
+const syntheticIdentity = createRunIdentity({
+  scenarioId: "runtime-fixture",
+  scenarioVersion: "1",
+  parameterSetId,
+  parameterSetVersion,
+  seed: 23,
+});
+
+const composedIdentity = createRunIdentity({
   scenarioId: "runtime-fixture",
   scenarioVersion: "1",
   parameterSetId,
@@ -80,7 +89,7 @@ function makeSnapshot(args: {
   const commandCount = args.commandCount ?? 0;
   return {
     checkpoint: {
-      identity: args.identity ?? identity,
+      identity: args.identity ?? syntheticIdentity,
       tick: args.tick,
       simulationTimeHours: args.tick / 60,
       syntheticPopulation: 100 + args.tick,
@@ -88,7 +97,7 @@ function makeSnapshot(args: {
       commandCount,
     },
     events: args.events ?? [],
-    traceHash: `trace-${args.identity?.seed ?? identity.seed}-${args.tick}-${commandCount}`,
+    traceHash: `trace-${args.identity?.seed ?? syntheticIdentity.seed}-${args.tick}-${commandCount}`,
   };
 }
 
@@ -122,7 +131,11 @@ function commandIds(...ids: string[]): () => string {
 function readyRuntime(ids: string[] = ["step-1"]) {
   const port = new FakePort();
   const session = new WorkerSession(port);
-  const runtime = new ExperimentRuntime(session, identity, commandIds(...ids));
+  const runtime = new ExperimentRuntime(
+    session,
+    syntheticIdentity,
+    commandIds(...ids),
+  );
   expect(runtime.start()).toBe(true);
   port.emit({
     protocolVersion: PROTOCOL_VERSION,
@@ -135,13 +148,32 @@ function readyRuntime(ids: string[] = ["step-1"]) {
   return { port, session, runtime };
 }
 
+function readyComposedRuntime(ids: string[] = ["step-1"]) {
+  const port = new FakePort();
+  const session = new WorkerSession(port);
+  const runtime = new ExperimentRuntime(
+    session,
+    composedIdentity,
+    commandIds(...ids),
+    composedConfig,
+  );
+  const engine = new ComposedSimulationEngine(composedIdentity, composedConfig);
+  expect(runtime.start()).toBe(true);
+  port.emit({
+    protocolVersion: PROTOCOL_VERSION,
+    type: "ready",
+    snapshot: engine.snapshot(),
+  });
+  return { port, session, runtime, engine };
+}
+
 describe("experiment runtime", () => {
   it("starts and reinitializes with the same composed simulation authority", () => {
     const port = new FakePort();
     const session = new WorkerSession(port);
     const runtime = new ExperimentRuntime(
       session,
-      identity,
+      composedIdentity,
       commandIds("unused"),
       composedConfig,
     );
@@ -149,7 +181,7 @@ describe("experiment runtime", () => {
     expect(runtime.start()).toBe(true);
     expect(port.posted[0]).toMatchObject({
       type: "initialize",
-      identity,
+      identity: composedIdentity,
       composedConfig,
     });
     expect(
@@ -160,7 +192,10 @@ describe("experiment runtime", () => {
     port.emit({
       protocolVersion: PROTOCOL_VERSION,
       type: "ready",
-      snapshot: makeSnapshot({ tick: 0 }),
+      snapshot: new ComposedSimulationEngine(
+        composedIdentity,
+        composedConfig,
+      ).snapshot(),
     });
     expect(runtime.dispatch({ type: "reset" })).toEqual({
       accepted: true,
@@ -177,7 +212,7 @@ describe("experiment runtime", () => {
 
     expect(port.posted[0]).toMatchObject({
       type: "initialize",
-      identity,
+      identity: syntheticIdentity,
     });
     expect(runtime.state.worker.phase).toBe("ready");
     expect(runtime.state.snapshot?.checkpoint.tick).toBe(0);
@@ -242,7 +277,7 @@ describe("experiment runtime", () => {
   });
 
   it("routes a validated intervention only after ciprofloxacin acceptance evidence", () => {
-    const { port, runtime } = readyRuntime();
+    const { port, runtime, engine } = readyComposedRuntime();
     const command = {
       id: "intervention-1",
       type: "apply-ciprofloxacin" as const,
@@ -276,26 +311,7 @@ describe("experiment runtime", () => {
       protocolVersion: PROTOCOL_VERSION,
       type: "snapshot",
       commandId: command.id,
-      snapshot: makeSnapshot({
-        tick: 0,
-        commandCount: 1,
-        events: [
-          {
-            sequence: 0,
-            tick: 0,
-            simulationTimeHours: 0,
-            type: "initialized",
-          },
-          {
-            sequence: 1,
-            tick: 0,
-            simulationTimeHours: 0,
-            type: "ciprofloxacin-applied",
-            commandId: command.id,
-            intervention: command.intervention,
-          },
-        ],
-      }),
+      snapshot: engine.execute(command),
     });
 
     expect(runtime.state.controls.acceptedCommands).toEqual([command]);
@@ -306,7 +322,7 @@ describe("experiment runtime", () => {
   });
 
   it("does not promote a same-id intervention on the wrong authoritative event type", () => {
-    const { port, runtime } = readyRuntime();
+    const { port, runtime, engine } = readyComposedRuntime();
     const command = {
       id: "intervention-1",
       type: "apply-ciprofloxacin" as const,
@@ -328,25 +344,10 @@ describe("experiment runtime", () => {
       protocolVersion: PROTOCOL_VERSION,
       type: "snapshot",
       commandId: command.id,
-      snapshot: makeSnapshot({
-        tick: 1,
-        commandCount: 1,
-        events: [
-          {
-            sequence: 0,
-            tick: 0,
-            simulationTimeHours: 0,
-            type: "initialized",
-          },
-          {
-            sequence: 1,
-            tick: 1,
-            simulationTimeHours: 1 / 60,
-            type: "advanced",
-            commandId: command.id,
-            value: 1,
-          },
-        ],
+      snapshot: engine.execute({
+        id: command.id,
+        type: "advance",
+        ticks: 1,
       }),
     });
 
@@ -384,7 +385,7 @@ describe("experiment runtime", () => {
   it("rejects manual worker effects before initialization is ready", () => {
     const port = new FakePort();
     const session = new WorkerSession(port);
-    const runtime = new ExperimentRuntime(session, identity, commandIds("step-1"));
+    const runtime = new ExperimentRuntime(session, syntheticIdentity, commandIds("step-1"));
 
     expect(runtime.dispatch({ type: "step" })).toEqual({
       accepted: false,
@@ -396,7 +397,7 @@ describe("experiment runtime", () => {
   it("refuses mismatched run identity instead of rendering foreign state", () => {
     const port = new FakePort();
     const session = new WorkerSession(port);
-    const runtime = new ExperimentRuntime(session, identity, commandIds());
+    const runtime = new ExperimentRuntime(session, syntheticIdentity, commandIds());
     const otherIdentity = createRunIdentity({
       scenarioId: "other",
       scenarioVersion: "1",
@@ -428,20 +429,35 @@ describe("experiment runtime", () => {
   it("rejects a snapshot with the same parameter-set label but a different bound config", () => {
     const port = new FakePort();
     const session = new WorkerSession(port);
-    const runtime = new ExperimentRuntime(session, identity, commandIds());
-    const foreignIdentity = structuredClone(identity);
-    if (foreignIdentity.parameterSetBinding === undefined) {
-      throw new Error("expected bound fixture identity");
-    }
-    ;(
-      foreignIdentity.parameterSetBinding as { configurationFingerprint: string }
-    ).configurationFingerprint += "-foreign";
+    const runtime = new ExperimentRuntime(
+      session,
+      composedIdentity,
+      commandIds(),
+      composedConfig,
+    );
+    const foreignConfig = structuredClone(composedConfig);
+    foreignConfig.growth.maxDivisionRate = 0.6;
+    const foreignIdentity = createRunIdentity({
+      scenarioId: composedIdentity.scenarioId,
+      scenarioVersion: composedIdentity.scenarioVersion,
+      parameterSetId,
+      parameterSetVersion,
+      parameterSetBinding: createFixtureComposedParameterSetBinding(
+        parameterSetId,
+        parameterSetVersion,
+        foreignConfig,
+      ),
+      seed: composedIdentity.seed,
+    });
 
     runtime.start();
     port.emit({
       protocolVersion: PROTOCOL_VERSION,
       type: "ready",
-      snapshot: makeSnapshot({ identity: foreignIdentity, tick: 0 }),
+      snapshot: new ComposedSimulationEngine(
+        foreignIdentity,
+        foreignConfig,
+      ).snapshot(),
     });
 
     expect(runtime.state.snapshot).toBeNull();
@@ -459,7 +475,7 @@ describe("experiment runtime", () => {
     const { port, runtime } = readyRuntime(["advance-branch-stable"]);
     const branchIdentity = runtime.state.runBranchIdentity;
 
-    expect(branchIdentity).toBe(createRunBranchIdentity(identity, 0));
+    expect(branchIdentity).toBe(createRunBranchIdentity(syntheticIdentity, 0));
     expect(runtime.dispatch({ type: "step", ticks: 2 })).toEqual({
       accepted: true,
       reason: null,
@@ -492,14 +508,14 @@ describe("experiment runtime", () => {
   it("rotates branch identity for each admitted fresh history generation", () => {
     const { port, runtime } = readyRuntime();
     const initial = runtime.state.runBranchIdentity;
-    expect(initial).toBe(createRunBranchIdentity(identity, 0));
+    expect(initial).toBe(createRunBranchIdentity(syntheticIdentity, 0));
 
     expect(runtime.dispatch({ type: "reset" })).toEqual({
       accepted: true,
       reason: null,
     });
     const resetBranch = runtime.state.runBranchIdentity;
-    expect(resetBranch).toBe(createRunBranchIdentity(identity, 1));
+    expect(resetBranch).toBe(createRunBranchIdentity(syntheticIdentity, 1));
     expect(resetBranch).not.toBe(initial);
 
     port.emit({
@@ -508,7 +524,7 @@ describe("experiment runtime", () => {
       snapshot: makeSnapshot({ tick: 0, commandCount: 0 }),
     });
 
-    const reseededIdentity = { ...identity, seed: 29 };
+    const reseededIdentity = { ...syntheticIdentity, seed: 29 };
     expect(runtime.dispatch({ type: "set-seed", seed: 29 })).toEqual({
       accepted: true,
       reason: null,
@@ -549,11 +565,11 @@ describe("experiment runtime", () => {
   });
 
   it("refuses malformed run-branch generations", () => {
-    expect(() => createRunBranchIdentity(identity, -1)).toThrow(
+    expect(() => createRunBranchIdentity(syntheticIdentity, -1)).toThrow(
       /non-negative safe integer/,
     );
     expect(() =>
-      createRunBranchIdentity(identity, Number.MAX_SAFE_INTEGER + 1),
+      createRunBranchIdentity(syntheticIdentity, Number.MAX_SAFE_INTEGER + 1),
     ).toThrow(/non-negative safe integer/);
   });
 

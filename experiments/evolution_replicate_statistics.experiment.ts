@@ -427,7 +427,7 @@ describe.sequential('evolution replicate statistics local experiment', () => {
         limitations: [
           'Agreement validates the numerical sampler against Petra\'s configured multinomial/Binomial model law; it is not biological validation of the mutation probabilities.',
           'The Huseby-derived Petra edge values are explicitly mechanistic approximations/model targets, not measured probabilities of these exact curated transitions.',
-          'This prepared harness consumes explicit safe-integer division opportunities directly. It does not prove composed ecology-to-opportunity or child-lineage materialization is integrated; those remain gated on #562/#5/#37.',
+          'This sampler-focused harness consumes explicit safe-integer division opportunities directly. The composed ecology→opportunity→child-lineage transaction is now implemented on main, but this workload does not exercise that end-to-end path or supply the #796 population-scale calibration required for flagship evolution activation.',
           'Selected appearance-rate validation targets in the flagship preset are aggregate experimental outcomes and are deliberately not relabeled as exact edge probabilities here.',
           'The experiment-owned sampling policy is numerical work-budget configuration only and does not alter mutation biology.',
         ],

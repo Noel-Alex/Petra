@@ -113,7 +113,6 @@ export function discretePopulationConfigurationIdentity(
     width: config.width,
     height: config.height,
     mask: Array.from(config.mask),
-    lineageIds: Array.from(config.lineageIds),
     calibration: cellEquivalentCalibrationIdentity(config.calibration),
     policy: discretePopulationPolicyIdentity(config.policy),
   })
@@ -140,6 +139,86 @@ export function createDiscretePopulationAuthorityState(
       () => Array(config.width * config.height).fill(0),
     ),
   }
+}
+
+/**
+ * Extend the ordered lineage channel set without changing the static
+ * calibration/policy configuration identity.
+ *
+ * Runtime-created lineages are checkpoint authority, not configuration. The
+ * existing lineage order must remain an exact prefix; callers may append one or
+ * more channels atomically after conservatively committing their current
+ * biomass. Existing division residuals are preserved, while newly created
+ * channels begin with zero prior division supply.
+ */
+export function extendDiscretePopulationAuthorityLineages(
+  state: DiscretePopulationAuthorityState,
+  nextConfig: DiscretePopulationAuthorityConfig,
+  currentLineageBiomass: readonly ArrayLike<number>[],
+): DiscretePopulationAuthorityState {
+  validateConfig(nextConfig)
+
+  const priorConfig: DiscretePopulationAuthorityConfig = {
+    ...nextConfig,
+    lineageIds: [...state.lineageIds],
+  }
+  validateStateAgainstConfig(state, priorConfig)
+
+  if (nextConfig.lineageIds.length <= state.lineageIds.length) {
+    throw new Error(
+      'population lineage extension must append at least one lineage',
+    )
+  }
+  for (let index = 0; index < state.lineageIds.length; index += 1) {
+    if (nextConfig.lineageIds[index] !== state.lineageIds[index]) {
+      throw new Error(
+        'population lineage extension must preserve existing ordered lineage prefix',
+      )
+    }
+  }
+
+  validateBiomassChannels(
+    'extended lineage biomass',
+    currentLineageBiomass,
+    nextConfig,
+  )
+  const standing = decomposeStandingBiomass(
+    currentLineageBiomass,
+    nextConfig,
+  )
+  const cellCount = nextConfig.width * nextConfig.height
+  const divisionResidualCellEquivalents = [
+    ...state.divisionResidualCellEquivalents.map((channel) =>
+      Array.from(channel),
+    ),
+    ...nextConfig.lineageIds
+      .slice(state.lineageIds.length)
+      .map(() => Array(cellCount).fill(0)),
+  ]
+
+  const nextState: DiscretePopulationAuthorityState = {
+    schemaVersion: DISCRETE_POPULATION_AUTHORITY_SCHEMA_VERSION,
+    configurationIdentity: state.configurationIdentity,
+    revision: safeIntegerAdd(
+      'population authority revision',
+      state.revision,
+      1,
+    ),
+    width: state.width,
+    height: state.height,
+    lineageIds: [...nextConfig.lineageIds],
+    standingHostCounts: standing.counts,
+    standingResidualCellEquivalents: standing.residuals,
+    divisionResidualCellEquivalents,
+  }
+
+  validateStateAgainstConfig(nextState, nextConfig)
+  validateStandingStateAgainstBiomass(
+    nextState,
+    nextConfig,
+    currentLineageBiomass,
+  )
+  return nextState
 }
 
 /**

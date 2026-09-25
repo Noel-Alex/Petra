@@ -136,13 +136,17 @@ export function parseOrganismPresentationIdentity(
 
   const sourceKeys = new Set<string>();
   const sourceDois = new Set<string>();
-  const sources = rawProvenance.sources.map((candidate, index) => {
+  const sources: OrganismPresentationSource[] = [];
+  for (let index = 0; index < rawProvenance.sources.length; index += 1) {
     if (!Object.prototype.hasOwnProperty.call(rawProvenance.sources, index)) {
       throw new TypeError(
         `presentation provenance sources must be dense; missing index ${index}`,
       );
     }
-    const source = requireRecord(candidate, `sources[${index}]`);
+    const source = requireRecord(
+      rawProvenance.sources[index],
+      `sources[${index}]`,
+    );
     assertExactKeys(source, SOURCE_KEYS, `sources[${index}]`);
     const key = canonicalNonEmptyString(source.key, `sources[${index}].key`);
     const doi = canonicalDoi(source.doi, `sources[${index}].doi`);
@@ -159,8 +163,8 @@ export function parseOrganismPresentationIdentity(
     }
     sourceKeys.add(key);
     sourceDois.add(doi);
-    return Object.freeze({ key, doi, context });
-  });
+    sources.push(Object.freeze({ key, doi, context }));
+  }
 
   const provenance: OrganismPresentationProvenance = Object.freeze({
     classification:

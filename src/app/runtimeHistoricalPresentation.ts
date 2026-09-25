@@ -1,10 +1,18 @@
-import type { DishRenderSnapshot } from "../render/model";
+import {
+  validateRenderSnapshot,
+  type DishRenderSnapshot,
+} from "../render/model";
 import {
   createDishReplayPresenter,
   type DishReplayPresenter,
 } from "../render/replayPresentation";
 import type { ComposedSimulationSnapshot } from "../sim/protocol";
 import { projectAuthoritativeComposedDishSnapshot } from "./composedDishProjection";
+import type { HistoricalPresentationFrame } from "./historicalPresentation";
+import {
+  unavailableRegionInspector,
+  type RegionInspectorPresentationState,
+} from "../ui/regionInspectorState";
 import { createAuthoritativeDishReplayKeyframe } from "./dishReplayKeyframe";
 import {
   AUTHORITATIVE_HISTORY_SCHEMA_VERSION,
@@ -148,6 +156,55 @@ export class RuntimeHistoricalPresentationHistory {
       latestDishSnapshot: structuredClone(latestDish.snapshot),
     });
   }
+}
+
+/**
+ * Historical App rendering requests `snap-to-authority` so DishViewport always
+ * receives an immutable authoritative DishRenderSnapshot. The surrounding
+ * HistoricalPresentationFrame still retains presentation-only cursor semantics
+ * when the requested command position lies between recorded checkpoints.
+ */
+export function historicalDishSnapshot(
+  frame: HistoricalPresentationFrame,
+): DishRenderSnapshot {
+  const state = frame.dish.state;
+  if ("frameKind" in state) {
+    throw new Error(
+      "historical dish snapshot requires snap-to-authority presentation",
+    );
+  }
+  validateRenderSnapshot(state);
+  return structuredClone(state);
+}
+
+export function historicalRegionInspectorState(
+  frame: HistoricalPresentationFrame,
+  hasSelection: boolean,
+): RegionInspectorPresentationState {
+  if (!hasSelection) {
+    return unavailableRegionInspector(
+      "Select a point on the dish to inspect authoritative historical state.",
+    );
+  }
+  if (frame.kind !== "authoritative" || frame.regionInspection === null) {
+    return unavailableRegionInspector(
+      "Scientific region inspection is unavailable between authoritative historical checkpoints.",
+    );
+  }
+  return {
+    status: "ready",
+    selectionId: frame.regionInspection.selectionId,
+    readout: structuredClone(frame.regionInspection),
+  };
+}
+
+export function historicalSimulationTimeLabel(
+  frame: HistoricalPresentationFrame,
+): string {
+  if (frame.time.kind === "authoritative") {
+    return `Simulation time ${frame.time.simulationTimeHours.toFixed(2)} h · historical`;
+  }
+  return `Simulation time ${frame.time.lowerSimulationTimeHours.toFixed(2)}–${frame.time.upperSimulationTimeHours.toFixed(2)} h · presentation only`;
 }
 
 function requireCanonicalText(name: string, value: string): string {

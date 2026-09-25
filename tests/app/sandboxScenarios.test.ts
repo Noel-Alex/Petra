@@ -17,7 +17,7 @@ describe("Sandbox authoritative scenario selection", () => {
     expect(catalog.scenarios).toHaveLength(1);
     expect(catalog.scenarios[0]).toMatchObject({
       scenarioId: "ecoli-ciprofloxacin-spatial",
-      scenarioVersion: "1.4.0-research",
+      scenarioVersion: "1.5.0-research",
       availability: "available",
       runtimeId: FLAGSHIP_SANDBOX_RUNTIME_ID,
       catalogStatus: "research",

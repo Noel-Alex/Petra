@@ -69,8 +69,6 @@ export interface MechanisticTaskExecutor<TInput, TTarget> {
 export interface ComposedMechanisticTaskDefinition<TInput, TTarget> {
   readonly executionDefinition: MechanisticExecutionDefinition;
   readonly config: ComposedSimulationConfig;
-  readonly totalTicks: number;
-  readonly snapshotEveryTicks: number;
   readonly project: (
     snapshot: ComposedSimulationSnapshot,
     context: {
@@ -146,15 +144,15 @@ export function createComposedMechanisticTaskExecutor<TInput, TTarget>(
         snapshotIndex += 1;
       };
 
-      if (definition.totalTicks === 0) {
+      if (task.executionSchedule.totalTicks === 0) {
         append(true);
       } else {
         append(false);
         let commandIndex = 0;
-        while (advancedTicks < definition.totalTicks) {
+        while (advancedTicks < task.executionSchedule.totalTicks) {
           const ticks = Math.min(
-            definition.snapshotEveryTicks,
-            definition.totalTicks - advancedTicks,
+            task.executionSchedule.snapshotEveryTicks,
+            task.executionSchedule.totalTicks - advancedTicks,
           );
           snapshot = engine.execute({
             id: runnerCommandId(task.taskId, commandIndex),
@@ -163,7 +161,7 @@ export function createComposedMechanisticTaskExecutor<TInput, TTarget>(
           });
           advancedTicks += ticks;
           commandIndex += 1;
-          append(advancedTicks === definition.totalTicks);
+          append(advancedTicks === task.executionSchedule.totalTicks);
         }
       }
 
@@ -316,17 +314,6 @@ function validateComposedTaskDefinition<TInput, TTarget>(
     definition.executionDefinition,
     definition.config,
   );
-  if (!Number.isSafeInteger(definition.totalTicks) || definition.totalTicks < 0) {
-    throw new RangeError("totalTicks must be a non-negative safe integer");
-  }
-  if (
-    !Number.isSafeInteger(definition.snapshotEveryTicks) ||
-    definition.snapshotEveryTicks < 1
-  ) {
-    throw new RangeError(
-      "snapshotEveryTicks must be a positive safe integer",
-    );
-  }
   if (
     definition.terminationReason !== undefined &&
     definition.terminationReason.trim().length === 0

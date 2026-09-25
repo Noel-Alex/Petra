@@ -80,8 +80,8 @@ landscape, so its incremental ciprofloxacin loss is exactly zero before any
 drug exposure is configured. Zero here is not a measured MG1655
 background-death rate.
 
-Under protocol v5 the all-zero landscape in the composed config is the
-fingerprinted **initial** exposure. Composed state v3 checkpoints the current
+Under protocol v6 the all-zero landscape in the composed config is the
+fingerprinted **initial** exposure. Composed state v4 checkpoints the current
 `mg/L` landscape, and the typed `apply-ciprofloxacin` command may mutate that
 state through validated global/radial/stripe/paint `set|add` geometry while
 preserving exact replay/export identity. Accepted commands record the exact

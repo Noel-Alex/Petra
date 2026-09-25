@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import rawAuthority from "../../data/analysis/flagship_metric_authority_v1.json";
 import flagshipScenario from "../../data/presets/ecoli_ciprofloxacin_v1.json";
+import { ComposedSimulationEngine } from "../sim/composedEngine";
 import { buildDefaultFlagshipRun } from "./flagshipRunPreset";
 import {
   createFlagshipLiveAnalysisHistory,
@@ -104,6 +105,14 @@ describe("flagshipMetricAuthority", () => {
     const history = createFlagshipLiveAnalysisHistory(plan.identity);
     expect(history.snapshot().samplingPolicy).toEqual(authority.samplingPolicy);
     expect(history.snapshot().samples).toEqual([]);
+
+    const initialSnapshot = new ComposedSimulationEngine(
+      plan.identity,
+      plan.config,
+    ).snapshot();
+    expect(history.append(initialSnapshot)).toBe(true);
+    expect(history.snapshot().samples).toHaveLength(1);
+    expect(history.snapshot().samples[0]?.resistantFraction).toBe(0);
 
     expect(() =>
       resolveFlagshipMetricAuthorityForRun({

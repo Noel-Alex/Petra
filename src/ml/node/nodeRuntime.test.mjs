@@ -8,6 +8,7 @@ import {
   IncrementalMechanisticDatasetCollector,
   verifyMechanisticDatasetFinalization,
 } from "../incrementalGenerator.ts";
+import { createMechanisticExecutionSchedule } from "../executionSchedule.ts";
 import { runMechanisticSweep } from "../runner.ts";
 import { planMechanisticSweep } from "../sweep.ts";
 import {
@@ -16,6 +17,10 @@ import {
   readFilesystemFinalization,
 } from "./filesystemStore.mjs";
 import { WorkerThreadMechanisticExecutor } from "./workerThreadExecutor.mjs";
+import {
+  NODE_MECHANISTIC_DATASET_PACKAGE_SCHEMA_VERSION,
+  runNodeMechanisticDatasetPackage,
+} from "./datasetRuntime.ts";
 
 const temporaryRoots = [];
 
@@ -44,6 +49,10 @@ function definition() {
       inputSchemaVersion: "node-fixture-input-v1",
       targetSchemaVersion: "node-fixture-target-v1",
     },
+    executionSchedule: createMechanisticExecutionSchedule({
+      totalTicks: 4,
+      snapshotEveryTicks: 2,
+    }),
     parameterPoints: [
       { id: "point-a", parameterSetHash: "params-a" },
       { id: "point-b", parameterSetHash: "params-b" },
@@ -129,6 +138,48 @@ describe("Node mechanistic sweep adapters", () => {
     ).not.toThrow();
     expect(readFilesystemFinalization(finalizationPath)).toEqual(finalization);
     expect(lines.length).toBe(finalization.summary.sampleCount);
+  });
+
+  it("runs and resumes a canonical dataset package through the generic runtime", async () => {
+    const root = createRoot();
+    const plan = planMechanisticSweep(definition());
+    const datasetPackage = {
+      schemaVersion: NODE_MECHANISTIC_DATASET_PACKAGE_SCHEMA_VERSION,
+      packageId: "node-dataset-fixture",
+      plan,
+      executorData: { spinMilliseconds: 5 },
+      outputBaseName: "fixture-dataset",
+      evidenceBoundary:
+        "Fixture-only Node dataset runtime evidence; not biological validation.",
+    };
+    const options = {
+      artifactDirectory: root,
+      maxWorkers: 2,
+      executorModuleUrl: new URL(
+        "./workerThreadFixtureExecutor.mjs",
+        import.meta.url,
+      ).href,
+    };
+
+    const first = await runNodeMechanisticDatasetPackage(
+      datasetPackage,
+      options,
+    );
+    expect(first.status).toBe("completed");
+    expect(first.runReport.failedTrajectoryCount).toBe(0);
+    expect(first.runReport.completedTrajectoryCount).toBe(plan.trajectoryCount);
+    expect(first.runReport.resumedTrajectoryCount).toBe(0);
+    expect(first.dataset.finalized).toBe(true);
+
+    const second = await runNodeMechanisticDatasetPackage(
+      datasetPackage,
+      options,
+    );
+    expect(second.status).toBe("completed");
+    expect(second.runReport.failedTrajectoryCount).toBe(0);
+    expect(second.runReport.completedTrajectoryCount).toBe(0);
+    expect(second.runReport.resumedTrajectoryCount).toBe(plan.trajectoryCount);
+    expect(second.dataset).toEqual(first.dataset);
   });
 
   it("keeps aborted trajectory writes invisible to resume", () => {

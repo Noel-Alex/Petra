@@ -640,8 +640,8 @@ body,
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-rows: max-content max-content minmax(0, 1fr);
-  align-content: stretch;
+  grid-template-rows: max-content max-content max-content;
+  align-content: start;
   gap: 0.72rem;
   overflow-y: auto;
   scrollbar-gutter: stable;
@@ -814,8 +814,8 @@ body,
   min-height: 0;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  margin-top: 1.15rem;
+  justify-content: flex-start;
+  margin-top: 0;
   padding-top: 0.9rem;
   border-top: 1px solid rgb(var(--petra-rgb-cream-muted) / 0.13);
 }
@@ -864,7 +864,7 @@ body,
 
 .inspector-shell > .analysis-surface {
   flex: 0 0 auto;
-  margin-top: 0.9rem;
+  margin-top: 0;
   border-radius: 13px;
   box-shadow: none;
 }

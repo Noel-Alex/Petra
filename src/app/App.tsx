@@ -244,6 +244,45 @@ export function App({
   };
 
   useEffect(() => {
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+
+      const sourcesPanel = document.getElementById("petra-sources-panel");
+      const sourcesTrigger = document.getElementById(SOURCES_TRIGGER_ID);
+      const searchTrigger = document.querySelector(".search-trigger");
+      const clickedWithinSources =
+        sourcesPanel?.contains(target) === true ||
+        sourcesTrigger?.contains(target) === true ||
+        searchTrigger?.contains(target) === true;
+
+      if (sourcesLifecycle.requestedOpen && !clickedWithinSources) {
+        if (
+          document.activeElement instanceof HTMLElement &&
+          sourcesPanel?.contains(document.activeElement)
+        ) {
+          document.activeElement.blur();
+        }
+        setFocusSourceSearch(false);
+        setSourcesLifecycle((current) =>
+          closeSourcesSurface(current, hideSourcesPlan),
+        );
+      }
+
+      document
+        .querySelectorAll<HTMLDetailsElement>(
+          "details.display-preferences[open], details.timeline-history[open]",
+        )
+        .forEach((surface) => {
+          if (!surface.contains(target)) surface.open = false;
+        });
+    };
+
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [hideSourcesPlan, sourcesLifecycle.requestedOpen]);
+
+  useEffect(() => {
     const delayMs = sourcesExitDelayMs(sourcesLifecycle, hideSourcesPlan);
     if (delayMs === null) return;
 

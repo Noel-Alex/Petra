@@ -8,7 +8,7 @@ import {
 export interface LineageOriginRenderEventProjectionInput {
   readonly lineageRegistry: LineageRegistryCheckpoint;
   /** Exact current lineage identity from the enclosing render snapshot. */
-  readonly activeLineageIds: readonly string[];
+  readonly renderLineageIds: readonly string[];
   readonly gridWidth: number;
   readonly gridHeight: number;
   readonly dishMask: readonly number[] | Uint8Array;
@@ -24,7 +24,7 @@ export interface LineageOriginRenderEventProjectionInput {
  *
  * The lineage registry is historical and may retain extinct children after the
  * current composed/render lineage arrays have dropped them. Those historical
- * origins are still validated here, but only currently active lineage identities
+ * origins are still validated here, but only currently rendered lineage identities
  * may become structured RenderEvent lineage references.
  */
 export function projectLineageOriginRenderEvents(
@@ -60,8 +60,8 @@ export function projectLineageOriginRenderEvents(
   const records = new Map(
     registry.list().map((record) => [record.lineageId, record] as const),
   );
-  const activeLineageIds = validateActiveLineageIds(
-    input.activeLineageIds,
+  const renderLineageIds = validateActiveLineageIds(
+    input.renderLineageIds,
     records,
   );
 
@@ -102,9 +102,9 @@ export function projectLineageOriginRenderEvents(
 
     // RenderEvent.lineageId is same-snapshot identity, not a historical foreign
     // key. Extinct children remain in replay-critical registry history, but once
-    // absent from the enclosing active lineage set their old point marker is not
+    // absent from the enclosing render lineage set their old point marker is not
     // carried into the current dish snapshot.
-    if (!activeLineageIds.has(record.lineageId)) continue;
+    if (!renderLineageIds.has(record.lineageId)) continue;
 
     const center = gridCellCenter(
       originCellIndex,
@@ -142,17 +142,17 @@ function validateActiveLineageIds(
       lineageId !== lineageId.trim()
     ) {
       throw new TypeError(
-        "lineage origin render projection active lineage ids must be canonical non-empty strings",
+        "lineage origin render projection render lineage ids must be canonical non-empty strings",
       );
     }
     if (active.has(lineageId)) {
       throw new RangeError(
-        `lineage origin render projection active lineage ids must be unique: ${lineageId}`,
+        `lineage origin render projection render lineage ids must be unique: ${lineageId}`,
       );
     }
     if (!records.has(lineageId)) {
       throw new RangeError(
-        `lineage origin render projection active lineage is absent from registry: ${lineageId}`,
+        `lineage origin render projection render lineage is absent from registry: ${lineageId}`,
       );
     }
     active.add(lineageId);

@@ -169,7 +169,7 @@
     },
     {
       "id": "flagship-long-soak",
-      "description": "Multi-seed authoritative composed-engine soak with invariant, replay-continuation, memory, event-growth, and throughput evidence.",
+      "description": "Multi-seed authoritative composed-engine soak with invariant, replay-continuation, memory, event-growth, command-granularity retention, and throughput evidence.",
       "command": [
         "npm",
         "exec",
@@ -185,7 +185,8 @@
         5,
         37,
         542,
-        558
+        558,
+        628
       ],
       "timeout_seconds": 3600
     },

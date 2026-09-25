@@ -1,5 +1,5 @@
 import type { ComposedSimulationConfig } from "../sim/authoritative";
-import type { SourceOwnedLineageDensityPresentationScale } from "../render/lineageDensityScale";
+import type { SourceOwnedFixedLineageDensityPresentationScale } from "../render/lineageDensityScale";
 import type { ComposedEcologyObservationEnvelope } from "../sim/composedEcologyObservation";
 import {
   PROTOCOL_VERSION,
@@ -74,7 +74,7 @@ export class ExperimentRuntime {
   private readonly pendingAcceptance = new Map<string, SimulationCommand>();
   private readonly unsubscribeWorker: () => void;
   private readonly composedConfig: ComposedSimulationConfig | undefined;
-  private currentLineageDensityPresentationScale: SourceOwnedLineageDensityPresentationScale | null;
+  private currentLineageDensityPresentationScale: SourceOwnedFixedLineageDensityPresentationScale | null;
   private runBranchGeneration = 0;
   private checkpointHistoryOrigin: CheckpointHistoryOrigin | null = null;
   private current: ExperimentRuntimeState;
@@ -123,7 +123,7 @@ export class ExperimentRuntime {
    * It is stable for ordinary accepted commands and rotates with run-branch
    * identity on reset/reseed/replay/restore.
    */
-  get lineageDensityPresentationScale(): SourceOwnedLineageDensityPresentationScale | null {
+  get lineageDensityPresentationScale(): SourceOwnedFixedLineageDensityPresentationScale | null {
     return this.currentLineageDensityPresentationScale;
   }
 

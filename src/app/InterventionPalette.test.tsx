@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { createInterventionPlacementState, beginInterventionPlacement } from "../ui/interventionPlacement";
 import { App } from "./App";
 import { InterventionPalette } from "./InterventionPalette";
+import { buildDefaultFlagshipRun } from "./flagshipRunPreset";
 
 describe("InterventionPalette", () => {
   it("offers placement-only tools when runtime is ready while scientific Apply stays locked", () => {
@@ -35,9 +36,69 @@ describe("InterventionPalette", () => {
     expect(html).not.toContain(">Inspect</button>");
     expect(html).not.toContain(' disabled=""');
     expect(html).toContain('role="status"');
-    expect(html).toContain("Protocol v5 supports authoritative ciprofloxacin application");
+    expect(html).toContain("The active protocol supports authoritative ciprofloxacin application");
     expect(html).not.toMatch(/\b\d+(?:\.\d+)?\s*(?:mg\/l|µg\/ml)\b/i);
     expect(html).not.toMatch(/type="number"|aria-label="[^"]*(?:dose|concentration)/i);
+  });
+
+  it("exposes scenario-owned whole-dish ciprofloxacin controls without inventing spatial geometry", () => {
+    const authority = buildDefaultFlagshipRun().ciprofloxacinToolAuthority;
+    const placement = beginInterventionPlacement(
+      createInterventionPlacementState(),
+      "antibiotic",
+    );
+    const html = renderToStaticMarkup(
+      <InterventionPalette
+        motion="reduced"
+        runtimeStatus="ready"
+        placement={placement}
+        ciprofloxacinMetadata={authority}
+        onApplyCiprofloxacinGlobal={() => true}
+      />,
+    );
+
+    expect(html).toContain("Ciprofloxacin · whole dish");
+    expect(html).toContain("Authoritative");
+    expect(html).toContain(
+      `aria-label="${authority.parameter.label}"`,
+    );
+    expect(html).toContain(
+      `min="${authority.parameter.minimum}"`,
+    );
+    expect(html).toContain(
+      `max="${authority.parameter.maximum}"`,
+    );
+    expect(html).toContain(
+      authority.parameter.defaultValue.toFixed(authority.parameter.precision),
+    );
+    expect(html).toContain(authority.parameter.unit);
+    expect(html).toContain("Apply to whole dish");
+    expect(html).toContain("not a clinical dose or a physical delivery/diffusion model");
+    expect(html).not.toContain("Horizontal dish target position");
+    expect(html).not.toContain("Vertical dish target position");
+    expect(html).not.toContain("visual cursor, not a predicted biological footprint");
+  });
+
+  it("keeps whole-dish authority visible but Apply disabled while the Worker is pending", () => {
+    const authority = buildDefaultFlagshipRun().ciprofloxacinToolAuthority;
+    const placement = beginInterventionPlacement(
+      createInterventionPlacementState(),
+      "antibiotic",
+    );
+    const html = renderToStaticMarkup(
+      <InterventionPalette
+        motion="off"
+        runtimeStatus="pending"
+        placement={placement}
+        ciprofloxacinMetadata={authority}
+        onApplyCiprofloxacinGlobal={() => true}
+      />,
+    );
+
+    expect(html).toContain("Ciprofloxacin · whole dish");
+    expect(html).toContain("Apply to whole dish");
+    expect(html).toContain("An authoritative simulation request is in flight");
+    expect(html).not.toContain("Horizontal dish target position");
   });
 
   it("shows keyboard-equivalent coordinates and a disabled Apply gate while placing", () => {

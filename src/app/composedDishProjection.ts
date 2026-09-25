@@ -73,6 +73,7 @@ export function projectAuthoritativeComposedDishSnapshot(
       throw new Error("composed dish projection requires a binary dish mask");
     }
   }
+  assertCheckpointMetricsMatchSpatialState(snapshot);
   const dishMask = Uint8Array.from(state.mask);
 
   const biomass = new Float32Array(cells);
@@ -227,6 +228,155 @@ function inMaskBounds(
     throw new Error("composed dish projection requires at least one in-mask cell");
   }
   return { minimum, maximum };
+}
+
+function assertCheckpointMetricsMatchSpatialState(
+  snapshot: ComposedSimulationSnapshot,
+): void {
+  const state = snapshot.checkpoint.composedState;
+  const metrics = snapshot.checkpoint.metrics;
+  const metricLineageIds = Object.keys(metrics.lineageBiomass).sort();
+  const stateLineageIds = [...state.lineageIds].sort();
+
+  if (
+    metricLineageIds.length !== stateLineageIds.length ||
+    metricLineageIds.some((id, index) => id !== stateLineageIds[index])
+  ) {
+    throw new Error(
+      "composed dish projection metrics must exactly match authoritative lineage identity",
+    );
+  }
+
+  const lineageTotals = Object.fromEntries(
+    state.lineageIds.map((lineageId) => [lineageId, 0]),
+  ) as Record<string, number>;
+  let totalBiomass = 0;
+  let totalResource = 0;
+  let occupiedCells = 0;
+
+  for (let lineageIndex = 0; lineageIndex < state.lineageIds.length; lineageIndex += 1) {
+    const lineageId = state.lineageIds[lineageIndex]!;
+    const genotypeId = state.genotypeIds[lineageIndex]!;
+    assertCanonicalSourceIdentity("lineage id", lineageId);
+    assertCanonicalSourceIdentity("genotype id", genotypeId);
+
+    const channel = state.lineageBiomass[lineageIndex];
+    if (channel === undefined || channel.length !== state.mask.length) {
+      throw new Error(
+        `composed dish projection lineage ${JSON.stringify(lineageId)} does not match grid dimensions`,
+      );
+    }
+  }
+
+  for (let cell = 0; cell < state.mask.length; cell += 1) {
+    const resource = state.resource[cell]!;
+    assertFiniteNonNegativeSourceValue("limiting model resource", resource);
+
+    if (state.mask[cell] === 0) {
+      if (resource !== 0) {
+        throw new Error(
+          "limiting model resource must be zero outside the dish mask",
+        );
+      }
+      for (let lineageIndex = 0; lineageIndex < state.lineageIds.length; lineageIndex += 1) {
+        const value = state.lineageBiomass[lineageIndex]![cell]!;
+        assertFiniteNonNegativeSourceValue("lineage biomass", value);
+        if (value !== 0) {
+          throw new Error(
+            `lineage ${JSON.stringify(state.lineageIds[lineageIndex])} biomass must be zero outside the dish mask`,
+          );
+        }
+      }
+      continue;
+    }
+
+    totalResource += resource;
+    let localBiomass = 0;
+    for (let lineageIndex = 0; lineageIndex < state.lineageIds.length; lineageIndex += 1) {
+      const lineageId = state.lineageIds[lineageIndex]!;
+      const value = state.lineageBiomass[lineageIndex]![cell]!;
+      assertFiniteNonNegativeSourceValue(
+        `lineage ${JSON.stringify(lineageId)} biomass`,
+        value,
+      );
+      localBiomass += value;
+      lineageTotals[lineageId] = lineageTotals[lineageId]! + value;
+    }
+    totalBiomass += localBiomass;
+    if (localBiomass > 0) occupiedCells += 1;
+  }
+
+  assertMetricNumberAgreement(
+    "total biomass",
+    metrics.totalBiomass,
+    totalBiomass,
+  );
+  assertMetricNumberAgreement(
+    "total resource",
+    metrics.totalResource,
+    totalResource,
+  );
+  if (
+    !Number.isSafeInteger(metrics.occupiedCells) ||
+    metrics.occupiedCells < 0 ||
+    metrics.occupiedCells !== occupiedCells
+  ) {
+    throw new Error(
+      `composed dish projection occupied-cell metric does not match spatial state: expected ${occupiedCells}, received ${metrics.occupiedCells}`,
+    );
+  }
+
+  for (const lineageId of state.lineageIds) {
+    assertMetricNumberAgreement(
+      `lineage ${JSON.stringify(lineageId)} biomass`,
+      metrics.lineageBiomass[lineageId]!,
+      lineageTotals[lineageId]!,
+    );
+  }
+}
+
+function assertCanonicalSourceIdentity(name: string, value: string): void {
+  if (value.length === 0 || value !== value.trim()) {
+    throw new Error(
+      `composed dish projection ${name} must be canonical non-empty text`,
+    );
+  }
+}
+
+function assertFiniteNonNegativeSourceValue(
+  name: string,
+  value: number,
+): void {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(
+      `composed dish projection ${name} must be finite and non-negative`,
+    );
+  }
+}
+
+function assertMetricNumberAgreement(
+  name: string,
+  recorded: number,
+  expected: number,
+): void {
+  if (!Number.isFinite(recorded) || recorded < 0) {
+    throw new Error(
+      `composed dish projection ${name} metric must be finite and non-negative`,
+    );
+  }
+  if (!numbersAgree(recorded, expected)) {
+    throw new Error(
+      `composed dish projection ${name} metric does not match spatial state: expected ${expected}, received ${recorded}`,
+    );
+  }
+}
+
+function numbersAgree(left: number, right: number): boolean {
+  if (Object.is(left, right)) return true;
+  return (
+    Math.abs(left - right) <=
+    1e-12 * Math.max(1, Math.abs(left), Math.abs(right))
+  );
 }
 
 function finiteFloat32Field(

@@ -511,6 +511,8 @@ function eventConfirmsCommand(
       return event.type === "advanced";
     case "apply-ciprofloxacin":
       return event.type === "ciprofloxacin-applied";
+    case "apply-model-resource":
+      return event.type === "model-resource-applied";
     case "synthetic-pulse":
       return event.type === "synthetic-pulse";
     case "restore":

@@ -111,8 +111,13 @@ describe("local experiment validation evidence", () => {
       const result = JSON.stringify({
         id: "flagship-runtime-smoke",
         status,
-        return_code: status === "timeout" ? null : 1,
-        error: status === "error" ? "process launch failed" : null,
+        return_code: status === "failed" ? 1 : null,
+        error:
+          status === "error"
+            ? "process launch failed"
+            : status === "timeout"
+              ? "timed out after 30s"
+              : null,
         compact_result: null,
       });
 
@@ -121,6 +126,19 @@ describe("local experiment validation evidence", () => {
       ).toBe("failed");
     },
   );
+
+  it("rejects runner status/exit-code contradictions", () => {
+    const contradictory = JSON.stringify({
+      id: "flagship-runtime-smoke",
+      status: "passed",
+      return_code: 2,
+      error: null,
+    });
+
+    expect(() =>
+      projectLocalExperimentValidationEvidence(contradictory, binding()),
+    ).toThrow(/requires return_code 0/);
+  });
 
   it("rejects result identity drift", () => {
     const result = JSON.stringify({
@@ -133,6 +151,16 @@ describe("local experiment validation evidence", () => {
     expect(() =>
       projectLocalExperimentValidationEvidence(result, binding()),
     ).toThrow(/does not match expected experiment/);
+  });
+
+  it("requires the locator to name an exact runner-created result path", () => {
+    expect(() =>
+      projectLocalExperimentValidationEvidence(BLOCKED_RESULT, {
+        ...binding(),
+        locator:
+          "experiments/results/not-a-run-id/flagship-runtime-smoke.json",
+      }),
+    ).toThrow(/exact per-experiment result JSON/);
   });
 
   it("requires the locator to name the exact experiment result", () => {

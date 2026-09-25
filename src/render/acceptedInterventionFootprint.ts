@@ -8,6 +8,16 @@ import type { SimulationEvent } from "../sim/protocol";
 
 export const ACCEPTED_INTERVENTION_FOOTPRINT_VERSION = 1 as const;
 
+const ACCEPTED_INTERVENTION_FOOTPRINT_KEYS = new Set([
+  "version",
+  "sourceEventType",
+  "eventSequence",
+  "tick",
+  "simulationTimeHours",
+  "commandId",
+  "intervention",
+]);
+
 export interface AcceptedInterventionFootprint {
   readonly version: typeof ACCEPTED_INTERVENTION_FOOTPRINT_VERSION;
   readonly sourceEventType: "ciprofloxacin-applied";
@@ -25,6 +35,13 @@ export function assertAcceptedInterventionFootprint(
     throw new TypeError("accepted intervention footprint must be an object");
   }
   const footprint = value as Record<string, unknown>;
+  for (const key of Object.keys(footprint)) {
+    if (!ACCEPTED_INTERVENTION_FOOTPRINT_KEYS.has(key)) {
+      throw new TypeError(
+        `accepted intervention footprint contains unknown field ${JSON.stringify(key)}`,
+      );
+    }
+  }
   if (footprint.version !== ACCEPTED_INTERVENTION_FOOTPRINT_VERSION) {
     throw new RangeError("unsupported accepted intervention footprint version");
   }

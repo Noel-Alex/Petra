@@ -270,9 +270,9 @@ function assertRunnerOutcomeConsistency(
     return;
   }
 
-  if (returnCode === null && error === null) {
+  if ((returnCode === null || returnCode === 0) && error === null) {
     throw new Error(
-      "failed local experiment evidence requires a nonzero/recorded return code or explicit runner error",
+      "failed local experiment evidence requires a nonzero return code or explicit runner error",
     );
   }
 }

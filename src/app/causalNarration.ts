@@ -157,6 +157,17 @@ export function advanceCausalNarrationSession(
 }
 
 export function causalRunIdentityKey(identity: RunIdentity): string {
+  const binding =
+    identity.parameterSetBinding === undefined
+      ? null
+      : [
+          identity.parameterSetBinding.schemaVersion,
+          identity.parameterSetBinding.authority,
+          identity.parameterSetBinding.parameterSetId,
+          identity.parameterSetBinding.parameterSetVersion,
+          identity.parameterSetBinding.configurationFingerprint,
+        ];
+
   return JSON.stringify([
     identity.engineVersion,
     identity.protocolVersion,
@@ -164,7 +175,7 @@ export function causalRunIdentityKey(identity: RunIdentity): string {
     identity.scenarioVersion,
     identity.parameterSetId,
     identity.parameterSetVersion,
-    identity.parameterSetBinding ?? null,
+    binding,
     identity.seed,
   ]);
 }

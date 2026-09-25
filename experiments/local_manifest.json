@@ -301,18 +301,16 @@
     },
     {
       "id": "ml-mechanistic-dataset",
-      "description": "BLOCKED on #544 and #594 local verification: authoritative group-split mechanistic dataset generation; canonical run-condition/schedule identities and generic durable Node runtime are already on main; bulky datasets remain local.",
+      "description": "PREPARED; BLOCKED on #594 local verification: the first authoritative group-split aggregate package is repository-owned and the generic durable Node runtime is on main; bulky datasets remain local.",
       "command": [
         "python",
         "experiments/blocked.py",
         "--experiment-id",
         "ml-mechanistic-dataset",
         "--blocked-on",
-        "544",
-        "--blocked-on",
         "594",
         "--reason",
-        "Issue #544 must declare the first authoritative held-out sweep package/scientific grid, and #594 still requires local multicore worker evidence before broad dataset generation is treated as verified. The exact run-condition/schedule identities (#682/#685) and generic durable Node dataset runtime are already integrated on main."
+        "The first #544 package is prepared in src/ml/firstAggregateDatasetPackage.ts with exact run-condition/schedule authority, a bounded 9-group/27-trajectory engineering sweep, and compact authoritative aggregate projection. #594 must still record local distinct-worker parity, multicore execution, durable resume, and finalization evidence before broad dataset generation is treated as verified. After that gate clears, activate the existing experiments/ml_mechanistic_dataset.py launcher; PETRA_ML_DATASET_PACKAGE_ENTRY is already pinned in this registration, so do not redesign the sweep or ask the human for extra commands."
       ],
       "issues": [
         13,
@@ -324,7 +322,10 @@
         682,
         685
       ],
-      "timeout_seconds": 30
+      "timeout_seconds": 30,
+      "env": {
+        "PETRA_ML_DATASET_PACKAGE_ENTRY": "src/ml/firstAggregateDatasetPackage.ts"
+      }
     },
     {
       "id": "ml-aggregate-benchmark",

@@ -6,7 +6,10 @@ import {
 } from "./lineageOrganismPresentation";
 import { projectLineageOriginRenderEvents } from "./lineageRenderEvents";
 import { projectRuntimeEcologyRateFields } from "./runtimeEcologyRenderField";
-import {\n  resolveComposedInterventionFootprints,\n  type RuntimeInterventionFootprintFrame,\n} from "./runtimeInterventionFootprints";
+import {
+  resolveComposedInterventionFootprints,
+  type RuntimeInterventionFootprintFrame,
+} from "./runtimeInterventionFootprints";
 import {
   assertLineageDensityWithinPresentationScale,
   validateLineageDensityPresentationScale,

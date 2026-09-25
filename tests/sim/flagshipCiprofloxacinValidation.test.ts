@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import flagshipScenario from '../../data/presets/ecoli_ciprofloxacin_v1.json'
 import {
   createComposedState,
   stepComposedState,
@@ -41,6 +42,58 @@ describe('integrated flagship ciprofloxacin validation', () => {
     expect(withPdState.resource).toEqual(withoutPdState.resource)
     expect(withPdState.lineageBiomass).toEqual(withoutPdState.lineageBiomass)
     expect(withPdMetrics).toEqual(withoutPdMetrics)
+  })
+
+  it('keeps the declared source-tested control envelope bound to the authoritative intervention path', () => {
+    const control = flagshipScenario.drug.interventionControl
+    expect(control.sourceTestedDomain).toMatchObject({
+      minimumMgPerL: 0,
+      maximumMgPerL: 2,
+    })
+    expect(control.sourceTestedDomain.provenance).toMatchObject({
+      classification: 'transferred',
+      citation: 'regoes_2004',
+    })
+    expect(control.defaultSelection).toMatchObject({
+      valueMgPerL: 0.03,
+      provenance: { classification: 'engineering' },
+    })
+    expect(control.toolAuthority.parameter).toMatchObject({
+      unit: 'mg/L',
+      minimum: control.sourceTestedDomain.minimumMgPerL,
+      maximum: control.sourceTestedDomain.maximumMgPerL,
+      defaultValue: control.defaultSelection.valueMgPerL,
+    })
+    expect(control.defaultSelection.valueMgPerL).toBe(
+      flagshipScenario.drug.referencePharmacodynamics.conventionalMIC_mg_L,
+    )
+
+    for (const [index, concentration] of [
+      control.sourceTestedDomain.minimumMgPerL,
+      control.sourceTestedDomain.maximumMgPerL,
+    ].entries()) {
+      const plan = buildFlagshipComposedRunPlan(initialization)
+      const engine = new ComposedSimulationEngine(plan.identity, plan.config)
+      const applied = engine.execute({
+        id: `source-envelope-${index}`,
+        type: 'apply-ciprofloxacin',
+        intervention: {
+          schemaVersion: CIPROFLOXACIN_INTERVENTION_SCHEMA_VERSION,
+          concentrationMgPerL: concentration,
+          concentrationUnit: 'mg/L',
+          blendMode: 'set',
+          geometry: { kind: 'global' },
+        },
+      })
+      const stored = Math.fround(concentration)
+      for (let cell = 0; cell < plan.config.mask.length; cell += 1) {
+        expect(
+          applied.checkpoint.composedState.ciprofloxacinConcentrationMgPerL[
+            cell
+          ],
+        ).toBe(plan.config.mask[cell] === 1 ? stored : 0)
+      }
+    }
   })
 
   it('changes the integrated response monotonically across WT-MIC-derived configured concentrations', () => {

@@ -94,6 +94,31 @@ decay/clearance law, plate-medium mapping, clinical dose interpretation, or
 physical-delivery equivalence is claimed by the command path. Those remain
 separate calibration/mechanism work.
 
+### Flagship ciprofloxacin product-control guardrail
+
+Scenario `ecoli-ciprofloxacin-spatial@1.5.0-research` also owns the product
+control metadata for ciprofloxacin. The visible concentration envelope is
+**0–2 mg/L**, matching the concentration domain tested in the Regoes et al.
+2004 CAB1/LB/37 °C time-kill experiment that supplies the reference
+pharmacodynamic shape. This is a transferred source-domain guardrail, not an
+MG1655 treatment range or a physical delivery calibration.
+
+The product default is **0 mg/L** because the flagship's authoritative initial
+ciprofloxacin landscape is exactly zero. That default is an engineering
+interaction choice representing the neutral initial/control state; it is not a
+measured effective, optimal, or recommended dose. Presentation uses three
+decimal places so the existing 0.016/0.030 mg/L-scale reference values can be
+shown without hidden rounding, while simulation authority remains numeric
+`mg/L`.
+
+The flagship palette uses `set` semantics and the existing
+global/radial/stripe/paint vocabulary as **model concentration-field edits**.
+Protocol support for `add` does not make accumulation the product default.
+Likewise, the Marcusson genotype MIC table—including the 32 mg/L ACB value—is
+pharmacodynamic genotype authority, not evidence that the Regoes source curve
+was experimentally supported out to 32 mg/L. Those MIC values therefore cannot
+silently widen the product envelope.
+
 Initial model-resource level, founder placement, founder biomass, and random seed
 remain explicit run-state inputs. They are intentionally not silently promoted
 into parameter constants or used to change the mechanism fingerprint. Likewise,

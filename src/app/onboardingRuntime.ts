@@ -59,6 +59,7 @@ const ONBOARDING_GATE_BY_EVENT_TYPE = {
   initialized: null,
   advanced: null,
   "ciprofloxacin-applied": "antibiotic-command-recorded",
+  "model-resource-applied": null,
   "synthetic-pulse": null,
   restored: null,
 } satisfies Record<SimulationEvent["type"], ScientificGate | null>;

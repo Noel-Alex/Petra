@@ -115,7 +115,7 @@ const config: ComposedSimulationConfig = {
   hoursPerTick: 0.01,
 };
 
-const UNBOUND_exactDensityScale(simulation, "fixture-branch-0"): SourceOwnedFixedLineageDensityPresentationScale = {
+const UNBOUND_FIXED_DENSITY_SCALE: SourceOwnedFixedLineageDensityPresentationScale = {
   schemaVersion: LINEAGE_DENSITY_PRESENTATION_SCALE_SCHEMA_VERSION,
   mode: "source-owned-fixed",
   unit: "model-biomass",

@@ -87,7 +87,7 @@ describe("InterventionPalette", () => {
     );
     expect(html).toContain('data-intervention-tool="fungus"');
     expect(html).toContain('aria-label="Display preferences"');
-    expect(html).toContain("No colony selected");
+    expect(html).toContain("No region selected");
     expect(html).toContain('data-analysis-status="unavailable"');
     expect(html).not.toContain(
       "Controls are shell-only in this checkpoint",

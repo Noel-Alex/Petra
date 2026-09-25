@@ -1,4 +1,4 @@
-import { useId, type ReactElement } from "react";
+import { useId, type ReactElement, type ReactNode } from "react";
 
 import type { AuthoritativeRegionInspection } from "../sim/regionInspector";
 import {
@@ -13,6 +13,7 @@ export interface RegionInspectorPanelProps {
   readonly state: RegionInspectorPresentationState;
   readonly title?: string;
   readonly className?: string;
+  readonly emptyStateAdornment?: ReactNode;
 }
 
 /**
@@ -27,6 +28,7 @@ export function RegionInspectorPanel({
   state,
   title = "Selected region",
   className,
+  emptyStateAdornment,
 }: RegionInspectorPanelProps): ReactElement {
   const titleId = useId();
   const statusId = useId();
@@ -68,18 +70,22 @@ export function RegionInspectorPanel({
       </p>
 
       {readout === null ? (
-        <EmptyReadout state={state} />
+        <EmptyReadout state={state} adornment={emptyStateAdornment} />
       ) : (
         <RegionReadout readout={readout} stale={stale} />
       )}
 
-      <p className="region-inspector-panel__truth-note">
-        Any displayed scientific values come from authoritative simulation grid
-        state. Model units are not relabelled as physical cell counts,
-        concentration, mass, or area density. Biological time, tick, and command
-        position are the exact checkpoint values supplied by simulation
-        authority, never inferred from animation or renderer state.
-      </p>
+      <details className="region-inspector-panel__truth-disclosure">
+        <summary>Measurement notes</summary>
+        <p className="region-inspector-panel__truth-note">
+          Any displayed scientific values come from authoritative simulation
+          grid state. Model units are not relabelled as physical cell counts,
+          concentration, mass, or area density. Biological time, tick, and
+          command position are the exact checkpoint values supplied by
+          simulation authority, never inferred from animation or renderer
+          state.
+        </p>
+      </details>
     </aside>
   );
 }
@@ -106,9 +112,6 @@ function RegionReadout({
       >
         <div className="region-inspector-readout__ownership">
           <strong>{stale ? "Stale result" : "Current result"}</strong>
-          <span>
-            Selection <code>{readout.selectionId}</code>
-          </span>
         </div>
 
         <div
@@ -124,19 +127,14 @@ function RegionReadout({
             label="Grid coverage"
             value="No authoritative grid cells"
           />
-          <AuthorityIdentity readout={readout} />
           <Metric
-            label="Composed state schema version"
-            value={String(readout.stateVersion)}
+            label="Simulation time"
+            value={`${formatNumber(readout.simulationTimeHours)} h`}
           />
+          <Metric label="Authoritative tick" value={String(readout.tick)} />
         </dl>
 
-        <div className="region-inspector-readout__identity">
-          <span>Configuration fingerprint</span>
-          <code title={readout.configurationFingerprint}>
-            {readout.configurationFingerprint}
-          </code>
-        </div>
+        <RunProvenance readout={readout} />
       </section>
     );
   }
@@ -155,9 +153,6 @@ function RegionReadout({
     >
       <div className="region-inspector-readout__ownership">
         <strong>{stale ? "Stale readout" : "Current readout"}</strong>
-        <span>
-          Selection <code>{readout.selectionId}</code>
-        </span>
       </div>
 
       <dl className="region-inspector-readout__metrics">
@@ -173,19 +168,14 @@ function RegionReadout({
           label="Total resource"
           value={`${formatNumber(readout.totalResource)} ${readout.resourceUnit}`}
         />
-        <AuthorityIdentity readout={readout} />
         <Metric
-          label="Composed state schema version"
-          value={String(readout.stateVersion)}
+          label="Simulation time"
+          value={`${formatNumber(readout.simulationTimeHours)} h`}
         />
+        <Metric label="Authoritative tick" value={String(readout.tick)} />
       </dl>
 
-      <div className="region-inspector-readout__identity">
-        <span>Configuration fingerprint</span>
-        <code title={readout.configurationFingerprint}>
-          {readout.configurationFingerprint}
-        </code>
-      </div>
+      <RunProvenance readout={readout} />
 
       <div className="region-inspector-lineages">
         <h3>Lineage composition</h3>
@@ -237,37 +227,48 @@ function RegionReadout({
   );
 }
 
-function AuthorityIdentity({
+function RunProvenance({
   readout,
 }: {
   readonly readout: AuthoritativeRegionInspection;
 }): ReactElement {
   const identity = readout.runIdentity;
   return (
-    <>
-      <Metric
-        label="Simulation time"
-        value={`${formatNumber(readout.simulationTimeHours)} h`}
-      />
-      <Metric label="Authoritative tick" value={String(readout.tick)} />
-      <Metric
-        label="Accepted command position"
-        value={String(readout.commandCount)}
-      />
-      <Metric
-        label="Scenario"
-        value={`${identity.scenarioId}@${identity.scenarioVersion}`}
-      />
-      <Metric
-        label="Parameter set"
-        value={`${identity.parameterSetId}@${identity.parameterSetVersion}`}
-      />
-      <Metric label="Run seed" value={String(identity.seed)} />
-      <Metric
-        label="Engine / protocol"
-        value={`${identity.engineVersion} / protocol ${identity.protocolVersion}`}
-      />
-    </>
+    <details className="region-inspector-readout__provenance">
+      <summary>Run provenance</summary>
+      <div className="region-inspector-readout__provenance-content">
+        <dl className="region-inspector-readout__metrics">
+          <Metric label="Selection" value={readout.selectionId} />
+          <Metric
+            label="Accepted command position"
+            value={String(readout.commandCount)}
+          />
+          <Metric
+            label="Scenario"
+            value={`${identity.scenarioId}@${identity.scenarioVersion}`}
+          />
+          <Metric
+            label="Parameter set"
+            value={`${identity.parameterSetId}@${identity.parameterSetVersion}`}
+          />
+          <Metric label="Run seed" value={String(identity.seed)} />
+          <Metric
+            label="Composed state schema version"
+            value={String(readout.stateVersion)}
+          />
+          <Metric
+            label="Engine / protocol"
+            value={`${identity.engineVersion} / protocol ${identity.protocolVersion}`}
+          />
+        </dl>
+        <div className="region-inspector-readout__identity">
+          <span>Configuration fingerprint</span>
+          <code title={readout.configurationFingerprint}>
+            {readout.configurationFingerprint}
+          </code>
+        </div>
+      </div>
+    </details>
   );
 }
 
@@ -288,22 +289,36 @@ function Metric({
 
 function EmptyReadout({
   state,
+  adornment,
 }: {
   readonly state: RegionInspectorPresentationState;
+  readonly adornment?: ReactNode;
 }): ReactElement {
   const message =
     state.status === "pending"
       ? "No prior authoritative readout is being reused while this selection is pending."
       : state.status === "error"
         ? "No authoritative scientific values are available for display."
-        : "Select a region after authoritative simulation state is available.";
+        : "No authoritative readout is available for this selection.";
 
   return (
     <div
       className="region-inspector-readout region-inspector-readout--empty"
       data-readout-empty="true"
     >
-      {message}
+      {adornment === undefined ? null : (
+        <span className="region-inspector-readout__empty-icon" aria-hidden="true">
+          {adornment}
+        </span>
+      )}
+      {state.status === "unavailable" && adornment !== undefined ? (
+        <span className="region-inspector-readout__empty-copy">
+          <strong>No region selected</strong>
+          <span>{state.reason}</span>
+        </span>
+      ) : (
+        <span>{message}</span>
+      )}
     </div>
   );
 }
@@ -335,8 +350,8 @@ function statusCopy(state: RegionInspectorPresentationState): string {
       return `Selection ${state.requestedSelectionId} is pending. The result below still belongs to earlier selection ${state.readout.selectionId}.`;
     case "ready":
       return state.readout.kind === "no-grid-coverage"
-        ? `Selection ${state.selectionId} covers no authoritative simulation grid cells. No biomass or resource measurement is reported.`
-        : `Showing authoritative values for selection ${state.selectionId}.`;
+        ? "This selection covers no authoritative grid cells. No biomass or resource measurement is reported."
+        : "Showing authoritative values for the selected region.";
     case "error":
       if (state.staleReadout !== null) {
         const requested =

@@ -26,6 +26,11 @@ import { CausalNarrationMount } from "./CausalNarrationMount";
 import type { AuthoritativeCausalEventStream } from "./causalNarration";
 import { InterventionPalette } from "./InterventionPalette";
 import {
+  InspectorSelectionGlyph,
+  PetraBrandMark,
+  PetraProfileGlyph,
+} from "./InterventionIllustration";
+import {
   beginInterventionPlacement,
   cancelInterventionPlacement,
   createInterventionPlacementState,
@@ -392,7 +397,7 @@ export function App({
       <header className="petra-topbar">
         <div className="petra-brand">
           <span className="petra-brand__mark" aria-hidden="true">
-            <PetraIcon name="lineage" decorative size={32} />
+            <PetraBrandMark />
           </span>
           <h1>Petra</h1>
         </div>
@@ -469,48 +474,64 @@ export function App({
           <span>Search scientific sources…</span>
         </PetraCompactAction>
 
-        <div className="petra-topbar__actions">
-          <label className="motion-control">
-            <span>Motion</span>
-            <select
-              aria-label="Motion preference"
-              value={motionSetting}
-              onChange={(event) => {
-                const setting = parseMotionSetting(event.target.value);
-                setMotionSetting(setting);
-                try {
-                  saveMotionSetting(globalThis.localStorage, setting);
-                } catch {
-                  // Keep the explicit in-memory preference when storage is unavailable.
-                }
-              }}
-            >
-              <option value="system">System</option>
-              <option value="full">Full</option>
-              <option value="reduced">Reduced</option>
-              <option value="off">Off</option>
-            </select>
-          </label>
-          <label className="motion-control contrast-control">
-            <span>Contrast</span>
-            <select
-              aria-label="Visual contrast"
-              value={visualContrast}
-              onChange={(event) => {
-                const setting = parseVisualContrastSetting(event.target.value);
-                setVisualContrast(setting);
-                try {
-                  saveVisualContrastSetting(globalThis.localStorage, setting);
-                } catch {
-                  // Keep the explicit in-memory preference when storage is unavailable.
-                }
-              }}
-            >
-              <option value="standard">Standard</option>
-              <option value="high-contrast">High contrast</option>
-            </select>
-          </label>
-        </div>
+        <details className="display-preferences">
+          <summary
+            className="display-preferences__trigger"
+            aria-label="Display preferences"
+            aria-controls="petra-display-preferences"
+            title="Display preferences"
+          >
+            <PetraProfileGlyph />
+          </summary>
+          <div
+            id="petra-display-preferences"
+            className="display-preferences__surface"
+          >
+            <p className="display-preferences__heading">Display preferences</p>
+            <div className="display-preferences__controls">
+              <label className="motion-control">
+                <span>Motion</span>
+                <select
+                  aria-label="Motion preference"
+                  value={motionSetting}
+                  onChange={(event) => {
+                    const setting = parseMotionSetting(event.target.value);
+                    setMotionSetting(setting);
+                    try {
+                      saveMotionSetting(globalThis.localStorage, setting);
+                    } catch {
+                      // Keep the explicit in-memory preference when storage is unavailable.
+                    }
+                  }}
+                >
+                  <option value="system">System</option>
+                  <option value="full">Full</option>
+                  <option value="reduced">Reduced</option>
+                  <option value="off">Off</option>
+                </select>
+              </label>
+              <label className="motion-control contrast-control">
+                <span>Contrast</span>
+                <select
+                  aria-label="Visual contrast"
+                  value={visualContrast}
+                  onChange={(event) => {
+                    const setting = parseVisualContrastSetting(event.target.value);
+                    setVisualContrast(setting);
+                    try {
+                      saveVisualContrastSetting(globalThis.localStorage, setting);
+                    } catch {
+                      // Keep the explicit in-memory preference when storage is unavailable.
+                    }
+                  }}
+                >
+                  <option value="standard">Standard</option>
+                  <option value="high-contrast">High contrast</option>
+                </select>
+              </label>
+            </div>
+          </div>
+        </details>
       </header>
 
       {sourcesLifecycle.mounted ? (
@@ -671,11 +692,34 @@ export function App({
           )}
         </section>
 
-        <RegionInspectorPanel
-          state={regionInspector.state}
-          title="Selected area"
-          className="petra-panel petra-panel--inspector"
-        />
+        <div
+          className="inspector-shell petra-panel--inspector"
+          data-no-region-selected={regionInspectionRequest === null}
+        >
+          <RegionInspectorPanel
+            state={regionInspector.state}
+            title="Colony Details"
+            className="inspector-shell__region"
+            emptyStateAdornment={
+              regionInspectionRequest === null ? (
+                <InspectorSelectionGlyph />
+              ) : undefined
+            }
+          />
+          <AnalysisSurface
+            records={analysisRecords}
+            motion={motionPreference}
+            contrastMode={visualContrast}
+          />
+          <section className="inspector-activity" aria-label="Live activity">
+            <div className="inspector-activity__heading">
+              <h3>Live activity</h3>
+              <span>No samples</span>
+            </div>
+            <p>Recorded trends appear when authoritative measurements are available.</p>
+            <div className="inspector-activity__empty" aria-hidden="true" />
+          </section>
+        </div>
       </section>
 
       <footer
@@ -707,11 +751,6 @@ export function App({
         />
       </footer>
 
-      <AnalysisSurface
-        records={analysisRecords}
-        motion={motionPreference}
-        contrastMode={visualContrast}
-      />
     </main>
   );
 }

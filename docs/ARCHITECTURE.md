@@ -130,6 +130,99 @@ Renderer objects, animation progress, camera position, decorative particles, and
 
 Changing numerical operator order, stochastic draw order, or checkpoint semantics is a model/replay change and must be version-reviewed.
 
+
+## Authoritative observation and render data plane
+
+Petra has one biological authority but several **different output classes**. They must not be collapsed into one giant "snapshot" merely because every consumer needs data.
+
+### Layer 1 — replay-critical simulation checkpoint
+
+`ComposedSimulationCheckpoint` is the worker-owned continuation authority. It contains the state required to continue the biological trajectory exactly under the same versioned run identity. This is the source from which current spatial biomass, resource, ciprofloxacin state, lineage channels, aggregate checkpoint metrics, inspector queries, restore, and replay are grounded.
+
+Rules:
+
+- only simulator code mutates biological state;
+- renderer/app consumers receive detached/read-only projections and can never write checkpoint arrays;
+- checkpoint identity, tick, `simulationTimeHours`, accepted `commandCount`, configuration fingerprint, and runtime branch generation remain distinct pieces of authority;
+- biological time alone is **not** a unique state position because accepted commands such as ciprofloxacin application may change authoritative state without advancing time.
+
+### Layer 2 — authoritative step observations
+
+Some scientifically meaningful quantities exist **during an accepted step** but should not automatically become future-state authority. Examples include the ecology kernel's already-computed local division-biomass and death-biomass ledgers. These are observations of the executed operator, not values to reconstruct later from rendered motion or differences between two checkpoints.
+
+A step-observation contract must carry enough identity to say exactly what interval it describes: grid/mask identity, aligned lineage order where applicable, authoritative step/tick position, exact step duration, units, and the state/configuration identity against which it was computed. Aggregate totals must agree with the local channels within the declared numerical tolerance.
+
+Step observations are allowed to feed renderer overlays, diagnostics, validation, or sampled analysis. They do **not** become replay-critical merely because they are observable; if future biological execution needs one, it must be promoted intentionally into checkpoint state/versioning.
+
+For ecology flux specifically:
+
+- `divisionBiomass` and `deathBiomass` are continuous `model-biomass` flux amounts over the accepted ecology step; they are not discrete cell counts or mutation opportunities;
+- do not infer either quantity from animation speed, colony-radius change, snapshot subtraction, or glyph churn;
+- a downstream **rate** or signed net-growth field may be projected only when the source observation supplies an exact interval duration. The conversion must be explicit (for example `(division - death) / duration`) and retain a truthful unit such as `model-biomass/hour`; never relabel it as a per-capita growth constant unless the simulator explicitly supplies that different quantity;
+- spread/reassignment and other operator stages can make endpoint biomass deltas semantically different from local division/death flux, so endpoint differencing is not an equivalent substitute.
+
+Issue #605 owns the concrete observation shape; consumers must use its merged versioned/source contract rather than duplicating flux extraction.
+
+### Layer 3 — sampled scientific measurements
+
+Renderer-independent measurements are their own authority surface:
+
+- `src/sim/metrics.ts` owns deterministic global metric sampling on authoritative tick cadence;
+- `src/sim/regionInspector.ts` owns local read-only measurements directly from an exact composed checkpoint;
+- analysis/export/ML consumers use these scientific samples rather than reverse-engineering values from `DishRenderSnapshot` or Pixi state.
+
+Sampling cadence is independent from biology stepping and from render cadence. Samples preserve exact run/config/time identity and fail closed on malformed or mixed authority. Region values remain `model-biomass` / `model-resource` until a scenario provides a provenance-owned physical unit bridge.
+
+### Layer 4 — immutable dish-render projection
+
+`DishRenderSnapshot` is the renderer-facing projection, not a second simulator. The product adapter may copy/select/downsample **already-authoritative** channels into its validated render model while preserving their meaning.
+
+For the flagship projection:
+
+- `dishMask` comes from simulation geometry;
+- aggregate `biomass` and every `RenderLineage.density` channel use one comparable model-biomass scale; representative glyph count is never a cell count;
+- resource stays labelled as model resource unless a later scenario binds a physical unit;
+- ciprofloxacin remains `mg/L`;
+- source-backed local ecology flux may become `net-growth`/growth-death presentation only under the Layer-2 rules above;
+- a `biomass` overlay may present the authoritative aggregate biomass channel without creating a new scientific measurement;
+- an `uncertainty` overlay exists only when a source supplies an actual numeric uncertainty field. Validation status, provenance class, or UI confidence language is not a substitute uncertainty quantity;
+- a render event gets an `x,y` marker only when authoritative source data supplies spatial position. Current protocol-v6 lifecycle/ciprofloxacin events do not carry spatial coordinates, so the render projection must leave spatial events absent rather than inventing locations. Future mutation/infection events may add markers only after their versioned source contract includes position authority.
+
+Exact render keyframes preserve biological `simulationTimeHours`, but time is not enough to order history. The app replay bridge binds a render projection to the runtime-owned `runBranchIdentity` plus accepted `commandCount`. `snapshotId`/trace identity may identify the projected state; `samplingIdentity` is presentation-only stability for deterministic representative-glyph sampling and must not be treated as scientific ancestry.
+
+One accepted runtime snapshot transaction should be the common source for the dish projection, timeline events, metric-history accumulation, exact-checkpoint inspector state, replay keyframe binding, and provenance/status surfaces. Consumers may select different fields, but they must not silently combine a dish from one command position with inspector/chart truth from another.
+
+### Layer 5 — presentation frames
+
+Pixi interpolation, camera state, contours, particles, sampled rods, colony silhouettes, focus transitions, semantic zoom, and LOD are presentation only. A between-keyframe `DishPresentationFrame` may visually interpolate compatible continuous render channels, but it has no authority to manufacture an intermediate scientific checkpoint, metric sample, inspector reading, event, or command position.
+
+The UI may therefore be smoother than the simulator publication cadence without pretending the interpolated frame was measured biology.
+
+### Cadence separation
+
+Petra deliberately keeps four clocks/policies separate:
+
+1. biological integration / accepted command execution;
+2. deterministic scientific metric sampling;
+3. authoritative render-snapshot publication;
+4. display-frame animation/interpolation.
+
+Changing render publication or animation FPS must not change biology, RNG draw order, metric sampling, event ordering, or replay. Presentation snapshots may be skipped/dropped under load if product policy allows, while exact authoritative checkpoint/history continuity remains intact.
+
+### Memory ownership, copies, transfer and downsampling
+
+Correctness-first baseline:
+
+- worker/checkpoint arrays remain owned by simulation authority;
+- renderer projections use detached copies or dedicated export buffers so React/Pixi cannot mutate or accidentally detach the live engine state;
+- a transferable `ArrayBuffer` must never be the only live buffer still needed by the engine after `postMessage`;
+- validators run at the trust boundary before malformed lengths, masks, non-finite values, identity drift, or incompatible field metadata can reach scientific presentation;
+- scientific inspector/metrics continue to read full authoritative state even if a presentation projection is later downsampled.
+
+Optimization is evidence-gated. #630 measures real Worker handoff/clone/payload cost and #642 measures renderer/memory behavior. Only measured pressure justifies changes such as pooled/double-buffered export arrays, transferable projection buffers, lower-resolution presentation fields, OffscreenCanvas, SharedArrayBuffer, WASM, or backend/GPU moves. Any downsampled render field must preserve explicit resolution/meaning and remain presentation data; it cannot silently replace the full-resolution checkpoint for inspection, validation, replay, or dataset generation.
+
+This data plane is the integration contract for #37. #457 consumes Layer 4, #605 supplies a Layer-2 ecology observation, #629 owns Layer-3 metric sampling, and renderer/UI work stays in Layer 5. New features should extend the narrowest correct layer instead of creating another parallel source of scientific truth.
+
 ## Performance rules
 
 - keep heavy simulation off the main UI thread;

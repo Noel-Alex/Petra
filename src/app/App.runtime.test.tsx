@@ -52,6 +52,17 @@ describe("App authoritative runtime boundary", () => {
     expect(appSource).toContain("saveVisualContrastSetting");
   });
 
+  it("dismisses Sources/Search and the bottom timeline disclosure on outside pointer input", () => {
+    expect(appSource).toContain(
+      'document.addEventListener("pointerdown", onPointerDown, true)',
+    );
+    expect(appSource).toContain('document.querySelector(".search-trigger")');
+    expect(appSource).toContain(
+      '"details.display-preferences[open], details.timeline-history[open]"',
+    );
+    expect(appSource).toContain("if (!surface.contains(target)) surface.open = false;");
+  });
+
   it("checks runtime availability before dispatching global shortcuts", () => {
     const gateIndex = appSource.indexOf("canDispatchAppShortcut(plan.action");
     const dispatchIndex = appSource.indexOf("experiment.dispatch(plan.action)");

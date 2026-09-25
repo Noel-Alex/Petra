@@ -102,9 +102,9 @@ export function validateDynamicLineageAuthorityState(
   );
   for (let index = 0; index < checkpoint.records.length; index += 1) {
     const record = checkpoint.records[index]!;
-    const lineageId = state.lineageIds[index];
-    const genotypeId = state.genotypeIds[index];
-    const hazard = state.baselineDeathHazardPerHour[index];
+    const lineageId = state.lineageIds[index]!;
+    const genotypeId = state.genotypeIds[index]!;
+    const hazard = state.baselineDeathHazardPerHour[index]!;
 
     canonicalIdentity("dynamic lineage id at index " + index, lineageId);
     canonicalIdentity("dynamic genotype id at index " + index, genotypeId);

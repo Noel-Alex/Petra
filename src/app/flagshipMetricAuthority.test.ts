@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import rawAuthority from "../../data/analysis/flagship_metric_authority_v1.json";
 import flagshipScenario from "../../data/presets/ecoli_ciprofloxacin_v1.json";
+import { composedConfigurationFingerprint } from "../sim/authoritative";
 import { ComposedSimulationEngine } from "../sim/composedEngine";
 import { buildDefaultFlagshipRun } from "./flagshipRunPreset";
 import {
@@ -142,6 +143,45 @@ describe("flagshipMetricAuthority", () => {
         },
       }),
     ).toThrow(/configuration fingerprint does not match/);
+  });
+
+  it("rejects a self-consistent provenance binding when the composed MIC table drifts from scenario authority", () => {
+    const { plan } = buildDefaultFlagshipRun();
+    const ciprofloxacin = plan.config.ciprofloxacin;
+    if (ciprofloxacin === null) {
+      throw new Error("flagship run must expose ciprofloxacin MIC authority");
+    }
+
+    const driftedConfig = {
+      ...plan.config,
+      ciprofloxacin: {
+        ...ciprofloxacin,
+        genotypeMicMgPerL: ciprofloxacin.genotypeMicMgPerL.map(
+          (record, index) =>
+            index === 1
+              ? { ...record, micMgPerL: record.micMgPerL + 0.001 }
+              : record,
+        ),
+      },
+    };
+    const configurationFingerprint =
+      composedConfigurationFingerprint(driftedConfig);
+    const driftedBinding = {
+      ...plan.parameterSetBinding,
+      configurationFingerprint,
+    };
+
+    expect(() =>
+      resolveFlagshipMetricAuthorityForRun({
+        ...plan,
+        config: driftedConfig,
+        parameterSetBinding: driftedBinding,
+        identity: {
+          ...plan.identity,
+          parameterSetBinding: driftedBinding,
+        },
+      }),
+    ).toThrow(/composed genotype MIC authority drifted/);
   });
 
   it("binds the authority to the exact flagship run before constructing history", () => {

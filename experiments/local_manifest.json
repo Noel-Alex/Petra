@@ -74,6 +74,29 @@
       "timeout_seconds": 300
     },
     {
+      "id": "population-scale-calibration",
+      "description": "Effective mutation-supply population-scale calibration: zero-ciprofloxacin flagship ecology plus 4e8/4e9/4e10 terminal cell-equivalent sensitivity through exact fractional-carry population authority; calibrated/non-physical and non-promotable until evidence review.",
+      "command": [
+        "npm",
+        "exec",
+        "--offline",
+        "--",
+        "vitest",
+        "run",
+        "--config",
+        "experiments/vitest.population_scale_calibration.config.ts"
+      ],
+      "issues": [
+        5,
+        37,
+        542,
+        562,
+        740,
+        796
+      ],
+      "timeout_seconds": 1800
+    },
+    {
       "id": "flagship-runtime-smoke",
       "description": "Authoritative composed flagship smoke: init/advance, real ciprofloxacin intervention, checkpoint restore, and exact replay with compact evidence.",
       "command": [
@@ -252,22 +275,18 @@
     },
     {
       "id": "ml-mechanistic-dataset",
-      "description": "BLOCKED on #682, #685, #544, and #594: authoritative group-split mechanistic dataset generation; bulky datasets remain local.",
+      "description": "BLOCKED on #544 and #594 local verification: authoritative group-split mechanistic dataset generation; canonical run-condition/schedule identities and generic durable Node runtime are already on main; bulky datasets remain local.",
       "command": [
         "python",
         "experiments/blocked.py",
         "--experiment-id",
         "ml-mechanistic-dataset",
         "--blocked-on",
-        "682",
-        "--blocked-on",
-        "685",
-        "--blocked-on",
         "544",
         "--blocked-on",
         "594",
         "--reason",
-        "Issue #682 must land explicit run-condition identity, #685 must bind horizon/cadence into task and resume identity, #544 must declare the first authoritative held-out sweep, and #594 must provide the concrete laptop worker/CLI path before broad local generation is reproducible."
+        "Issue #544 must declare the first authoritative held-out sweep package/scientific grid, and #594 still requires local multicore worker evidence before broad dataset generation is treated as verified. The exact run-condition/schedule identities (#682/#685) and generic durable Node dataset runtime are already integrated on main."
       ],
       "issues": [
         13,

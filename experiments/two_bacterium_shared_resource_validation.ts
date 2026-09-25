@@ -1,11 +1,14 @@
 export const TWO_BACTERIUM_SHARED_RESOURCE_VALIDATION_SCHEMA_VERSION =
-  'petra-two-bacterium-shared-resource-validation-v1' as const
+  'petra-two-bacterium-shared-resource-validation-v2' as const
 
 export const TWO_BACTERIUM_SHARED_RESOURCE_VALIDATION_EXPERIMENT_ID =
   'two-bacterium-shared-resource-validation' as const
 
 export const TWO_BACTERIUM_MECHANISM_SCOPE =
   'shared-resource-local-capacity-only' as const
+
+export const UNBOUND_TWO_BACTERIUM_CONTENT_PACK_LIMITATION =
+  'standalone-content-pack-manifest-is-unbound' as const
 
 export const TWO_BACTERIUM_TAXON_ROLES = Object.freeze([
   'ecoli-mg1655',
@@ -81,10 +84,14 @@ export interface TwoBacteriumSharedResourceValidationEvidence {
     readonly id: string
     readonly version: string
   }
-  readonly contentPack: {
+  readonly parameterSet: {
     readonly id: string
     readonly version: string
   }
+  readonly contentPackManifest: {
+    readonly id: string
+    readonly version: string
+  } | null
   readonly configurationFingerprint: string
   readonly taxa: readonly TwoBacteriumTaxonEvidenceIdentity[]
   readonly lineageTaxonAssignments:
@@ -448,7 +455,14 @@ export function validateTwoBacteriumSharedResourceValidationEvidence(
   }
 
   validateCanonicalIdentity(value.scenario, 'scenario', errors)
-  validateCanonicalIdentity(value.contentPack, 'contentPack', errors)
+  validateCanonicalIdentity(value.parameterSet, 'parameterSet', errors)
+  if (value.contentPackManifest !== null) {
+    validateCanonicalIdentity(
+      value.contentPackManifest,
+      'contentPackManifest',
+      errors,
+    )
+  }
 
   if (!isCanonicalString(value.configurationFingerprint)) {
     errors.push(
@@ -490,6 +504,17 @@ export function validateTwoBacteriumSharedResourceValidationEvidence(
 
   validateControls(value.controls, errors)
   validateLimitations(value.limitations, errors)
+  if (
+    value.contentPackManifest === null &&
+    Array.isArray(value.limitations) &&
+    !value.limitations.includes(
+      UNBOUND_TWO_BACTERIUM_CONTENT_PACK_LIMITATION,
+    )
+  ) {
+    errors.push(
+      `missing required limitation: ${UNBOUND_TWO_BACTERIUM_CONTENT_PACK_LIMITATION}`,
+    )
+  }
   validateRuntime(value.runtime, errors)
 
   return Object.freeze(errors)

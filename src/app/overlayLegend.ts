@@ -1,4 +1,4 @@
-import type { RenderField } from "../render/model";
+import { resolveRenderFieldRangeMode, type RenderField } from "../render/model";
 import { resolveOverlayPresentation } from "../render/overlayPresentation";
 
 export interface OverlayLegendView {
@@ -20,8 +20,17 @@ export function buildOverlayLegend(
   field: RenderField,
 ): OverlayLegendView {
   const presentation = resolveOverlayPresentation(field.kind);
-  const rangeText =
+  const formattedRange =
     `${formatScalar(field.minimum)} to ${formatScalar(field.maximum)} ${field.unit}`;
+  const rangeMode = resolveRenderFieldRangeMode(field);
+  const rangeText =
+    rangeMode === "snapshot-extrema"
+      ? `Current-snapshot range ${formattedRange}`
+      : `Fixed presentation range ${formattedRange}`;
+  const rangeDisclosure =
+    rangeMode === "snapshot-extrema"
+      ? "Color normalization uses the current snapshot range and is not temporally comparable by color intensity alone."
+      : "Color normalization uses a fixed presentation range across compatible snapshots.";
   return {
     id: field.id,
     kind: field.kind,
@@ -35,7 +44,7 @@ export function buildOverlayLegend(
     scaleText: presentation.legendSemantics,
     rangeText,
     ariaLabel:
-      `${field.label}. ${presentation.legendSemantics}. Source range ${rangeText}.`,
+      `${field.label}. ${presentation.legendSemantics}. ${rangeText}. ${rangeDisclosure}`,
   };
 }
 

@@ -387,6 +387,36 @@ describe("worker session", () => {
     expect(session.state.latestSnapshot).toBeNull();
   });
 
+  it("fails closed when a full baseline cannot be materialized into immutable history", () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+
+    session.enqueue([
+      { protocolVersion: PROTOCOL_VERSION, type: "initialize", identity },
+    ]);
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: {
+        ...snapshot(0),
+        events: [
+          {
+            sequence: 5,
+            tick: 0,
+            simulationTimeHours: 0,
+            type: "initialized",
+          },
+        ],
+      },
+    });
+
+    expect(session.state.phase).toBe("error");
+    expect(session.state.error).toContain(
+      "sequence must equal the append-only history length",
+    );
+    expect(session.state.latestSnapshot).toBeNull();
+  });
+
   it("fails closed on malformed deserialized responses and keeps trusted command correlation", () => {
     const port = new FakePort();
     const session = new WorkerSession(port);

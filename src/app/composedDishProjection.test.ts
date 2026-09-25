@@ -496,7 +496,7 @@ describe("authoritative composed dish projection", () => {
   });
 
 
-  it("composes a fresh runtime-bound ecology field into the authoritative dish transaction", () => {
+  it("composes fresh runtime-bound ecology rate fields atomically into the authoritative dish transaction", () => {
     const engine = composedEngine();
     const advanced = engine.execute({
       id: "advance-with-observation",
@@ -519,20 +519,45 @@ describe("authoritative composed dish projection", () => {
       },
     );
     expect(
-      dish.fields.find((field) => field.kind === "net-growth"),
-    ).toMatchObject({
-      id: "authoritative-net-local-biomass-rate",
-      unit: "model-biomass/hour",
-      rangeMode: "snapshot-extrema",
-    });
+      dish.fields
+        .filter((field) =>
+          ["net-growth", "division-rate", "death-rate"].includes(field.kind),
+        )
+        .map((field) => ({
+          kind: field.kind,
+          id: field.id,
+          unit: field.unit,
+          rangeMode: field.rangeMode,
+        })),
+    ).toEqual([
+      {
+        kind: "net-growth",
+        id: "authoritative-net-local-biomass-rate",
+        unit: "model-biomass/hour",
+        rangeMode: "snapshot-extrema",
+      },
+      {
+        kind: "division-rate",
+        id: "authoritative-local-division-biomass-rate",
+        unit: "model-biomass/hour",
+        rangeMode: "snapshot-extrema",
+      },
+      {
+        kind: "death-rate",
+        id: "authoritative-local-death-biomass-rate",
+        unit: "model-biomass/hour",
+        rangeMode: "snapshot-extrema",
+      },
+    ]);
 
     const plain = engine.snapshot();
-    expect(
-      projectAuthoritativeComposedDishSnapshot(
-        plain,
-        "fixture-branch-0",
-      ).fields.some((field) => field.kind === "net-growth"),
-    ).toBe(false);
+    const plainKinds = projectAuthoritativeComposedDishSnapshot(
+      plain,
+      "fixture-branch-0",
+    ).fields.map((field) => field.kind);
+    expect(plainKinds).not.toContain("net-growth");
+    expect(plainKinds).not.toContain("division-rate");
+    expect(plainKinds).not.toContain("death-rate");
   });
 
   it("rejects cross-channel checkpoint drift before publishing render data", () => {

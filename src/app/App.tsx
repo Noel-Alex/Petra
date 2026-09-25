@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { PetraCompactAction } from "../ui/PetraCompactAction";
 import {
   loadVisualContrastSetting,
@@ -66,6 +66,14 @@ import {
 } from "./sourcesLifecycle";
 import "./sourcesDrawer.css";
 import { TimelineHistory } from "./TimelineHistory";
+import { HistoricalScrubControl } from "./HistoricalScrubControl";
+import { projectHistoricalPresentation } from "./historicalPresentation";
+import {
+  RuntimeHistoricalPresentationHistory,
+  historicalDishSnapshot,
+  historicalRegionInspectorState,
+  historicalSimulationTimeLabel,
+} from "./runtimeHistoricalPresentation";
 import {
   useExperimentRuntime,
   type ExperimentRuntimeFactory,
@@ -151,6 +159,11 @@ export function App({
   );
   const [regionInspectionRequest, setRegionInspectionRequest] =
     useState<RegionInspectionRequest | null>(null);
+  const historicalHistoryRef =
+    useRef<RuntimeHistoricalPresentationHistory | null>(null);
+  const [historicalHistoryVersion, setHistoricalHistoryVersion] = useState(0);
+  const [historicalCommandPosition, setHistoricalCommandPosition] =
+    useState<number | null>(null);
   const [motionSetting, setMotionSetting] = useState<MotionSetting>(() => {
     try {
       return loadMotionSetting(globalThis.localStorage);
@@ -177,16 +190,124 @@ export function App({
         : projectComposedDishSnapshot(runtimeSnapshot, runBranchIdentity),
     [runBranchIdentity, runtimeSnapshot],
   );
-  const regionInspector = useMemo(
-    () =>
-      projectRegionInspector(
-        experiment.state?.snapshot ?? null,
-        regionInspectionRequest,
-      ),
-    [experiment.state?.snapshot, regionInspectionRequest],
+
+  useEffect(() => {
+    if (
+      runBranchIdentity === null ||
+      runtimeSnapshot?.checkpoint.authority !== "composed"
+    ) {
+      if (historicalHistoryRef.current !== null) {
+        historicalHistoryRef.current = null;
+        setHistoricalCommandPosition(null);
+        setHistoricalHistoryVersion((version) => version + 1);
+      }
+      return;
+    }
+
+    let history = historicalHistoryRef.current;
+    let createdForBranch = false;
+    if (
+      history === null ||
+      history.runBranchIdentity !== runBranchIdentity
+    ) {
+      history = new RuntimeHistoricalPresentationHistory(runBranchIdentity);
+      historicalHistoryRef.current = history;
+      setHistoricalCommandPosition(null);
+      createdForBranch = true;
+    }
+
+    // Continuous playback can publish accepted snapshots at presentation
+    // cadence. Retaining every one would duplicate large composed grids at
+    // frame-like frequency without a measured retention budget. Keep the branch
+    // origin plus accepted states observed while playback is paused/manual.
+    // Missing accepted-command positions are already represented truthfully by
+    // the presentation-only historical cursor contract.
+    if (
+      (createdForBranch || !experiment.view.playing) &&
+      history.append(runtimeSnapshot)
+    ) {
+      setHistoricalHistoryVersion((version) => version + 1);
+    }
+  }, [experiment.view.playing, runBranchIdentity, runtimeSnapshot]);
+
+  const historicalHistory = useMemo(() => {
+    void historicalHistoryVersion;
+    const history = historicalHistoryRef.current;
+    if (
+      history === null ||
+      runBranchIdentity === null ||
+      history.runBranchIdentity !== runBranchIdentity
+    ) {
+      return null;
+    }
+    return history.view();
+  }, [historicalHistoryVersion, runBranchIdentity]);
+
+  const historicalResolution = useMemo(() => {
+    if (
+      historicalHistory === null ||
+      historicalCommandPosition === null
+    ) {
+      return null;
+    }
+    return historicalHistory.history.resolve(historicalCommandPosition);
+  }, [historicalCommandPosition, historicalHistory]);
+
+  const historicalPresentation = useMemo(() => {
+    if (
+      historicalHistory === null ||
+      historicalResolution === null
+    ) {
+      return null;
+    }
+    return projectHistoricalPresentation({
+      resolution: historicalResolution,
+      dishPresenter: historicalHistory.dishPresenter,
+      // DishViewport consumes immutable DishRenderSnapshot values. Snapping the
+      // visual to lower authority preserves the presentation-only semantics of
+      // an in-between requested cursor without inventing scientific state.
+      dishMotion: "snap-to-authority",
+      regionSelection: regionInspectionRequest?.selection ?? null,
+    });
+  }, [
+    historicalHistory,
+    historicalResolution,
+    regionInspectionRequest?.selection,
+  ]);
+
+  const liveRegionInspector = useMemo(
+    () => projectRegionInspector(runtimeSnapshot, regionInspectionRequest),
+    [runtimeSnapshot, regionInspectionRequest],
   );
+  const regionInspectorState =
+    historicalPresentation === null
+      ? liveRegionInspector.state
+      : historicalRegionInspectorState(
+          historicalPresentation,
+          regionInspectionRequest !== null,
+        );
+  const visibleDishSnapshot =
+    historicalPresentation === null
+      ? dishSnapshot
+      : historicalDishSnapshot(historicalPresentation);
+  const regionInspectionSourceSnapshot =
+    historicalResolution?.kind === "authoritative"
+      ? historicalResolution.keyframe.snapshot
+      : historicalCommandPosition === null
+        ? runtimeSnapshot
+        : null;
   const regionInspectionAvailable =
-    experiment.state?.snapshot?.checkpoint.authority === "composed";
+    regionInspectionSourceSnapshot?.checkpoint.authority === "composed";
+  const visibleAnalysisRecords =
+    historicalPresentation === null ? analysisRecords : null;
+  const visibleSimulationTimeLabel =
+    historicalPresentation === null
+      ? experiment.view.simulationTimeLabel
+      : historicalSimulationTimeLabel(historicalPresentation);
+
+  useEffect(() => {
+    setRegionInspectionRequest(null);
+  }, [runBranchIdentity]);
 
   useEffect(() => {
     setOnboardingSession((current) =>
@@ -632,7 +753,7 @@ export function App({
           />
           <DishViewport
             motion={motionPreference}
-            snapshot={dishSnapshot}
+            snapshot={visibleDishSnapshot}
             placement={
               interventionPlacement.phase === "placing"
                 ? interventionPlacement
@@ -648,7 +769,7 @@ export function App({
               interventionPlacement.phase !== "placing"
                 ? (point) => {
                     const request = createRegionInspectionRequest(
-                      experiment.state?.snapshot ?? null,
+                      regionInspectionSourceSnapshot,
                       point,
                     );
                     if (request !== null) {
@@ -708,7 +829,7 @@ export function App({
           data-no-region-selected={regionInspectionRequest === null}
         >
           <RegionInspectorPanel
-            state={regionInspector.state}
+            state={regionInspectorState}
             title="Colony Details"
             className="inspector-shell__region"
             emptyStateAdornment={
@@ -718,7 +839,7 @@ export function App({
             }
           />
           <AnalysisSurface
-            records={analysisRecords}
+            records={visibleAnalysisRecords}
             motion={motionPreference}
             contrastMode={visualContrast}
           />
@@ -741,7 +862,7 @@ export function App({
         <div className="timeline-summary">
           <div>
             <p className="petra-kicker">Timeline</p>
-            <strong>{experiment.view.simulationTimeLabel}</strong>
+            <strong>{visibleSimulationTimeLabel}</strong>
           </div>
           <span
             className="runtime-status"
@@ -754,6 +875,39 @@ export function App({
         </div>
 
         <TimelineHistory entries={experiment.view.timeline} />
+
+        {historicalHistory !== null && historicalHistory.keyframeCount > 1 ? (
+          <div
+            className="timeline-history-inspection"
+            data-history-mode={
+              historicalCommandPosition === null ? "live" : "historical"
+            }
+          >
+            <HistoricalScrubControl
+              history={historicalHistory.history}
+              requestedCommandPosition={
+                historicalCommandPosition ??
+                historicalHistory.latestCommandCount
+              }
+              onRequestedCommandPositionChange={
+                setHistoricalCommandPosition
+              }
+            />
+            {historicalCommandPosition === null ? (
+              <span className="panel-note">
+                Live state follows the newest accepted command.
+              </span>
+            ) : (
+              <PetraCompactAction
+                motionPreference={motionPreference}
+                className="ghost-button"
+                onClick={() => setHistoricalCommandPosition(null)}
+              >
+                Return to live
+              </PetraCompactAction>
+            )}
+          </div>
+        ) : null}
 
         <ExperimentRunControls
           motion={motionPreference}

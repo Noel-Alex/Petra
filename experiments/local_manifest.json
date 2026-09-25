@@ -335,25 +335,21 @@
     },
     {
       "id": "ml-aggregate-benchmark",
-      "description": "BLOCKED on #544: aggregate baseline/candidate training and held-out evaluation after the first authoritative dataset exists.",
+      "description": "First-aggregate v2 constant/ridge held-out benchmark. Runs only against a clean, integrity-verified local dataset produced by the registered mechanistic generator; otherwise reports the #594 dataset-evidence blocker.",
       "command": [
         "python",
-        "experiments/blocked.py",
-        "--experiment-id",
-        "ml-aggregate-benchmark",
-        "--blocked-on",
-        "544",
-        "--reason",
-        "Issue #544 must publish the first authoritative group-split mechanistic dataset evidence before #545 can run reproducible held-out aggregate model benchmarking."
+        "experiments/ml_aggregate_benchmark.py"
       ],
       "issues": [
         13,
         531,
+        542,
         544,
         545,
-        542
+        594,
+        1019
       ],
-      "timeout_seconds": 30
+      "timeout_seconds": 900
     },
     {
       "id": "ml-spatial-benchmark",

@@ -4,6 +4,9 @@ import { execFileSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 
 import {
+  buildNodeMechanisticDatasetGenerationEvidence,
+} from "../src/ml/node/datasetEvidenceAdapter";
+import {
   NODE_MECHANISTIC_DATASET_PACKAGE_SCHEMA_VERSION,
   createNodeMechanisticDatasetWorkerEnvelope,
   runNodeMechanisticDatasetPackage,
@@ -153,13 +156,21 @@ async function main(): Promise<void> {
       workerHostModuleUrl,
     });
     const source = sourceState();
+    const generationEvidence = buildNodeMechanisticDatasetGenerationEvidence({
+      artifactDirectory,
+      plan: datasetPackage.plan,
+      result,
+      engineCommit: source.commit,
+      repositoryDirty: source.dirty,
+      logicalCpuCount: cpuCount,
+    });
     writeJsonAtomically(resultPath, {
+      schema_version: 1,
       experiment_id: EXPERIMENT_ID,
-      source: {
-        commit: source.commit,
-        repository_dirty: source.dirty,
-      },
-      ...result,
+      status: result.status,
+      package_id: result.packageId,
+      evidence_boundary: result.evidenceBoundary,
+      generation_evidence: generationEvidence,
     });
     if (result.status !== "completed") {
       process.exitCode = 1;

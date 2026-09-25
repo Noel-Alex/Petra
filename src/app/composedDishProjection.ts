@@ -287,7 +287,7 @@ export function projectAuthoritativeComposedDishSnapshot(
   });
   const lineageOriginEvents = projectLineageOriginRenderEvents({
     lineageRegistry: state.lineageRegistry,
-    activeLineageIds: lineageIds,
+    renderLineageIds: lineageIds,
     gridWidth: state.width,
     gridHeight: state.height,
     dishMask: state.mask,
@@ -306,7 +306,7 @@ export function projectAuthoritativeComposedDishSnapshot(
     lineages,
     acceptedInterventionFootprints,
     // Only replay-critical child-lineage origins with exact source cell indices
-    // that remain resolvable in this snapshot's active lineage set become point
+    // that remain resolvable in this snapshot's current render-lineage set become point
     // events. Historical extinct origins stay in replay authority but are not
     // foreign lineage references in the current render transaction.
     events: lineageOriginEvents,

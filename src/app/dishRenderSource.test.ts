@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createRendererDemoSnapshot } from "../render/pixi/demoSnapshot";
+import { FLAGSHIP_ECOLI_ORGANISM_PRESENTATION } from "../render/organismPresentationIdentity";
 import {
   INITIAL_DISH_RENDER_SOURCE_STATE,
   resolveDishRenderSource,
@@ -38,6 +39,7 @@ describe("dish render-source transaction", () => {
     expect(resolved.source).toEqual({
       kind: "awaiting-authoritative-snapshot",
       snapshot: null,
+      organismPresentation: null,
     });
     expect(resolved.state).toBe(INITIAL_DISH_RENDER_SOURCE_STATE);
     expect(factory.calls()).toBe(0);
@@ -61,6 +63,86 @@ describe("dish render-source transaction", () => {
     expect(resolved.source.snapshot).toBe(authoritative);
     expect(resolved.state).toBe(INITIAL_DISH_RENDER_SOURCE_STATE);
     expect(factory.calls()).toBe(0);
+  });
+
+
+  it("binds detached validated organism presentation evidence only to authoritative snapshots", () => {
+    const factory = countingFactory();
+    const authoritative = {
+      ...createRendererDemoSnapshot(12),
+      snapshotId: "authoritative-with-morphology",
+      samplingIdentity: "authoritative-with-morphology",
+    };
+    const rawIdentity = JSON.parse(
+      JSON.stringify(FLAGSHIP_ECOLI_ORGANISM_PRESENTATION),
+    ) as Record<string, unknown>;
+
+    const resolved = resolveDishRenderSource(
+      INITIAL_DISH_RENDER_SOURCE_STATE,
+      {
+        authoritativeSnapshot: authoritative,
+        authoritativeOrganismPresentation: rawIdentity,
+        demoMode: false,
+      },
+      factory.create,
+    );
+
+    expect(resolved.source.kind).toBe("authoritative-snapshot");
+    expect(resolved.source.organismPresentation).toMatchObject({
+      scientificName: "Escherichia coli",
+      background: "K-12 MG1655",
+      organismKind: "bacterium",
+      morphology: "rod",
+    });
+    expect(resolved.source.organismPresentation).not.toBe(rawIdentity);
+    expect(resolved.source.organismPresentation?.provenance.sources).not.toBe(
+      (rawIdentity.provenance as { sources: unknown }).sources,
+    );
+    expect(factory.calls()).toBe(0);
+  });
+
+  it("fails closed on malformed morphology only when authoritative state would consume it", () => {
+    const factory = countingFactory();
+    const authoritative = createRendererDemoSnapshot(12);
+    const malformed = {
+      ...FLAGSHIP_ECOLI_ORGANISM_PRESENTATION,
+      morphology: "guess-from-lineage",
+    };
+
+    expect(() =>
+      resolveDishRenderSource(
+        INITIAL_DISH_RENDER_SOURCE_STATE,
+        {
+          authoritativeSnapshot: authoritative,
+          authoritativeOrganismPresentation: malformed,
+          demoMode: false,
+        },
+        factory.create,
+      ),
+    ).toThrow(/unsupported organism presentation morphology/);
+
+    const demo = resolveDishRenderSource(
+      INITIAL_DISH_RENDER_SOURCE_STATE,
+      {
+        authoritativeSnapshot: null,
+        authoritativeOrganismPresentation: malformed,
+        demoMode: true,
+      },
+      factory.create,
+    );
+    expect(demo.source.kind).toBe("visual-demo");
+    expect(demo.source.organismPresentation).toBeNull();
+
+    const awaiting = resolveDishRenderSource(
+      INITIAL_DISH_RENDER_SOURCE_STATE,
+      {
+        authoritativeSnapshot: null,
+        authoritativeOrganismPresentation: malformed,
+        demoMode: false,
+      },
+      factory.create,
+    );
+    expect(awaiting.source.organismPresentation).toBeNull();
   });
 
   it("creates one visual-demo snapshot and reuses the exact object identity", () => {

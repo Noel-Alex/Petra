@@ -38,6 +38,16 @@ export interface DishRenderPreparationInvalidation {
   readonly representativeGlyphAppearance: boolean;
 }
 
+const ALL_DISH_RENDER_PREPARATION_DIRTY: DishRenderPreparationInvalidation =
+  Object.freeze({
+    fieldRaster: true,
+    densityRaster: true,
+    fieldContours: true,
+    lineageContours: true,
+    representativeGlyphCandidates: true,
+    representativeGlyphAppearance: true,
+  });
+
 export function initialDishRenderPreparationRevision(): DishRenderPreparationRevision {
   return Object.freeze({
     version: DISH_RENDER_PREPARATION_REVISION_VERSION,
@@ -70,22 +80,25 @@ export function advanceDishRenderPreparationRevision(
       revision.overlaySelection,
       "overlaySelection",
     );
-  } else {
+  } else if (change === "organism-presentation") {
     next.organismPresentation = incrementRevision(
       revision.organismPresentation,
       "organismPresentation",
     );
+  } else {
+    throw new RangeError("unsupported dish render preparation change");
   }
 
   return Object.freeze(next);
 }
 
 export function resolveDishRenderPreparationInvalidation(
-  previous: DishRenderPreparationRevision,
+  previous: DishRenderPreparationRevision | null,
   current: DishRenderPreparationRevision,
 ): DishRenderPreparationInvalidation {
-  assertDishRenderPreparationRevision(previous);
   assertDishRenderPreparationRevision(current);
+  if (previous === null) return ALL_DISH_RENDER_PREPARATION_DIRTY;
+  assertDishRenderPreparationRevision(previous);
 
   const scientificFrame =
     previous.scientificFrame !== current.scientificFrame;

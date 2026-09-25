@@ -1959,8 +1959,9 @@ def main() -> int:
         "evidence_boundary": (
             "Headless browser evidence checks layout, accessibility plumbing, motion modes, "
             "input event ownership/cancellation, pointer continuity, screenshots, representative renderer frame/redraw time, WebGL draw-call "
-            "counts from a separate profiled redraw workload, Chromium heap/DOM trends, and "
-            "long-task/GC symptoms where exposed. The GPU "
+            "counts from a separate profiled redraw workload, Chromium heap/DOM trends, long-task/GC symptoms where exposed, and 1x/4x/16x "
+            "accepted-runtime -> dish-projection -> React-publication timing/rate evidence. Publication payload sizes are application-data "
+            "estimates rather than browser transport measurements. The GPU "
             "record is explicitly a canvas/capability proxy, not measured VRAM. Human visible-browser "
             "review remains required for final aesthetic judgment; this run does not validate "
             "scientific correctness or simulator throughput."

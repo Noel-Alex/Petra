@@ -290,6 +290,16 @@ describe("composed dynamic lineage authority", () => {
     expect(() =>
       initializeDynamicLineageAuthority(staleFounders, TAXON_REGISTRY),
     ).toThrow(/content version does not match authoritative registry/);
+
+    const partialFounders: readonly ComposedFounderLineageAuthority[] = [
+      {
+        ...FOUNDERS[0]!,
+        taxonId: "fixture-bacterium",
+      },
+    ];
+    expect(() =>
+      initializeDynamicLineageAuthority(partialFounders, TAXON_REGISTRY),
+    ).toThrow(/requires exact taxon id and content version/);
   });
 
   it("rejects extra runtime roots and persisted hazard drift", () => {

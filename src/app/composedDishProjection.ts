@@ -1,4 +1,5 @@
 import { resolveLineageVisualIdentity } from "../design/lineageIdentity";
+import { projectAcceptedInterventionFootprint } from "../render/acceptedInterventionFootprint";
 import {
   validateRenderSnapshot,
   type DishRenderSnapshot,
@@ -230,6 +231,11 @@ export function projectAuthoritativeComposedDishSnapshot(
     ),
   ];
 
+  const acceptedInterventionFootprints = snapshot.events.flatMap((event) => {
+    const footprint = projectAcceptedInterventionFootprint(event);
+    return footprint === null ? [] : [footprint];
+  });
+
   const projected: DishRenderSnapshot = {
     snapshotId: `composed-trace:${snapshot.traceHash}`,
     samplingIdentity: `runtime-branch:${runBranchIdentity}`,
@@ -240,7 +246,9 @@ export function projectAuthoritativeComposedDishSnapshot(
     biomass,
     fields,
     lineages,
-    // Current protocol events do not carry authoritative dish coordinates.
+    acceptedInterventionFootprints,
+    // Generic lifecycle/mutation events do not carry authoritative dish points.
+    // Accepted spatial interventions are preserved separately as exact footprints.
     // Do not infer positions from command geometry, lineage density, or Pixi state.
     events: [],
   };

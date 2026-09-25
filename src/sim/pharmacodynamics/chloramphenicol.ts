@@ -213,9 +213,10 @@ export function parseChloramphenicolGrowthInhibitionAuthority(
   if (!Array.isArray(root.families) || root.families.length === 0) {
     throw new Error('chloramphenicol authority families must be a non-empty array')
   }
+  const rawFamilies = root.families
   const familyIds = new Set<string>()
-  const families = root.families.map((family, index) => {
-    if (!(index in root.families as unknown[])) {
+  const families = rawFamilies.map((family, index) => {
+    if (!(index in rawFamilies)) {
       throw new Error('chloramphenicol authority families must be dense')
     }
     const parsed = parseFamily(family, index)

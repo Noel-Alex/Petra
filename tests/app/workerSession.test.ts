@@ -358,6 +358,142 @@ describe("worker session", () => {
     expect(session.state.latestSnapshot).toBe(acceptedBaseline);
   });
 
+  it("reconstructs a compact event delta onto the owned immutable baseline", () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+
+    session.enqueue([
+      { protocolVersion: PROTOCOL_VERSION, type: "initialize", identity },
+    ]);
+    const initializedEvent = {
+      sequence: 0,
+      tick: 0,
+      simulationTimeHours: 0,
+      type: "initialized" as const,
+    };
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: {
+        ...snapshot(0),
+        events: [initializedEvent],
+      },
+    });
+
+    const baseline = session.state.latestSnapshot;
+    if (baseline === null) throw new Error("expected baseline snapshot");
+    expect(Object.isFrozen(baseline.events)).toBe(true);
+    expect(Object.isFrozen(baseline.events[0])).toBe(true);
+
+    session.enqueue([
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: { id: "advance-delta", type: "advance", ticks: 1 },
+      },
+    ]);
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      transportVersion: WORKER_EVENT_DELTA_TRANSPORT_VERSION,
+      type: "snapshot-delta",
+      commandId: "advance-delta",
+      previousEventCount: 1,
+      previousTerminalEvent: initializedEvent,
+      currentEventCount: 2,
+      appendedEvents: [
+        {
+          sequence: 1,
+          tick: 1,
+          simulationTimeHours: 1 / 60,
+          type: "advanced",
+          commandId: "advance-delta",
+          value: 1,
+        },
+      ],
+      snapshot: {
+        checkpoint: snapshot(1, 1).checkpoint,
+        traceHash: "delta-trace-1",
+      },
+    });
+
+    expect(session.state.phase).toBe("ready");
+    const accepted = session.state.latestSnapshot;
+    if (accepted === null) throw new Error("expected accepted snapshot");
+    expect(accepted.events).toHaveLength(2);
+    expect(accepted.events[0]).toBe(baseline.events[0]);
+    expect(Object.isFrozen(accepted.events)).toBe(true);
+    expect(Object.isFrozen(accepted.events[1])).toBe(true);
+    expect(accepted.events[1]).toMatchObject({
+      sequence: 1,
+      commandId: "advance-delta",
+    });
+  });
+
+  it("fails closed when a delta retained frontier does not match session history", () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+
+    session.enqueue([
+      { protocolVersion: PROTOCOL_VERSION, type: "initialize", identity },
+    ]);
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: {
+        ...snapshot(0),
+        events: [
+          {
+            sequence: 0,
+            tick: 0,
+            simulationTimeHours: 0,
+            type: "initialized",
+          },
+        ],
+      },
+    });
+
+    session.enqueue([
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: { id: "advance-forged", type: "advance", ticks: 1 },
+      },
+    ]);
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      transportVersion: WORKER_EVENT_DELTA_TRANSPORT_VERSION,
+      type: "snapshot-delta",
+      commandId: "advance-forged",
+      previousEventCount: 1,
+      previousTerminalEvent: {
+        sequence: 0,
+        tick: 0,
+        simulationTimeHours: 0,
+        type: "initialized",
+        commandId: "forged-history",
+      },
+      currentEventCount: 2,
+      appendedEvents: [
+        {
+          sequence: 1,
+          tick: 1,
+          simulationTimeHours: 1 / 60,
+          type: "advanced",
+          commandId: "advance-forged",
+          value: 1,
+        },
+      ],
+      snapshot: {
+        checkpoint: snapshot(1, 1).checkpoint,
+        traceHash: "delta-trace-forged",
+      },
+    });
+
+    expect(session.state.phase).toBe("error");
+    expect(session.state.error).toContain("retained event frontier");
+    expect(session.state.latestSnapshot?.events).toHaveLength(1);
+  });
+
   it("rejects mismatched command responses instead of accepting stale state", () => {
     const port = new FakePort();
     const session = new WorkerSession(port);

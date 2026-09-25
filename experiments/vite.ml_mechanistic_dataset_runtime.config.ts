@@ -30,7 +30,6 @@ function repositoryEntry(name: string): string {
 
 const artifactDir = resolve(requiredEnv("PETRA_LOCAL_ARTIFACT_DIR"));
 const packageEntry = repositoryEntry("PETRA_ML_DATASET_PACKAGE_ENTRY");
-const workerEntry = repositoryEntry("PETRA_ML_DATASET_WORKER_ENTRY");
 
 export default defineConfig({
   build: {
@@ -46,7 +45,10 @@ export default defineConfig({
           "experiments/ml_mechanistic_dataset_runtime.runner.ts",
         ),
         package: packageEntry,
-        worker: workerEntry,
+        worker: resolve(
+          ROOT,
+          "src/ml/node/datasetWorkerExecutor.ts",
+        ),
       },
       output: {
         format: "es",

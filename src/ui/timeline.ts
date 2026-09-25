@@ -82,5 +82,21 @@ function projectEvent(event: SimulationEvent): TimelineEntry {
         `(${intervention.geometry.kind})`,
     }
   }
+  if (event.type === 'model-resource-applied') {
+    const intervention = event.resourceIntervention
+    if (intervention === undefined) {
+      throw new Error(
+        `model-resource event ${event.sequence} is missing intervention authority`,
+      )
+    }
+    return {
+      ...base,
+      kind: 'intervention',
+      label:
+        `Resource ${intervention.blendMode} ` +
+        `${intervention.resourceValue} ${intervention.resourceUnit} ` +
+        `(${intervention.geometry.kind})`,
+    }
+  }
   return { ...base, kind: 'intervention', label: 'Synthetic intervention' }
 }

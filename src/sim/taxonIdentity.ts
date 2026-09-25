@@ -1,5 +1,5 @@
-export const AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION = 1 as const
-export const RUNTIME_LINEAGE_TAXON_MAP_SCHEMA_VERSION = 1 as const
+export const AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION = 2 as const
+export const RUNTIME_LINEAGE_TAXON_MAP_SCHEMA_VERSION = 2 as const
 
 export const AUTHORITATIVE_MICROBIAL_GROUPS = [
   'bacterium',
@@ -15,6 +15,11 @@ export interface AuthoritativeTaxonIdentity {
    * Stable biological/content identity. This is not a renderer token.
    */
   readonly id: string
+  /**
+   * Version of the biological/content record. Together with id this freezes
+   * the meaning of a taxon reference independently from the schema version.
+   */
+  readonly contentVersion: string
   readonly scientificName: string
   readonly background: string
   /**
@@ -43,6 +48,11 @@ export interface RuntimeLineageTaxonMap {
    */
   readonly lineageIds: readonly string[]
   readonly taxonIds: readonly string[]
+  /**
+   * Content versions aligned one-to-one with taxonIds. Persisting only a taxon
+   * id would allow a later registry revision to silently change its meaning.
+   */
+  readonly taxonContentVersions: readonly string[]
 }
 
 function canonicalText(name: string, value: unknown): asserts value is string {
@@ -79,6 +89,7 @@ function cloneTaxon(
   return Object.freeze({
     schemaVersion: AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION,
     id: taxon.id,
+    contentVersion: taxon.contentVersion,
     scientificName: taxon.scientificName,
     background: taxon.background,
     microbialGroup: taxon.microbialGroup,
@@ -97,6 +108,7 @@ export function validateAuthoritativeTaxonIdentity(
     )
   }
   canonicalText('taxon id', taxon.id)
+  canonicalText('taxon contentVersion', taxon.contentVersion)
   canonicalText('taxon scientificName', taxon.scientificName)
   canonicalText('taxon background', taxon.background)
 
@@ -173,9 +185,9 @@ export function createAuthoritativeTaxonRegistry(
   })
 }
 
-function taxonIds(
+function taxonVersionsById(
   registry: AuthoritativeTaxonRegistry,
-): ReadonlySet<string> {
+): ReadonlyMap<string, string> {
   if (
     registry.schemaVersion !== AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION
   ) {
@@ -183,7 +195,10 @@ function taxonIds(
       `unsupported taxon registry schema version: ${registry.schemaVersion}`,
     )
   }
-  const ids = new Set<string>()
+  if (!Array.isArray(registry.taxa)) {
+    throw new Error('taxon registry taxa must be an array')
+  }
+  const versionsById = new Map<string, string>()
   const biologicalIdentities = new Set<string>()
   for (let index = 0; index < registry.taxa.length; index += 1) {
     if (!(index in registry.taxa)) {
@@ -191,10 +206,10 @@ function taxonIds(
     }
     const taxon = registry.taxa[index]!
     validateAuthoritativeTaxonIdentity(taxon)
-    if (ids.has(taxon.id)) {
+    if (versionsById.has(taxon.id)) {
       throw new Error(`duplicate authoritative taxon id: ${taxon.id}`)
     }
-    ids.add(taxon.id)
+    versionsById.set(taxon.id, taxon.contentVersion)
 
     const exactIdentity = JSON.stringify([
       taxon.scientificName,
@@ -207,7 +222,7 @@ function taxonIds(
     }
     biologicalIdentities.add(exactIdentity)
   }
-  return ids
+  return versionsById
 }
 
 export function validateRuntimeLineageTaxonMap(
@@ -224,22 +239,35 @@ export function validateRuntimeLineageTaxonMap(
   }
   denseStringArray('runtime lineage ids', mapping.lineageIds)
   denseStringArray('runtime lineage taxon ids', mapping.taxonIds)
+  denseStringArray(
+    'runtime lineage taxon content versions',
+    mapping.taxonContentVersions,
+  )
 
-  if (mapping.lineageIds.length !== mapping.taxonIds.length) {
+  if (
+    mapping.lineageIds.length !== mapping.taxonIds.length ||
+    mapping.lineageIds.length !== mapping.taxonContentVersions.length
+  ) {
     throw new Error(
-      'runtime lineage ids and taxon ids must have identical lengths',
+      'runtime lineage ids, taxon ids, and taxon content versions must have identical lengths',
     )
   }
   if (new Set(mapping.lineageIds).size !== mapping.lineageIds.length) {
     throw new Error('runtime lineage ids must be unique')
   }
 
-  const knownTaxonIds = taxonIds(registry)
+  const knownTaxonVersions = taxonVersionsById(registry)
   for (let index = 0; index < mapping.taxonIds.length; index += 1) {
     const taxonId = mapping.taxonIds[index]!
-    if (!knownTaxonIds.has(taxonId)) {
+    const expectedContentVersion = knownTaxonVersions.get(taxonId)
+    if (expectedContentVersion === undefined) {
       throw new Error(
         `runtime lineage ${mapping.lineageIds[index]} references unknown taxon ${taxonId}`,
+      )
+    }
+    if (mapping.taxonContentVersions[index] !== expectedContentVersion) {
+      throw new Error(
+        `runtime lineage ${mapping.lineageIds[index]} taxon content version mismatch for ${taxonId}: expected ${expectedContentVersion}, received ${mapping.taxonContentVersions[index]}`,
       )
     }
   }
@@ -269,16 +297,29 @@ export function createRuntimeLineageTaxonMap(args: {
   readonly taxonIds: readonly string[]
   readonly registry: AuthoritativeTaxonRegistry
 }): RuntimeLineageTaxonMap {
+  const knownTaxonVersions = taxonVersionsById(args.registry)
+  const taxonContentVersions = args.taxonIds.map((taxonId, index) => {
+    canonicalText(`runtime lineage taxon id at index ${index}`, taxonId)
+    const contentVersion = knownTaxonVersions.get(taxonId)
+    if (contentVersion === undefined) {
+      throw new Error(
+        `runtime lineage ${args.lineageIds[index]} references unknown taxon ${taxonId}`,
+      )
+    }
+    return contentVersion
+  })
   const mapping: RuntimeLineageTaxonMap = {
     schemaVersion: RUNTIME_LINEAGE_TAXON_MAP_SCHEMA_VERSION,
     lineageIds: args.lineageIds,
     taxonIds: args.taxonIds,
+    taxonContentVersions,
   }
   validateRuntimeLineageTaxonMap(mapping, args.registry, args.lineageIds)
   return Object.freeze({
     schemaVersion: RUNTIME_LINEAGE_TAXON_MAP_SCHEMA_VERSION,
     lineageIds: Object.freeze([...args.lineageIds]),
     taxonIds: Object.freeze([...args.taxonIds]),
+    taxonContentVersions: Object.freeze([...taxonContentVersions]),
   })
 }
 
@@ -298,8 +339,9 @@ export function extendRuntimeLineageTaxonMap(args: {
 
   const lineageIds = [...args.current.lineageIds]
   const taxonIds = [...args.current.taxonIds]
+  const taxonContentVersions = [...args.current.taxonContentVersions]
   const seenLineages = new Set(lineageIds)
-  const knownTaxa = taxonIdsForLookup(args.registry)
+  const knownTaxa = taxonVersionsById(args.registry)
 
   for (let index = 0; index < args.appended.length; index += 1) {
     if (!(index in args.appended)) {
@@ -313,7 +355,8 @@ export function extendRuntimeLineageTaxonMap(args: {
         `runtime lineage taxon extension duplicates lineage id: ${entry.lineageId}`,
       )
     }
-    if (!knownTaxa.has(entry.taxonId)) {
+    const contentVersion = knownTaxa.get(entry.taxonId)
+    if (contentVersion === undefined) {
       throw new Error(
         `runtime lineage taxon extension references unknown taxon: ${entry.taxonId}`,
       )
@@ -321,19 +364,23 @@ export function extendRuntimeLineageTaxonMap(args: {
     seenLineages.add(entry.lineageId)
     lineageIds.push(entry.lineageId)
     taxonIds.push(entry.taxonId)
+    taxonContentVersions.push(contentVersion)
   }
 
-  return createRuntimeLineageTaxonMap({
+  const next = createRuntimeLineageTaxonMap({
     lineageIds,
     taxonIds,
     registry: args.registry,
   })
-}
-
-function taxonIdsForLookup(
-  registry: AuthoritativeTaxonRegistry,
-): ReadonlySet<string> {
-  return taxonIds(registry)
+  if (
+    next.taxonContentVersions.length !== taxonContentVersions.length ||
+    next.taxonContentVersions.some(
+      (contentVersion, index) => contentVersion !== taxonContentVersions[index],
+    )
+  ) {
+    throw new Error('runtime lineage taxon extension changed existing content versions')
+  }
+  return next
 }
 
 export function taxonIdForRuntimeLineage(
@@ -364,7 +411,9 @@ export function assertRuntimeLineageTaxonPrefixPreserved(
   for (let index = 0; index < previous.lineageIds.length; index += 1) {
     if (
       previous.lineageIds[index] !== next.lineageIds[index] ||
-      previous.taxonIds[index] !== next.taxonIds[index]
+      previous.taxonIds[index] !== next.taxonIds[index] ||
+      previous.taxonContentVersions[index] !==
+        next.taxonContentVersions[index]
     ) {
       throw new Error(
         `runtime lineage taxon prefix changed at index ${index}`,

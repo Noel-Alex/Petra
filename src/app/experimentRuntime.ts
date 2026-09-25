@@ -27,6 +27,7 @@ import {
   type WorkerSessionState,
 } from "./workerSession";
 import { createRunBranchIdentity } from "./runBranchIdentity";
+import { observeRuntimeSnapshotPublication } from "./renderPublicationPerformance";
 
 export interface RuntimeEcologyObservation {
   readonly runBranchIdentity: string;
@@ -74,6 +75,7 @@ export class ExperimentRuntime {
   private readonly composedConfig: ComposedSimulationConfig | undefined;
   private runBranchGeneration = 0;
   private checkpointHistoryOrigin: CheckpointHistoryOrigin | null = null;
+  private lastPerformanceSnapshot: SimulationSnapshot | null = null;
   private current: ExperimentRuntimeState;
 
   constructor(
@@ -484,6 +486,17 @@ export class ExperimentRuntime {
   }
 
   private publish(): void {
+    const performanceSnapshot = this.current.snapshot;
+    if (performanceSnapshot === null) {
+      this.lastPerformanceSnapshot = null;
+    } else if (performanceSnapshot !== this.lastPerformanceSnapshot) {
+      observeRuntimeSnapshotPublication(
+        performanceSnapshot,
+        this.current.runBranchIdentity,
+      );
+      this.lastPerformanceSnapshot = performanceSnapshot;
+    }
+
     for (const listener of this.listeners) {
       listener(this.current);
     }

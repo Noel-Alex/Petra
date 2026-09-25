@@ -56,10 +56,9 @@
       "issues": [
         890,
         907,
-        946,
-        966
+        946
       ],
-      "reason": "The named E. coli MG1655 + Bacillus subtilis 168 trp+ sigE- authoritative model-unit scenario is implemented under #890 with exact replay-critical taxon revisions and shared-resource/local-capacity competition. Product exposure remains blocked on the registered real-engine validation under #907 and completion/landing of exact Bacillus presentation evidence/binding through #946/#966. Physical glucose/gCDW mapping, direct interaction, Bacillus ciprofloxacin/evolution, and sporulation remain unsupported."
+      "reason": "The named E. coli MG1655 + Bacillus subtilis 168 trp+ sigE- authoritative model-unit scenario is implemented under #890 with exact replay-critical taxon revisions and shared-resource/local-capacity competition. Source-backed Bacillus rod presentation evidence has landed under completed #966/#971, and the generic exact taxon-to-render join has landed under #946; product exposure remains blocked on the registered real-engine validation under #907 plus the final product catalog/selection binding. Physical glucose/gCDW mapping, direct interaction, Bacillus ciprofloxacin/evolution, and sporulation remain unsupported."
     },
     {
       "id": "first-grounded-fungal-competitor",

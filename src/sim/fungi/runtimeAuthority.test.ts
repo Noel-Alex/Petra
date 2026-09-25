@@ -113,13 +113,17 @@ describe('fungal runtime authority envelope', () => {
       }),
     ).toThrow(/unsupported field: rendererHint/)
 
+    const runtimeState = checkpoint.state
+    if (runtimeState === null) {
+      throw new Error('enabled fungal authority unexpectedly initialized null state')
+    }
     expect(() =>
       restoreFungalRuntimeAuthorityCheckpoint(config, {
         ...checkpoint,
         state: {
-          ...checkpoint.state,
+          ...runtimeState,
           checkpoint: {
-            ...checkpoint.state!.checkpoint,
+            ...runtimeState.checkpoint,
             presentationOpacity: 1,
           },
         },

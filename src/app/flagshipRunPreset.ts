@@ -17,6 +17,8 @@ import {
   parseCiprofloxacinToolAuthority,
   type CiprofloxacinToolAuthority,
 } from "./ciprofloxacinToolAuthority";
+import type { ComposedDishOrganismPresentationAuthority } from "./composedDishProjection";
+import { createFlagshipDishOrganismPresentationAuthority } from "./flagshipOrganismPresentationAuthority";
 
 export const FLAGSHIP_RUN_PRESET_SCHEMA_VERSION = 1 as const;
 
@@ -48,6 +50,7 @@ export interface DefaultFlagshipRun {
   readonly plan: FlagshipComposedRunPlan;
   readonly ciprofloxacinToolAuthority: CiprofloxacinToolAuthority;
   readonly ciprofloxacinControlProvenance: FlagshipCiprofloxacinControlProvenance;
+  readonly organismPresentationAuthority: ComposedDishOrganismPresentationAuthority;
 }
 
 type UnknownRecord = Record<string, unknown>;
@@ -277,12 +280,15 @@ export function buildFlagshipRunFromPreset(value: unknown): DefaultFlagshipRun {
   const ciprofloxacinToolAuthority = parseCiprofloxacinToolAuthority(
     ciprofloxacinControl.toolAuthority,
   );
+  const organismPresentationAuthority =
+    createFlagshipDishOrganismPresentationAuthority(plan);
 
   return Object.freeze({
     preset,
     plan,
     ciprofloxacinToolAuthority,
     ciprofloxacinControlProvenance: ciprofloxacinControl.provenance,
+    organismPresentationAuthority,
   });
 }
 

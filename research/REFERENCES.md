@@ -17,6 +17,9 @@
 - Luria, S.E., Delbrück, M. (1943). Mutations of Bacteria from Virus Sensitivity to Virus Resistance. DOI `10.1093/genetics/28.6.491`.
 - Regoes, R.R. et al. (2004). Pharmacodynamic Functions. DOI `10.1128/AAC.48.10.3670-3676.2004`.
 - Marcusson, L.L. et al. (2009). Interplay in the Selection of Fluoroquinolone Resistance and Bacterial Fitness. DOI `10.1371/journal.ppat.1000541`.
+- Khan, D.D. et al. (2015). A mechanism-based pharmacokinetic/pharmacodynamic model allows prediction of antibiotic killing from MIC values for WT and mutants. DOI `10.1093/jac/dkv233`.
+- Nielsen, E.I. et al. (2017). Can a pharmacokinetic/pharmacodynamic (PKPD) model be predictive across bacterial densities and strains? External evaluation of a PKPD model describing longitudinal in vitro data. DOI `10.1093/jac/dkx269`.
+- Das, S.G. et al. (2020). Predictable properties of fitness landscapes induced by adaptational tradeoffs. DOI `10.7554/eLife.55155`. Raw growth-rate dose-response data: Edinburgh DataShare DOI `10.7488/ds/2756`.
 - Andersson, D.I., Hughes, D. (2010). Antibiotic resistance and its cost. DOI `10.1038/nrmicro2319`.
 - Baym, M. et al. (2016). Spatiotemporal microbial evolution on antibiotic landscapes. DOI `10.1126/science.aag0822`.
 - Huseby, D.L. et al. (2017). Mutation Supply and Relative Fitness Shape the Genotypes of Ciprofloxacin-Resistant E. coli. DOI `10.1093/molbev/msx052`.

@@ -23,6 +23,7 @@ import {
 import {
   assessTwoBacteriumSharedResourceValidationEvidence,
   REQUIRED_TWO_BACTERIUM_LIMITATIONS,
+  TWO_BACTERIUM_CONTENT_PACK_UNBOUND_LIMITATION,
   TWO_BACTERIUM_MECHANISM_SCOPE,
   TWO_BACTERIUM_SHARED_RESOURCE_VALIDATION_EXPERIMENT_ID,
   TWO_BACTERIUM_SHARED_RESOURCE_VALIDATION_SCHEMA_VERSION,
@@ -554,9 +555,10 @@ describe.sequential('two-bacterium shared-resource local validation', () => {
           id: referencePlan.identity.scenarioId,
           version: referencePlan.identity.scenarioVersion,
         },
-        contentPack: {
-          id: referencePlan.identity.scenarioId,
-          version: referencePlan.identity.scenarioVersion,
+        contentPack: null,
+        contentPackBinding: {
+          status: 'unbound',
+          limitation: TWO_BACTERIUM_CONTENT_PACK_UNBOUND_LIMITATION,
         },
         configurationFingerprint:
           referencePlan.parameterSetBinding.configurationFingerprint,
@@ -595,7 +597,7 @@ describe.sequential('two-bacterium shared-resource local validation', () => {
         completedAtUtc: new Date().toISOString(),
         localRunId: process.env.PETRA_LOCAL_RUN_ID ?? null,
         contentPackIdentityNote:
-          'No separate executable Bacillus content-pack manifest is invented here. The exact #890 scenario/version is the repository-owned executable content authority consumed by this validation.',
+          'A standalone mixed-species content-pack manifest is not bound in this run. Scenario identity is recorded separately and is never reused as content-pack identity.',
         runtimeMemory: {
           rssStartBytes,
           rssEndBytes: process.memoryUsage().rss,
@@ -608,13 +610,28 @@ describe.sequential('two-bacterium shared-resource local validation', () => {
       writeCompactResult(compactResult)
 
       assert.equal(
-        assessment.accepted,
+        assessment.mechanisticAccepted,
         true,
         [
           ...assessment.structuralErrors,
           ...assessment.rejectionReasons,
         ].join('; '),
       )
+      if (evidence.contentPackBinding.status === 'unbound') {
+        assert.equal(assessment.provenanceComplete, false)
+        assert.equal(assessment.accepted, false)
+        assert.deepStrictEqual(
+          assessment.promotionBlockers,
+          ['content pack manifest is unbound'],
+        )
+      } else {
+        assert.equal(assessment.provenanceComplete, true)
+        assert.equal(
+          assessment.accepted,
+          true,
+          assessment.promotionBlockers.join('; '),
+        )
+      }
       expect(controls).toHaveLength(12)
     } catch (error) {
       writeCompactResult({

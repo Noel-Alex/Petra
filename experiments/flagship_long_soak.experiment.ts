@@ -20,6 +20,8 @@ const EXPERIMENT_ID = 'flagship-long-soak'
 const DEFAULT_SEEDS = [0x5eed1234, 0x5eed1235, 0x5eed1236] as const
 const DEFAULT_TOTAL_TICKS = 1024
 const DEFAULT_CHUNK_TICKS = 64
+const DEFAULT_COMMAND_STRESS_TICKS = 256
+const COMMAND_STRESS_BATCH_TICKS = 64
 
 const ENGINEERING_INITIALIZATION = Object.freeze({
   initialResourceLevel: 8,
@@ -75,6 +77,35 @@ interface SeedSoakResult {
     readonly resourceConsumed: number
     readonly lineageBiomass: Readonly<Record<string, number>>
   }
+}
+
+interface CommandGranularityStressSample {
+  readonly blockIndex: number
+  readonly completedTicks: number
+  readonly batchedCommandCount: number
+  readonly fineCommandCount: number
+  readonly batchedEventCount: number
+  readonly fineEventCount: number
+  readonly batchedEventHistoryJsonBytes: number
+  readonly fineEventHistoryJsonBytes: number
+  readonly batchedBlockWallMs: number
+  readonly fineBlockWallMs: number
+}
+
+interface CommandGranularityStressResult {
+  readonly seed: number
+  readonly totalTicks: number
+  readonly batchTicks: number
+  readonly biologicalContinuationEquivalent: true
+  readonly batchedAdvanceWallMs: number
+  readonly fineAdvanceWallMs: number
+  readonly finalBatchedCommandCount: number
+  readonly finalFineCommandCount: number
+  readonly finalBatchedEventCount: number
+  readonly finalFineEventCount: number
+  readonly finalBatchedEventHistoryJsonBytes: number
+  readonly finalFineEventHistoryJsonBytes: number
+  readonly samples: readonly CommandGranularityStressSample[]
 }
 
 function parsePositiveSafeInteger(
@@ -296,6 +327,163 @@ function writeCompactResult(result: unknown): void {
   renameSync(temporary, output)
 }
 
+function eventHistoryJsonBytes(
+  snapshot: ComposedSimulationSnapshot,
+): number {
+  return Buffer.byteLength(JSON.stringify(snapshot.events), 'utf8')
+}
+
+function assertBiologicalContinuationEquivalent(
+  batched: ComposedSimulationSnapshot,
+  fine: ComposedSimulationSnapshot,
+): void {
+  assert.deepStrictEqual(
+    {
+      identity: batched.checkpoint.identity,
+      tick: batched.checkpoint.tick,
+      simulationTimeHours: batched.checkpoint.simulationTimeHours,
+      rngState: batched.checkpoint.rngState,
+      composedState: batched.checkpoint.composedState,
+      metrics: batched.checkpoint.metrics,
+    },
+    {
+      identity: fine.checkpoint.identity,
+      tick: fine.checkpoint.tick,
+      simulationTimeHours: fine.checkpoint.simulationTimeHours,
+      rngState: fine.checkpoint.rngState,
+      composedState: fine.checkpoint.composedState,
+      metrics: fine.checkpoint.metrics,
+    },
+    'advance-command granularity changed biological continuation authority',
+  )
+}
+
+function runCommandGranularityStress(
+  seed: number,
+  totalTicks: number,
+  batchTicks: number,
+): CommandGranularityStressResult {
+  if (
+    !Number.isSafeInteger(totalTicks) ||
+    totalTicks <= 0 ||
+    !Number.isSafeInteger(batchTicks) ||
+    batchTicks <= 1 ||
+    batchTicks > totalTicks
+  ) {
+    throw new Error(
+      'command-granularity stress requires positive safe total ticks and a batch size in [2, totalTicks]',
+    )
+  }
+
+  const initialization: FlagshipRunInitialization = {
+    seed,
+    initialResourceLevel: ENGINEERING_INITIALIZATION.initialResourceLevel,
+    inocula: ENGINEERING_INITIALIZATION.inocula,
+  }
+  const plan = buildFlagshipComposedRunPlan(initialization)
+  const batched = new ComposedSimulationEngine(plan.identity, plan.config)
+  const fine = new ComposedSimulationEngine(plan.identity, plan.config)
+
+  let completedTicks = 0
+  let blockIndex = 0
+  let batchedAdvanceWallMs = 0
+  let fineAdvanceWallMs = 0
+  let batchedSnapshot = batched.snapshot()
+  let fineSnapshot = fine.snapshot()
+  const samples: CommandGranularityStressSample[] = []
+
+  while (completedTicks < totalTicks) {
+    const ticksThisBlock = Math.min(batchTicks, totalTicks - completedTicks)
+
+    const batchedStartedAt = performance.now()
+    batchedSnapshot = batched.execute({
+      id: `command-stress-${seed}-batched-${blockIndex}`,
+      type: 'advance',
+      ticks: ticksThisBlock,
+    })
+    const batchedBlockWallMs = performance.now() - batchedStartedAt
+    batchedAdvanceWallMs += batchedBlockWallMs
+
+    const fineStartedAt = performance.now()
+    for (let localTick = 0; localTick < ticksThisBlock; localTick += 1) {
+      fineSnapshot = fine.execute({
+        id: `command-stress-${seed}-fine-${completedTicks + localTick}`,
+        type: 'advance',
+        ticks: 1,
+      })
+    }
+    const fineBlockWallMs = performance.now() - fineStartedAt
+    fineAdvanceWallMs += fineBlockWallMs
+    completedTicks += ticksThisBlock
+
+    validateSnapshot(batchedSnapshot)
+    validateSnapshot(fineSnapshot)
+    assertBiologicalContinuationEquivalent(batchedSnapshot, fineSnapshot)
+
+    const expectedBatchedCommandCount = blockIndex + 1
+    if (batchedSnapshot.checkpoint.commandCount !== expectedBatchedCommandCount) {
+      throw new Error(
+        `batched command count expected ${expectedBatchedCommandCount}, received ${batchedSnapshot.checkpoint.commandCount}`,
+      )
+    }
+    if (fineSnapshot.checkpoint.commandCount !== completedTicks) {
+      throw new Error(
+        `fine command count expected ${completedTicks}, received ${fineSnapshot.checkpoint.commandCount}`,
+      )
+    }
+    if (
+      batchedSnapshot.events.length !==
+      batchedSnapshot.checkpoint.commandCount + 1
+    ) {
+      throw new Error(
+        'batched event history must retain one initialization event plus one event per accepted command',
+      )
+    }
+    if (
+      fineSnapshot.events.length !==
+      fineSnapshot.checkpoint.commandCount + 1
+    ) {
+      throw new Error(
+        'fine event history must retain one initialization event plus one event per accepted command',
+      )
+    }
+
+    samples.push({
+      blockIndex,
+      completedTicks,
+      batchedCommandCount: batchedSnapshot.checkpoint.commandCount,
+      fineCommandCount: fineSnapshot.checkpoint.commandCount,
+      batchedEventCount: batchedSnapshot.events.length,
+      fineEventCount: fineSnapshot.events.length,
+      batchedEventHistoryJsonBytes: eventHistoryJsonBytes(batchedSnapshot),
+      fineEventHistoryJsonBytes: eventHistoryJsonBytes(fineSnapshot),
+      batchedBlockWallMs,
+      fineBlockWallMs,
+    })
+    blockIndex += 1
+  }
+
+  const finalBatchedEventHistoryJsonBytes =
+    eventHistoryJsonBytes(batchedSnapshot)
+  const finalFineEventHistoryJsonBytes = eventHistoryJsonBytes(fineSnapshot)
+
+  return {
+    seed,
+    totalTicks,
+    batchTicks,
+    biologicalContinuationEquivalent: true,
+    batchedAdvanceWallMs,
+    fineAdvanceWallMs,
+    finalBatchedCommandCount: batchedSnapshot.checkpoint.commandCount,
+    finalFineCommandCount: fineSnapshot.checkpoint.commandCount,
+    finalBatchedEventCount: batchedSnapshot.events.length,
+    finalFineEventCount: fineSnapshot.events.length,
+    finalBatchedEventHistoryJsonBytes,
+    finalFineEventHistoryJsonBytes,
+    samples,
+  }
+}
+
 function runSeed(
   seed: number,
   totalTicks: number,
@@ -466,6 +654,16 @@ describe.sequential('flagship long-soak local experiment', () => {
         'PETRA_SOAK_CHUNK_TICKS must be smaller than PETRA_SOAK_TOTAL_TICKS',
       )
     }
+    const commandStressTicks = parsePositiveSafeInteger(
+      'PETRA_SOAK_COMMAND_STRESS_TICKS',
+      process.env.PETRA_SOAK_COMMAND_STRESS_TICKS,
+      DEFAULT_COMMAND_STRESS_TICKS,
+    )
+    if (commandStressTicks < COMMAND_STRESS_BATCH_TICKS) {
+      throw new Error(
+        'PETRA_SOAK_COMMAND_STRESS_TICKS must be at least COMMAND_STRESS_BATCH_TICKS',
+      )
+    }
 
     const startedAt = new Date().toISOString()
     const results: SeedSoakResult[] = []
@@ -474,6 +672,16 @@ describe.sequential('flagship long-soak local experiment', () => {
       for (const seed of seeds) {
         results.push(runSeed(seed, totalTicks, chunkTicks))
       }
+
+      const stressSeed = seeds[0]
+      if (stressSeed === undefined) {
+        throw new Error('command-granularity stress requires at least one seed')
+      }
+      const commandGranularityStress = runCommandGranularityStress(
+        stressSeed,
+        commandStressTicks,
+        COMMAND_STRESS_BATCH_TICKS,
+      )
 
       const totalAdvanceWallMs = results.reduce(
         (sum, result) => sum + result.advanceWallMs,
@@ -501,7 +709,7 @@ describe.sequential('flagship long-soak local experiment', () => {
       )
 
       const compactResult = {
-        schema_version: 1,
+        schema_version: 2,
         experiment_id: EXPERIMENT_ID,
         status: 'passed',
         started_at_utc: startedAt,
@@ -514,6 +722,8 @@ describe.sequential('flagship long-soak local experiment', () => {
           seeds,
           total_ticks_per_seed: totalTicks,
           chunk_ticks: chunkTicks,
+          command_stress_ticks: commandStressTicks,
+          command_stress_batch_ticks: COMMAND_STRESS_BATCH_TICKS,
           simulated_hours_per_seed:
             results[0]?.simulatedHours ?? null,
         },
@@ -551,11 +761,14 @@ describe.sequential('flagship long-soak local experiment', () => {
             'No device tier threshold is encoded before laptop evidence is reviewed under #558.',
         },
         seeds: results,
+        command_granularity_stress: commandGranularityStress,
         limitations: [
           'This experiment measures direct authoritative composed-engine execution, not browser Worker queue latency or renderer FPS.',
           'Node process memory samples are observational snapshots, not profiler-grade retained-object attribution.',
           'The engineering flagship resource field remains model-resource and is not a physical concentration calibration.',
           'Event history growth is measured but this experiment does not claim a bounded-retention policy exists.',
+          'The command-granularity comparison isolates accepted-command/snapshot-history pressure at equal biological endpoints, but its wall-time delta is not a retained-object profiler or browser Worker measurement.',
+          'Serialized event-history bytes are exact UTF-8 JSON evidence for the event payload only; they are not a claim about JavaScript heap object size or structured-clone overhead.',
         ],
       }
 
@@ -570,6 +783,20 @@ describe.sequential('flagship long-soak local experiment', () => {
           (result) => result.eventsPerAcceptedAdvanceCommand === 1,
         ),
       ).toBe(true)
+      expect(commandGranularityStress.biologicalContinuationEquivalent).toBe(
+        true,
+      )
+      expect(commandGranularityStress.finalFineEventCount).toBe(
+        commandGranularityStress.finalFineCommandCount + 1,
+      )
+      expect(commandGranularityStress.finalBatchedEventCount).toBe(
+        commandGranularityStress.finalBatchedCommandCount + 1,
+      )
+      expect(
+        commandGranularityStress.finalFineEventHistoryJsonBytes,
+      ).toBeGreaterThan(
+        commandGranularityStress.finalBatchedEventHistoryJsonBytes,
+      )
     } catch (error) {
       writeCompactResult({
         schema_version: 1,
@@ -582,6 +809,8 @@ describe.sequential('flagship long-soak local experiment', () => {
           seeds,
           total_ticks_per_seed: totalTicks,
           chunk_ticks: chunkTicks,
+          command_stress_ticks: commandStressTicks,
+          command_stress_batch_ticks: COMMAND_STRESS_BATCH_TICKS,
         },
         completed_seed_results: results,
         failure: {

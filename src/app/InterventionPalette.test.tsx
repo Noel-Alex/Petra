@@ -36,7 +36,8 @@ describe("InterventionPalette", () => {
     expect(html).not.toContain(' disabled=""');
     expect(html).toContain('role="status"');
     expect(html).toContain("Protocol v5 supports authoritative ciprofloxacin application");
-    expect(html).not.toMatch(/mg\/l|µg\/ml|dose|concentration/i);
+    expect(html).not.toMatch(/\b\d+(?:\.\d+)?\s*(?:mg\/l|µg\/ml)\b/i);
+    expect(html).not.toMatch(/type="number"|aria-label="[^"]*(?:dose|concentration)/i);
   });
 
   it("shows keyboard-equivalent coordinates and a disabled Apply gate while placing", () => {

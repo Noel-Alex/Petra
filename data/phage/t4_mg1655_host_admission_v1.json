@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "t4-dsm4505_flagship-mg1655-wt-host-admission-v1",
+  "phage": {
+    "lifeHistoryEvidenceId": "t4-dsm4505_ecoli-k12-mg1655-dsm18039_nabergoj-2018",
+    "name": "T4",
+    "collectionId": "DSM 4505"
+  },
+  "sourceHost": {
+    "scientificName": "Escherichia coli",
+    "background": "K-12 MG1655",
+    "collectionId": "DSM 18039"
+  },
+  "runtimeHost": {
+    "taxonId": "ecoli-k12-mg1655",
+    "taxonContentVersion": "1.0.0",
+    "scientificName": "Escherichia coli",
+    "background": "K-12 MG1655 for curated resistance phenotypes",
+    "genotypeId": "WT"
+  },
+  "admissionRule": "exact-runtime-taxon-content-and-genotype",
+  "provenance": {
+    "classification": "transferred",
+    "sourceKeys": [
+      "nabergoj_2018_t4_mg1655",
+      "marcusson_2009"
+    ],
+    "limitation": "T4 DSM 4505 life-history evidence is measured against E. coli K-12 MG1655 DSM 18039 in the Nabergoj chemostat context. Petra v1 conservatively binds that host background only to the exact flagship ecoli-k12-mg1655@1.0.0 WT runtime identity. This does not establish T4 susceptibility for ciprofloxacin-resistance genotypes, other MG1655 content revisions, Bacillus, other taxa, or any genotype-specific receptor phenotype."
+  }
+}

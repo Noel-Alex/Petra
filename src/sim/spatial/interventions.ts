@@ -10,7 +10,8 @@ export type FieldBlendMode = 'set' | 'add'
 export interface WritableScalarField {
   readonly width: number
   readonly height: number
-  readonly values: Float32Array
+  /** Read surface only; write/storage semantics are enforced by set(). */
+  readonly values: ArrayLike<number>
   index(x: number, y: number): number
   isInside(x: number, y: number): boolean
   set(x: number, y: number, value: number): void

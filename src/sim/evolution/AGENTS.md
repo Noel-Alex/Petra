@@ -38,6 +38,11 @@
 - RNG consumption order is replay-sensitive model state. Changing target iteration, draw order, or accelerated sampling can change trajectories and requires engine/version + deterministic-test review.
 - Checkpoint/restore must preserve enough RNG state and evolution state to continue exactly under the same engine/scenario/ordered commands.
 
+## Founder lineage registry genesis
+- `founderLineageRegistry.ts` is the deterministic bridge from ordered static founder definitions to runtime `LineageRegistry` identity. Scenario/config founder IDs remain static definition identity; they are not reused as runtime lineage IDs.
+- Runtime founder lineage IDs come only from registry creation order (`L1`, `L2`, ...), with genesis time `0`, no parent, no mutation class, and no single origin cell. The returned binding preserves the exact founder-definition → runtime-lineage mapping for composed initialization.
+- Restoring the returned checkpoint must preserve allocator continuity so later mutation children continue at the next deterministic registry ID. Duplicate/non-canonical founder definition identity and sparse founder arrays fail closed.
+
 ## Lineage authority
 - Lineage creation/extinction is simulation authority. React, Pixi, renderer samples, animation callbacks, story beats, and UI events may display authoritative lineage events but cannot create or delete biological lineages.
 - Parent lineage identity, genotype, origin time/location, mutation class, and extinction time are authoritative lineage metadata.

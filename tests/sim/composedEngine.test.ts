@@ -30,6 +30,10 @@ import {
 } from '../../src/sim/populationAuthority'
 import { SAMPLING_EXECUTION_POLICY_SCHEMA_VERSION } from '../../src/sim/samplingPolicy'
 import { MUTATION_EXECUTION_POLICY_SCHEMA_VERSION } from '../../src/sim/mutationExecutionPolicy'
+import {
+  AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION,
+  createAuthoritativeTaxonRegistry,
+} from '../../src/sim/taxonIdentity'
 
 const evolutionGraph: CuratedMutationGraph = {
   scenarioId: 'composed-worker-fixture',
@@ -246,6 +250,46 @@ const mutationIdentity = createRunIdentity({
   seed: 0x1234abcd,
 })
 
+const mutationTaxonRegistry = createAuthoritativeTaxonRegistry([
+  {
+    schemaVersion: AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION,
+    id: 'fixture-mutation-bacterium',
+    contentVersion: '1.0.0',
+    scientificName: 'Fixture mutation bacterium',
+    background: 'test strain',
+    microbialGroup: 'bacterium',
+    provenance: {
+      sourceKeys: ['fixture:mutation-taxon'],
+      context: 'Test-only mutation taxon inheritance authority.',
+      limitation: 'Not a scientific Petra content pack.',
+    },
+  },
+])
+
+const taxonMutationConfig: ComposedSimulationConfig = {
+  ...mutationConfig,
+  taxonRegistry: mutationTaxonRegistry,
+  lineages: mutationConfig.lineages.map((lineage) => ({
+    ...lineage,
+    taxonId: 'fixture-mutation-bacterium',
+    taxonContentVersion: '1.0.0',
+  })),
+}
+
+const taxonMutationParameterSetId = 'fixture:composed-mutation-taxon-config'
+const taxonMutationIdentity = createRunIdentity({
+  scenarioId: mutationEvolutionGraph.scenarioId,
+  scenarioVersion: mutationEvolutionGraph.scenarioVersion,
+  parameterSetId: taxonMutationParameterSetId,
+  parameterSetVersion,
+  parameterSetBinding: createFixtureComposedParameterSetBinding(
+    taxonMutationParameterSetId,
+    parameterSetVersion,
+    taxonMutationConfig,
+  ),
+  seed: 0x1234abcd,
+})
+
 
 describe('ComposedSimulationEngine', () => {
   it('requires the declared parameter set to own the exact composed config', () => {
@@ -438,6 +482,32 @@ describe('ComposedSimulationEngine', () => {
       ticks: 1,
     })
     expect(replayed.checkpoint).toEqual(continued.checkpoint)
+  })
+
+  it('inherits exact parent taxon authority onto mutation-created child lineages', () => {
+    const engine = new ComposedSimulationEngine(
+      taxonMutationIdentity,
+      taxonMutationConfig,
+    )
+    const advanced = engine.execute({
+      id: 'mutate-with-taxon',
+      type: 'advance',
+      ticks: 1,
+    })
+    const state = advanced.checkpoint.composedState
+
+    expect(state.lineageIds.length).toBeGreaterThan(1)
+    expect(state.lineageTaxonMap?.lineageIds).toEqual(state.lineageIds)
+    expect(
+      state.lineageTaxonMap?.taxonIds.every(
+        (taxonId) => taxonId === 'fixture-mutation-bacterium',
+      ),
+    ).toBe(true)
+    expect(
+      state.lineageTaxonMap?.taxonContentVersions.every(
+        (version) => version === '1.0.0',
+      ),
+    ).toBe(true)
   })
 
   it('rolls state and RNG back when mutation materialization exceeds runtime work policy', () => {

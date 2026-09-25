@@ -14,7 +14,7 @@ import { assertSimulationSeed } from './seed'
 export { assertSimulationSeed, MAX_SIMULATION_SEED } from './seed'
 
 export const ENGINE_VERSION = 'petra-ts-core/0.1.0' as const
-export const PROTOCOL_VERSION = 5 as const
+export const PROTOCOL_VERSION = 6 as const
 
 export interface RunIdentity {
   engineVersion: typeof ENGINE_VERSION

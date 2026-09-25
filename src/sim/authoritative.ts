@@ -14,6 +14,17 @@ import {
   samplingExecutionPolicyIdentity,
   type SamplingExecutionPolicy,
 } from './samplingPolicy'
+import {
+  advanceDiscretePopulationAuthority,
+  cloneDiscretePopulationAuthorityState,
+  createDiscretePopulationAuthorityState,
+  discretePopulationConfigurationIdentity,
+  restoreDiscretePopulationAuthorityState,
+  type CellEquivalentCalibration,
+  type DiscretePopulationAuthorityConfig,
+  type DiscretePopulationAuthorityState,
+  type DiscretePopulationPolicy,
+} from './populationAuthority'
 import { requireFiniteNonNegativeFloat32 } from './spatial/field'
 import {
   CIPROFLOXACIN_RESOURCE_COMPOSITION_POLICY,
@@ -25,7 +36,7 @@ import {
 } from './pharmacodynamics/ciprofloxacin'
 
 /** Versioned serializable composition boundary. Biological values are caller supplied. */
-export const COMPOSED_STATE_VERSION = 3 as const
+export const COMPOSED_STATE_VERSION = 4 as const
 
 export interface ComposedLineageConfig {
   readonly id: string
@@ -46,6 +57,11 @@ export interface ComposedCiprofloxacinConfig {
   readonly genotypeMicMgPerL: readonly ComposedGenotypeCiprofloxacinMic[]
 }
 
+export interface ComposedDiscretePopulationConfig {
+  readonly calibration: Readonly<CellEquivalentCalibration>
+  readonly policy: Readonly<DiscretePopulationPolicy>
+}
+
 export interface ComposedSimulationConfig {
   readonly width: number
   readonly height: number
@@ -64,6 +80,12 @@ export interface ComposedSimulationConfig {
   /** Explicit null means this run has no ciprofloxacin PD authority. */
   readonly ciprofloxacin: ComposedCiprofloxacinConfig | null
   readonly samplingExecutionPolicy: SamplingExecutionPolicy | null
+  /**
+   * Explicit opt-in shared discrete host/division authority.
+   * Null is the only no-calibration/default state; Petra never invents a
+   * biomass↔cell-equivalent conversion.
+   */
+  readonly populationAuthority: ComposedDiscretePopulationConfig | null
   readonly hoursPerTick: number
 }
 
@@ -78,6 +100,7 @@ export interface ComposedSimulationState {
   resource: number[]
   ciprofloxacinConcentrationMgPerL: number[]
   lineageBiomass: number[][]
+  discretePopulation: DiscretePopulationAuthorityState | null
 }
 
 export interface ComposedMetrics {
@@ -88,6 +111,16 @@ export interface ComposedMetrics {
   readonly divisionBiomass: number
   readonly deathBiomass: number
   readonly resourceConsumed: number
+}
+
+export interface ComposedStepResult {
+  readonly metrics: ComposedMetrics
+  /**
+   * Per-lineage/per-cell safe-integer division opportunities for this exact
+   * ecology step, or null when no population calibration is enabled.
+   */
+  readonly divisionOpportunities: readonly (readonly number[])[] | null
+  readonly totalDivisionOpportunities: number | null
 }
 
 function finiteNonNegative(name: string, value: number): void {
@@ -276,6 +309,25 @@ function composedCiprofloxacinIdentity(
   }
 }
 
+function composedDiscretePopulationAuthorityConfig(
+  config: ComposedSimulationConfig,
+): DiscretePopulationAuthorityConfig | null {
+  if (config.populationAuthority === undefined) {
+    throw new Error(
+      'composed populationAuthority must be explicit config or explicit null',
+    )
+  }
+  if (config.populationAuthority === null) return null
+  return {
+    width: config.width,
+    height: config.height,
+    mask: config.mask,
+    lineageIds: config.lineages.map((lineage) => lineage.id),
+    calibration: config.populationAuthority.calibration,
+    policy: config.populationAuthority.policy,
+  }
+}
+
 function validateConfig(config: ComposedSimulationConfig): void {
   if (
     !Number.isSafeInteger(config.width) ||
@@ -331,6 +383,10 @@ function validateConfig(config: ComposedSimulationConfig): void {
   lineageFitness(config)
   const ciprofloxacin = composedCiprofloxacinIdentity(config.ciprofloxacin)
   composedSamplingPolicyIdentity(config.samplingExecutionPolicy)
+  const populationAuthority = composedDiscretePopulationAuthorityConfig(config)
+  if (populationAuthority !== null) {
+    discretePopulationConfigurationIdentity(populationAuthority)
+  }
 
   const knownGenotypes = new Set(
     config.evolutionGraph.genotypes.map((genotype) => genotype.id),
@@ -461,6 +517,12 @@ export function composedConfigurationFingerprint(
     samplingExecutionPolicy: composedSamplingPolicyIdentity(
       config.samplingExecutionPolicy,
     ),
+    populationAuthority:
+      config.populationAuthority === null
+        ? null
+        : discretePopulationConfigurationIdentity(
+            composedDiscretePopulationAuthorityConfig(config)!,
+          ),
     lineages: config.lineages.map((lineage, index) => ({
       id: lineage.id,
       genotypeId: lineage.genotypeId,
@@ -475,6 +537,10 @@ export function createComposedState(
   config: ComposedSimulationConfig,
 ): ComposedSimulationState {
   const configurationFingerprint = composedConfigurationFingerprint(config)
+  const lineageBiomass = config.initialLineageBiomass.map((channel) =>
+    Array.from(channel),
+  )
+  const populationConfig = composedDiscretePopulationAuthorityConfig(config)
   return {
     version: COMPOSED_STATE_VERSION,
     configurationFingerprint,
@@ -491,9 +557,14 @@ export function createComposedState(
           value,
         ),
       ),
-    lineageBiomass: config.initialLineageBiomass.map((channel) =>
-      Array.from(channel),
-    ),
+    lineageBiomass,
+    discretePopulation:
+      populationConfig === null
+        ? null
+        : createDiscretePopulationAuthorityState(
+            populationConfig,
+            lineageBiomass,
+          ),
   }
 }
 
@@ -606,6 +677,28 @@ export function validateComposedStateAgainstConfig(
     state.lineageBiomass,
     config.growth.localCapacity,
   )
+
+  const populationConfig = composedDiscretePopulationAuthorityConfig(config)
+  if (populationConfig === null) {
+    if (state.discretePopulation !== null) {
+      throw new Error(
+        'composed discrete population state requires explicit population authority configuration',
+      )
+    }
+  } else {
+    if (state.discretePopulation === null) {
+      throw new Error(
+        'composed population authority configuration requires checkpoint state',
+      )
+    }
+    // This validates both the population config identity/container domain and
+    // standing host/residual consistency against the exact committed biomass.
+    restoreDiscretePopulationAuthorityState(
+      state.discretePopulation,
+      populationConfig,
+      state.lineageBiomass,
+    )
+  }
 }
 
 function asEcologyState(state: ComposedSimulationState): EcologyState {
@@ -712,10 +805,10 @@ function preparedLineageParameters(
   return lineageParameters
 }
 
-export function stepComposedState(
+export function stepComposedStateDetailed(
   state: ComposedSimulationState,
   config: ComposedSimulationConfig,
-): ComposedMetrics {
+): ComposedStepResult {
   validateComposedStateAgainstConfig(state, config)
 
   const ecology = asEcologyState(state)
@@ -727,8 +820,44 @@ export function stepComposedState(
     config.hoursPerTick,
   )
 
-  state.resource = Array.from(ecology.resource)
-  state.lineageBiomass = ecology.lineages.map((channel) => Array.from(channel))
+  const nextResource = Array.from(ecology.resource)
+  const nextLineageBiomass = ecology.lineages.map((channel) =>
+    Array.from(channel),
+  )
+
+  const populationConfig = composedDiscretePopulationAuthorityConfig(config)
+  let nextDiscretePopulation: DiscretePopulationAuthorityState | null = null
+  let divisionOpportunities: readonly (readonly number[])[] | null = null
+  let totalDivisionOpportunities: number | null = null
+
+  if (populationConfig !== null) {
+    if (state.discretePopulation === null) {
+      throw new Error(
+        'composed population authority configuration requires checkpoint state',
+      )
+    }
+    const populationAdvance = advanceDiscretePopulationAuthority(
+      state.discretePopulation,
+      populationConfig,
+      {
+        currentLineageBiomass: nextLineageBiomass,
+        divisionBiomass: result.fluxes.divisionBiomass,
+      },
+    )
+    nextDiscretePopulation = populationAdvance.state
+    divisionOpportunities = populationAdvance.divisionOpportunities.map(
+      (channel) => Array.from(channel),
+    )
+    totalDivisionOpportunities =
+      populationAdvance.totalDivisionOpportunities
+  }
+
+  // Publish the continuous ecology and discrete authority together only after
+  // every downstream validation/advance has succeeded. A refusal is therefore
+  // an exact composed-state no-op for direct callers as well as engine commands.
+  state.resource = nextResource
+  state.lineageBiomass = nextLineageBiomass
+  state.discretePopulation = nextDiscretePopulation
 
   const lineageBiomass: Record<string, number> = {}
   config.lineages.forEach((lineage, index) => {
@@ -739,14 +868,25 @@ export function stepComposedState(
   })
 
   return {
-    totalBiomass: result.metrics.totalBiomass,
-    totalResource: sumInMask(state.resource, state.mask),
-    occupiedCells: result.metrics.occupiedCells,
-    lineageBiomass,
-    divisionBiomass: result.metrics.divisionBiomass,
-    deathBiomass: result.metrics.deathBiomass,
-    resourceConsumed: result.metrics.resourceConsumed,
+    metrics: {
+      totalBiomass: result.metrics.totalBiomass,
+      totalResource: sumInMask(state.resource, state.mask),
+      occupiedCells: result.metrics.occupiedCells,
+      lineageBiomass,
+      divisionBiomass: result.metrics.divisionBiomass,
+      deathBiomass: result.metrics.deathBiomass,
+      resourceConsumed: result.metrics.resourceConsumed,
+    },
+    divisionOpportunities,
+    totalDivisionOpportunities,
   }
+}
+
+export function stepComposedState(
+  state: ComposedSimulationState,
+  config: ComposedSimulationConfig,
+): ComposedMetrics {
+  return stepComposedStateDetailed(state, config).metrics
 }
 
 export function cloneComposedState(
@@ -765,5 +905,9 @@ export function cloneComposedState(
       ...state.ciprofloxacinConcentrationMgPerL,
     ],
     lineageBiomass: state.lineageBiomass.map((channel) => [...channel]),
+    discretePopulation:
+      state.discretePopulation === null
+        ? null
+        : cloneDiscretePopulationAuthorityState(state.discretePopulation),
   }
 }

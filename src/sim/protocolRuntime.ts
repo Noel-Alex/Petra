@@ -10,6 +10,9 @@ import {
 } from './parameterSetBinding'
 import { assertCiprofloxacinIntervention } from './ciprofloxacinIntervention'
 import {
+  DISCRETE_POPULATION_AUTHORITY_SCHEMA_VERSION,
+} from './populationAuthority'
+import {
   ENGINE_VERSION,
   PROTOCOL_VERSION,
   type RunIdentity,
@@ -44,7 +47,7 @@ const CIPROFLOXACIN_COMMAND_KEYS = new Set(['id', 'type', 'intervention'])
  * Runtime promotion boundary for successfully deserialized Worker requests.
  *
  * The returned object is the original payload after validation rather than a
- * reconstructed subset, so protocol-v5 composed configuration/binding fields
+ * reconstructed subset, so protocol-v6 composed configuration/binding fields
  * cannot be silently stripped by an older parser.
  */
 export function parseWorkerRequest(
@@ -467,7 +470,105 @@ function parseComposedState(
     }
   }
 
+  const population = parseDiscretePopulationState(
+    record.discretePopulation,
+    record.width,
+    record.height,
+    mask.value,
+    lineageIds.value,
+  )
+  if (!population.ok) {
+    return failure(`.discretePopulation ${population.error}`)
+  }
+
   return { ok: true, value: value as ComposedSimulationState }
+}
+
+function parseDiscretePopulationState(
+  value: unknown,
+  width: number,
+  height: number,
+  mask: readonly number[],
+  lineageIds: readonly string[],
+): ParseResult<unknown> {
+  if (value === null) return { ok: true, value: null }
+
+  const record = asRecord(value)
+  if (record === null) return failure('must be null or an object')
+  if (
+    record.schemaVersion !==
+    DISCRETE_POPULATION_AUTHORITY_SCHEMA_VERSION
+  ) {
+    return failure(
+      `.schemaVersion must equal ${DISCRETE_POPULATION_AUTHORITY_SCHEMA_VERSION}`,
+    )
+  }
+  if (
+    typeof record.configurationIdentity !== 'string' ||
+    record.configurationIdentity.length === 0
+  ) {
+    return failure('.configurationIdentity must be a non-empty string')
+  }
+  if (!isNonNegativeSafeInteger(record.revision)) {
+    return failure('.revision must be a non-negative safe integer')
+  }
+  if (record.width !== width || record.height !== height) {
+    return failure('.width and .height must match composed state dimensions')
+  }
+
+  const ids = parseDenseStringArray(record.lineageIds)
+  if (!ids.ok) return failure(`.lineageIds ${ids.error}`)
+  if (
+    ids.value.length !== lineageIds.length ||
+    ids.value.some((id, index) => id !== lineageIds[index])
+  ) {
+    return failure('.lineageIds must exactly match composed lineage order')
+  }
+
+  const cellCount = width * height
+  for (const [key, predicate] of [
+    ['standingHostCounts', isNonNegativeSafeInteger],
+    [
+      'standingResidualCellEquivalents',
+      (item: unknown) =>
+        isFiniteNonNegative(item) && (item as number) < 1,
+    ],
+    [
+      'divisionResidualCellEquivalents',
+      (item: unknown) =>
+        isFiniteNonNegative(item) && (item as number) < 1,
+    ],
+  ] as const) {
+    const channels = record[key]
+    if (!Array.isArray(channels)) {
+      return failure(`.${key} must be an array`)
+    }
+    if (channels.length !== lineageIds.length) {
+      return failure(`.${key} must contain one channel per lineage`)
+    }
+    for (let lineage = 0; lineage < channels.length; lineage += 1) {
+      if (!(lineage in channels)) {
+        return failure(`.${key} must be dense`)
+      }
+      const channel = parseDenseNumberArray(
+        channels[lineage],
+        cellCount,
+        predicate,
+      )
+      if (!channel.ok) {
+        return failure(`.${key}[${lineage}] ${channel.error}`)
+      }
+      for (let cell = 0; cell < cellCount; cell += 1) {
+        if (mask[cell] === 0 && channel.value[cell] !== 0) {
+          return failure(
+            `.${key}[${lineage}] must be zero outside composed mask`,
+          )
+        }
+      }
+    }
+  }
+
+  return { ok: true, value }
 }
 
 function parseComposedMetrics(

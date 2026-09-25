@@ -547,6 +547,13 @@ def continuous_render_publication_pass(
     """
     checks: list[dict[str, Any]] = []
     install_render_publication_probe(cdp)
+    cdp.eval(
+        """(() => {
+          const state = globalThis.__petraRenderPublicationPerformanceState;
+          if (state) state.maxSamples = 4096;
+          return state?.maxSamples ?? null;
+        })()"""
+    )
 
     for speed in (1, 4, 16):
         current = run_control_state(cdp)

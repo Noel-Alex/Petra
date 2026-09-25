@@ -55,13 +55,13 @@ Status: **candidate/model-family research OFF; numerical authority ready to impl
 
 ## Persistence / tolerance
 
-### Strong mechanism
-Balaban et al. 2004 supports reversible phenotypic persistence distinct from inherited resistance.
+### Selected named evidence pack
+The first bounded persistence authority is **Balaban et al. 2004 type-I hipA7 (MGYA7, MG1655-derived), LBL, 37 °C, 100 µg/mL ampicillin**. The source supports two reversible phenotype compartments inside one genotype, growth-arrested type-I persisters, fresh-LBL Q→N recovery at approximately `0.07 h^-1`, biphasic killing-time validation, and repeat-challenge re-sensitization. See `persistence_tolerance.md` and `data/persistence/ecoli_mg1655_hipa7_balaban_2004_v1.json`.
 
-### Not yet Science-Mode parameterized
-A universal persister switching rate does not exist. Need a named strain/condition/antibiotic experiment for enabled quantitative defaults.
+### Explicit remaining gate
+The source does **not** supply a portable stationary-phase N→Q trigger rate, one universal stationary-phase initial persister fraction, or a mapping from Petra's dimensionless resource field to that trigger. Those quantities remain UNBOUND rather than guessed. Ampicillin response is bound only at the source 100 µg/mL condition; physical transport and other-antibiotic phenotype response are also unbound.
 
-Status: **mechanism ready; preset calibration pending**.
+Status: **named model/context research OFF; source-bounded evidence pack ready for #550 engine implementation/validation; quantitative Science-Mode selection remains gated on stationary-phase initialization/trigger authority and source-survival validation.**
 
 ## Phage
 

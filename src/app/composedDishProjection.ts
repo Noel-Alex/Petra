@@ -1,4 +1,6 @@
 import { resolveLineageVisualIdentity } from "../design/lineageIdentity";
+import type { RuntimeEcologyObservation } from "./experimentRuntime";
+import { projectRuntimeEcologyNetGrowthField } from "./runtimeEcologyRenderField";
 import { projectAcceptedInterventionFootprint } from "../render/acceptedInterventionFootprint";
 import {
   validateRenderSnapshot,
@@ -18,17 +20,20 @@ const CIPROFLOXACIN_UNIT = "mg/L";
 export function projectComposedDishSnapshot(
   snapshot: SimulationSnapshot | null,
   runBranchIdentity: string,
+  ecologyObservation: RuntimeEcologyObservation | null = null,
 ): DishRenderSnapshot | null {
   if (snapshot?.checkpoint.authority !== "composed") return null;
   return projectAuthoritativeComposedDishSnapshot(
     snapshot,
     runBranchIdentity,
+    ecologyObservation,
   );
 }
 
 export function projectAuthoritativeComposedDishSnapshot(
   snapshot: ComposedSimulationSnapshot,
   runBranchIdentity: string,
+  ecologyObservation: RuntimeEcologyObservation | null = null,
 ): DishRenderSnapshot {
   const state = snapshot.checkpoint.composedState;
   const cells = state.width * state.height;
@@ -230,6 +235,13 @@ export function projectAuthoritativeComposedDishSnapshot(
       dishMask,
     ),
   ];
+
+  const netGrowthField = projectRuntimeEcologyNetGrowthField(
+    snapshot,
+    runBranchIdentity,
+    ecologyObservation,
+  );
+  if (netGrowthField !== null) fields.push(netGrowthField);
 
   const acceptedInterventionFootprints = snapshot.events.flatMap((event) => {
     const footprint = projectAcceptedInterventionFootprint(event);

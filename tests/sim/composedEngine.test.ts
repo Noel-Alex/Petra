@@ -16,6 +16,7 @@ import {
   createFixtureComposedParameterSetBinding,
 } from '../../src/sim/parameterSetBinding'
 import { createRunIdentity } from '../../src/sim/protocol'
+import { SimulationRng } from '../../src/sim/rng'
 
 const evolutionGraph: CuratedMutationGraph = {
   scenarioId: 'composed-worker-fixture',
@@ -176,6 +177,35 @@ describe('ComposedSimulationEngine', () => {
     expect(restored.snapshot().checkpoint.identity.parameterSetBinding).toEqual(
       binding,
     )
+  })
+
+  it('seeds, detaches, and checkpoint-restores composed stochastic authority', () => {
+    const source = new ComposedSimulationEngine(identity, config)
+    const initial = source.snapshot().checkpoint
+    expect(initial.rngState).toEqual(new SimulationRng(identity.seed).snapshot())
+
+    ;(initial.rngState as number[])[0] = 0
+    expect(source.snapshot().checkpoint.rngState).toEqual(
+      new SimulationRng(identity.seed).snapshot(),
+    )
+
+    const checkpoint = source.snapshot().checkpoint
+    const restored = new ComposedSimulationEngine(identity, config)
+    restored.execute({ id: 'restore-rng', type: 'restore', checkpoint })
+    expect(restored.snapshot().checkpoint.rngState).toEqual(checkpoint.rngState)
+
+    const corrupt = structuredClone(checkpoint)
+    ;(corrupt.rngState as number[]).fill(0)
+    const target = new ComposedSimulationEngine(identity, config)
+    const before = target.snapshot()
+    expect(() =>
+      target.execute({
+        id: 'restore-corrupt-rng',
+        type: 'restore',
+        checkpoint: corrupt,
+      }),
+    ).toThrow(/RNG state/)
+    expect(target.snapshot()).toEqual(before)
   })
 
   it('advances real composed ecology instead of synthetic fixture state', () => {
@@ -367,6 +397,7 @@ describe('ComposedSimulationEngine', () => {
     const engine = new ComposedSimulationEngine(identity, config)
     const exported = engine.snapshot()
 
+    ;(exported.checkpoint.rngState as number[])[0] = 0
     exported.checkpoint.composedState.resource[0] = 999
     exported.checkpoint.composedState.ciprofloxacinConcentrationMgPerL[0] = 999
     exported.checkpoint.composedState.genotypeIds[0] = 'CORRUPT'
@@ -375,6 +406,7 @@ describe('ComposedSimulationEngine', () => {
     ).L1 = 999
 
     const fresh = engine.snapshot().checkpoint
+    expect(fresh.rngState).toEqual(new SimulationRng(identity.seed).snapshot())
     expect(fresh.composedState.resource[0]).toBe(8)
     expect(fresh.composedState.ciprofloxacinConcentrationMgPerL[0]).toBe(0)
     expect(fresh.composedState.genotypeIds[0]).toBe('WT')

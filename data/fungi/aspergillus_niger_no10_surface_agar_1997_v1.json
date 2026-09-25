@@ -1,0 +1,300 @@
+{
+  "schemaVersion": 1,
+  "id": "aspergillus-niger-var-hennebergi-no10_surface-agar_larralde-1997_v1",
+  "status": "research-evidence",
+  "organism": {
+    "scientificName": "Aspergillus niger",
+    "sourceTaxonLabel": "Aspergillus niger var. hennebergi",
+    "strain": "no. 10",
+    "collection": "ORSTOM fungal collection, Centre ORSTOM, Montpellier, France",
+    "microbialGroup": "fungus",
+    "growthForm": "filamentous-hyphal"
+  },
+  "sources": [
+    {
+      "key": "larralde_corona_1997_surface_morphometry",
+      "label": "Larralde-Corona, López-Isunza & Viniegra-González (1997)",
+      "doi": "10.1002/(SICI)1097-0290(19971105)56:3<287::AID-BIT6>3.0.CO;2-F",
+      "classification": "measured_and_source_derived",
+      "context": "Aspergillus niger var. hennebergi no. 10, agar-surface cultures with glucose series and C/N 12; lawn and central point inoculation measured different observables."
+    },
+    {
+      "key": "favela_torres_1998_culture_format",
+      "label": "Favela-Torres et al. (1998)",
+      "doi": "10.1016/S0032-9592(97)00032-0",
+      "classification": "measured_context",
+      "context": "Same named Aspergillus niger 10 compared across submerged, agar-surface and solid-state culture formats; used here to preserve culture-format dependence rather than pool parameters."
+    }
+  ],
+  "sourceContext1997": {
+    "glucoseTreatmentsGPerL": [
+      10,
+      40,
+      70,
+      120,
+      200,
+      300
+    ],
+    "carbonNitrogenRatio": 12,
+    "nitrogenSourceRatioUreaToAmmoniumSulfateWw": "4:1",
+    "mediumComponentsGPerL": {
+      "potassiumDihydrogenPhosphate": 0.5,
+      "magnesiumSulfateHeptahydrate": 0.6,
+      "yeastExtract": 0.1,
+      "bacteriologicalAgar": 12
+    },
+    "traceMineralSolutionMlPerL": 2,
+    "petriDishDiameterCm": 9,
+    "mediumVolumeMlPerDish": 15,
+    "replicateCountPerTreatment": 3,
+    "approximateSporesPerPlate": 100000,
+    "sporeProduction": {
+      "medium": "PDA",
+      "temperatureC": 35,
+      "durationDays": 5,
+      "authorityNote": "Spore-production condition only; not promoted into a surface-growth temperature-response parameter."
+    },
+    "experimentalSurfaceGrowthTemperatureC": null,
+    "temperatureLimitation": "Surface-growth temperature is unbound in this record; the curated methods evidence explicitly states 35 C for spore production, not a validated temperature-response domain for experimental plate growth."
+  },
+  "inoculationAuthority": {
+    "lawn": [
+      "dry_weight_biomass_time_course",
+      "observed_specific_growth_rate",
+      "germ_tube_specific_elongation_rate",
+      "hyphal_diameter",
+      "critical_length_before_first_branch"
+    ],
+    "centralPoint": [
+      "colony_radial_extension_rate",
+      "average_distal_hypha_length",
+      "maximum_unbranched_distal_hypha_length"
+    ]
+  },
+  "units": {
+    "glucose": "g/L",
+    "time": "h",
+    "specificRate": "h^-1",
+    "length": "um",
+    "radialExtension": "um/h",
+    "biomassDensity": "mg/cm^2"
+  },
+  "germTubeRows": [
+    {
+      "glucoseGPerL": 10,
+      "specificElongationPerHour": 1.1,
+      "criticalLengthBeforeFirstBranchUm": 461,
+      "initialLengthUm": 6.2,
+      "hyphalDiameterUm": 6.32,
+      "hyphalDiameterSdUm": 0.69,
+      "timeToFirstBranchHours": 6,
+      "saturationLengthUm": 150,
+      "saturationLengthSdUm": 30,
+      "maximumElongationUmPerHour": 183,
+      "maximumElongationSdUmPerHour": 11
+    },
+    {
+      "glucoseGPerL": 40,
+      "specificElongationPerHour": 1,
+      "criticalLengthBeforeFirstBranchUm": 312,
+      "initialLengthUm": 5.6,
+      "hyphalDiameterUm": 5.44,
+      "hyphalDiameterSdUm": 0.9,
+      "timeToFirstBranchHours": 8.6,
+      "saturationLengthUm": 100,
+      "saturationLengthSdUm": 5,
+      "maximumElongationUmPerHour": 119,
+      "maximumElongationSdUmPerHour": 2
+    },
+    {
+      "glucoseGPerL": 70,
+      "specificElongationPerHour": 0.9,
+      "criticalLengthBeforeFirstBranchUm": 277,
+      "initialLengthUm": 5.2,
+      "hyphalDiameterUm": 4.95,
+      "hyphalDiameterSdUm": 0.64,
+      "timeToFirstBranchHours": 8.5,
+      "saturationLengthUm": 130,
+      "saturationLengthSdUm": 40,
+      "maximumElongationUmPerHour": 121,
+      "maximumElongationSdUmPerHour": 16
+    },
+    {
+      "glucoseGPerL": 120,
+      "specificElongationPerHour": 0.8,
+      "criticalLengthBeforeFirstBranchUm": 157,
+      "initialLengthUm": 4.6,
+      "hyphalDiameterUm": 4.85,
+      "hyphalDiameterSdUm": 0.84,
+      "timeToFirstBranchHours": 9.2,
+      "saturationLengthUm": 150,
+      "saturationLengthSdUm": 160,
+      "maximumElongationUmPerHour": 153,
+      "maximumElongationSdUmPerHour": 34
+    },
+    {
+      "glucoseGPerL": 300,
+      "specificElongationPerHour": 0.5,
+      "criticalLengthBeforeFirstBranchUm": 286,
+      "initialLengthUm": 3.4,
+      "hyphalDiameterUm": 3.37,
+      "hyphalDiameterSdUm": 0.36,
+      "timeToFirstBranchHours": 15,
+      "saturationLengthUm": 75,
+      "saturationLengthSdUm": 44,
+      "maximumElongationUmPerHour": 9,
+      "maximumElongationSdUmPerHour": 2
+    }
+  ],
+  "colonyRows": [
+    {
+      "glucoseGPerL": 10,
+      "radialExtensionUmPerHour": 346,
+      "radialExtensionSdQualifier": "standard deviation <2% of value",
+      "averageDistalHyphaLengthUm": 220,
+      "averageDistalHyphaLengthSdUm": 95,
+      "maximumUnbranchedDistalLengthUm": 542,
+      "maximumBiomassDensityMgPerCm2": 2,
+      "radialToDistalRatePerHour": 1.6
+    },
+    {
+      "glucoseGPerL": 40,
+      "radialExtensionUmPerHour": 556,
+      "radialExtensionSdQualifier": "standard deviation <2% of value",
+      "averageDistalHyphaLengthUm": 540,
+      "averageDistalHyphaLengthSdUm": 270,
+      "maximumUnbranchedDistalLengthUm": 1219,
+      "maximumBiomassDensityMgPerCm2": 7.5,
+      "radialToDistalRatePerHour": 1
+    },
+    {
+      "glucoseGPerL": 70,
+      "radialExtensionUmPerHour": 614,
+      "radialExtensionSdQualifier": "standard deviation <2% of value",
+      "averageDistalHyphaLengthUm": 460,
+      "averageDistalHyphaLengthSdUm": 250,
+      "maximumUnbranchedDistalLengthUm": 1200,
+      "maximumBiomassDensityMgPerCm2": 15,
+      "radialToDistalRatePerHour": 1.3
+    },
+    {
+      "glucoseGPerL": 120,
+      "radialExtensionUmPerHour": 580,
+      "radialExtensionSdQualifier": "standard deviation <2% of value",
+      "averageDistalHyphaLengthUm": 450,
+      "averageDistalHyphaLengthSdUm": 230,
+      "maximumUnbranchedDistalLengthUm": 874,
+      "maximumBiomassDensityMgPerCm2": 19,
+      "radialToDistalRatePerHour": 1.3
+    },
+    {
+      "glucoseGPerL": 200,
+      "radialExtensionUmPerHour": 430,
+      "radialExtensionSdQualifier": "standard deviation <2% of value",
+      "averageDistalHyphaLengthUm": 550,
+      "averageDistalHyphaLengthSdUm": 270,
+      "maximumUnbranchedDistalLengthUm": 1340,
+      "maximumBiomassDensityMgPerCm2": null,
+      "radialToDistalRatePerHour": 0.8
+    },
+    {
+      "glucoseGPerL": 300,
+      "radialExtensionUmPerHour": 381,
+      "radialExtensionSdQualifier": "standard deviation <2% of value",
+      "averageDistalHyphaLengthUm": 640,
+      "averageDistalHyphaLengthSdUm": 290,
+      "maximumUnbranchedDistalLengthUm": 1166,
+      "maximumBiomassDensityMgPerCm2": 13,
+      "radialToDistalRatePerHour": 0.6
+    }
+  ],
+  "specificGrowthRows": [
+    {
+      "glucoseGPerL": 10,
+      "observedDryWeightSpecificGrowthPerHour": 0.3,
+      "morphometricCalculatedSpecificGrowthPerHour": 0.31,
+      "calculatedToObservedRatio": 1
+    },
+    {
+      "glucoseGPerL": 40,
+      "observedDryWeightSpecificGrowthPerHour": 0.18,
+      "morphometricCalculatedSpecificGrowthPerHour": 0.16,
+      "calculatedToObservedRatio": 0.8
+    },
+    {
+      "glucoseGPerL": 70,
+      "observedDryWeightSpecificGrowthPerHour": 0.2,
+      "morphometricCalculatedSpecificGrowthPerHour": 0.2,
+      "calculatedToObservedRatio": 1
+    },
+    {
+      "glucoseGPerL": 120,
+      "observedDryWeightSpecificGrowthPerHour": 0.19,
+      "morphometricCalculatedSpecificGrowthPerHour": 0.2,
+      "calculatedToObservedRatio": 1.1
+    },
+    {
+      "glucoseGPerL": 300,
+      "observedDryWeightSpecificGrowthPerHour": 0.09,
+      "morphometricCalculatedSpecificGrowthPerHour": 0.08,
+      "calculatedToObservedRatio": 0.9
+    }
+  ],
+  "sourceDerivedModels1997": {
+    "morphometricSpecificGrowthEquation": "mu_calc = u_r * ln(2) / (L_av * ln(L_av / D_h))",
+    "meanCalculatedToObservedRatio": 0.97,
+    "meanCalculatedToObservedRatioSd": 0.09,
+    "fittedHighGlucoseInhibition": {
+      "muMaxPerHour": 0.3,
+      "muMaxSdPerHour": 0.035,
+      "inhibitionKiGPerL": 132,
+      "inhibitionKiSdGPerL": 52,
+      "classification": "derived_source_model",
+      "limitation": "High-glucose inhibition fit for this source context; Ki is not a Monod half-saturation constant and the fit is not a dynamic local glucose uptake law."
+    }
+  },
+  "cultureFormatContext1998": {
+    "classification": "measured_context_not_pooled",
+    "maximumSpecificGrowthPerHour": {
+      "solidStateAtInitialGlucose50GPerL": 0.323,
+      "agarSurfaceAtInitialGlucose30GPerL": 0.247,
+      "submergedAtInitialGlucose30GPerL": 0.134
+    },
+    "highestInitialGlucoseWithCompleteConsumptionGPerL": {
+      "solidState": 200,
+      "agarSurface": 150,
+      "submerged": 100
+    },
+    "limitation": "Culture-format dependence is a refusal boundary. These values are not averaged with the 1997 agar-plate rows."
+  },
+  "presentationEligibility": {
+    "organismKind": "fungus",
+    "morphology": "filamentous-hyphal",
+    "classification": "measured",
+    "limitation": "Authorizes only a coarse representative hyphal/filamentous presentation; no branch probability, branch angle, anastomosis rate, literal segment identity or biomass-to-hyphal-length conversion."
+  },
+  "runtimeAdmission": {
+    "supportedSubset": [
+      "exact named fungal identity",
+      "fixed source glucose-treatment identity for validation",
+      "point-inoculation colony radial-extension validation",
+      "lawn-inoculation dry-weight and germ-tube validation",
+      "source morphometric equation as validation observable"
+    ],
+    "unbound": [
+      "dynamic local glucose field",
+      "glucose diffusion coefficient in Petra dish",
+      "local glucose uptake law",
+      "glucose-to-biomass yield suitable for Petra spatial state",
+      "stochastic branch-initiation probability",
+      "branch-angle distribution",
+      "anastomosis probability",
+      "biomass-to-total-hyphal-length mapping",
+      "surface-growth temperature response",
+      "pH response",
+      "ciprofloxacin or other antimicrobial response",
+      "direct bacteria-fungus interaction coefficient"
+    ],
+    "unsupportedBehavior": "Unsupported quantities must remain unavailable rather than falling back to generic fungal constants."
+  }
+}

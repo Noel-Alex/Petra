@@ -131,6 +131,12 @@ export class SimulationEngine {
       )
     }
 
+    if (command.type === 'apply-model-resource') {
+      throw new Error(
+        'apply-model-resource is biological authority and is not available in the synthetic fixture engine',
+      )
+    }
+
     if (!Number.isFinite(command.magnitude)) throw new Error('synthetic-pulse.magnitude must be finite')
 
     // Compute and validate the complete transition before mutating live state.

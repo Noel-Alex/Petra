@@ -53,14 +53,6 @@ function deepFreeze<T>(value: T): T {
 
 
 /**
- * Return only the events appended between two engine-owned immutable history
- * arrays when ancestry is provable through appendSimulationEventHistory().
- *
- * This is an internal same-realm provenance check, not a wire identity. It is
- * O(number of newly appended events), never O(total retained history). A
- * restore/rebase/foreign array has no ancestry path and returns null.
- */
-/**
  * Materialize a detached immutable history from a deserialized/full baseline.
  * Ordinary live deltas should use appendSimulationEventHistory directly; this
  * full pass is for initialization/rebase boundaries only.
@@ -75,6 +67,14 @@ export function cloneSimulationEventHistory(
   return history
 }
 
+/**
+ * Return only the events appended between two engine-owned immutable history
+ * arrays when ancestry is provable through appendSimulationEventHistory().
+ *
+ * This is an internal same-realm provenance check, not a wire identity. It is
+ * O(number of newly appended events), never O(total retained history). A
+ * restore/rebase/foreign array has no ancestry path and returns null.
+ */
 export function simulationEventHistoryDelta(
   previous: readonly SimulationEvent[],
   current: readonly SimulationEvent[],

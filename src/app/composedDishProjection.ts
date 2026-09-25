@@ -1,5 +1,6 @@
 import { resolveLineageVisualIdentity } from "../design/lineageIdentity";
 import type { RuntimeEcologyObservation } from "./experimentRuntime";
+import { assertRuntimeLineageDensityPresentationScaleSource } from "./runtimeLineageDensityPresentationScale";
 import {
   projectLineageOrganismPresentations,
   type OrganismPresentationTaxonCatalog,
@@ -76,6 +77,11 @@ export function projectAuthoritativeComposedDishSnapshot(
         "composed dish projection requires source-owned-fixed model-biomass lineage density scale",
       );
     }
+    assertRuntimeLineageDensityPresentationScaleSource(
+      lineageDensityPresentationScale,
+      snapshot.checkpoint.identity,
+      runBranchIdentity,
+    );
   }
 
   const state = snapshot.checkpoint.composedState;

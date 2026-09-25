@@ -118,8 +118,29 @@ describe("RegionInspectorPanel", () => {
     expect(html).toContain('data-region-inspector-status="unavailable"');
     expect(html).toContain("Authoritative simulation is not connected.");
     expect(html).toContain('data-readout-empty="true"');
+    expect(html).toContain(
+      '<details class="region-inspector-panel__truth-disclosure">',
+    );
+    expect(html).not.toContain('<details class="region-inspector-panel__truth-disclosure" open');
+    expect(html).toContain("Measurement notes");
     expect(html).not.toContain("model-biomass");
     expect(html).not.toContain("config-fingerprint-v1");
+  });
+
+  it("uses decorative selection art without implying a scientific measurement", () => {
+    const html = renderToStaticMarkup(
+      <RegionInspectorPanel
+        state={unavailableRegionInspector("Choose a point on the dish.")}
+        emptyStateAdornment={<svg data-selection-glyph="true" />}
+      />,
+    );
+
+    expect(html).toContain('data-selection-glyph="true"');
+    expect(html).toContain('class="region-inspector-readout__empty-icon"');
+    expect(html).toContain('aria-hidden="true"');
+    expect(html).toContain("No region selected");
+    expect(html).toContain("Choose a point on the dish.");
+    expect(html).not.toContain("model-biomass");
   });
 
   it("renders pending selection identity without reusing old values", () => {
@@ -148,10 +169,20 @@ describe("RegionInspectorPanel", () => {
     expect(html).toContain('data-region-inspector-status="ready"');
     expect(html).toContain('data-readout-selection-id="region-a"');
     expect(html).toContain('data-readout-stale="false"');
+    expect(html).toContain(
+      "Showing authoritative values for the selected region.",
+    );
     expect(html).toContain("Selected simulation grid cells");
     expect(html).toContain("4.25 model-biomass");
     expect(html).toContain("7.5 model-resource");
     expect(html).toContain("Composed state schema version");
+    expect(html).toContain(
+      '<details class="region-inspector-readout__provenance">',
+    );
+    expect(html).not.toContain(
+      '<details class="region-inspector-readout__provenance" open',
+    );
+    expect(html).toContain("Run provenance");
     expect(html).toContain("config-fingerprint-v1");
     expect(html).toContain('data-lineage-id="ancestor"');
     expect(html).toContain('data-genotype-id="WT"');

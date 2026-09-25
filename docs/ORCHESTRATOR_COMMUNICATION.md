@@ -134,3 +134,13 @@ Contributor: Noel-Alex
 - This PR is an app-shell checkpoint, not completion of #456. Populated reference scenes, authoritative organism geometry, causal motion, and browser/runtime acceptance remain with the renderer/runtime work and its owners.
 
 Contributor: Noel-Alex
+
+
+## 2026-09-25 — default flagship runtime activates against current main
+
+- Recovered the useful #42 engineering run-preset and default-runtime work from the stale v4 branch onto current `main` in `Noel/42-runtime-recovery`. The preset explicitly binds the current protocol-v5/scenario/composed-parameter-set identity and labels seed, model-resource initialization, and founder placement/biomass as engineering run-state choices.
+- The default React mount now creates a fresh, prevalidated composed `ExperimentRuntime` per factory invocation and initializes the real browser Worker. Local browser review confirmed `Run initialized`; one Step advanced the authoritative timeline to `0.02 h` and added `Advanced 1 tick(s)`.
+- The dish remains in its honest waiting state after those authoritative events because the App still does not adapt composed snapshots into `DishRenderSnapshot`. This is a visible runtime-to-renderer projection gap for #457 / renderer integration; no render or biology authority was added here.
+- Local verification: four focused Vitest files passed (10 tests); `python tools/verify.py quick` passed all four registered quick checks; direct `vite build` succeeded. Repository `npm run typecheck` / `npm run build` stop at broad existing TypeScript errors. A separate run including `tests/app/experimentRuntime.test.ts` found 7 failing cases out of 11 on current main; the worker-fixture rejection was reported on #158 and was not changed in this branch. No hosted CI.
+
+Contributor: Noel-Alex

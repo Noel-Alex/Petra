@@ -44,17 +44,46 @@ describe("render payload estimate", () => {
     const estimate = estimateDishRenderSnapshotPayload(fixtureSnapshot());
 
     expect(estimate.gridCellCount).toBe(4);
-    expect(estimate.dishMaskBytes).toBe(4);
-    expect(estimate.biomassBytes).toBe(16);
-    expect(estimate.fieldValueBytes).toBe(16);
-    expect(estimate.lineageDensityBytes).toBe(16);
-    expect(estimate.typedArrayBytes).toBe(52);
+    expect(estimate.dishMaskViewBytes).toBe(4);
+    expect(estimate.biomassViewBytes).toBe(16);
+    expect(estimate.fieldValueReferenceBytes).toBe(16);
+    expect(estimate.lineageDensityReferenceBytes).toBe(16);
+    expect(estimate.typedArrayReferenceBytes).toBe(52);
+    expect(estimate.uniqueTypedArrayViewBytes).toBe(52);
+    expect(estimate.uniqueBackingBufferBytes).toBe(52);
     expect(estimate.estimatedApplicationPayloadBytes).toBe(
-      estimate.typedArrayBytes + estimate.metadataJsonUtf8Bytes,
+      estimate.uniqueBackingBufferBytes + estimate.metadataJsonUtf8Bytes,
     );
   });
 
-  it("counts logical typed-array view bytes rather than backing-buffer capacity", () => {
+  it("does not double-count one typed-array object reused by multiple snapshot properties", () => {
+    const snapshot = fixtureSnapshot();
+    const biomass = snapshot.biomass;
+    const estimate = estimateDishRenderSnapshotPayload({
+      ...snapshot,
+      fields: [
+        ...snapshot.fields,
+        {
+          id: "biomass",
+          kind: "biomass",
+          label: "Biomass",
+          unit: "model-biomass",
+          width: 2,
+          height: 2,
+          values: biomass,
+          rangeMode: "snapshot-extrema",
+          minimum: 0,
+          maximum: 3,
+        },
+      ],
+    });
+
+    expect(estimate.typedArrayReferenceBytes).toBe(68);
+    expect(estimate.uniqueTypedArrayViewBytes).toBe(52);
+    expect(estimate.uniqueBackingBufferBytes).toBe(52);
+  });
+
+  it("separates logical view bytes from larger backing-buffer capacity", () => {
     const snapshot = fixtureSnapshot();
     const backing = new ArrayBuffer(32);
     const logicalView = new Float32Array(backing, 8, 4);
@@ -66,7 +95,9 @@ describe("render payload estimate", () => {
 
     expect(backing.byteLength).toBe(32);
     expect(logicalView.byteLength).toBe(16);
-    expect(estimate.biomassBytes).toBe(16);
+    expect(estimate.biomassViewBytes).toBe(16);
+    expect(estimate.uniqueTypedArrayViewBytes).toBe(52);
+    expect(estimate.uniqueBackingBufferBytes).toBe(68);
   });
 
   it("keeps metadata growth separate from scientific channel bytes", () => {
@@ -87,14 +118,16 @@ describe("render payload estimate", () => {
       ],
     });
 
-    expect(withEvent.typedArrayBytes).toBe(baseline.typedArrayBytes);
+    expect(withEvent.uniqueBackingBufferBytes).toBe(
+      baseline.uniqueBackingBufferBytes,
+    );
     expect(withEvent.metadataJsonUtf8Bytes).toBeGreaterThan(
       baseline.metadataJsonUtf8Bytes,
     );
     expect(withEvent.eventCount).toBe(1);
   });
 
-  it("scales exact typed-array bytes with added fields and lineages", () => {
+  it("scales exact typed-array bytes with added independent fields and lineages", () => {
     const snapshot = fixtureSnapshot();
     const baseline = estimateDishRenderSnapshotPayload(snapshot);
     const expanded = estimateDishRenderSnapshotPayload({
@@ -127,6 +160,8 @@ describe("render payload estimate", () => {
 
     expect(expanded.fieldCount).toBe(2);
     expect(expanded.lineageCount).toBe(2);
-    expect(expanded.typedArrayBytes - baseline.typedArrayBytes).toBe(32);
+    expect(
+      expanded.uniqueBackingBufferBytes - baseline.uniqueBackingBufferBytes,
+    ).toBe(32);
   });
 });

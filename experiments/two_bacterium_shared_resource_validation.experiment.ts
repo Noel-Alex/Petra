@@ -23,6 +23,8 @@ import {
 import {
   assessTwoBacteriumSharedResourceValidationEvidence,
   REQUIRED_TWO_BACTERIUM_LIMITATIONS,
+  TWO_BACTERIUM_CONTENT_PACK_ID,
+  TWO_BACTERIUM_CONTENT_PACK_VERSION,
   TWO_BACTERIUM_MECHANISM_SCOPE,
   TWO_BACTERIUM_SHARED_RESOURCE_VALIDATION_EXPERIMENT_ID,
   TWO_BACTERIUM_SHARED_RESOURCE_VALIDATION_SCHEMA_VERSION,
@@ -555,8 +557,12 @@ describe.sequential('two-bacterium shared-resource local validation', () => {
           version: referencePlan.identity.scenarioVersion,
         },
         contentPack: {
-          id: referencePlan.identity.scenarioId,
-          version: referencePlan.identity.scenarioVersion,
+          id: TWO_BACTERIUM_CONTENT_PACK_ID,
+          version: TWO_BACTERIUM_CONTENT_PACK_VERSION,
+        },
+        contentPackBinding: {
+          status: 'bound',
+          limitation: null,
         },
         configurationFingerprint:
           referencePlan.parameterSetBinding.configurationFingerprint,
@@ -595,7 +601,7 @@ describe.sequential('two-bacterium shared-resource local validation', () => {
         completedAtUtc: new Date().toISOString(),
         localRunId: process.env.PETRA_LOCAL_RUN_ID ?? null,
         contentPackIdentityNote:
-          'No separate executable Bacillus content-pack manifest is invented here. The exact #890 scenario/version is the repository-owned executable content authority consumed by this validation.',
+          `Exact inert content pack ${TWO_BACTERIUM_CONTENT_PACK_ID}@${TWO_BACTERIUM_CONTENT_PACK_VERSION} is bound independently of scenario identity.`,
         runtimeMemory: {
           rssStartBytes,
           rssEndBytes: process.memoryUsage().rss,
@@ -608,13 +614,20 @@ describe.sequential('two-bacterium shared-resource local validation', () => {
       writeCompactResult(compactResult)
 
       assert.equal(
-        assessment.accepted,
+        assessment.mechanisticAccepted,
         true,
         [
           ...assessment.structuralErrors,
           ...assessment.rejectionReasons,
         ].join('; '),
       )
+      assert.equal(assessment.provenanceComplete, true)
+      assert.equal(
+        assessment.accepted,
+        true,
+        assessment.promotionBlockers.join('; '),
+      )
+      assert.deepStrictEqual(assessment.promotionBlockers, [])
       expect(controls).toHaveLength(12)
     } catch (error) {
       writeCompactResult({

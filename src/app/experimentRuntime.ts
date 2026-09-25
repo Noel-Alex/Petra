@@ -2,6 +2,7 @@ import type { ComposedSimulationConfig } from "../sim/authoritative";
 import {
   PROTOCOL_VERSION,
   type RunIdentity,
+  type SimulationCheckpoint,
   type SimulationCommand,
   type SimulationEvent,
   type SimulationSnapshot,
@@ -48,6 +49,11 @@ export type AuthoritativeInterventionCommand = Extract<
 
 export type ExperimentRuntimeListener = (state: ExperimentRuntimeState) => void;
 
+interface CheckpointHistoryOrigin {
+  readonly checkpoint: SimulationCheckpoint;
+  readonly restoreCommandId: string;
+}
+
 /**
  * Framework-neutral orchestration between UI control intent and authoritative
  * worker state. React may subscribe to this object but does not gain authority
@@ -59,6 +65,7 @@ export class ExperimentRuntime {
   private readonly unsubscribeWorker: () => void;
   private readonly composedConfig: ComposedSimulationConfig | undefined;
   private runBranchGeneration = 0;
+  private checkpointHistoryOrigin: CheckpointHistoryOrigin | null = null;
   private current: ExperimentRuntimeState;
 
   constructor(
@@ -143,12 +150,24 @@ export class ExperimentRuntime {
         this.pendingAcceptance.clear();
       }
 
+      if (action.type === "reset" || action.type === "set-seed") {
+        this.checkpointHistoryOrigin = null;
+      }
+
+      const requests =
+        action.type === "replay" && this.checkpointHistoryOrigin !== null
+          ? this.checkpointReplayRequests(
+              planned.state.identity,
+              planned.state.acceptedCommands,
+            )
+          : planned.effect.requests;
+
       const runBranchIdentity = reinitializesRun
         ? this.rotateRunBranchIdentity(planned.state.identity)
         : this.current.runBranchIdentity;
 
       if (action.type !== "replay") {
-        this.stageReplayableCommands(planned.effect.requests);
+        this.stageReplayableCommands(requests);
       }
 
       this.current = {
@@ -159,7 +178,7 @@ export class ExperimentRuntime {
         integrationError: null,
       };
       this.publish();
-      this.session.enqueue(planned.effect.requests);
+      this.session.enqueue(requests);
       return { accepted: true, reason: null };
     }
 
@@ -168,6 +187,71 @@ export class ExperimentRuntime {
       controls: planned.state,
     };
     this.publish();
+    return { accepted: true, reason: null };
+  }
+
+  /**
+   * Starts a fresh command-history generation from an authoritative checkpoint.
+   *
+   * This is the runtime primitive for explicit restore-to-earlier/fork flows.
+   * The checkpoint becomes replay origin authority; later Replay performs
+   * initialize -> same restore -> post-origin accepted commands rather than
+   * silently falling back to genesis.
+   */
+  restoreCheckpoint(checkpoint: SimulationCheckpoint): ControlDispatchResult {
+    if (this.current.worker.phase === "disposed") {
+      return { accepted: false, reason: "disposed" };
+    }
+    if (
+      this.current.integrationError !== null ||
+      this.current.worker.phase === "idle" ||
+      this.current.worker.phase === "error"
+    ) {
+      return { accepted: false, reason: "worker-not-ready" };
+    }
+    if (
+      this.current.worker.phase === "initializing" ||
+      this.current.worker.phase === "pending"
+    ) {
+      return { accepted: false, reason: "worker-busy" };
+    }
+
+    this.assertCheckpointHistoryCompatible(checkpoint);
+
+    const restoreCommandId = this.createCommandId();
+    const origin: CheckpointHistoryOrigin = {
+      checkpoint: structuredClone(checkpoint),
+      restoreCommandId,
+    };
+
+    this.pendingAcceptance.clear();
+    this.checkpointHistoryOrigin = origin;
+    this.current = {
+      ...this.current,
+      controls: {
+        ...this.current.controls,
+        playing: false,
+        acceptedCommands: [],
+      },
+      runBranchIdentity: this.rotateRunBranchIdentity(
+        this.current.controls.identity,
+      ),
+      snapshot: null,
+      timeline: [],
+      integrationError: null,
+    };
+    this.publish();
+    this.session.enqueue([
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: {
+          id: restoreCommandId,
+          type: "restore",
+          checkpoint: structuredClone(origin.checkpoint),
+        },
+      },
+    ]);
     return { accepted: true, reason: null };
   }
 
@@ -241,6 +325,56 @@ export class ExperimentRuntime {
         ? {}
         : { composedConfig: structuredClone(this.composedConfig) }),
     };
+  }
+
+  private checkpointReplayRequests(
+    identity: RunIdentity,
+    acceptedCommands: readonly SimulationCommand[],
+  ): readonly WorkerRequest[] {
+    const origin = this.checkpointHistoryOrigin;
+    if (origin === null) {
+      throw new Error("checkpoint replay origin is unavailable");
+    }
+
+    return [
+      this.initializeRequest(identity),
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: {
+          id: origin.restoreCommandId,
+          type: "restore",
+          checkpoint: structuredClone(origin.checkpoint),
+        },
+      },
+      ...acceptedCommands.map((command) => ({
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command" as const,
+        command: structuredClone(command),
+      })),
+    ];
+  }
+
+  private assertCheckpointHistoryCompatible(
+    checkpoint: SimulationCheckpoint,
+  ): void {
+    const activeIdentity = this.current.controls.identity;
+    if (
+      createRunBranchIdentity(checkpoint.identity, 0) !==
+      createRunBranchIdentity(activeIdentity, 0)
+    ) {
+      throw new Error(
+        "checkpoint identity does not match the active experiment runtime",
+      );
+    }
+
+    const checkpointIsComposed = checkpoint.authority === "composed";
+    const runtimeIsComposed = this.composedConfig !== undefined;
+    if (checkpointIsComposed !== runtimeIsComposed) {
+      throw new Error(
+        "checkpoint authority does not match the active experiment runtime",
+      );
+    }
   }
 
   private stageReplayableCommands(requests: readonly WorkerRequest[]): void {

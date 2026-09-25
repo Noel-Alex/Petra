@@ -286,6 +286,45 @@ describe("authoritative composed dish projection", () => {
   });
 
 
+  it("composes a fresh runtime-bound ecology field into the authoritative dish transaction", () => {
+    const engine = composedEngine();
+    const advanced = engine.execute({
+      id: "advance-with-observation",
+      type: "advance",
+      ticks: 1,
+    });
+    if (
+      advanced.checkpoint.authority !== "composed" ||
+      advanced.ecologyObservation === undefined
+    ) {
+      throw new Error("expected composed advance ecology observation");
+    }
+
+    const dish = projectAuthoritativeComposedDishSnapshot(
+      advanced,
+      "fixture-branch-0",
+      {
+        runBranchIdentity: "fixture-branch-0",
+        envelope: advanced.ecologyObservation,
+      },
+    );
+    expect(
+      dish.fields.find((field) => field.kind === "net-growth"),
+    ).toMatchObject({
+      id: "authoritative-net-local-biomass-rate",
+      unit: "model-biomass/hour",
+      rangeMode: "snapshot-extrema",
+    });
+
+    const plain = engine.snapshot();
+    expect(
+      projectAuthoritativeComposedDishSnapshot(
+        plain,
+        "fixture-branch-0",
+      ).fields.some((field) => field.kind === "net-growth"),
+    ).toBe(false);
+  });
+
   it("rejects cross-channel checkpoint drift before publishing render data", () => {
     const simulation = composedEngine().snapshot();
     if (simulation.checkpoint.authority !== "composed") {

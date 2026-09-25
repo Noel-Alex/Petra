@@ -11,6 +11,7 @@
 - Rosso, L., Lobry, J.R., Bajard, S., Flandrois, J.P. (1995). Convenient Model To Describe the Combined Effects of Temperature and pH on Microbial Growth. DOI `10.1128/AEM.61.2.610-616.1995`.
 - Ginovart, M. et al. (2002). Individual based simulations of bacterial growth on agar plates. DOI `10.1016/S0378-4371(01)00581-7`.
 - Shao, X. et al. (2017). Growth of bacteria in 3-d colonies. DOI `10.1371/journal.pcbi.1005679`.
+- Neidhardt, F.C., Bloch, P.L., Smith, D.F. (1974). Culture Medium for Enterobacteria. DOI `10.1128/jb.119.3.736-747.1974`.
 - Modeling Competitive Mixtures With the Lotka-Volterra Framework for More Complex Fitness Assessment Between Strains (2020). DOI `10.3389/FMICB.2020.572487`.
 
 ## Antibiotic pharmacodynamics/evolution
@@ -65,4 +66,3 @@
 ## ML/surrogates
 - Bridging the gap between mechanistic biological models and machine learning surrogates (2023). DOI `10.1371/journal.pcbi.1010988`.
 - Using Emulation to Engineer and Understand Simulations of Biological Systems (2020). DOI `10.1109/TCBB.2018.2843339`.
-- Neidhardt, F.C., Bloch, P.L., Smith, D.F. (1974). Culture Medium for Enterobacteria. DOI `10.1128/jb.119.3.736-747.1974`.

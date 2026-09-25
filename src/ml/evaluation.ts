@@ -44,6 +44,7 @@ export interface TransitionSeriesRegressionEvaluationRow
   readonly normalizationProfileId: string;
   readonly datasetSchema: MechanisticDatasetSchemaIdentity;
   readonly heldOutSplit: Exclude<DatasetSplit, "train">;
+  readonly sourceSeriesLength: number;
   readonly sourceSnapshotIndex: number;
   readonly targetSnapshotIndex: number;
   readonly sourceTick: number;
@@ -1222,16 +1223,22 @@ function assertTransitionPosition(
   rowIndex: number,
 ): void {
   for (const [label, value] of [
+    ["sourceSeriesLength", row.sourceSeriesLength],
     ["sourceSnapshotIndex", row.sourceSnapshotIndex],
     ["targetSnapshotIndex", row.targetSnapshotIndex],
     ["sourceTick", row.sourceTick],
     ["targetTick", row.targetTick],
   ] as const) {
-    if (!Number.isSafeInteger(value) || value < 0) {
+    if (!Number.isSafeInteger(value) || value < (label === "sourceSeriesLength" ? 1 : 0)) {
       throw new RangeError(
         `transition row ${rowIndex} ${label} must be a non-negative safe integer`,
       );
     }
+  }
+  if (row.sourceSnapshotIndex >= row.sourceSeriesLength) {
+    throw new RangeError(
+      `transition row ${rowIndex} source snapshot must be inside its declared source series`,
+    );
   }
   if (row.targetSnapshotIndex <= row.sourceSnapshotIndex) {
     throw new RangeError(
@@ -1288,6 +1295,17 @@ function validateCompleteTransitionSourceSequence(
   horizonId: string,
   rows: readonly TransitionSeriesRegressionEvaluationRow[],
 ): void {
+  const sourceSeriesLength = rows[0]?.sourceSeriesLength;
+  if (!Number.isSafeInteger(sourceSeriesLength) || sourceSeriesLength <= 0) {
+    throw new RangeError(
+      `trajectory ${trajectoryKey} horizon ${horizonId} has invalid source series length`,
+    );
+  }
+  if (rows.length !== sourceSeriesLength) {
+    throw new RangeError(
+      `trajectory ${trajectoryKey} horizon ${horizonId} has missing source transitions: expected ${sourceSeriesLength}, received ${rows.length}`,
+    );
+  }
   if (rows[0]?.sourceSnapshotIndex !== 0) {
     throw new RangeError(
       `trajectory ${trajectoryKey} horizon ${horizonId} must begin at source snapshot 0`,
@@ -1295,6 +1313,11 @@ function validateCompleteTransitionSourceSequence(
   }
   for (let index = 0; index < rows.length; index += 1) {
     const row = rows[index]!;
+    if (row.sourceSeriesLength !== sourceSeriesLength) {
+      throw new RangeError(
+        `trajectory ${trajectoryKey} horizon ${horizonId} has source-series length drift`,
+      );
+    }
     if (row.sourceSnapshotIndex !== index) {
       throw new RangeError(
         `trajectory ${trajectoryKey} horizon ${horizonId} has a missing source snapshot position before ${row.sourceSnapshotIndex}`,

@@ -36,6 +36,7 @@ const config: ComposedSimulationConfig = {
   evolutionScenario: { scenarioId: 'history-fixture', scenarioVersion: '1' },
   ciprofloxacin: null,
   samplingExecutionPolicy: null,
+  dynamicLineageLossPolicy: null,
   populationAuthority: null,
   hoursPerTick: 0.1,
 }

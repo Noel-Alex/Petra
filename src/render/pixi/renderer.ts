@@ -209,6 +209,7 @@ export async function createPixiDishRenderer(
     requestedOverlayId: string | null,
   ) => {
     const previousSnapshotId = snapshot?.snapshotId ?? null;
+    const previousSamplingIdentity = snapshot?.samplingIdentity ?? null;
     const next = resolveSnapshotOverlayUpdate(
       { snapshot, overlayId },
       nextSnapshot,
@@ -217,7 +218,10 @@ export async function createPixiDishRenderer(
     snapshot = next.snapshot;
     overlayId = next.overlayId;
 
-    if (previousSnapshotId === next.snapshot.snapshotId) {
+    if (
+      previousSnapshotId === next.snapshot.snapshotId &&
+      previousSamplingIdentity === next.snapshot.samplingIdentity
+    ) {
       render();
       return;
     }

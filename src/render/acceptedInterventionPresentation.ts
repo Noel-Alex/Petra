@@ -47,8 +47,8 @@ export function prepareAcceptedInterventionPresentation(
   >,
   policy: AcceptedInterventionPresentationPolicy,
 ): AcceptedInterventionPresentationPlan {
-  assertCanonicalText("snapshotId", snapshot.snapshotId);
-  assertCanonicalText("samplingIdentity", snapshot.samplingIdentity);
+  assertNonEmptyText("snapshotId", snapshot.snapshotId);
+  assertNonEmptyText("samplingIdentity", snapshot.samplingIdentity);
   assertPositiveSafeInteger(
     "maxVisibleFootprints",
     policy.maxVisibleFootprints,
@@ -134,8 +134,8 @@ function assertPositiveSafeInteger(name: string, value: number): void {
   }
 }
 
-function assertCanonicalText(name: string, value: string): void {
-  if (value.length === 0 || value !== value.trim()) {
-    throw new TypeError(name + " must be canonical non-empty text");
+function assertNonEmptyText(name: string, value: string): void {
+  if (value.length === 0) {
+    throw new TypeError(name + " must be non-empty text");
   }
 }

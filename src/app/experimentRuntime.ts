@@ -411,9 +411,15 @@ export class ExperimentRuntime {
     }
 
     const candidate = worker.latestSnapshot;
+    // WorkerSession publishes the same snapshot object while a request is pending
+    // and a fresh cloned object for every accepted response transaction. Trace
+    // identity alone is insufficient here because snapshot-only commands can
+    // legitimately return the same scientific trace while intentionally omitting
+    // step-local observations. Treat the accepted Worker transaction as the
+    // freshness boundary so stale derived observations are cleared immediately.
     const isNewSnapshot =
       candidate !== null &&
-      candidate.traceHash !== this.current.snapshot?.traceHash;
+      candidate !== this.current.worker.latestSnapshot;
 
     if (isNewSnapshot) {
       if (!snapshotMatchesControlIdentity(this.current.controls, candidate)) {

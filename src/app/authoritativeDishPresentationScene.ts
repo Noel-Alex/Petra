@@ -1,5 +1,4 @@
 import type { DishRenderSnapshot } from "../render/model";
-import type { ComposedSimulationConfig } from "../sim/authoritative";
 import type { AspergillusNo10SurfaceCheckpoint } from "../sim/fungi/aspergillusNo10Surface";
 import type { SimulationSnapshot } from "../sim/protocol";
 import {

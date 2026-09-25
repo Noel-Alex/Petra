@@ -33,6 +33,9 @@ Experiment readiness is project work, not an end-of-project cleanup step.
 - Do not discover a known expensive experiment for the first time during final release hours.
 - Render-projection parity evidence is an integrity check, not biological validation. When authoritative JS-number channels are intentionally projected into Float32 renderer storage, verify exact equality to the declared `Math.fround` storage/aggregation policy and report quantization separately; preserve source units and caller-supplied runtime branch/sampling identity, and never reconstruct branch identity from checkpoint fields.
 
+## Prepared fungal validation
+- `fungal-spatial-growth-validation` is a stable long-lead registration even while fungal biology is blocked. Its machine-readable activation/evidence contract lives at `experiments/fungal_spatial_growth_validation.contract.json`. Until #556 approves one named pack and #615 supplies authoritative fungal state, the manifest must remain on `blocked.py`; never substitute generic fungal constants or renderer hyphae merely to make the registration runnable. Activation preserves the stable id and separates replay/numerical correctness, configured-model checks, and source-context validation.
+
 ## Registration contract
 Each manifest experiment must include:
 - stable `id`;

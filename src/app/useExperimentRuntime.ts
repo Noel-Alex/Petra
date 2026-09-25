@@ -5,7 +5,7 @@ import {
   useRef,
   useState,
 } from "react";
-import type { RunIdentity } from "../sim/protocol";
+import type { RunIdentity, SimulationCheckpoint } from "../sim/protocol";
 import type { ExperimentControlAction } from "../ui/experimentControls";
 import {
   type ControlDispatchResult,
@@ -30,6 +30,9 @@ export interface ExperimentRuntimeBinding {
   readonly state: ExperimentRuntimeState | null;
   readonly view: ExperimentRuntimeView;
   dispatch(action: ExperimentControlAction): ControlDispatchResult | null;
+  restoreCheckpoint(
+    checkpoint: SimulationCheckpoint,
+  ): ControlDispatchResult | null;
   /**
    * Explicitly construct a fresh runtime after failure. When a failed runtime
    * already established run identity, recovery refuses a factory result that
@@ -138,6 +141,13 @@ export function useExperimentRuntime(
     [],
   );
 
+  const restoreCheckpoint = useCallback(
+    (checkpoint: SimulationCheckpoint): ControlDispatchResult | null => {
+      return runtimeRef.current?.restoreCheckpoint(checkpoint) ?? null;
+    },
+    [],
+  );
+
   const restart = useCallback((): boolean => {
     if (factory === undefined) return false;
 
@@ -153,7 +163,7 @@ export function useExperimentRuntime(
     [setupFailure, state],
   );
 
-  return { state, view, dispatch, restart };
+  return { state, view, dispatch, restoreCheckpoint, restart };
 }
 
 function sameRunIdentity(left: RunIdentity, right: RunIdentity): boolean {

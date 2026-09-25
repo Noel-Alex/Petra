@@ -193,7 +193,7 @@ describe("first authoritative aggregate dataset package", () => {
     });
     expect(projected.target).toEqual({
       targetSnapshotIndex: 1,
-      targetTick: 2,
+      targetTick: 64,
       targetTimeHours: target.checkpoint.simulationTimeHours,
       forecastHorizonTicks: 64,
       forecastHorizonHours:

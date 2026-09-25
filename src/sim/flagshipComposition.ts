@@ -27,6 +27,12 @@ import {
   CircularScalarField,
   requireFiniteNonNegativeFloat32,
 } from './spatial/field'
+import {
+  AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION,
+  createAuthoritativeTaxonRegistry,
+  type AuthoritativeTaxonIdentity,
+  type AuthoritativeTaxonRegistry,
+} from './taxonIdentity'
 
 export const FLAGSHIP_COMPOSED_PARAMETER_SET_SCHEMA_VERSION = 1 as const
 
@@ -54,7 +60,14 @@ export interface FlagshipComposedRunPlan {
 interface BaselineLineageRecord {
   readonly id: string
   readonly genotypeId: string
+  readonly taxonId: string
+  readonly taxonContentVersion: string
   readonly deathHazardPerHour: number
+}
+
+interface FlagshipTaxonAuthority {
+  readonly taxon: AuthoritativeTaxonIdentity
+  readonly registry: AuthoritativeTaxonRegistry
 }
 
 interface FlagshipComposedParameterSet {
@@ -91,8 +104,26 @@ const PARAMETER_SET_KEYS = new Set([
 const LINEAGE_KEYS = new Set([
   'id',
   'genotypeId',
+  'taxonId',
+  'taxonContentVersion',
   'deathHazardPerHour',
   'provenance',
+])
+
+const TAXON_KEYS = new Set([
+  'schemaVersion',
+  'id',
+  'contentVersion',
+  'scientificName',
+  'background',
+  'microbialGroup',
+  'provenance',
+])
+
+const TAXON_PROVENANCE_KEYS = new Set([
+  'sourceKeys',
+  'context',
+  'limitation',
 ])
 
 const ENGINEERING_DEFAULT_KEYS = new Set([
@@ -164,6 +195,116 @@ function requirePositiveSafeInteger(name: string, value: unknown): number {
   return value
 }
 
+function parseFlagshipTaxonAuthority(
+  value: unknown,
+): FlagshipTaxonAuthority {
+  const organism = requireRecord('scenario.organism', value)
+  const record = requireRecord(
+    'scenario.organism.authoritativeTaxon',
+    organism.authoritativeTaxon,
+  )
+  assertOnlyKnownKeys(
+    'scenario.organism.authoritativeTaxon',
+    record,
+    TAXON_KEYS,
+  )
+  if (record.schemaVersion !== AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION) {
+    throw new Error('unsupported flagship authoritative taxon schema version')
+  }
+
+  const provenance = requireRecord(
+    'scenario.organism.authoritativeTaxon.provenance',
+    record.provenance,
+  )
+  assertOnlyKnownKeys(
+    'scenario.organism.authoritativeTaxon.provenance',
+    provenance,
+    TAXON_PROVENANCE_KEYS,
+  )
+  if (!Array.isArray(provenance.sourceKeys)) {
+    throw new Error(
+      'scenario.organism.authoritativeTaxon.provenance.sourceKeys must be an array',
+    )
+  }
+  const sourceKeys = provenance.sourceKeys.map((sourceKey, index) =>
+    requireCanonicalText(
+      `scenario.organism.authoritativeTaxon.provenance.sourceKeys[${index}]`,
+      sourceKey,
+    ),
+  )
+
+  const microbialGroup = requireCanonicalText(
+    'scenario.organism.authoritativeTaxon.microbialGroup',
+    record.microbialGroup,
+  )
+  if (microbialGroup !== 'bacterium') {
+    throw new Error('flagship E. coli taxon must be a bacterium')
+  }
+
+  const taxon: AuthoritativeTaxonIdentity = {
+    schemaVersion: AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION,
+    id: requireCanonicalText(
+      'scenario.organism.authoritativeTaxon.id',
+      record.id,
+    ),
+    contentVersion: requireCanonicalText(
+      'scenario.organism.authoritativeTaxon.contentVersion',
+      record.contentVersion,
+    ),
+    scientificName: requireCanonicalText(
+      'scenario.organism.authoritativeTaxon.scientificName',
+      record.scientificName,
+    ),
+    background: requireCanonicalText(
+      'scenario.organism.authoritativeTaxon.background',
+      record.background,
+    ),
+    microbialGroup,
+    provenance: {
+      sourceKeys,
+      context: requireCanonicalText(
+        'scenario.organism.authoritativeTaxon.provenance.context',
+        provenance.context,
+      ),
+      ...(provenance.limitation === undefined
+        ? {}
+        : {
+            limitation: requireCanonicalText(
+              'scenario.organism.authoritativeTaxon.provenance.limitation',
+              provenance.limitation,
+            ),
+          }),
+    },
+  }
+
+  const registry = createAuthoritativeTaxonRegistry([taxon])
+  const canonicalTaxon = registry.taxa[0]!
+  if (
+    canonicalTaxon.scientificName !==
+    requireCanonicalText('scenario.organism.name', organism.name)
+  ) {
+    throw new Error(
+      'flagship authoritative taxon scientific name must match scenario organism',
+    )
+  }
+  if (
+    canonicalTaxon.background !==
+    requireCanonicalText(
+      'scenario.organism.genotypeBackground',
+      organism.genotypeBackground,
+    )
+  ) {
+    throw new Error(
+      'flagship authoritative taxon background must match scenario genotype background',
+    )
+  }
+
+  return Object.freeze({
+    taxon: canonicalTaxon,
+    registry,
+  })
+}
+
 function parseBaselineParameterSet(
   value: unknown,
 ): FlagshipComposedParameterSet {
@@ -207,6 +348,14 @@ function parseBaselineParameterSet(
       genotypeId: requireCanonicalText(
         `composedParameterSet.lineages[${index}].genotypeId`,
         lineage.genotypeId,
+      ),
+      taxonId: requireCanonicalText(
+        `composedParameterSet.lineages[${index}].taxonId`,
+        lineage.taxonId,
+      ),
+      taxonContentVersion: requireCanonicalText(
+        `composedParameterSet.lineages[${index}].taxonContentVersion`,
+        lineage.taxonContentVersion,
       ),
       deathHazardPerHour: requireFiniteNonNegative(
         `composedParameterSet.lineages[${index}].deathHazardPerHour`,
@@ -384,6 +533,7 @@ function assertFlagshipReferences(args: {
   resourceContext: ScenarioResourceContext
   executionProfile: EcologyExecutionProjection
   parameterSet: FlagshipComposedParameterSet
+  taxonAuthority: FlagshipTaxonAuthority
 }): void {
   const scenarioId = requireCanonicalText('scenario.id', args.scenario.id)
   const scenarioVersion = requireCanonicalText(
@@ -433,6 +583,16 @@ function assertFlagshipReferences(args: {
   )
   if (args.parameterSet.lossPolicyId !== policyId) {
     throw new Error('composed parameter set must reference the active loss policy')
+  }
+  for (const lineage of args.parameterSet.lineages) {
+    if (
+      lineage.taxonId !== args.taxonAuthority.taxon.id ||
+      lineage.taxonContentVersion !== args.taxonAuthority.taxon.contentVersion
+    ) {
+      throw new Error(
+        'flagship baseline lineage taxon identity must match scenario organism authority',
+      )
+    }
   }
   if (policy.zeroDrugIncrementalLoss !== 0) {
     throw new Error(
@@ -567,6 +727,7 @@ export function buildFlagshipComposedRunPlan(
   const executionProfile = projectEcologyExecutionProfile(
     scenarioRecord.executionProfile,
   )
+  const taxonAuthority = parseFlagshipTaxonAuthority(scenarioRecord.organism)
   const parameterSet = parseBaselineParameterSet(
     scenarioRecord.composedParameterSet,
   )
@@ -576,6 +737,7 @@ export function buildFlagshipComposedRunPlan(
     resourceContext,
     executionProfile,
     parameterSet,
+    taxonAuthority,
   })
 
   const geometry = parseEngineeringGeometry(environment.engineeringDefaults)
@@ -623,6 +785,7 @@ export function buildFlagshipComposedRunPlan(
     initialLineageBiomass,
     growth: { ...executionProfile.growth },
     lineages: parameterSet.lineages.map((lineage) => ({ ...lineage })),
+    taxonRegistry: taxonAuthority.registry,
     evolutionGraph,
     evolutionScenario: {
       scenarioId: evolutionGraph.scenarioId,
@@ -630,7 +793,7 @@ export function buildFlagshipComposedRunPlan(
     },
     ciprofloxacin,
     samplingExecutionPolicy: null,
-  dynamicLineageLossPolicy: null,
+    dynamicLineageLossPolicy: null,
     populationAuthority: null,
     hoursPerTick: executionProfile.hoursPerTick,
   }

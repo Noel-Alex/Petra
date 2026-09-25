@@ -5,7 +5,7 @@ import {
 } from "../render/renderPayloadEstimate";
 import type { SimulationSnapshot } from "../sim/protocol";
 
-export const RENDER_PUBLICATION_PERFORMANCE_SAMPLE_VERSION = 1 as const;
+export const RENDER_PUBLICATION_PERFORMANCE_SAMPLE_VERSION = 2 as const;
 
 /** Correlation fields for the advance-only profiling workload. This tuple is not a globally unique accepted-response id; repeated snapshot-only responses may share it. */
 export interface RenderPublicationTransactionIdentity {
@@ -16,8 +16,21 @@ export interface RenderPublicationTransactionIdentity {
   readonly simulationTimeHours: number;
 }
 
+/**
+ * Exact source-owned load diagnostics copied from the accepted composed checkpoint.
+ *
+ * These fields are observational profiler context, not part of the correlation
+ * identity above. `authoritativeOccupiedCells` counts occupied authoritative
+ * grid cells; it is not a physical cell/CFU count or renderer-derived coverage.
+ */
+export interface RenderPublicationAuthoritativeLoad {
+  readonly authoritativeTotalBiomass: number;
+  readonly authoritativeOccupiedCells: number;
+}
+
 export interface RuntimeSnapshotPublicationSample
-  extends RenderPublicationTransactionIdentity {
+  extends RenderPublicationTransactionIdentity,
+    RenderPublicationAuthoritativeLoad {
   readonly version: typeof RENDER_PUBLICATION_PERFORMANCE_SAMPLE_VERSION;
   readonly phase: "runtime-snapshot-published";
   readonly observedAtMs: number;
@@ -25,7 +38,8 @@ export interface RuntimeSnapshotPublicationSample
 }
 
 export interface DishProjectionPublicationSample
-  extends RenderPublicationTransactionIdentity {
+  extends RenderPublicationTransactionIdentity,
+    RenderPublicationAuthoritativeLoad {
   readonly version: typeof RENDER_PUBLICATION_PERFORMANCE_SAMPLE_VERSION;
   readonly phase: "dish-projection";
   readonly projectionStartedAtMs: number;
@@ -50,7 +64,8 @@ export interface DishProjectionPublicationSample
 }
 
 export interface ReactRenderPublicationCommitSample
-  extends RenderPublicationTransactionIdentity {
+  extends RenderPublicationTransactionIdentity,
+    RenderPublicationAuthoritativeLoad {
   readonly version: typeof RENDER_PUBLICATION_PERFORMANCE_SAMPLE_VERSION;
   readonly phase: "react-dish-committed";
   readonly observedAtMs: number;
@@ -220,7 +235,7 @@ export function observeDishReactCommit(
 function composedTransactionIdentity(
   snapshot: SimulationSnapshot | null,
   runBranchIdentity: string,
-): RenderPublicationTransactionIdentity | null {
+): (RenderPublicationTransactionIdentity & RenderPublicationAuthoritativeLoad) | null {
   if (snapshot?.checkpoint.authority !== "composed") return null;
   const checkpoint = snapshot.checkpoint;
   return {
@@ -229,6 +244,8 @@ function composedTransactionIdentity(
     tick: checkpoint.tick,
     commandCount: checkpoint.commandCount,
     simulationTimeHours: checkpoint.simulationTimeHours,
+    authoritativeTotalBiomass: checkpoint.metrics.totalBiomass,
+    authoritativeOccupiedCells: checkpoint.metrics.occupiedCells,
   };
 }
 

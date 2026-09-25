@@ -15,14 +15,14 @@ The frontend explains and controls the model. It does not become the model.
 
 ## Current implementation boundary
 
-Current `main` already contains a real composed-worker capability alongside the narrow synthetic infrastructure fixture path. `src/sim/protocol.ts` is protocol v6, `src/worker/simulation.worker.ts` selects `ComposedSimulationEngine` when an explicit `composedConfig` is supplied, and composed checkpoints/snapshots carry `authority: 'composed'`.
+Current `main` already contains a real composed-worker capability alongside the narrow synthetic infrastructure fixture path. `src/sim/protocol.ts` is protocol v8, `src/worker/simulation.worker.ts` selects `ComposedSimulationEngine` when an explicit `composedConfig` is supplied, and composed checkpoints/snapshots carry `authority: 'composed'`.
 
 That does **not** mean the flagship product path is complete. Issue #37 now owns the remaining product/flagship activation and integration work rather than the existence of a composed worker loop:
 
-- protocol v6 keeps synthetic and composed authority explicitly distinct; omitted `composedConfig` is the infrastructure/test fixture path, not product biology;
+- protocol v8 keeps synthetic and composed authority explicitly distinct; omitted `composedConfig` is the infrastructure/test fixture path, not product biology;
 - composed runs require a validated parameter-set binding in `RunIdentity`, tying the friendly parameter-set ID/version to the exact deterministic composed-configuration fingerprint;
 - `syntheticPopulation` and `synthetic-pulse` remain explicitly synthetic fixtures and must never be presented or adapted as real biology/interventions;
-- protocol v6 now supplies one real flagship intervention mutation, `apply-ciprofloxacin`; reviewed continuous-biomass → discrete evolution authority, remaining intervention families, and product-default flagship activation remain separate #37/#626 gates;
+- protocol v8 now supplies one real flagship intervention mutation, `apply-ciprofloxacin`; reviewed continuous-biomass → discrete evolution authority, remaining intervention families, and product-default flagship activation remain separate #37/#626 gates;
 - product UI must not invent scientific readouts when the active runtime does not supply the required authoritative records;
 - renderer demo fixtures remain presentation-only and visibly disclosed.
 
@@ -42,7 +42,7 @@ Lineages use compact metadata plus aggregate spatial biomass/density channels. A
 
 ## Worker protocol
 
-### Implemented protocol v6 on current main
+### Implemented protocol v8 on current main
 
 The current versioned types in `src/sim/protocol.ts` define:
 
@@ -64,7 +64,7 @@ Worker → main:
 - `snapshot`;
 - `error`.
 
-Protocol v6 checkpoints are a tagged union: `SyntheticSimulationCheckpoint` is infrastructure-only, while `ComposedSimulationCheckpoint` carries real composed state plus metrics and `authority: 'composed'`. Composed state v4 checkpoints the mutable ciprofloxacin concentration landscape; the config retains the fingerprinted initial landscape and source-backed PD/MIC policy. Composed authority validates its parameter-set/configuration binding, accepts only the typed ciprofloxacin mutation it implements, and rejects synthetic fixture commands. Do not translate inoculation, nutrient, phage, competitor, or other unsupported interactions into `synthetic-pulse` or `apply-ciprofloxacin`.
+Protocol v8 checkpoints are a tagged union: `SyntheticSimulationCheckpoint` is infrastructure-only, while `ComposedSimulationCheckpoint` carries real composed state, metrics, explicit replay-critical `rngState`, and `authority: 'composed'`. Composed state v5 checkpoints the mutable ciprofloxacin concentration landscape; the config retains the fingerprinted initial landscape and source-backed PD/MIC policy. Composed authority validates its parameter-set/configuration binding, accepts only the typed ciprofloxacin mutation it implements, and rejects synthetic fixture commands. Do not translate inoculation, nutrient, phage, competitor, or other unsupported interactions into `synthetic-pulse` or `apply-ciprofloxacin`.
 
 ### Remaining flagship protocol/product integration
 
@@ -105,7 +105,7 @@ Therefore:
 
 - never round, scale, or pass `divisionBiomass` directly into the exact mutation sampler;
 - do not invent a convenience biomass→birth conversion inside composition code;
-- protocol v6/state v4 may enable the reviewed shared population authority only with an explicit calibration/policy; `stepComposedStateDetailed(...)` then exposes its safe-integer per-lineage/per-cell division opportunities while checkpointing carry residuals;
+- protocol v8/state v5 may enable the reviewed shared population authority only with an explicit calibration/policy; `stepComposedStateDetailed(...)` then exposes its safe-integer per-lineage/per-cell division opportunities while checkpointing carry residuals;
 - the bundled flagship remains uncalibrated for cell-equivalents (`populationAuthority: null`), so product/evolution code must not claim discrete cells/divisions for that run until scenario authority supplies the calibration;
 - antibiotic concentration does not directly instruct mutation probability in the current model;
 - any accelerated mutation sampler must be statistically validated against the exact bounded reference path.
@@ -186,7 +186,7 @@ For the flagship projection:
 - source-backed local ecology flux may become `net-growth`/growth-death presentation only under the Layer-2 rules above;
 - a `biomass` overlay may present the authoritative aggregate biomass channel without creating a new scientific measurement;
 - an `uncertainty` overlay exists only when a source supplies an actual numeric uncertainty field. Validation status, provenance class, or UI confidence language is not a substitute uncertainty quantity;
-- a point-shaped render event gets an `x,y` marker only when authoritative source data supplies a point position. Protocol-v6 lifecycle events generally do not carry point positions. Accepted `ciprofloxacin-applied` events are a distinct case: they carry exact normalized `global | radial | stripe | paint` intervention geometry, which is authoritative spatial **footprint** data but is not necessarily a point. Preserve that geometry through `src/render/acceptedInterventionFootprint.ts`; never coerce global/stripe/paint footprints into an invented center. Until a dish-event model explicitly supports footprint-shaped events, the existing point-event list may remain empty. Future mutation/infection point markers still require their own versioned source position authority.
+- a point-shaped render event gets an `x,y` marker only when authoritative source data supplies a point position. Protocol-v8 lifecycle events generally do not carry point positions. Accepted `ciprofloxacin-applied` events are a distinct case: they carry exact normalized `global | radial | stripe | paint` intervention geometry, which is authoritative spatial **footprint** data but is not necessarily a point. Preserve that geometry through `src/render/acceptedInterventionFootprint.ts`; never coerce global/stripe/paint footprints into an invented center. Until a dish-event model explicitly supports footprint-shaped events, the existing point-event list may remain empty. Future mutation/infection point markers still require their own versioned source position authority.
 
 Exact render keyframes preserve biological `simulationTimeHours`, but time is not enough to order history. The app replay bridge binds a render projection to the runtime-owned `runBranchIdentity` plus accepted `commandCount`. `snapshotId`/trace identity may identify the projected state; `samplingIdentity` is presentation-only stability for deterministic representative-glyph sampling and must not be treated as scientific ancestry.
 

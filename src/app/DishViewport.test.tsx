@@ -4,7 +4,20 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { createRendererDemoSnapshot } from "../render/pixi/demoSnapshot";
+import {
+  LINEAGE_DENSITY_PRESENTATION_SCALE_SCHEMA_VERSION,
+  type SourceOwnedFixedLineageDensityPresentationScale,
+} from "../render/lineageDensityScale";
 import { DishViewport } from "./DishViewport";
+
+const FIXED_DENSITY_SCALE: SourceOwnedFixedLineageDensityPresentationScale = {
+  schemaVersion: LINEAGE_DENSITY_PRESENTATION_SCALE_SCHEMA_VERSION,
+  mode: "source-owned-fixed",
+  unit: "model-biomass",
+  maximum: 100,
+  sourceIdentity: "fixture-dish-viewport-density-scale",
+  overflowTolerance: 0,
+};
 
 const dishViewportSource = readFileSync(
   fileURLToPath(new URL("./DishViewport.tsx", import.meta.url)),
@@ -84,7 +97,12 @@ describe("DishViewport render-source truth boundary", () => {
     };
 
     const html = renderToStaticMarkup(
-      <DishViewport motion="off" snapshot={authoritative} demoMode />,
+      <DishViewport
+        motion="off"
+        snapshot={authoritative}
+        lineageDensityPresentationScale={FIXED_DENSITY_SCALE}
+        demoMode
+      />,
     );
 
     expect(html).toContain('data-render-source="authoritative-snapshot"');
@@ -93,6 +111,20 @@ describe("DishViewport render-source truth boundary", () => {
     expect(html).not.toContain("visual-only renderer fixture");
   });
 
+
+  it("refuses an authoritative snapshot without its stable source-owned density scale", () => {
+    const authoritative = {
+      ...createRendererDemoSnapshot(12),
+      snapshotId: "authoritative-missing-density-scale",
+      samplingIdentity: "authoritative-missing-density-scale",
+    };
+
+    expect(() =>
+      renderToStaticMarkup(
+        <DishViewport motion="off" snapshot={authoritative} />,
+      ),
+    ).toThrow(/authoritative dish snapshots require a source-owned lineage density presentation scale/);
+  });
 
   it("projects live dish continuity through the shared app motion adapter", () => {
     expect(dishViewportSource).toContain(
@@ -114,7 +146,11 @@ describe("DishViewport render-source truth boundary", () => {
     };
 
     const html = renderToStaticMarkup(
-      <DishViewport motion="off" snapshot={authoritative} />,
+      <DishViewport
+        motion="off"
+        snapshot={authoritative}
+        lineageDensityPresentationScale={FIXED_DENSITY_SCALE}
+      />,
     );
 
     expect(html).toContain('data-overlay-selection-mode="automatic"');
@@ -175,7 +211,11 @@ describe("DishViewport render-source truth boundary", () => {
     };
 
     const html = renderToStaticMarkup(
-      <DishViewport motion="off" snapshot={authoritative} />,
+      <DishViewport
+        motion="off"
+        snapshot={authoritative}
+        lineageDensityPresentationScale={FIXED_DENSITY_SCALE}
+      />,
     );
 
     expect(html).toContain('data-overlay-kind="net-growth"');

@@ -2,6 +2,7 @@ import type { OrganismPresentationIdentity } from "../organismPresentationIdenti
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { PetraCompactAction } from "../../ui/PetraCompactAction";
 import type { DishRenderSnapshot, DishSelectionHighlight, SemanticZoomLevel } from "../model";
+import type { LineageDensityPresentationScale } from "../lineageDensityScale";
 import type { DishVisualMotionSpec } from "../visualInterpolation";
 import type { CameraMotionSpec } from "./cameraMotion";
 import { resolveDishActivationPoint } from "./dishActivation";
@@ -21,6 +22,7 @@ export type PixiDishSourceKind =
 
 export interface PixiDishProps {
   readonly snapshot: DishRenderSnapshot | null;
+  readonly lineageDensityPresentationScale: LineageDensityPresentationScale | null;
   readonly sourceKind: PixiDishSourceKind;
   readonly selection?: DishSelectionHighlight | null;
   readonly organismPresentation?: OrganismPresentationIdentity | null;
@@ -53,19 +55,28 @@ const IDLE_STARTUP: RendererStartupState = {
 function assertRenderSource(
   sourceKind: PixiDishSourceKind,
   snapshot: DishRenderSnapshot | null,
+  lineageDensityPresentationScale: LineageDensityPresentationScale | null,
 ): void {
   const expectsSnapshot = sourceKind !== "awaiting-authoritative-snapshot";
-  if (expectsSnapshot === (snapshot !== null)) return;
-
-  throw new Error(
-    sourceKind === "awaiting-authoritative-snapshot"
-      ? "awaiting dish render source must not include a snapshot"
-      : sourceKind + " dish render source requires a snapshot",
-  );
+  if (expectsSnapshot !== (snapshot !== null)) {
+    throw new Error(
+      sourceKind === "awaiting-authoritative-snapshot"
+        ? "awaiting dish render source must not include a snapshot"
+        : sourceKind + " dish render source requires a snapshot",
+    );
+  }
+  if (expectsSnapshot !== (lineageDensityPresentationScale !== null)) {
+    throw new Error(
+      expectsSnapshot
+        ? sourceKind + " dish render source requires an explicit lineage density presentation scale"
+        : "awaiting dish render source must not include a lineage density presentation scale",
+    );
+  }
 }
 
 export function PixiDish({
   snapshot,
+  lineageDensityPresentationScale,
   sourceKind,
   organismPresentation = null,
   selection = null,
@@ -94,13 +105,20 @@ export function PixiDish({
   const [retryAttempt, setRetryAttempt] = useState(0);
   const failureDescriptionId = useId();
 
-  assertRenderSource(sourceKind, snapshot);
+  assertRenderSource(
+    sourceKind,
+    snapshot,
+    lineageDensityPresentationScale,
+  );
   const usingAuthoritative = sourceKind === "authoritative-snapshot";
   const usingDemo = sourceKind === "visual-demo";
   const renderSnapshot = snapshot;
   const renderEnabled = renderSnapshot !== null;
   const presentation = usingAuthoritative ? organismPresentation : null;
   const presentationRef = useRef(presentation);
+  const densityScaleRef = useRef<LineageDensityPresentationScale | null>(
+    lineageDensityPresentationScale,
+  );
   const snapshotRef = useRef<DishRenderSnapshot | null>(renderSnapshot);
 
   useLayoutEffect(() => {
@@ -113,6 +131,7 @@ export function PixiDish({
     dishPointActivateCallbackRef.current = onDishPointActivate;
     snapshotRef.current = renderSnapshot;
     presentationRef.current = presentation;
+    densityScaleRef.current = lineageDensityPresentationScale;
   }, [
     selection,
     cameraMotion,
@@ -122,6 +141,7 @@ export function PixiDish({
     overlayId,
     renderSnapshot,
     presentation,
+    lineageDensityPresentationScale,
     visualMotion,
   ]);
 
@@ -164,8 +184,14 @@ export function PixiDish({
           renderer.setVisualMotion(visualMotionRef.current);
           renderer.setMotionMode(motionRef.current);
           const currentSnapshot = snapshotRef.current;
-          if (currentSnapshot !== null) {
-            renderer.updatePresentation(currentSnapshot, overlayRef.current, presentationRef.current);
+          const currentDensityScale = densityScaleRef.current;
+          if (currentSnapshot !== null && currentDensityScale !== null) {
+            renderer.updatePresentation(
+              currentSnapshot,
+              overlayRef.current,
+              presentationRef.current,
+              currentDensityScale,
+            );
           }
           setStartup({ status: "ready", errorMessage: null });
         },
@@ -198,10 +224,23 @@ export function PixiDish({
   }, [resetCameraSignal]);
 
   useEffect(() => {
-    if (renderSnapshot !== null) {
-      rendererRef.current?.updatePresentation(renderSnapshot, overlayId, presentation);
+    if (
+      renderSnapshot !== null &&
+      lineageDensityPresentationScale !== null
+    ) {
+      rendererRef.current?.updatePresentation(
+        renderSnapshot,
+        overlayId,
+        presentation,
+        lineageDensityPresentationScale,
+      );
     }
-  }, [renderSnapshot, overlayId, presentation]);
+  }, [
+    renderSnapshot,
+    overlayId,
+    presentation,
+    lineageDensityPresentationScale,
+  ]);
 
   useEffect(() => { rendererRef.current?.setSelection(selection); }, [selection]);
 

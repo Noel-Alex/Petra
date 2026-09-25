@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 const pixiDishCss = readFileSync(fileURLToPath(new URL("./PixiDish.css", import.meta.url)), "utf8");
 import pixiDishSource from "./PixiDish.tsx?raw";
 import type { DishVisualMotionSpec } from "../visualInterpolation";
+import { createSnapshotExtremaLineageDensityPresentationScale } from "../lineageDensityPresentation";
 import type { CameraMotionSpec } from "./cameraMotion";
 import {
   PixiDish,
@@ -15,6 +16,13 @@ import { createRendererDemoSnapshot } from "./demoSnapshot";
 
 const CAMERA_MOTION: CameraMotionSpec = { durationMs: 0, easing: [0, 0, 1, 1] };
 const VISUAL_MOTION: DishVisualMotionSpec = { durationMs: 0, easing: [0, 0, 1, 1] };
+
+function snapshotScale(snapshot: ReturnType<typeof createRendererDemoSnapshot>) {
+  return createSnapshotExtremaLineageDensityPresentationScale(
+    snapshot,
+    "fixture-density",
+  );
+}
 
 describe("PixiDish committed renderer inputs", () => {
   it("leaves live touch-action ownership to the renderer camera policy", () => {
@@ -39,6 +47,7 @@ describe("PixiDish committed renderer inputs", () => {
       "overlayRef.current = overlayId;",
       "semanticZoomCallbackRef.current = onSemanticZoomLevelChange;",
       "snapshotRef.current = renderSnapshot;",
+      "densityScaleRef.current = lineageDensityPresentationScale;",
     ]) {
       expect(pixiDishSource.split(assignment).length - 1).toBe(1);
       const index = pixiDishSource.indexOf(assignment);
@@ -67,7 +76,10 @@ describe("PixiDish committed renderer inputs", () => {
       "const currentSnapshot = snapshotRef.current;",
     );
     expect(onReadySource).toContain(
-      "renderer.updatePresentation(currentSnapshot, overlayRef.current, presentationRef.current);",
+      "const currentDensityScale = densityScaleRef.current;",
+    );
+    expect(onReadySource).toContain(
+      "renderer.updatePresentation(",
     );
   });
 });
@@ -77,6 +89,7 @@ describe("PixiDish render-source boundary", () => {
     const html = renderToStaticMarkup(
       <PixiDish
         snapshot={null}
+        lineageDensityPresentationScale={null}
         sourceKind="awaiting-authoritative-snapshot"
         cameraMotion={CAMERA_MOTION}
         visualMotion={VISUAL_MOTION}
@@ -93,6 +106,7 @@ describe("PixiDish render-source boundary", () => {
     const html = renderToStaticMarkup(
       <PixiDish
         snapshot={demo}
+        lineageDensityPresentationScale={snapshotScale(demo)}
         sourceKind="visual-demo"
         cameraMotion={CAMERA_MOTION}
         visualMotion={VISUAL_MOTION}
@@ -107,6 +121,7 @@ describe("PixiDish render-source boundary", () => {
     const html = renderToStaticMarkup(
       <PixiDish
         snapshot={createRendererDemoSnapshot(12)}
+        lineageDensityPresentationScale={snapshotScale(createRendererDemoSnapshot(12))}
         sourceKind="authoritative-snapshot"
         cameraMotion={CAMERA_MOTION}
         visualMotion={VISUAL_MOTION}
@@ -116,11 +131,27 @@ describe("PixiDish render-source boundary", () => {
     expect(html).not.toContain('data-render-demo-disclosure="true"');
   });
 
+  it("refuses snapshot-bearing render sources without an explicit density scale", () => {
+    const authoritative = createRendererDemoSnapshot(12);
+    expect(() =>
+      renderToStaticMarkup(
+        <PixiDish
+          snapshot={authoritative}
+          lineageDensityPresentationScale={null}
+          sourceKind="authoritative-snapshot"
+          cameraMotion={CAMERA_MOTION}
+          visualMotion={VISUAL_MOTION}
+        />,
+      ),
+    ).toThrow(/requires an explicit lineage density presentation scale/);
+  });
+
   it("rejects source identity that disagrees with snapshot presence", () => {
     expect(() =>
       renderToStaticMarkup(
         <PixiDish
           snapshot={createRendererDemoSnapshot(12)}
+          lineageDensityPresentationScale={snapshotScale(createRendererDemoSnapshot(12))}
           sourceKind="awaiting-authoritative-snapshot"
           cameraMotion={CAMERA_MOTION}
         visualMotion={VISUAL_MOTION}
@@ -132,6 +163,7 @@ describe("PixiDish render-source boundary", () => {
       renderToStaticMarkup(
         <PixiDish
           snapshot={null}
+          lineageDensityPresentationScale={null}
           sourceKind="visual-demo"
           cameraMotion={CAMERA_MOTION}
         visualMotion={VISUAL_MOTION}
@@ -142,7 +174,7 @@ describe("PixiDish render-source boundary", () => {
 
   it("keeps one stable polite atomic renderer-status region mounted", () => {
     const html = renderToStaticMarkup(
-      <PixiDish snapshot={null} sourceKind="awaiting-authoritative-snapshot" cameraMotion={CAMERA_MOTION}
+      <PixiDish snapshot={null} lineageDensityPresentationScale={null} sourceKind="awaiting-authoritative-snapshot" cameraMotion={CAMERA_MOTION}
         visualMotion={VISUAL_MOTION} />,
     );
 

@@ -3,9 +3,15 @@ import { describe, expect, it } from "vitest";
 import type { DishRenderSnapshot } from "./model";
 import { createRendererDemoSnapshot } from "./pixi/demoSnapshot";
 import {
+  createSnapshotExtremaLineageDensityPresentationScale,
   projectComparableLineageDensity,
+  resolveDeclaredLineageDensityPresentationMaximum,
   resolveSharedLineageDensityMaximum,
 } from "./lineageDensityPresentation";
+import {
+  LINEAGE_DENSITY_PRESENTATION_SCALE_SCHEMA_VERSION,
+  type SourceOwnedFixedLineageDensityPresentationScale,
+} from "./lineageDensityScale";
 
 function snapshotWithPeaks(
   dominantPeak: number,
@@ -46,6 +52,41 @@ describe("shared lineage-density presentation", () => {
       visible: true,
       normalized: 0.1,
     });
+  });
+
+  it("uses declared source-owned fixed maximum instead of snapshot extrema", () => {
+    const snapshot = snapshotWithPeaks(100, 1);
+    const scale: SourceOwnedFixedLineageDensityPresentationScale = {
+      schemaVersion: LINEAGE_DENSITY_PRESENTATION_SCALE_SCHEMA_VERSION,
+      mode: "source-owned-fixed",
+      unit: "model-biomass",
+      maximum: 250,
+      sourceIdentity: "fixture-source-owned-density-scale",
+      overflowTolerance: 0,
+    };
+
+    expect(
+      resolveDeclaredLineageDensityPresentationMaximum(snapshot, scale),
+    ).toBe(250);
+  });
+
+  it("keeps snapshot-extrema fallback explicit and bound to the exact keyframe", () => {
+    const snapshot = snapshotWithPeaks(100, 1);
+    const scale = createSnapshotExtremaLineageDensityPresentationScale(
+      snapshot,
+      "fixture-density",
+    );
+
+    expect(scale.maximum).toBe(100);
+    expect(
+      resolveDeclaredLineageDensityPresentationMaximum(snapshot, scale),
+    ).toBe(100);
+    expect(() =>
+      resolveDeclaredLineageDensityPresentationMaximum(
+        { ...snapshot, snapshotId: "different" },
+        scale,
+      ),
+    ).toThrow(/does not match drawable snapshot identity/);
   });
 
   it("maps the same raw density identically regardless of lineage identity", () => {

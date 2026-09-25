@@ -25,12 +25,21 @@ describe("App authoritative dish projection integration", () => {
     expect(appSource).toContain(
       "const ecologyObservation = experiment.state?.ecologyObservation ?? null;",
     );
+    expect(appSource).toContain(
+      "const lineageDensityPresentationScale =\n    experiment.lineageDensityPresentationScale;",
+    );
     expect(appSource).toContain("measureDishProjectionPublication(");
     expect(appSource).toContain(
       "projectComposedDishSnapshot(\n                runtimeSnapshot,\n                runBranchIdentity,\n                ecologyObservation,",
     );
     expect(appSource).toContain("observeDishReactCommit(");
     expect(appSource).toContain("snapshot={dishSnapshot}");
+    expect(appSource).toContain(
+      "lineageDensityPresentationScale={lineageDensityPresentationScale}",
+    );
+    expect(runtimeBindingSource).toContain(
+      "readonly lineageDensityPresentationScale: SourceOwnedFixedLineageDensityPresentationScale | null;",
+    );
   });
 
   it("observes each newly accepted runtime snapshot once before React publication", () => {

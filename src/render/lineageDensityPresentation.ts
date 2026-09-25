@@ -1,3 +1,11 @@
+import type { DishRenderSnapshot } from "./model";
+import {
+  LINEAGE_DENSITY_PRESENTATION_SCALE_SCHEMA_VERSION,
+  lineageDensityPresentationMaximum,
+  validateLineageDensityPresentationScale,
+  type LineageDensityPresentationScale,
+  type SnapshotExtremaLineageDensityPresentationScale,
+} from "./lineageDensityScale";
 import type { DishVisualState } from "./visualInterpolation";
 
 export interface LineageDensityPresentation {
@@ -29,6 +37,61 @@ export function resolveSharedLineageDensityMaximum(
   }
 
   return maximum;
+}
+
+
+/**
+ * Build the explicit non-temporally-comparable fallback contract for a single
+ * exact render snapshot. Product composed runs should supply source-owned-fixed
+ * authority instead.
+ */
+export function createSnapshotExtremaLineageDensityPresentationScale(
+  snapshot: DishRenderSnapshot,
+  unit: string,
+): SnapshotExtremaLineageDensityPresentationScale {
+  const scale: SnapshotExtremaLineageDensityPresentationScale = {
+    schemaVersion: LINEAGE_DENSITY_PRESENTATION_SCALE_SCHEMA_VERSION,
+    mode: "snapshot-extrema",
+    unit,
+    maximum: resolveSharedLineageDensityMaximum(snapshot),
+    snapshotId: snapshot.snapshotId,
+  };
+  validateLineageDensityPresentationScale(scale);
+  return Object.freeze(scale);
+}
+
+/**
+ * Resolve the denominator for one drawable state from an explicit scale
+ * contract. Fixed source authority is O(1); snapshot-extrema fallback retains
+ * the legacy scan and verifies exact keyframe metadata when possible.
+ */
+export function resolveDeclaredLineageDensityPresentationMaximum(
+  snapshot: DishVisualState,
+  scale: LineageDensityPresentationScale,
+): number {
+  validateLineageDensityPresentationScale(scale);
+  if (scale.mode === "source-owned-fixed") {
+    return lineageDensityPresentationMaximum(scale);
+  }
+
+  const exactSnapshotId =
+    "snapshotId" in snapshot &&
+    typeof (snapshot as { readonly snapshotId?: unknown }).snapshotId === "string"
+      ? (snapshot as { readonly snapshotId: string }).snapshotId
+      : null;
+  if (exactSnapshotId !== null && scale.snapshotId !== exactSnapshotId) {
+    throw new Error(
+      "snapshot-extrema lineage density scale does not match drawable snapshot identity",
+    );
+  }
+
+  const observed = resolveSharedLineageDensityMaximum(snapshot);
+  if (exactSnapshotId !== null && observed !== scale.maximum) {
+    throw new Error(
+      "snapshot-extrema lineage density scale maximum does not match drawable snapshot",
+    );
+  }
+  return observed;
 }
 
 /**

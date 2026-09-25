@@ -499,16 +499,16 @@
     },
     {
       "id": "two-bacterium-shared-resource-validation",
-      "description": "PREPARED; BLOCKED on #890: authoritative E. coli MG1655 + B. subtilis 168 trp+ sigE- shared-resource validation waits for the real versioned mixed-species scenario/state.",
+      "description": "Authoritative E. coli MG1655 + B. subtilis 168 trp+ sigE- shared-resource validation over the real named composed scenario: isolated controls, zero-resource behavior, generic symmetry/order invariance, shared-resource/local-capacity coherence, exact replay/restore/taxon identity, source-target distance reporting, and unsupported Bacillus drug/evolution refusal.",
       "command": [
-        "python",
-        "experiments/blocked.py",
-        "--experiment-id",
-        "two-bacterium-shared-resource-validation",
-        "--blocked-on",
-        "890",
-        "--reason",
-        "Issue #890 must land the real versioned E. coli K-12 MG1655 + B. subtilis 168 trp+ sigE- authoritative shared-resource scenario, including exact taxon/content identity and replay/checkpoint state, before this experiment can validate isolated-species controls, zero-resource behavior, symmetry/order invariance, mixed-resource competition, replay, and unsupported-command refusal. Running a synthetic or ad-hoc two-species fixture would create invalid scientific evidence."
+        "npm",
+        "exec",
+        "--offline",
+        "--",
+        "vitest",
+        "run",
+        "--config",
+        "experiments/vitest.two_bacterium_shared_resource_validation.config.ts"
       ],
       "issues": [
         530,
@@ -519,7 +519,7 @@
         890,
         907
       ],
-      "timeout_seconds": 30
+      "timeout_seconds": 900
     },
     {
       "id": "hgt-conjugation-validation",

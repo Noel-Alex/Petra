@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "experiment_id": "model-resource-intervention-validation",
+  "classification": "engineering-model-resource-command-replay-validation",
+  "authority_boundary": {
+    "resource_unit": "model-resource",
+    "physical_resource_claim": false,
+    "limitation": "This validates deterministic model-resource command, replay, checkpoint, mask, event, and growth-response plumbing only. It does not identify glucose, a named nutrient, medium composition, physical concentration, delivery kinetics, or calibrated biological dose."
+  },
+  "activation_prerequisites": [
+    "Issue #918 lands an authoritative apply-model-resource command and model-resource-applied accepted event in the composed Worker/runtime path.",
+    "The command is preserved by strict protocol-runtime promotion and experiment-bundle replay/export rather than silently dropped.",
+    "Rejected commands are atomic replay no-ops and accepted commands increment commandCount exactly once without advancing biological time."
+  ],
+  "deterministic_inputs": {
+    "run_plan_source": "buildDefaultFlagshipRun() repository-owned baseline composed plan",
+    "seed_source": "the exact bundled run-preset seed; the experiment must not substitute an ad-hoc seed when validating the product path",
+    "resource_value_source": "the exact bundled run-preset initialResourceLevel, reused as an engineering model-resource test value rather than a product default or physical dose",
+    "spatial_fixture": {
+      "geometry": "radial",
+      "center_normalized": [
+        0.5,
+        0.5
+      ],
+      "radius_fraction": 0.25,
+      "meaning": "deterministic test geometry only; not biological spatial authority"
+    },
+    "continuation_advance_ticks": 2
+  },
+  "cases": [
+    {
+      "id": "global-set-zero",
+      "command": {
+        "blend_mode": "set",
+        "geometry": "global",
+        "resource_value": 0
+      },
+      "acceptance": [
+        "accepted event preserves exact command id/order/current biological time",
+        "tick and simulationTimeHours do not advance on acceptance",
+        "every in-mask resource cell is exactly zero and every off-mask cell remains exactly zero"
+      ]
+    },
+    {
+      "id": "global-add-authoritative-run-level",
+      "precondition": "start from the accepted global-set-zero checkpoint",
+      "command": {
+        "blend_mode": "add",
+        "geometry": "global",
+        "resource_value_source": "run-preset initialResourceLevel"
+      },
+      "acceptance": [
+        "accepted resource field equals the exact finite Float32 write policy in-mask",
+        "off-mask cells remain zero",
+        "commandCount increases exactly once and RNG state is unchanged by the deterministic edit"
+      ]
+    },
+    {
+      "id": "radial-set-authoritative-run-level",
+      "precondition": "start from a zero-resource checkpoint",
+      "command": {
+        "blend_mode": "set",
+        "geometry_source": "deterministic_inputs.spatial_fixture",
+        "resource_value_source": "run-preset initialResourceLevel"
+      },
+      "acceptance": [
+        "only authoritative in-mask cells selected by the normalized radial geometry are written",
+        "renderer/pixel/camera coordinates never enter the command",
+        "checkpoint and event retain the exact normalized intervention payload"
+      ]
+    },
+    {
+      "id": "checkpoint-continuation-and-genesis-replay",
+      "acceptance": [
+        "restoring the accepted intervention checkpoint and advancing the configured tick count yields byte-equivalent authoritative typed state/metrics/events/trace to uninterrupted continuation",
+        "replaying the same ordered commands from genesis yields the same accepted snapshots and trace hashes"
+      ]
+    },
+    {
+      "id": "zero-resource-replenish-growth-response",
+      "sequence": [
+        "accept global set=0 model-resource",
+        "advance one authoritative tick",
+        "accept global add=run-preset initialResourceLevel",
+        "advance one authoritative tick"
+      ],
+      "acceptance": [
+        "zero-resource step reports no positive authoritative division biomass",
+        "post-replenish step exposes a positive authoritative division/growth response when the existing bundled ecology authority supports it",
+        "the result is labelled model-resource mechanism behavior, not nutrient-dose validation"
+      ]
+    },
+    {
+      "id": "rejected-command-atomic-noop",
+      "invalid_fixture": "a structurally unsupported/non-canonical model-resource intervention payload",
+      "acceptance": [
+        "resource, RNG state, tick, simulationTimeHours, commandCount, event stream, metrics, and trace remain exactly unchanged",
+        "no accepted model-resource-applied event is emitted"
+      ]
+    }
+  ],
+  "compact_result_schema": {
+    "schema_version": 1,
+    "required": [
+      "experiment_id",
+      "classification",
+      "engine_version",
+      "protocol_version",
+      "scenario_id",
+      "scenario_version",
+      "parameter_set_id",
+      "parameter_set_version",
+      "seed",
+      "cases",
+      "all_acceptance_checks_passed"
+    ],
+    "case_fields": [
+      "id",
+      "status",
+      "accepted_command_count_before",
+      "accepted_command_count_after",
+      "tick_before",
+      "tick_after",
+      "simulation_time_hours_before",
+      "simulation_time_hours_after",
+      "event_sequence",
+      "trace_hash_before",
+      "trace_hash_after",
+      "checks"
+    ],
+    "optional_summary_fields": [
+      "checkpoint_continuation_trace_equal",
+      "genesis_replay_trace_equal",
+      "zero_resource_division_biomass",
+      "post_replenish_division_biomass",
+      "notes"
+    ],
+    "bulky_artifact_policy": "Full traces/checkpoints stay under PETRA_LOCAL_ARTIFACT_DIR; only compact scalar/boolean/hash evidence belongs in PETRA_LOCAL_RESULT_JSON."
+  },
+  "acceptance": [
+    "All cases pass on the authoritative composed runtime path.",
+    "No test derives resource meaning, bounds, geometry, or efficacy from renderer/UI state.",
+    "The compact result remains explicitly engineering/model-resource and makes no physical nutrient claim.",
+    "Any protocol/replay/export omission fails the experiment rather than being skipped."
+  ]
+}

@@ -109,6 +109,7 @@ export function estimateDishRenderSnapshotPayload(
       label: lineage.label,
       appearanceToken: lineage.appearanceToken,
       patternToken: lineage.patternToken,
+      organismPresentation: lineage.organismPresentation ?? null,
     })),
     acceptedInterventionFootprints:
       snapshot.acceptedInterventionFootprints ?? null,

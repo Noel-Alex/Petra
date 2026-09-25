@@ -150,11 +150,18 @@ export async function createPixiDishRenderer(
   const fieldTexture = Texture.from(fieldCanvas);
   const fieldSprite = new Sprite(fieldTexture);
   let fieldImage: ImageData | null = null;
+  let fieldTextureSource: DishDrawableState | null = null;
+  let fieldTextureOverlayId: string | null | undefined = undefined;
   const densityCanvas = document.createElement("canvas");
   const densityContext = densityCanvas.getContext("2d")!;
   const densityTexture = Texture.from(densityCanvas);
   const densitySprite = new Sprite(densityTexture);
   let densityImage: ImageData | null = null;
+  let densityTextureSource: DishDrawableState | null = null;
+  let preparedSource: DishDrawableState | null = null;
+  let preparedLineageDensityMaximum = 0;
+  let preparedGlyphKey = "";
+  let preparedGlyphs: ReturnType<typeof sampleRepresentativeGlyphs> = [];
   const glyphLayer = new Graphics();
   const accentLayer = new Graphics();
 
@@ -215,6 +222,8 @@ export async function createPixiDishRenderer(
       densitySprite,
       fieldSprite,
       updateFieldTexture(field) {
+        const nextOverlayId = field?.id ?? null;
+        if (fieldTextureSource === drawableState && fieldTextureOverlayId === nextOverlayId) return;
         if (fieldImage === null || fieldImage.width !== drawableState!.gridWidth || fieldImage.height !== drawableState!.gridHeight) {
           fieldCanvas.width = drawableState!.gridWidth;
           fieldCanvas.height = drawableState!.gridHeight;
@@ -224,8 +233,11 @@ export async function createPixiDishRenderer(
         writeFieldRaster(drawableState!, field, fieldImage.data);
         fieldContext.putImageData(fieldImage, 0, 0);
         fieldTexture.source.update();
+        fieldTextureSource = drawableState;
+        fieldTextureOverlayId = nextOverlayId;
       },
       updateDensityTexture(maximum) {
+        if (densityTextureSource === drawableState) return;
         if (densityImage === null || densityImage.width !== drawableState!.gridWidth || densityImage.height !== drawableState!.gridHeight) {
           densityCanvas.width = drawableState!.gridWidth;
           densityCanvas.height = drawableState!.gridHeight;
@@ -235,6 +247,7 @@ export async function createPixiDishRenderer(
         writeDensityRaster(drawableState!, maximum, densityImage.data);
         densityContext.putImageData(densityImage, 0, 0);
         densityTexture.source.update();
+        densityTextureSource = drawableState;
       },
       organismPresentation,
       selection,
@@ -242,6 +255,26 @@ export async function createPixiDishRenderer(
       overlayId,
       motion,
       maxRepresentativeGlyphs,
+      prepareLineageDensityMaximum() {
+        if (preparedSource !== drawableState) {
+          preparedSource = drawableState;
+          preparedLineageDensityMaximum = resolveSharedLineageDensityMaximum(drawableState!);
+          preparedGlyphKey = "";
+        }
+        return preparedLineageDensityMaximum;
+      },
+      prepareGlyphs(level, maximum) {
+        const key = `${level}:${maxRepresentativeGlyphs}:${maximum}`;
+        if (preparedSource !== drawableState || preparedGlyphKey !== key) {
+          preparedSource = drawableState;
+          preparedGlyphKey = key;
+          preparedGlyphs = sampleRepresentativeGlyphs(drawableState!, camera, level === "dish" ? "colony" : level, {
+            maxGlyphs: Math.min(maxRepresentativeGlyphs, level === "dish" ? 140 : 260),
+            minimumDensity: maximum * 0.12,
+          });
+        }
+        return preparedGlyphs;
+      },
       plateLayer,
       dishInteriorMask,
       fieldLayer,
@@ -752,6 +785,8 @@ function drawScene(args: {
   readonly overlayId: string | null;
   readonly motion: RendererMotionMode;
   readonly maxRepresentativeGlyphs: number;
+  readonly prepareLineageDensityMaximum: () => number;
+  readonly prepareGlyphs: (level: SemanticZoomLevel, maximum: number) => ReturnType<typeof sampleRepresentativeGlyphs>;
   readonly plateLayer: Graphics;
   readonly dishInteriorMask: Graphics;
   readonly fieldLayer: Graphics;
@@ -770,6 +805,8 @@ function drawScene(args: {
     overlayId,
     motion,
     maxRepresentativeGlyphs,
+    prepareLineageDensityMaximum,
+    prepareGlyphs,
     organismPresentation,
     selection,
     plateLayer,
@@ -828,8 +865,7 @@ function drawScene(args: {
     drawField(fieldLayer, overlay, snapshot, camera, centerX, centerY, dishSize);
   }
 
-  const lineageDensityMaximum =
-    resolveSharedLineageDensityMaximum(snapshot);
+  const lineageDensityMaximum = prepareLineageDensityMaximum();
 
   updateDensityTexture(lineageDensityMaximum);
   densitySprite.position.set(centerX - camera.centerX * dishSize * camera.zoom, centerY - camera.centerY * dishSize * camera.zoom);
@@ -850,10 +886,7 @@ function drawScene(args: {
   });
 
   if (organismPresentation !== null || level !== "dish") {
-    const glyphs = sampleRepresentativeGlyphs(snapshot, camera, level === "dish" ? "colony" : level, {
-      maxGlyphs: Math.min(maxRepresentativeGlyphs, level === "dish" ? 140 : 260),
-      minimumDensity: lineageDensityMaximum * 0.12,
-    });
+    const glyphs = prepareGlyphs(level, lineageDensityMaximum);
     const occupiedGlyphPositions: ScreenPoint[] = [];
     for (const glyph of glyphs) {
       const lineage = snapshot.lineages.find(

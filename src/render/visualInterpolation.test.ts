@@ -39,6 +39,8 @@ function snapshot(args: {
   lineages: readonly RenderLineage[];
   samplingIdentity?: string;
   unit?: string;
+  minimum?: number;
+  maximum?: number;
   mask?: readonly number[];
 }): DishRenderSnapshot {
   return {
@@ -58,8 +60,8 @@ function snapshot(args: {
         width: 2,
         height: 1,
         values: new Float32Array(args.field),
-        minimum: 0,
-        maximum: 10,
+        minimum: args.minimum ?? 0,
+        maximum: args.maximum ?? 10,
       },
     ],
     lineages: args.lineages,
@@ -129,6 +131,46 @@ describe("dish visual continuity", () => {
 
     const complete = advanceDishVisualTransition(plan.transition, 100);
     expect(complete).toEqual({ complete: true, state: to });
+  });
+
+  it("interpolates changing source field ranges as presentation metadata", () => {
+    const from = snapshot({
+      id: "a",
+      biomass: [1, 2],
+      field: [2, 8],
+      lineages: [lineage("ancestor", [1, 2])],
+      minimum: 0,
+      maximum: 10,
+    });
+    const to = snapshot({
+      id: "b",
+      biomass: [3, 4],
+      field: [6, 18],
+      lineages: [lineage("ancestor", [3, 4])],
+      minimum: 4,
+      maximum: 20,
+    });
+
+    const plan = planDishVisualTransition(from, to, LINEAR);
+    expect(plan.kind).toBe("interpolate");
+    if (plan.kind !== "interpolate") return;
+
+    const half = advanceDishVisualTransition(plan.transition, 50);
+    expect(half.complete).toBe(false);
+    const frame = half.state as DishPresentationFrame;
+    expect(frame.fields[0]!.minimum).toBeCloseTo(2);
+    expect(frame.fields[0]!.maximum).toBeCloseTo(15);
+    expect(Array.from(frame.fields[0]!.values)).toEqual([4, 13]);
+
+    expect(from.fields[0]!.minimum).toBe(0);
+    expect(from.fields[0]!.maximum).toBe(10);
+    expect(to.fields[0]!.minimum).toBe(4);
+    expect(to.fields[0]!.maximum).toBe(20);
+
+    expect(advanceDishVisualTransition(plan.transition, 100)).toEqual({
+      complete: true,
+      state: to,
+    });
   });
 
   it("grows entering and recedes exiting lineage channels through zero density", () => {

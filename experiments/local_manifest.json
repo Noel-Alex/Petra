@@ -72,7 +72,7 @@
     },
     {
       "id": "flagship-ciprofloxacin-validation",
-      "description": "Focused deterministic integrated flagship ciprofloxacin validation: zero-drug equivalence plus 0/1x/2x WT-MIC monotonic response through the authoritative intervention command path.",
+      "description": "Focused deterministic integrated flagship ciprofloxacin validation: source-envelope boundary acceptance, zero-drug equivalence, and 0/1x/2x WT-MIC monotonic response through the authoritative intervention command path.",
       "command": [
         "npm",
         "exec",
@@ -87,7 +87,8 @@
         37,
         542,
         626,
-        749
+        749,
+        794
       ],
       "timeout_seconds": 300
     },

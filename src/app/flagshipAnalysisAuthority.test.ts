@@ -121,6 +121,32 @@ describe("flagship lineage-analysis authority", () => {
     ).toThrow(/MIC drifted from composed authority/i);
   });
 
+  it("refuses mutation-transition drift under a freshly rebound config", () => {
+    const run = buildDefaultFlagshipRun();
+    const changedConfig = {
+      ...run.plan.config,
+      evolutionGraph: {
+        ...run.plan.config.evolutionGraph,
+        transitions: run.plan.config.evolutionGraph.transitions.map(
+          (transition, index) =>
+            index === 0
+              ? {
+                  ...transition,
+                  probabilityPerDivision:
+                    transition.probabilityPerDivision * 10,
+                }
+              : transition,
+        ),
+      },
+    };
+
+    expect(() =>
+      createFlagshipRuntimeLineageAnalysisAuthority(
+        withReboundConfig(run, changedConfig),
+      ),
+    ).toThrow(/mutation transition drifted from scenario authority/i);
+  });
+
   it("refuses relative-fitness drift under a freshly rebound config", () => {
     const run = buildDefaultFlagshipRun();
     const changedConfig = {

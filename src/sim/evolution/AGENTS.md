@@ -58,6 +58,13 @@
 - `appendRuntimeLineageOriginV2(...)` rejects configured founders and is runtime lineage/replay allocation only; live founder creation must remain routed through `founderLineageRegistry.ts`. It does not authorize external-inoculation support, move biomass, append taxon/growth/loss/population channels, or emit a Worker command; those atomic composed-state responsibilities remain #980 after the wire migration lands.
 - Any future new biological origin class requires an intentional schema/version extension; do not overload one of these origin kinds to encode HGT, phage, or another mechanism.
 
+## Runtime lineage ecology baseline migration target
+- `runtimeLineageEcologyAuthority.ts` owns the versioned **target** for replay-oriented per-runtime-lineage organism growth scale and baseline non-drug loss needed by #1075/#980. It is not yet part of live `ComposedSimulationState`, Worker protocol, or experiment-bundle authority while #918 owns that wire migration.
+- Every runtime ecology record aligns one-to-one with explicit lineage-origin creation order and retains the exact static source-lineage definition. It stores both the source definition's declared baseline-growth-scale form (null means configured omission) and the resolved numerical scale consumed by ecology, so an omitted configured neutral `1` cannot be confused with an unexplained runtime default.
+- Configured founders bind their exact ordered source definition. Mutation children inherit organism-level growth source/scale only from their authoritative parent while genotype-specific baseline loss remains resolved through `baselineLossPolicy.ts`. An external-inoculation root binds growth/loss only from an already-admitted #1059 lineage definition and is cross-checked against the same exact configured source definition.
+- Legacy v1 lineage-state migration may reconstruct configured-founder + mutation-child histories because their source authority is unambiguous; it must refuse an external root because old lineage checkpoints cannot prove that root's source definition. Once live adoption occurs, external-root ecology values must be checkpointed rather than ancestry-walked back to a configured founder.
+- Growth-scale validation preserves the existing composed numerical domain: finite and non-negative, including deliberate zero-growth authority. No physical CFU/cell/glucose meaning is implied.
+
 ## Lineage authority
 - Lineage creation/extinction is simulation authority. React, Pixi, renderer samples, animation callbacks, story beats, and UI events may display authoritative lineage events but cannot create or delete biological lineages.
 - Parent lineage identity, genotype, origin time/location, mutation class, and extinction time are authoritative lineage metadata.

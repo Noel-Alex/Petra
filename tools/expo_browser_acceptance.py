@@ -382,6 +382,10 @@ def summarize_render_publication_samples(
     runtime_to_commit_ms: list[float] = []
     payload_bytes: list[int] = []
     backing_bytes: list[int] = []
+    typed_reference_bytes: list[int] = []
+    metadata_bytes: list[int] = []
+    event_counts: list[int] = []
+    footprint_counts: list[int] = []
     net_growth_count = 0
 
     for _, runtime, projection, react in complete:
@@ -406,10 +410,22 @@ def summarize_render_publication_samples(
         if isinstance(payload, dict):
             estimated = payload.get("estimatedApplicationPayloadBytes")
             backing = payload.get("uniqueBackingBufferBytes")
+            typed_reference = payload.get("typedArrayReferenceBytes")
+            metadata = payload.get("metadataJsonUtf8Bytes")
+            event_count = payload.get("eventCount")
+            footprint_count = payload.get("acceptedInterventionFootprintCount")
             if isinstance(estimated, int):
                 payload_bytes.append(estimated)
             if isinstance(backing, int):
                 backing_bytes.append(backing)
+            if isinstance(typed_reference, int):
+                typed_reference_bytes.append(typed_reference)
+            if isinstance(metadata, int):
+                metadata_bytes.append(metadata)
+            if isinstance(event_count, int):
+                event_counts.append(event_count)
+            if isinstance(footprint_count, int):
+                footprint_counts.append(footprint_count)
         if projection.get("hasNetGrowthField") is True:
             net_growth_count += 1
 
@@ -444,10 +460,24 @@ def summarize_render_publication_samples(
         "uniqueBackingBufferBytes": numeric_summary(
             [float(value) for value in backing_bytes]
         ),
+        "typedArrayReferenceBytes": numeric_summary(
+            [float(value) for value in typed_reference_bytes]
+        ),
+        "metadataJsonUtf8Bytes": numeric_summary(
+            [float(value) for value in metadata_bytes]
+        ),
+        "renderEventCount": numeric_summary(
+            [float(value) for value in event_counts]
+        ),
+        "acceptedInterventionFootprintCount": numeric_summary(
+            [float(value) for value in footprint_counts]
+        ),
         "limitation": (
             "Reset-bounded browser publication observations. Projection timing excludes the "
-            "payload-estimator duration; payload bytes are renderer-facing application estimates, "
-            "not Worker framing, bandwidth, heap, GPU memory, or proof that "
+            "payload-estimator duration; payload bytes are renderer-facing application estimates. "
+            "Metadata bytes include projected render events and accepted intervention footprints, "
+            "while typed-array reference bytes retain logical channel references. These are not "
+            "Worker framing, bandwidth, heap, GPU memory, or proof that "
             "coalescing/transferables are beneficial."
         ),
     }

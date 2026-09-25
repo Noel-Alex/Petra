@@ -292,3 +292,12 @@ No FPS threshold, cadence policy, or architecture migration is authorized merely
 
 Authenticated coordination contributor/session: Noel-Alex via the connected GitHub account.
 
+
+
+## 2026-09-25 — post-#1068 authoritative load diagnostics + lineage-origin foundation
+
+- #1068 / `61793e77600ea177228d8fc77fe2f8a726ddcdc7` extends the existing opt-in render-publication/browser evidence path with the accepted composed checkpoint's exact `metrics.totalBiomass` and `metrics.occupiedCells`. The later-run camera workload can therefore record source-owned load for the exact paused authoritative frontier instead of using elapsed commands/time as a proxy for colony load. These values remain abstract model biomass + occupied scientific grid cells; they are not CFU, physical biomass, rendered-pixel coverage, or a thresholded claim that the dish is biologically “dense.”
+- This closes the instrumentation gap identified by #1054/#1061 but **does not** establish a performance result or authorize an optimization policy. The next decision input is still fresh laptop evidence from `python run_local_experiments.py --only expo-browser-acceptance --push`, interpreted alongside `worker-transport-profile` / render redraw-jank evidence. Scientific grid/cadence reduction, channel dropping, transferables, Worker-side presentation projection, OffscreenCanvas, WASM/WebGPU, or backend migration remain measurement-gated under #876.
+- #1069 / `3a86931619349b60c7aede4228192832c57c7def` puts the explicit lineage-origin **v2 target** on `main`: `configured-founder | mutation-child | external-inoculation`, with strict migration/allocator semantics that refuse ambiguous later parentless roots rather than guessing ancestry. This is the correct future replay identity for external inoculation.
+- The live `LineageRegistryCheckpoint` remains v1. The v2 target is not yet adopted through composed checkpoint / Worker protocol / replay authority; that migration must coordinate with the active #918 resource-command protocol/replay versioning. Until that lands, #980 may validate/admit an external inoculum reference but must not make it executable by encoding a fake mutation child or silently appending an untyped root.
+- UI/render consequence: no new visual authority was introduced by either merge. Keep consuming the existing accepted `DishSceneTransaction` / `DishRenderSnapshot` data plane, treat load diagnostics as profiling-only, and keep external-organism controls unavailable until the replay-critical lineage-origin + atomic append command path is real.

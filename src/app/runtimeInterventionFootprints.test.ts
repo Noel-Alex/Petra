@@ -15,6 +15,7 @@ import type { ExperimentRuntimeState } from "./experimentRuntime";
 import {
   projectRuntimeInterventionFootprintFrame,
   RUNTIME_INTERVENTION_FOOTPRINT_FRAME_VERSION,
+  RuntimeInterventionFootprintAccumulator,
 } from "./runtimeInterventionFootprints";
 
 const RUN_A: RunIdentity = {
@@ -67,6 +68,22 @@ function appliedEvent(args: {
   };
 }
 
+function advancedEvent(args: {
+  sequence: number;
+  tick: number;
+  simulationTimeHours: number;
+  commandId: string;
+}): SimulationEvent {
+  return {
+    sequence: args.sequence,
+    tick: args.tick,
+    simulationTimeHours: args.simulationTimeHours,
+    type: "advanced",
+    commandId: args.commandId,
+    value: 1,
+  };
+}
+
 function composedSnapshot(args: {
   identity?: RunIdentity;
   tick?: number;
@@ -115,6 +132,7 @@ function runtimeState(
       errorCode: null,
     },
     snapshot,
+    ecologyObservation: null,
     timeline: [],
     integrationError: null,
   };
@@ -204,6 +222,123 @@ describe("runtime intervention footprint binding", () => {
       "dose-7",
       "dose-8",
     ]);
+  });
+
+  it("reuses historical footprints while consuming only a long advance-only suffix", () => {
+    const accumulator = new RuntimeInterventionFootprintAccumulator();
+    const firstSnapshot = composedSnapshot({
+      commandCount: 4,
+      traceHash: "trace-command-4",
+      events: [appliedEvent({ sequence: 7, commandId: "dose-7" })],
+    });
+    const first = accumulator.project(runtimeState(firstSnapshot));
+    const retained = first.footprints[0]!;
+
+    const advanceCount = 512;
+    const advanceEvents = Array.from({ length: advanceCount }, (_, index) =>
+      advancedEvent({
+        sequence: 8 + index,
+        tick: 13 + index,
+        simulationTimeHours: 0.25 + index * 0.01,
+        commandId: `advance-${index}`,
+      }),
+    );
+    const afterAdvancesSnapshot = composedSnapshot({
+      tick: 12 + advanceCount,
+      simulationTimeHours: 0.24 + advanceCount * 0.01,
+      commandCount: 4 + advanceCount,
+      traceHash: "trace-after-512-advances",
+      events: [
+        appliedEvent({ sequence: 7, commandId: "dose-7" }),
+        ...advanceEvents,
+      ],
+    });
+    const afterAdvances = accumulator.project(
+      runtimeState(afterAdvancesSnapshot),
+    );
+
+    expect(afterAdvances.footprints).toHaveLength(1);
+    expect(afterAdvances.footprints[0]).toBe(retained);
+
+    const sameTimeDose = appliedEvent({
+      sequence: 8 + advanceCount,
+      tick: 12 + advanceCount,
+      simulationTimeHours: 0.24 + advanceCount * 0.01,
+      commandId: "dose-after-advances",
+    });
+    const afterDose = accumulator.project(
+      runtimeState(
+        composedSnapshot({
+          tick: 12 + advanceCount,
+          simulationTimeHours: 0.24 + advanceCount * 0.01,
+          commandCount: 5 + advanceCount,
+          traceHash: "trace-dose-after-512-advances",
+          events: [
+            appliedEvent({ sequence: 7, commandId: "dose-7" }),
+            ...advanceEvents,
+            sameTimeDose,
+          ],
+        }),
+      ),
+    );
+
+    expect(afterDose.footprints.map((item) => item.commandId)).toEqual([
+      "dose-7",
+      "dose-after-advances",
+    ]);
+    expect(afterDose.footprints[0]).toBe(retained);
+    expect(afterDose.footprints[1]!.intervention).not.toBe(\n      sameTimeDose.intervention,\n    );
+  });
+
+  it("rebuilds rather than reusing footprints after a runtime branch change", () => {
+    const accumulator = new RuntimeInterventionFootprintAccumulator();
+    const snapshot = composedSnapshot();
+    const first = accumulator.project(
+      runtimeState(snapshot, "run-a/generation-1"),
+    );
+    const replayed = accumulator.project(
+      runtimeState(snapshot, "run-a/generation-2"),
+    );
+
+    expect(replayed.footprints).toEqual(first.footprints);
+    expect(replayed.footprints[0]).not.toBe(first.footprints[0]);
+    expect(replayed.runBranchIdentity).toBe("run-a/generation-2");
+  });
+
+  it("fails closed to a rebuild when the retained history boundary changes", () => {
+    const accumulator = new RuntimeInterventionFootprintAccumulator();
+    const first = accumulator.project(
+      runtimeState(
+        composedSnapshot({
+          traceHash: "trace-before-boundary-change",
+          events: [appliedEvent({ sequence: 7, commandId: "dose-original" })],
+        }),
+      ),
+    );
+
+    const rewritten = accumulator.project(
+      runtimeState(
+        composedSnapshot({
+          tick: 13,
+          simulationTimeHours: 0.25,
+          commandCount: 5,
+          traceHash: "trace-after-boundary-change",
+          events: [
+            appliedEvent({ sequence: 7, commandId: "dose-rewritten" }),
+            advancedEvent({
+              sequence: 8,
+              tick: 13,
+              simulationTimeHours: 0.25,
+              commandId: "advance-after-rewrite",
+            }),
+          ],
+        }),
+      ),
+    );
+
+    expect(first.footprints[0]!.commandId).toBe("dose-original");
+    expect(rewritten.footprints[0]!.commandId).toBe("dose-rewritten");
+    expect(rewritten.footprints[0]).not.toBe(first.footprints[0]);
   });
 
   it("fails closed for missing or foreign runtime authority", () => {

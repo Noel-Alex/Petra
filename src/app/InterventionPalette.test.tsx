@@ -16,7 +16,7 @@ describe("InterventionPalette", () => {
     );
 
     expect(html).toContain(
-      'data-intervention-capability="authoritative-schema-unavailable"',
+      'data-intervention-capability="authoritative-metadata-unavailable"',
     );
     expect(html).toContain('data-intervention-tool="inoculate"');
     expect(html).toContain('data-intervention-tool="fungus"');
@@ -26,7 +26,7 @@ describe("InterventionPalette", () => {
     expect(html).not.toContain(">Inspect</button>");
     expect(html).not.toContain(' disabled=""');
     expect(html).toContain('role="status"');
-    expect(html).toContain("Petra will not substitute synthetic commands");
+    expect(html).toContain("Protocol v5 supports authoritative ciprofloxacin application");
     expect(html).not.toMatch(/mg\/l|µg\/ml|dose|concentration/i);
   });
 

@@ -1,4 +1,8 @@
 import type { InterventionTool } from "../ui/interventionPreview";
+import {
+  parseCiprofloxacinToolAuthority,
+  type CiprofloxacinToolAuthority,
+} from "./ciprofloxacinToolAuthority";
 import type { RuntimeUiStatus } from "./runtimeView";
 
 export type InterventionUnavailableReason =
@@ -6,32 +10,35 @@ export type InterventionUnavailableReason =
   | "runtime-starting"
   | "runtime-pending"
   | "runtime-error"
-  | "authoritative-schema-unavailable";
+  | "authoritative-metadata-unavailable"
+  | "authoritative-metadata-invalid";
 
 export interface InterventionToolAvailability {
   readonly tool: InterventionTool;
   readonly label: string;
-  readonly available: false;
+  readonly available: boolean;
 }
 
 export interface InterventionCapabilityView {
-  readonly available: false;
+  readonly available: boolean;
   /** Placement-only preview may be enabled without granting simulation authority. */
   readonly previewAvailable: boolean;
-  readonly reason: InterventionUnavailableReason;
+  readonly reason: InterventionUnavailableReason | null;
   readonly message: string;
   readonly tools: readonly InterventionToolAvailability[];
+  readonly ciprofloxacinAuthority: CiprofloxacinToolAuthority | null;
 }
 
-const TOOLS = Object.freeze([
-  { tool: "inoculate", label: "Inoculate", available: false },
-  { tool: "fungus", label: "Fungi", available: false },
-  { tool: "antibiotic", label: "Antibiotic", available: false },
-  { tool: "nutrient", label: "Nutrient", available: false },
-] as const satisfies readonly InterventionToolAvailability[]);
+const TOOL_LABELS: Readonly<Record<InterventionTool, string>> = Object.freeze({
+  inoculate: "Inoculate",
+  fungus: "Fungi",
+  antibiotic: "Antibiotic",
+  nutrient: "Nutrient",
+});
 
 export function projectInterventionCapability(
   runtimeStatus: RuntimeUiStatus,
+  ciprofloxacinMetadata: unknown = null,
 ): InterventionCapabilityView {
   switch (runtimeStatus) {
     case "unavailable":
@@ -56,12 +63,41 @@ export function projectInterventionCapability(
         "The authoritative simulation is in an error state. Intervention tools are unavailable.",
       );
     case "ready":
-      return unavailable(
-        "authoritative-schema-unavailable",
-        "Placement preview is available, but the current protocol does not expose authoritative intervention commands. Petra will not substitute synthetic commands.",
-        true,
-      );
+      return projectReadyCapability(ciprofloxacinMetadata);
   }
+}
+
+function projectReadyCapability(
+  ciprofloxacinMetadata: unknown,
+): InterventionCapabilityView {
+  if (ciprofloxacinMetadata === null || ciprofloxacinMetadata === undefined) {
+    return unavailable(
+      "authoritative-metadata-unavailable",
+      "Protocol v5 supports authoritative ciprofloxacin application, but the active scenario has not supplied exact intervention bounds, default, and geometry metadata. Placement preview remains available; Petra will not infer dose controls from MIC values or test fixtures.",
+      true,
+    );
+  }
+
+  let authority: CiprofloxacinToolAuthority;
+  try {
+    authority = parseCiprofloxacinToolAuthority(ciprofloxacinMetadata);
+  } catch {
+    return unavailable(
+      "authoritative-metadata-invalid",
+      "The active scenario supplied invalid ciprofloxacin intervention metadata. Scientific application remains unavailable until the metadata is corrected.",
+      true,
+    );
+  }
+
+  return {
+    available: true,
+    previewAvailable: true,
+    reason: null,
+    message:
+      "Authoritative ciprofloxacin intervention metadata is available. Unsupported intervention families remain unavailable.",
+    tools: toolAvailability(true),
+    ciprofloxacinAuthority: authority,
+  };
 }
 
 function unavailable(
@@ -74,6 +110,21 @@ function unavailable(
     previewAvailable,
     reason,
     message,
-    tools: TOOLS,
+    tools: toolAvailability(false),
+    ciprofloxacinAuthority: null,
   };
+}
+
+function toolAvailability(
+  antibioticAvailable: boolean,
+): readonly InterventionToolAvailability[] {
+  return Object.freeze(
+    (Object.keys(TOOL_LABELS) as InterventionTool[]).map((tool) =>
+      Object.freeze({
+        tool,
+        label: TOOL_LABELS[tool],
+        available: tool === "antibiotic" && antibioticAvailable,
+      }),
+    ),
+  );
 }

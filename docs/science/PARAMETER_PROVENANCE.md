@@ -47,12 +47,20 @@ calibration limitation are stored in the scenario preset so the future inspector
 can display the seam directly. Regoes `psi_max` and Petra's separately
 provenance-owned Monod `mu_max` must not be silently treated as the same value.
 
+### Ciprofloxacin product-control source-domain guardrail
+
+Scenario `ecoli-ciprofloxacin-spatial@1.5.0-research` also owns the product-facing ciprofloxacin control envelope used to construct typed `apply-ciprofloxacin` intents. The range is **0–2 mg/L**, matching the concentration domain tested for the Regoes CAB1/LB/37 °C source experiment already used for the transferred reference pharmacodynamic curve. It is a conservative source-domain guardrail, not a clinical dose range and not a new MG1655 measurement.
+
+The neutral default is exactly **0 mg/L** and is explicitly classified as an engineering interaction default because it reproduces the scenario's initial no-drug state; it is not an effective or optimal treatment value. The flagship product uses `set` semantics so repeated UI application cannot silently accumulate beyond the displayed envelope. Global/radial/stripe/paint remain model concentration-field geometry, not claims about physical delivery.
+
+Marcusson genotype MIC values—up to 32 mg/L in the curated table—do **not** widen the 0–2 mg/L Regoes source-domain guardrail. Widening that control range, adding physical delivery/transport semantics, or attaching clinical meaning requires a new versioned evidence decision rather than inference from resistance phenotypes.
+
 ## Engineering parameters
 Grid resolution, display scale, LOD thresholds, normalized diffusion CFL coefficients, and visual particle counts can be engineering parameters. They must be kept separate from physical measurements and must not be shown in the UI as “real bacterial constants.”
 
 ### Research-stage flagship ecology execution profile
 
-Scenario `ecoli-ciprofloxacin-spatial@1.4.0-research` selects the versioned
+Scenario `ecoli-ciprofloxacin-spatial@1.5.0-research` selects the versioned
 `ecoli-ciprofloxacin-ecology-engineering@1.1.0` profile so the composed
 resource-limited ecology loop can execute before a source-compatible physical
 Monod package exists.

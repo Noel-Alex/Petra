@@ -1,7 +1,7 @@
 {
   "kind": "petra-supported-content-matrix",
   "schemaVersion": 1,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "supportedScenarios": [
     {
       "id": "flagship-ecoli-ciprofloxacin",
@@ -16,7 +16,8 @@
           "scientificName": "Escherichia coli",
           "background": "K-12 MG1655 for curated resistance phenotypes",
           "microbialGroup": "bacterium",
-          "presentationIdentityId": "ecoli-k12-mg1655-representative-morphology-v1"
+          "presentationIdentityId": "ecoli-k12-mg1655-representative-morphology-v1",
+          "taxon": null
         }
       ],
       "environment": {
@@ -41,6 +42,7 @@
         }
       ],
       "limitations": [
+        "Exact production taxon id + contentVersion authority is not yet scenario-bound; this research row cannot be promoted to enabled-science until that biological revision binding exists.",
         "This is a research-stage product scenario, not grounded Science-Mode admission: its limiting-resource context remains explicitly unbound and the ecology execution profile remains engineering-classified.",
         "The resource channel is model-resource, not a named physical substrate or concentration.",
         "The ciprofloxacin intervention edits the model concentration field; it does not establish physical delivery, diffusion, decay, clearance, or clinical dosing.",
@@ -54,31 +56,31 @@
       "kind": "bacterial-competitor",
       "availability": "blocked-implementation",
       "issues": [
-        553,
+        890,
+        907,
         866
       ],
-      "reason": "Candidate-selection research is complete for Bacillus subtilis 168 trp+ sigE-; authoritative mixed-species implementation/calibration and per-lineage presentation mapping remain blocked on #553 and #866."
+      "reason": "Bacillus subtilis 168 trp+ sigE- candidate research is complete; #890 owns the executable two-bacterium scenario, #907 owns its registered local validation, and #866 owns exact-revision presentation mapping/product handoff."
     },
     {
       "id": "first-grounded-fungal-competitor",
       "kind": "fungal-competitor",
-      "availability": "blocked-research",
+      "availability": "blocked-implementation",
       "issues": [
-        556,
         615,
         866
       ],
-      "reason": "Fungal Science Mode remains blocked until the named fungal evidence pack is approved and authoritative fungal spatial state exists."
+      "reason": "The first source-constrained Aspergillus niger var. hennebergi no. 10 surface-growth pack is approved; #615 owns authoritative fungal state/validation and #866 remains the exact-revision presentation mapping handoff."
     },
     {
       "id": "first-post-ciprofloxacin-antibiotic",
       "kind": "antimicrobial",
-      "availability": "blocked-research",
+      "availability": "blocked-implementation",
       "issues": [
-        874,
-        573
+        930,
+        928
       ],
-      "reason": "Requires a named drug/background pack with its own source-backed susceptibility and pharmacodynamic authority; ciprofloxacin equations are not a universal antibiotic template."
+      "reason": "Chloramphenicol/MG1655 evidence selection is complete; #930 owns the Greulich growth-inhibition authority and #928 owns the source-compatible MOPS environment/growth-context binding required before product enablement."
     },
     {
       "id": "named-microbial-interactions",

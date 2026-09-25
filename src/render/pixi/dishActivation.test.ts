@@ -30,6 +30,17 @@ describe("dish activation geometry", () => {
     expect(point?.y).toBeCloseTo(0.3, 12);
   });
 
+  it("keeps small pointer jitter activation-eligible inside the tap slop", () => {
+    const point = resolveDishActivationPoint({
+      start: { x: geometry.centerX, y: geometry.centerY },
+      end: { x: geometry.centerX + 4, y: geometry.centerY },
+      viewport,
+      camera: { centerX: 0.5, centerY: 0.5, zoom: 2 },
+    });
+
+    expect(point).not.toBeNull();
+  });
+
   it("rejects drags and points outside the visible circular aperture", () => {
     expect(
       resolveDishActivationPoint({

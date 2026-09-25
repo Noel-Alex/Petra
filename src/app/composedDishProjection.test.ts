@@ -9,11 +9,9 @@ import {
   createRunIdentity,
   type SimulationSnapshot,
 } from "../sim/protocol";
-import type { ExperimentRuntimeState } from "./experimentRuntime";
 import {
   projectAuthoritativeComposedDishSnapshot,
   projectComposedDishSnapshot,
-  projectRuntimeComposedDishSnapshot,
 } from "./composedDishProjection";
 
 const graph: CuratedMutationGraph = {
@@ -107,39 +105,6 @@ function syntheticSnapshot(): SimulationSnapshot {
       syntheticPopulation: 10,
       rngState: [1, 2, 3, 4],
     },
-  };
-}
-
-function runtimeState(
-  snapshot: SimulationSnapshot | null,
-  runBranchIdentity = "fixture-branch-0",
-): ExperimentRuntimeState {
-  const identity =
-    snapshot?.checkpoint.identity ??
-    createRunIdentity({
-      scenarioId: "synthetic-fixture",
-      scenarioVersion: "1",
-      parameterSetId: "synthetic-fixture",
-      parameterSetVersion: "1",
-      seed: 4,
-    });
-  return {
-    controls: {
-      identity,
-      playing: false,
-      speed: 1,
-      acceptedCommands: [],
-    },
-    runBranchIdentity,
-    worker: {
-      phase: snapshot === null ? "idle" : "ready",
-      latestSnapshot: snapshot,
-      error: null,
-      queuedRequests: 0,
-    },
-    snapshot,
-    timeline: [],
-    integrationError: null,
   };
 }
 
@@ -290,19 +255,6 @@ describe("authoritative composed dish projection", () => {
     expect(
       projectComposedDishSnapshot(syntheticSnapshot(), "fixture-branch-0"),
     ).toBeNull();
-    expect(projectRuntimeComposedDishSnapshot(null)).toBeNull();
-    expect(
-      projectRuntimeComposedDishSnapshot(runtimeState(syntheticSnapshot())),
-    ).toBeNull();
   });
 
-  it("uses the runtime-owned branch identity at the app boundary", () => {
-    const simulation = composedEngine().snapshot();
-    const dish = projectRuntimeComposedDishSnapshot(
-      runtimeState(simulation, "runtime-owned-branch"),
-    );
-    expect(dish?.samplingIdentity).toBe(
-      "runtime-branch:runtime-owned-branch",
-    );
-  });
 });

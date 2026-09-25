@@ -73,11 +73,21 @@ export function projectAuthoritativeComposedDishSnapshot(
       throw new Error("composed dish projection requires a binary dish mask");
     }
   }
+  const metrics = snapshot.checkpoint.metrics;
+  assertMetricLineageIdentity(state.lineageIds, metrics.lineageBiomass);
   const dishMask = Uint8Array.from(state.mask);
 
+  // Keep authoritative-number consistency checks in the same traversal that
+  // creates detached presentation buffers. Float32 narrowing happens only after
+  // each source value has passed the scientific cross-channel checks.
   const biomass = new Float32Array(cells);
+  const sourceBiomassByCell = new Float64Array(cells);
   const lineages: RenderLineage[] = state.lineageIds.map(
     (lineageId, lineageIndex) => {
+      const genotypeId = state.genotypeIds[lineageIndex]!;
+      assertCanonicalSourceIdentity("lineage id", lineageId);
+      assertCanonicalSourceIdentity("genotype id", genotypeId);
+
       const source = state.lineageBiomass[lineageIndex];
       if (source === undefined || source.length !== cells) {
         throw new Error(
@@ -85,21 +95,46 @@ export function projectAuthoritativeComposedDishSnapshot(
         );
       }
 
-      assertSourceMaskedZero(
-        `lineage ${JSON.stringify(lineageId)} biomass`,
-        source,
-        state.mask,
-      );
-      const density = finiteFloat32Field(
-        `lineage ${JSON.stringify(lineageId)} biomass`,
-        source,
-      );
+      const density = new Float32Array(cells);
+      let lineageTotal = 0;
       for (let cell = 0; cell < cells; cell += 1) {
+        const value = source[cell]!;
+        assertFiniteNonNegativeSourceValue(
+          `lineage ${JSON.stringify(lineageId)} biomass`,
+          value,
+        );
+        if (state.mask[cell] === 0 && value !== 0) {
+          throw new Error(
+            `lineage ${JSON.stringify(lineageId)} biomass must be zero outside the dish mask`,
+          );
+        }
+
+        density[cell] = finiteFloat32(
+          `lineage ${JSON.stringify(lineageId)} biomass`,
+          value,
+        );
+        sourceBiomassByCell[cell] = addFiniteNonNegativeTotal(
+          "aggregate source biomass per cell",
+          sourceBiomassByCell[cell]!,
+          value,
+        );
         biomass[cell] = finiteFloat32(
           "aggregate model biomass",
           biomass[cell]! + density[cell]!,
         );
+        if (state.mask[cell] === 1) {
+          lineageTotal = addFiniteNonNegativeTotal(
+            `lineage ${JSON.stringify(lineageId)} source biomass total`,
+            lineageTotal,
+            value,
+          );
+        }
       }
+      assertMetricNumberAgreement(
+        `lineage ${JSON.stringify(lineageId)} biomass`,
+        metrics.lineageBiomass[lineageId]!,
+        lineageTotal,
+      );
 
       const identity = resolveLineageVisualIdentity(lineageId);
       return {
@@ -112,19 +147,50 @@ export function projectAuthoritativeComposedDishSnapshot(
     },
   );
 
-  assertSourceMaskedZero(
-    "limiting model resource",
-    state.resource,
-    state.mask,
-  );
+  let totalBiomass = 0;
+  let totalResource = 0;
+  let occupiedCells = 0;
+  const resource = new Float32Array(cells);
+  for (let cell = 0; cell < cells; cell += 1) {
+    const value = state.resource[cell]!;
+    assertFiniteNonNegativeSourceValue("limiting model resource", value);
+    if (state.mask[cell] === 0 && value !== 0) {
+      throw new Error(
+        "limiting model resource must be zero outside the dish mask",
+      );
+    }
+    resource[cell] = finiteFloat32("limiting model resource", value);
+
+    if (state.mask[cell] !== 1) continue;
+    totalResource = addFiniteNonNegativeTotal(
+      "source resource total",
+      totalResource,
+      value,
+    );
+    const localBiomass = sourceBiomassByCell[cell]!;
+    totalBiomass = addFiniteNonNegativeTotal(
+      "source biomass total",
+      totalBiomass,
+      localBiomass,
+    );
+    if (localBiomass > 0) occupiedCells += 1;
+  }
+  assertMetricNumberAgreement("total biomass", metrics.totalBiomass, totalBiomass);
+  assertMetricNumberAgreement("total resource", metrics.totalResource, totalResource);
+  if (
+    !Number.isSafeInteger(metrics.occupiedCells) ||
+    metrics.occupiedCells < 0 ||
+    metrics.occupiedCells !== occupiedCells
+  ) {
+    throw new Error(
+      `composed dish projection occupied-cell metric does not match spatial state: expected ${occupiedCells}, received ${metrics.occupiedCells}`,
+    );
+  }
+
   assertSourceMaskedZero(
     "ciprofloxacin concentration",
     state.ciprofloxacinConcentrationMgPerL,
     state.mask,
-  );
-  const resource = finiteFloat32Field(
-    "limiting model resource",
-    state.resource,
   );
   const ciprofloxacin = finiteFloat32Field(
     "ciprofloxacin concentration",
@@ -227,6 +293,87 @@ function inMaskBounds(
     throw new Error("composed dish projection requires at least one in-mask cell");
   }
   return { minimum, maximum };
+}
+
+function assertMetricLineageIdentity(
+  lineageIds: readonly string[],
+  lineageBiomass: Readonly<Record<string, number>>,
+): void {
+  const metricLineageIds = Object.keys(lineageBiomass).sort();
+  const stateLineageIds = [...lineageIds].sort();
+  if (
+    metricLineageIds.length !== stateLineageIds.length ||
+    metricLineageIds.some((id, index) => id !== stateLineageIds[index])
+  ) {
+    throw new Error(
+      "composed dish projection metrics must exactly match authoritative lineage identity",
+    );
+  }
+}
+
+function assertCanonicalSourceIdentity(
+  name: string,
+  value: unknown,
+): asserts value is string {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value !== value.trim()
+  ) {
+    throw new Error(
+      `composed dish projection ${name} must be canonical non-empty text`,
+    );
+  }
+}
+
+function assertFiniteNonNegativeSourceValue(
+  name: string,
+  value: number,
+): void {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(
+      `composed dish projection ${name} must be finite and non-negative`,
+    );
+  }
+}
+
+function addFiniteNonNegativeTotal(
+  name: string,
+  current: number,
+  value: number,
+): number {
+  const next = current + value;
+  if (!Number.isFinite(next) || next < 0) {
+    throw new Error(
+      `composed dish projection ${name} accumulation must remain finite and non-negative`,
+    );
+  }
+  return next;
+}
+
+function assertMetricNumberAgreement(
+  name: string,
+  recorded: number,
+  expected: number,
+): void {
+  if (!Number.isFinite(recorded) || recorded < 0) {
+    throw new Error(
+      `composed dish projection ${name} metric must be finite and non-negative`,
+    );
+  }
+  if (!numbersAgree(recorded, expected)) {
+    throw new Error(
+      `composed dish projection ${name} metric does not match spatial state: expected ${expected}, received ${recorded}`,
+    );
+  }
+}
+
+function numbersAgree(left: number, right: number): boolean {
+  if (Object.is(left, right)) return true;
+  return (
+    Math.abs(left - right) <=
+    1e-12 * Math.max(1, Math.abs(left), Math.abs(right))
+  );
 }
 
 function finiteFloat32Field(

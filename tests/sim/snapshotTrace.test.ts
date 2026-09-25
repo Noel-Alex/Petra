@@ -31,6 +31,66 @@ describe('canonical simulation snapshot trace authority', () => {
     expect(snapshotTraceHash(value)).toBe('e3d420e1')
   })
 
+  it('streams the exact historical stable-stringify FNV token sequence', () => {
+    const legacyHash = (value: unknown): string => {
+      const text = stableSnapshotStringify(value)
+      let hash = 0x811c9dc5
+      for (let index = 0; index < text.length; index += 1) {
+        hash ^= text.charCodeAt(index)
+        hash = Math.imul(hash, 0x01000193) >>> 0
+      }
+      return hash.toString(16).padStart(8, '0')
+    }
+
+    const sparse = Array(3) as unknown[]
+    sparse[0] = 'first'
+    sparse[2] = -0
+
+    const fixtures: unknown[] = [
+      null,
+      true,
+      'unicode-🧫-\\n-"quoted"',
+      -0,
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      sparse,
+      {
+        z: [3, 2, 1],
+        a: {
+          later: 'value',
+          earlier: 0.125,
+        },
+      },
+      new Float32Array([0, 0.125, -0, 3.5]),
+      {
+        checkpoint: {
+          tick: 7,
+          rngState: [1, 2, 3, 4],
+          fields: new Float32Array([0, 1, 2, 3]),
+        },
+        events: Array.from({ length: 128 }, (_, sequence) => ({
+          sequence,
+          type: sequence === 0 ? 'initialized' : 'advanced',
+          tick: sequence,
+          simulationTimeHours: sequence * 0.02,
+        })),
+      },
+    ]
+
+    for (const fixture of fixtures) {
+      expect(snapshotTraceHash(fixture)).toBe(legacyHash(fixture))
+    }
+  })
+
+  it('preserves historical refusal for non-JSON primitive values', () => {
+    expect(() => snapshotTraceHash(undefined)).toThrow(
+      /non-JSON primitive value/,
+    )
+    expect(() => snapshotTraceHash(Symbol('invalid'))).toThrow(
+      /non-JSON primitive value/,
+    )
+  })
+
   it('verifies real engine snapshots and rejects swapped trace identity', () => {
     const identity = createRunIdentity({
       scenarioId: 'snapshot-trace-fixture',

@@ -212,3 +212,7 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 ## Flagship ciprofloxacin tool authority
 - `flagshipRunPreset.ts` returns the scenario-projected ciprofloxacin tool authority and its provenance alongside the composed run plan. It must validate the simulation-owned projection through `ciprofloxacinToolAuthority.ts`; React must not hard-code concentration bounds/defaults or infer them from MIC/renderer state.
 - The current flagship guardrail is a source-domain model-field edit contract, not clinical dosing or physical delivery authority. Missing/malformed authority keeps Apply unavailable rather than falling back to demo numbers.
+
+## Authoritative ciprofloxacin intervention drafting
+- `ciprofloxacinInterventionDraft.ts` is the framework-neutral bridge from scenario-owned `CiprofloxacinToolAuthority` to the existing presentation `InterventionDraft` / preview contract. It copies the exact parameter key/label/`mg/L` bounds/default/precision and accepts only geometry kinds explicitly enabled by scenario authority.
+- Callers must author complete `global`, `radial`, `stripe`, or `paint` geometry before scientific Apply. A presentation-only `point` cursor is refused; never promote `INTERVENTION_TARGET_RING_RADIUS_FRACTION`, camera pixels/zoom, or other visual affordances into biological radius/width/brush authority. Explicit concentration overrides still pass through the shared preview validator rather than a second range policy.

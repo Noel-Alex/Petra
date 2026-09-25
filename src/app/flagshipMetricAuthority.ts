@@ -21,6 +21,8 @@ export interface FlagshipMetricAuthority {
   readonly scenarioVersion: string;
   readonly parameterSetId: string;
   readonly parameterSetVersion: string;
+  /** Exact scenario-owned genotype universe used to validate future cohort members. */
+  readonly genotypeUniverseIds: readonly string[];
   readonly resistantCohort: {
     readonly id: string;
     readonly definition: FlagshipResistanceCohortDefinition;
@@ -451,6 +453,7 @@ export function parseFlagshipMetricAuthority(
     scenarioVersion,
     parameterSetId,
     parameterSetVersion,
+    genotypeUniverseIds: Object.freeze(genotypes.map((genotype) => genotype.id)),
     resistantCohort: Object.freeze({
       id: requireCanonicalText("flagship resistant cohort id", cohort.id),
       definition: cohort.definition,
@@ -523,5 +526,6 @@ export function createFlagshipLiveAnalysisHistory(
     identity,
     samplingPolicy: authority.samplingPolicy,
     resistantGenotypeIds: authority.resistantCohort.memberGenotypeIds,
+    knownGenotypeIds: authority.genotypeUniverseIds,
   });
 }

@@ -117,11 +117,8 @@ export function parseWorkerSnapshotDeltaResponse(
   if (record.type !== 'snapshot-delta') {
     return transportFailure('type must be "snapshot-delta"')
   }
-  if (
-    typeof record.commandId !== 'string' ||
-    record.commandId.length === 0
-  ) {
-    return transportFailure('commandId must be a non-empty string')
+  if (typeof record.commandId !== 'string') {
+    return transportFailure('commandId must be a string')
   }
   if (!isNonNegativeSafeInteger(record.previousEventCount)) {
     return transportFailure(

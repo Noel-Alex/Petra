@@ -35,3 +35,4 @@ JSON must parse; schemas/presets must pass the repository verifier. Science-mode
 - Preserve domain-specific scientific classifications such as mutation target classes; do not overwrite them just to satisfy UI vocabulary.
 - A nested `provenance.classification` is owned by data/science, not inferred by React from citations, field names, evidence tiers, or paper count.
 - Flagship records required by the Sources/Assumptions UI must fail visibly when required source/transfer/limitation metadata is missing.
+- `data/presentation/**` records are presentation evidence only. A validated organism-presentation record may authorize a coarse representative silhouette, but it must not enter simulation/checkpoint/replay identity or supply physical dimensions, population counts, orientation/division dynamics, or other biological parameters. Morphology must be explicit and source-backed; UI/renderer code must never infer it from taxon text, lineage IDs, colors, or density.

@@ -26,7 +26,7 @@ describe("default flagship runtime factory", () => {
     const first = factory();
     expect(sessions).toBe(1);
     expect(first.state.worker.phase).toBe("idle");
-    expect(first.state.controls.identity.parameterSetVersion).toBe("1.1.0");
+    expect(first.state.controls.identity.parameterSetVersion).toBe("1.2.0");
 
     const second = factory();
     expect(sessions).toBe(2);

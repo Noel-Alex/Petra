@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { ADVANCE_EXECUTION_POLICY_SCHEMA_VERSION } from '../../src/sim/advanceExecutionPolicy'
+import {
+  ADVANCE_EXECUTION_POLICY_SCHEMA_VERSION,
+  DEFAULT_ADVANCE_EXECUTION_POLICY,
+} from '../../src/sim/advanceExecutionPolicy'
 import {
   ComposedSimulationEngine,
 } from '../../src/sim/composedEngine'
@@ -17,6 +20,20 @@ import {
 } from '../../src/sim/parameterSetBinding'
 import { createRunIdentity } from '../../src/sim/protocol'
 import { SimulationRng } from '../../src/sim/rng'
+import {
+  BASELINE_NON_DRUG_LOSS_POLICY_SCHEMA_VERSION,
+  EXPLICIT_GENOTYPE_BASELINE_LOSS_RULE,
+} from '../../src/sim/evolution/baselineLossPolicy'
+import {
+  CELL_EQUIVALENT_CALIBRATION_SCHEMA_VERSION,
+  FRACTIONAL_CARRY_POPULATION_POLICY,
+} from '../../src/sim/populationAuthority'
+import { SAMPLING_EXECUTION_POLICY_SCHEMA_VERSION } from '../../src/sim/samplingPolicy'
+import { MUTATION_EXECUTION_POLICY_SCHEMA_VERSION } from '../../src/sim/mutationExecutionPolicy'
+import {
+  AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION,
+  createAuthoritativeTaxonRegistry,
+} from '../../src/sim/taxonIdentity'
 
 const evolutionGraph: CuratedMutationGraph = {
   scenarioId: 'composed-worker-fixture',
@@ -116,6 +133,163 @@ const identity = createRunIdentity({
   ),
   seed: 0x5eed1234,
 })
+
+const mutationEvolutionGraph: CuratedMutationGraph = {
+  scenarioId: 'composed-mutation-fixture',
+  scenarioVersion: '1',
+  genotypes: [
+    { id: 'WT', relativeFitness: 1, sourceOrder: 0 },
+    { id: 'MUT_A', relativeFitness: 0.95, sourceOrder: 1 },
+    { id: 'MUT_B', relativeFitness: 0.9, sourceOrder: 2 },
+  ],
+  transitions: [
+    {
+      fromGenotypeId: 'WT',
+      toGenotypeId: 'MUT_A',
+      probabilityPerDivision: 0.5,
+      mutationClass: 'fixture-a',
+      citationKey: 'fixture-source',
+      sourceOrder: 0,
+    },
+    {
+      fromGenotypeId: 'WT',
+      toGenotypeId: 'MUT_B',
+      probabilityPerDivision: 0.5,
+      mutationClass: 'fixture-b',
+      citationKey: 'fixture-source',
+      sourceOrder: 1,
+    },
+  ],
+}
+
+const mutationConfig: ComposedSimulationConfig = {
+  width: 1,
+  height: 1,
+  mask: [1],
+  initialResource: [100],
+  ciprofloxacinConcentrationMgPerL: [0],
+  initialLineageBiomass: [[2]],
+  growth: {
+    maxDivisionRate: 1,
+    halfSaturation: 1,
+    biomassYield: 10,
+    localCapacity: 100,
+    spreadRate: 0,
+  },
+  evolutionGraph: mutationEvolutionGraph,
+  evolutionScenario: {
+    scenarioId: mutationEvolutionGraph.scenarioId,
+    scenarioVersion: mutationEvolutionGraph.scenarioVersion,
+  },
+  ciprofloxacin: null,
+  lineages: [
+    { id: 'ancestor', genotypeId: 'WT', deathHazardPerHour: 0 },
+  ],
+  samplingExecutionPolicy: {
+    schemaVersion: SAMPLING_EXECUTION_POLICY_SCHEMA_VERSION,
+    id: 'fixture-exact-mutation-sampling-v1',
+    exactTrialLimit: 100,
+    acceleration: 'disabled',
+    maximumExpectedAcceleratedDraws: 100,
+    maximumAcceleratedDraws: 100,
+  },
+  dynamicLineageLossPolicy: {
+    schemaVersion: BASELINE_NON_DRUG_LOSS_POLICY_SCHEMA_VERSION,
+    id: 'fixture-mutation-child-loss-v1',
+    rule: EXPLICIT_GENOTYPE_BASELINE_LOSS_RULE,
+    entries: [
+      {
+        genotypeId: 'MUT_A',
+        deathHazardPerHour: 0,
+        provenance: {
+          classification: 'engineering',
+          sourceKeys: [],
+          context: 'Deterministic composed mutation integration fixture.',
+          limitation: 'Test-only non-drug loss authority.',
+        },
+      },
+      {
+        genotypeId: 'MUT_B',
+        deathHazardPerHour: 0,
+        provenance: {
+          classification: 'engineering',
+          sourceKeys: [],
+          context: 'Deterministic composed mutation integration fixture.',
+          limitation: 'Test-only non-drug loss authority.',
+        },
+      },
+    ],
+  },
+  populationAuthority: {
+    calibration: {
+      schemaVersion: CELL_EQUIVALENT_CALIBRATION_SCHEMA_VERSION,
+      id: 'fixture-mutation-cell-scale-v1',
+      modelBiomassPerCellEquivalent: 0.1,
+      provenance: {
+        classification: 'engineering',
+        sourceKeys: [],
+        limitation: 'Test-only exact cell-equivalent scale.',
+      },
+    },
+    policy: FRACTIONAL_CARRY_POPULATION_POLICY,
+  },
+  hoursPerTick: 1,
+}
+
+const mutationParameterSetId = 'fixture:composed-mutation-config'
+const mutationIdentity = createRunIdentity({
+  scenarioId: mutationEvolutionGraph.scenarioId,
+  scenarioVersion: mutationEvolutionGraph.scenarioVersion,
+  parameterSetId: mutationParameterSetId,
+  parameterSetVersion,
+  parameterSetBinding: createFixtureComposedParameterSetBinding(
+    mutationParameterSetId,
+    parameterSetVersion,
+    mutationConfig,
+  ),
+  seed: 0x1234abcd,
+})
+
+const mutationTaxonRegistry = createAuthoritativeTaxonRegistry([
+  {
+    schemaVersion: AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION,
+    id: 'fixture-mutation-bacterium',
+    contentVersion: '1.0.0',
+    scientificName: 'Fixture mutation bacterium',
+    background: 'test strain',
+    microbialGroup: 'bacterium',
+    provenance: {
+      sourceKeys: ['fixture:mutation-taxon'],
+      context: 'Test-only mutation taxon inheritance authority.',
+      limitation: 'Not a scientific Petra content pack.',
+    },
+  },
+])
+
+const taxonMutationConfig: ComposedSimulationConfig = {
+  ...mutationConfig,
+  taxonRegistry: mutationTaxonRegistry,
+  lineages: mutationConfig.lineages.map((lineage) => ({
+    ...lineage,
+    taxonId: 'fixture-mutation-bacterium',
+    taxonContentVersion: '1.0.0',
+  })),
+}
+
+const taxonMutationParameterSetId = 'fixture:composed-mutation-taxon-config'
+const taxonMutationIdentity = createRunIdentity({
+  scenarioId: mutationEvolutionGraph.scenarioId,
+  scenarioVersion: mutationEvolutionGraph.scenarioVersion,
+  parameterSetId: taxonMutationParameterSetId,
+  parameterSetVersion,
+  parameterSetBinding: createFixtureComposedParameterSetBinding(
+    taxonMutationParameterSetId,
+    parameterSetVersion,
+    taxonMutationConfig,
+  ),
+  seed: 0x1234abcd,
+})
+
 
 describe('ComposedSimulationEngine', () => {
   it('requires the declared parameter set to own the exact composed config', () => {
@@ -240,6 +414,123 @@ describe('ComposedSimulationEngine', () => {
       }),
     ).toThrow(/RNG state/)
     expect(target.snapshot()).toEqual(before)
+  })
+
+  it('materializes mutation children conservatively and replays them exactly', () => {
+    const initialRng = new SimulationRng(mutationIdentity.seed).snapshot()
+    const first = new ComposedSimulationEngine(
+      mutationIdentity,
+      mutationConfig,
+    )
+    const second = new ComposedSimulationEngine(
+      mutationIdentity,
+      mutationConfig,
+    )
+
+    const firstStep = first.execute({
+      id: 'mutate-one',
+      type: 'advance',
+      ticks: 1,
+    })
+    const secondStep = second.execute({
+      id: 'mutate-one',
+      type: 'advance',
+      ticks: 1,
+    })
+
+    expect(firstStep).toEqual(secondStep)
+    expect(firstStep.checkpoint.composedState.lineageIds[0]).toBe('L1')
+    expect(firstStep.checkpoint.composedState.lineageIds.length).toBeGreaterThan(1)
+    expect(
+      firstStep.checkpoint.composedState.lineageRegistry.records,
+    ).toHaveLength(firstStep.checkpoint.composedState.lineageIds.length)
+    expect(
+      firstStep.checkpoint.composedState.genotypeIds.slice(1).every(
+        (genotypeId) => genotypeId === 'MUT_A' || genotypeId === 'MUT_B',
+      ),
+    ).toBe(true)
+    expect(firstStep.checkpoint.rngState).not.toEqual(initialRng)
+    expect(firstStep.ecologyObservation?.observation.lineageIds).toEqual(
+      firstStep.checkpoint.composedState.lineageIds,
+    )
+
+    const totalFromLineages = Object.values(
+      firstStep.checkpoint.metrics.lineageBiomass,
+    ).reduce((sum, value) => sum + value, 0)
+    expect(totalFromLineages).toBeCloseTo(
+      firstStep.checkpoint.metrics.totalBiomass,
+    )
+
+    const checkpoint = firstStep.checkpoint
+    const continued = first.execute({
+      id: 'mutate-two',
+      type: 'advance',
+      ticks: 1,
+    })
+    const restored = new ComposedSimulationEngine(
+      mutationIdentity,
+      mutationConfig,
+    )
+    restored.execute({
+      id: 'restore-mutation',
+      type: 'restore',
+      checkpoint,
+    })
+    const replayed = restored.execute({
+      id: 'mutate-two',
+      type: 'advance',
+      ticks: 1,
+    })
+    expect(replayed.checkpoint).toEqual(continued.checkpoint)
+  })
+
+  it('inherits exact parent taxon authority onto mutation-created child lineages', () => {
+    const engine = new ComposedSimulationEngine(
+      taxonMutationIdentity,
+      taxonMutationConfig,
+    )
+    const advanced = engine.execute({
+      id: 'mutate-with-taxon',
+      type: 'advance',
+      ticks: 1,
+    })
+    const state = advanced.checkpoint.composedState
+
+    expect(state.lineageIds.length).toBeGreaterThan(1)
+    expect(state.lineageTaxonMap?.lineageIds).toEqual(state.lineageIds)
+    expect(
+      state.lineageTaxonMap?.taxonIds.every(
+        (taxonId) => taxonId === 'fixture-mutation-bacterium',
+      ),
+    ).toBe(true)
+    expect(
+      state.lineageTaxonMap?.taxonContentVersions.every(
+        (version) => version === '1.0.0',
+      ),
+    ).toBe(true)
+  })
+
+  it('rolls state and RNG back when mutation materialization exceeds runtime work policy', () => {
+    const engine = new ComposedSimulationEngine(
+      mutationIdentity,
+      mutationConfig,
+      DEFAULT_ADVANCE_EXECUTION_POLICY,
+      {
+        schemaVersion: MUTATION_EXECUTION_POLICY_SCHEMA_VERSION,
+        id: 'fixture-one-child-per-tick',
+        maximumMaterializedChildrenPerTick: 1,
+      },
+    )
+    const before = engine.snapshot()
+
+    expect(() =>
+      engine.execute({
+        id: 'over-budget-mutation',
+        type: 'advance',
+        ticks: 1,
+      }),
+    ).toThrow(/materialization work ceiling/)
+    expect(engine.snapshot()).toEqual(before)
   })
 
   it('applies authoritative ciprofloxacin without advancing biological time', () => {

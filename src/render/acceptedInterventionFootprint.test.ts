@@ -7,6 +7,7 @@ import {
 import type { SimulationEvent } from "../sim/protocol";
 import {
   ACCEPTED_INTERVENTION_FOOTPRINT_VERSION,
+  assertAcceptedInterventionFootprint,
   projectAcceptedInterventionFootprint,
 } from "./acceptedInterventionFootprint";
 
@@ -126,6 +127,39 @@ describe("accepted intervention footprint projection", () => {
     };
 
     expect(projectAcceptedInterventionFootprint(advanced)).toBeNull();
+  });
+
+  it("validates projected footprint identity and rejects malformed detached data", () => {
+    const source = projectAcceptedInterventionFootprint(
+      appliedEvent(intervention({ kind: "global" })),
+    );
+    expect(source).not.toBeNull();
+    expect(() => assertAcceptedInterventionFootprint(source)).not.toThrow();
+
+    expect(() =>
+      assertAcceptedInterventionFootprint({
+        ...source,
+        eventSequence: -1,
+      }),
+    ).toThrow(/eventSequence must be a non-negative safe integer/);
+    expect(() =>
+      assertAcceptedInterventionFootprint({
+        ...source,
+        commandId: " dose-7",
+      }),
+    ).toThrow(/commandId must be canonical non-empty text/);
+    expect(() =>
+      assertAcceptedInterventionFootprint({
+        ...source,
+        version: 999,
+      }),
+    ).toThrow(/unsupported accepted intervention footprint version/);
+    expect(() =>
+      assertAcceptedInterventionFootprint({
+        ...source,
+        x: 0.5,
+      }),
+    ).toThrow(/contains unknown field "x"/);
   });
 
   it("fails closed if a claimed accepted intervention event lacks authority", () => {

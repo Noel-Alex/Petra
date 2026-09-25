@@ -1,3 +1,7 @@
+import {
+  assertAcceptedInterventionFootprint,
+  type AcceptedInterventionFootprint,
+} from "./acceptedInterventionFootprint";
 import { isLineageAppearanceToken, type LineageAppearanceToken } from "./lineageAppearance";
 import { isLineagePatternToken, type LineagePatternToken } from "./lineagePatterns";
 
@@ -65,7 +69,7 @@ export interface RenderField {
 }
 export interface RenderLineage { readonly id: string; readonly label: string; readonly appearanceToken: LineageAppearanceToken; readonly patternToken: LineagePatternToken; readonly density: Float32Array; }
 export interface RenderEvent { readonly id: string; readonly kind: string; readonly simulationTimeHours: number; readonly x: number; readonly y: number; readonly lineageId?: string; readonly label: string; }
-export interface DishRenderSnapshot { readonly snapshotId: string; /** Stable presentation-only domain for deterministic representative-glyph sampling across related snapshots. */ readonly samplingIdentity: string; readonly simulationTimeHours: number; readonly gridWidth: number; readonly gridHeight: number; readonly dishMask: Uint8Array; readonly biomass: Float32Array; readonly fields: readonly RenderField[]; readonly lineages: readonly RenderLineage[]; readonly events: readonly RenderEvent[]; }
+export interface DishRenderSnapshot { readonly snapshotId: string; /** Stable presentation-only domain for deterministic representative-glyph sampling across related snapshots. */ readonly samplingIdentity: string; readonly simulationTimeHours: number; readonly gridWidth: number; readonly gridHeight: number; readonly dishMask: Uint8Array; readonly biomass: Float32Array; readonly fields: readonly RenderField[]; readonly lineages: readonly RenderLineage[]; /** Accepted non-point intervention geometry. Authoritative composed projections emit this explicitly; omission is retained only for older presentation fixtures. */ readonly acceptedInterventionFootprints?: readonly AcceptedInterventionFootprint[]; readonly events: readonly RenderEvent[]; }
 export interface CameraView { readonly centerX: number; readonly centerY: number; readonly zoom: number; }
 export interface SemanticZoomPolicy { readonly colonyAt: number; readonly representativeCellAt: number; }
 
@@ -115,6 +119,30 @@ export function validateRenderSnapshot(snapshot: DishRenderSnapshot): void {
     if (lineageIds.has(lineage.id)) throw new RangeError(`duplicate lineage id: ${lineage.id}`); lineageIds.add(lineage.id);
     assertLength(`lineage ${lineage.id}`, lineage.density.length, cells); assertFiniteNonNegativeArray(`lineage ${lineage.id}`, lineage.density);
   }
+  if (
+    snapshot.acceptedInterventionFootprints !== undefined &&
+    !Array.isArray(snapshot.acceptedInterventionFootprints)
+  ) {
+    throw new TypeError(
+      "acceptedInterventionFootprints must be an array when provided",
+    );
+  }
+  let previousFootprintSequence = -1;
+  for (const footprint of snapshot.acceptedInterventionFootprints ?? []) {
+    assertAcceptedInterventionFootprint(footprint);
+    if (footprint.eventSequence <= previousFootprintSequence) {
+      throw new RangeError(
+        "accepted intervention footprints must be in strictly increasing event-sequence order",
+      );
+    }
+    previousFootprintSequence = footprint.eventSequence;
+    if (footprint.simulationTimeHours > snapshot.simulationTimeHours) {
+      throw new RangeError(
+        `accepted intervention footprint sequence ${footprint.eventSequence} cannot occur after the snapshot simulation time`,
+      );
+    }
+  }
+
   const eventIds = new Set<string>();
   for (const event of snapshot.events) {
     if (!event.id || !event.kind || !event.label) {

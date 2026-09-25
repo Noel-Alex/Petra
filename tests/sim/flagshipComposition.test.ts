@@ -86,7 +86,7 @@ describe('flagship composed run planning', () => {
         recordId: 'regoes-cab1-ciprofloxacin-pd',
         sourceKey: 'regoes_2004',
         context: expect.objectContaining({
-          organismBackground: 'Escherichia coli CAB1 (O18:K1:H7)',
+          organismBackground: 'Escherichia coli CAB1',
           mediumSubstrate: 'LB',
           temperatureC: 37,
         }),

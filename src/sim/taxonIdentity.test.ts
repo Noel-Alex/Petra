@@ -7,12 +7,14 @@ import {
   createRuntimeLineageTaxonMap,
   extendRuntimeLineageTaxonMap,
   taxonIdForRuntimeLineage,
+  validateRuntimeLineageTaxonMap,
   type AuthoritativeTaxonIdentity,
 } from './taxonIdentity'
 
 const ecoli: AuthoritativeTaxonIdentity = {
   schemaVersion: AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION,
   id: 'ecoli-k12-mg1655',
+  contentVersion: '1.0.0',
   scientificName: 'Escherichia coli',
   background: 'K-12 MG1655',
   microbialGroup: 'bacterium',
@@ -25,6 +27,7 @@ const ecoli: AuthoritativeTaxonIdentity = {
 const fungus: AuthoritativeTaxonIdentity = {
   schemaVersion: AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION,
   id: 'fungus-fixture',
+  contentVersion: '1.0.0',
   scientificName: 'Example fungus',
   background: 'fixture isolate',
   microbialGroup: 'fungus',
@@ -55,6 +58,10 @@ describe('authoritative taxon identity', () => {
     expect(registry.taxa.map((taxon) => taxon.id)).toEqual([
       'ecoli-k12-mg1655',
       'fungus-fixture',
+    ])
+    expect(registry.taxa.map((taxon) => taxon.contentVersion)).toEqual([
+      '1.0.0',
+      '1.0.0',
     ])
 
     mutableSourceKeys[0] = 'mutated'
@@ -97,6 +104,15 @@ describe('authoritative taxon identity', () => {
         },
       ]),
     ).toThrow(/unsupported authoritative microbial group/)
+
+    expect(() =>
+      createAuthoritativeTaxonRegistry([
+        {
+          ...ecoli,
+          contentVersion: ' 1.0.0 ',
+        },
+      ]),
+    ).toThrow(/contentVersion.*canonical/)
   })
 })
 
@@ -119,6 +135,7 @@ describe('runtime lineage taxon map', () => {
     expect(taxonIdForRuntimeLineage(mapping, registry, 'L2')).toBe(
       'fungus-fixture',
     )
+    expect(mapping.taxonContentVersions).toEqual(['1.0.0', '1.0.0'])
   })
 
   it('fails closed on unknown taxa, duplicate lineage ids, or expected-order drift', () => {
@@ -150,6 +167,29 @@ describe('runtime lineage taxon map', () => {
     expect(() =>
       assertRuntimeLineageTaxonPrefixPreserved(mapping, swapped, registry),
     ).toThrow(/prefix changed/)
+  })
+
+  it('rejects an existing lineage map when the registry reuses a taxon id under a new biological content version', () => {
+    const originalRegistry = createAuthoritativeTaxonRegistry([ecoli])
+    const mapping = createRuntimeLineageTaxonMap({
+      lineageIds: ['L1'],
+      taxonIds: ['ecoli-k12-mg1655'],
+      registry: originalRegistry,
+    })
+    const revisedRegistry = createAuthoritativeTaxonRegistry([
+      {
+        ...ecoli,
+        contentVersion: '2.0.0',
+        provenance: {
+          ...ecoli.provenance,
+          context: 'Changed biological interpretation fixture.',
+        },
+      },
+    ])
+
+    expect(() =>
+      validateRuntimeLineageTaxonMap(mapping, revisedRegistry, ['L1']),
+    ).toThrow(/taxon content version mismatch/)
   })
 
   it('extends dynamic lineage identity append-only without inferring a taxon', () => {

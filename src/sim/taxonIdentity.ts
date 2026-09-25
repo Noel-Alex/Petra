@@ -1,5 +1,5 @@
-export const AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION = 1 as const
-export const RUNTIME_LINEAGE_TAXON_MAP_SCHEMA_VERSION = 1 as const
+export const AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION = 2 as const
+export const RUNTIME_LINEAGE_TAXON_MAP_SCHEMA_VERSION = 2 as const
 
 export const AUTHORITATIVE_MICROBIAL_GROUPS = [
   'bacterium',
@@ -15,6 +15,11 @@ export interface AuthoritativeTaxonIdentity {
    * Stable biological/content identity. This is not a renderer token.
    */
   readonly id: string
+  /**
+   * Repository/content-pack owned biological revision. Reusing an id with
+   * changed biological meaning or provenance requires a new contentVersion.
+   */
+  readonly contentVersion: string
   readonly scientificName: string
   readonly background: string
   /**
@@ -43,6 +48,12 @@ export interface RuntimeLineageTaxonMap {
    */
   readonly lineageIds: readonly string[]
   readonly taxonIds: readonly string[]
+  /**
+   * Exact biological content revision aligned one-to-one with taxonIds.
+   * A map serialized under one taxon revision must not validate against a
+   * later registry revision that reuses the same human-readable id.
+   */
+  readonly taxonContentVersions: readonly string[]
 }
 
 function canonicalText(name: string, value: unknown): asserts value is string {
@@ -79,6 +90,7 @@ function cloneTaxon(
   return Object.freeze({
     schemaVersion: AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION,
     id: taxon.id,
+    contentVersion: taxon.contentVersion,
     scientificName: taxon.scientificName,
     background: taxon.background,
     microbialGroup: taxon.microbialGroup,
@@ -97,6 +109,7 @@ export function validateAuthoritativeTaxonIdentity(
     )
   }
   canonicalText('taxon id', taxon.id)
+  canonicalText('taxon contentVersion', taxon.contentVersion)
   canonicalText('taxon scientificName', taxon.scientificName)
   canonicalText('taxon background', taxon.background)
 
@@ -173,9 +186,9 @@ export function createAuthoritativeTaxonRegistry(
   })
 }
 
-function taxonIds(
+function taxonContentVersionsById(
   registry: AuthoritativeTaxonRegistry,
-): ReadonlySet<string> {
+): ReadonlyMap<string, string> {
   if (
     registry.schemaVersion !== AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION
   ) {
@@ -183,7 +196,7 @@ function taxonIds(
       `unsupported taxon registry schema version: ${registry.schemaVersion}`,
     )
   }
-  const ids = new Set<string>()
+  const versions = new Map<string, string>()
   const biologicalIdentities = new Set<string>()
   for (let index = 0; index < registry.taxa.length; index += 1) {
     if (!(index in registry.taxa)) {
@@ -191,10 +204,10 @@ function taxonIds(
     }
     const taxon = registry.taxa[index]!
     validateAuthoritativeTaxonIdentity(taxon)
-    if (ids.has(taxon.id)) {
+    if (versions.has(taxon.id)) {
       throw new Error(`duplicate authoritative taxon id: ${taxon.id}`)
     }
-    ids.add(taxon.id)
+    versions.set(taxon.id, taxon.contentVersion)
 
     const exactIdentity = JSON.stringify([
       taxon.scientificName,
@@ -207,7 +220,7 @@ function taxonIds(
     }
     biologicalIdentities.add(exactIdentity)
   }
-  return ids
+  return versions
 }
 
 export function validateRuntimeLineageTaxonMap(
@@ -224,22 +237,35 @@ export function validateRuntimeLineageTaxonMap(
   }
   denseStringArray('runtime lineage ids', mapping.lineageIds)
   denseStringArray('runtime lineage taxon ids', mapping.taxonIds)
+  denseStringArray(
+    'runtime lineage taxon content versions',
+    mapping.taxonContentVersions,
+  )
 
-  if (mapping.lineageIds.length !== mapping.taxonIds.length) {
+  if (
+    mapping.lineageIds.length !== mapping.taxonIds.length ||
+    mapping.lineageIds.length !== mapping.taxonContentVersions.length
+  ) {
     throw new Error(
-      'runtime lineage ids and taxon ids must have identical lengths',
+      'runtime lineage ids, taxon ids, and taxon content versions must have identical lengths',
     )
   }
   if (new Set(mapping.lineageIds).size !== mapping.lineageIds.length) {
     throw new Error('runtime lineage ids must be unique')
   }
 
-  const knownTaxonIds = taxonIds(registry)
+  const knownTaxonVersions = taxonContentVersionsById(registry)
   for (let index = 0; index < mapping.taxonIds.length; index += 1) {
     const taxonId = mapping.taxonIds[index]!
-    if (!knownTaxonIds.has(taxonId)) {
+    const expectedContentVersion = knownTaxonVersions.get(taxonId)
+    if (expectedContentVersion === undefined) {
       throw new Error(
         `runtime lineage ${mapping.lineageIds[index]} references unknown taxon ${taxonId}`,
+      )
+    }
+    if (mapping.taxonContentVersions[index] !== expectedContentVersion) {
+      throw new Error(
+        `runtime lineage ${mapping.lineageIds[index]} taxon content version mismatch for ${taxonId}: expected ${expectedContentVersion}, received ${mapping.taxonContentVersions[index]}`,
       )
     }
   }
@@ -269,16 +295,29 @@ export function createRuntimeLineageTaxonMap(args: {
   readonly taxonIds: readonly string[]
   readonly registry: AuthoritativeTaxonRegistry
 }): RuntimeLineageTaxonMap {
+  const knownTaxonVersions = taxonContentVersionsById(args.registry)
+  const taxonContentVersions = args.taxonIds.map((taxonId, index) => {
+    canonicalText(`runtime lineage taxon ids[${index}]`, taxonId)
+    const contentVersion = knownTaxonVersions.get(taxonId)
+    if (contentVersion === undefined) {
+      throw new Error(
+        `runtime lineage ${args.lineageIds[index]} references unknown taxon ${taxonId}`,
+      )
+    }
+    return contentVersion
+  })
   const mapping: RuntimeLineageTaxonMap = {
     schemaVersion: RUNTIME_LINEAGE_TAXON_MAP_SCHEMA_VERSION,
     lineageIds: args.lineageIds,
     taxonIds: args.taxonIds,
+    taxonContentVersions,
   }
   validateRuntimeLineageTaxonMap(mapping, args.registry, args.lineageIds)
   return Object.freeze({
     schemaVersion: RUNTIME_LINEAGE_TAXON_MAP_SCHEMA_VERSION,
     lineageIds: Object.freeze([...args.lineageIds]),
     taxonIds: Object.freeze([...args.taxonIds]),
+    taxonContentVersions: Object.freeze([...taxonContentVersions]),
   })
 }
 
@@ -299,7 +338,7 @@ export function extendRuntimeLineageTaxonMap(args: {
   const lineageIds = [...args.current.lineageIds]
   const taxonIds = [...args.current.taxonIds]
   const seenLineages = new Set(lineageIds)
-  const knownTaxa = taxonIdsForLookup(args.registry)
+  const knownTaxa = taxonContentVersionsById(args.registry)
 
   for (let index = 0; index < args.appended.length; index += 1) {
     if (!(index in args.appended)) {
@@ -330,12 +369,6 @@ export function extendRuntimeLineageTaxonMap(args: {
   })
 }
 
-function taxonIdsForLookup(
-  registry: AuthoritativeTaxonRegistry,
-): ReadonlySet<string> {
-  return taxonIds(registry)
-}
-
 export function taxonIdForRuntimeLineage(
   mapping: RuntimeLineageTaxonMap,
   registry: AuthoritativeTaxonRegistry,
@@ -364,7 +397,9 @@ export function assertRuntimeLineageTaxonPrefixPreserved(
   for (let index = 0; index < previous.lineageIds.length; index += 1) {
     if (
       previous.lineageIds[index] !== next.lineageIds[index] ||
-      previous.taxonIds[index] !== next.taxonIds[index]
+      previous.taxonIds[index] !== next.taxonIds[index] ||
+      previous.taxonContentVersions[index] !==
+        next.taxonContentVersions[index]
     ) {
       throw new Error(
         `runtime lineage taxon prefix changed at index ${index}`,

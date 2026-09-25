@@ -5,7 +5,7 @@ import {
 } from "../render/renderPayloadEstimate";
 import type { SimulationSnapshot } from "../sim/protocol";
 
-export const RENDER_PUBLICATION_PERFORMANCE_SAMPLE_VERSION = 1 as const;
+export const RENDER_PUBLICATION_PERFORMANCE_SAMPLE_VERSION = 2 as const;
 
 /** Correlation fields for the advance-only profiling workload. This tuple is not a globally unique accepted-response id; repeated snapshot-only responses may share it. */
 export interface RenderPublicationTransactionIdentity {
@@ -22,6 +22,13 @@ export interface RuntimeSnapshotPublicationSample
   readonly phase: "runtime-snapshot-published";
   readonly observedAtMs: number;
   readonly hasEcologyObservation: boolean;
+  /**
+   * Exact simulator-owned aggregate load diagnostics from the accepted
+   * composed checkpoint. They characterize scientific state only; they are
+   * not renderer timing, physical cell counts, CFU, or visible-pixel density.
+   */
+  readonly totalBiomass: number;
+  readonly occupiedCells: number;
 }
 
 export interface DishProjectionPublicationSample
@@ -100,6 +107,8 @@ export function observeRuntimeSnapshotPublication(
     hasEcologyObservation:
       snapshot.checkpoint.authority === "composed" &&
       snapshot.ecologyObservation !== undefined,
+    totalBiomass: snapshot.checkpoint.metrics.totalBiomass,
+    occupiedCells: snapshot.checkpoint.metrics.occupiedCells,
   });
 }
 

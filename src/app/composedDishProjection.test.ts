@@ -258,6 +258,67 @@ describe("authoritative composed dish projection", () => {
   });
 
 
+  it("rejects cross-channel checkpoint drift before publishing render data", () => {
+    const simulation = composedEngine().snapshot();
+    if (simulation.checkpoint.authority !== "composed") {
+      throw new Error("expected composed snapshot");
+    }
+
+    const totalBiomassDrift = structuredClone(simulation);
+    totalBiomassDrift.checkpoint.metrics.totalBiomass += 0.25;
+    expect(() =>
+      projectAuthoritativeComposedDishSnapshot(
+        totalBiomassDrift,
+        "fixture-branch-0",
+      ),
+    ).toThrow(/total biomass metric does not match spatial state/);
+
+    const totalResourceDrift = structuredClone(simulation);
+    totalResourceDrift.checkpoint.metrics.totalResource += 1;
+    expect(() =>
+      projectAuthoritativeComposedDishSnapshot(
+        totalResourceDrift,
+        "fixture-branch-0",
+      ),
+    ).toThrow(/total resource metric does not match spatial state/);
+
+    const occupiedCellDrift = structuredClone(simulation);
+    occupiedCellDrift.checkpoint.metrics.occupiedCells = 0;
+    expect(() =>
+      projectAuthoritativeComposedDishSnapshot(
+        occupiedCellDrift,
+        "fixture-branch-0",
+      ),
+    ).toThrow(/occupied-cell metric does not match spatial state/);
+
+    const lineageMetricDrift = structuredClone(simulation);
+    lineageMetricDrift.checkpoint.metrics.lineageBiomass["founder-wt"]! += 0.25;
+    expect(() =>
+      projectAuthoritativeComposedDishSnapshot(
+        lineageMetricDrift,
+        "fixture-branch-0",
+      ),
+    ).toThrow(/lineage "founder-wt" biomass metric does not match spatial state/);
+
+    const lineageIdentityDrift = structuredClone(simulation);
+    lineageIdentityDrift.checkpoint.metrics.lineageBiomass["foreign"] = 0;
+    expect(() =>
+      projectAuthoritativeComposedDishSnapshot(
+        lineageIdentityDrift,
+        "fixture-branch-0",
+      ),
+    ).toThrow(/metrics must exactly match authoritative lineage identity/);
+
+    const malformedGenotype = structuredClone(simulation);
+    malformedGenotype.checkpoint.composedState.genotypeIds[0] = " WT";
+    expect(() =>
+      projectAuthoritativeComposedDishSnapshot(
+        malformedGenotype,
+        "fixture-branch-0",
+      ),
+    ).toThrow(/genotype id must be canonical non-empty text/);
+  });
+
   it("rejects malformed authoritative spatial state instead of rendering it", () => {
     const simulation = composedEngine().snapshot();
     if (simulation.checkpoint.authority !== "composed") {

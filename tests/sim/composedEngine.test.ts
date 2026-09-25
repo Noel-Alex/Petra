@@ -353,6 +353,27 @@ describe('ComposedSimulationEngine', () => {
     )
   })
 
+  it('keeps older snapshot event histories immutable across later commands', () => {
+    const engine = new ComposedSimulationEngine(identity, config)
+    const initial = engine.snapshot()
+    const advanced = engine.execute({
+      id: 'immutable-history-advance',
+      type: 'advance',
+      ticks: 1,
+    })
+
+    expect(Object.isFrozen(initial.events)).toBe(true)
+    expect(Object.isFrozen(initial.events[0])).toBe(true)
+    expect(Object.isFrozen(advanced.events)).toBe(true)
+    expect(initial.events).toHaveLength(1)
+    expect(advanced.events).toHaveLength(2)
+    expect(advanced.events[0]).toBe(initial.events[0])
+    expect(initial.events[0]).toMatchObject({
+      sequence: 0,
+      type: 'initialized',
+    })
+  })
+
   it('advances real composed ecology instead of synthetic fixture state', () => {
     const engine = new ComposedSimulationEngine(identity, config)
     const initial = engine.snapshot().checkpoint
@@ -571,21 +592,32 @@ describe('ComposedSimulationEngine', () => {
     )
   })
 
-  it('deep-copies nested ciprofloxacin event payloads out of engine authority', () => {
+  it('shares deeply frozen intervention events without exposing engine mutation', () => {
     const engine = new ComposedSimulationEngine(drugIdentity, drugConfig)
-    engine.execute({
+    const before = engine.snapshot()
+    const applied = engine.execute({
       id: 'dose-global',
       type: 'apply-ciprofloxacin',
       intervention: drugIntervention,
     })
-    const exported = engine.snapshot()
-    const event = exported.events.at(-1)
+    const event = applied.events.at(-1)
     if (event?.type !== 'ciprofloxacin-applied' || event.intervention === undefined) {
       throw new Error('expected ciprofloxacin-applied event')
     }
-    ;(
-      event.intervention as unknown as { concentrationMgPerL: number }
-    ).concentrationMgPerL = 999
+
+    expect(Object.isFrozen(applied.events)).toBe(true)
+    expect(Object.isFrozen(event)).toBe(true)
+    expect(Object.isFrozen(event.intervention)).toBe(true)
+    expect(Object.isFrozen(event.intervention.geometry)).toBe(true)
+    expect(applied.events[0]).toBe(before.events[0])
+    expect(before.events).toHaveLength(1)
+    expect(applied.events).toHaveLength(2)
+
+    expect(() => {
+      ;(
+        event.intervention as unknown as { concentrationMgPerL: number }
+      ).concentrationMgPerL = 999
+    }).toThrow(TypeError)
 
     expect(engine.snapshot().events.at(-1)).toMatchObject({
       type: 'ciprofloxacin-applied',

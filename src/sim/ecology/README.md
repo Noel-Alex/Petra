@@ -6,7 +6,7 @@ This directory turns resource availability into deterministic **continuous bioma
 
 `growth.ts` provides:
 - Monod response `S / (K_s + S)`;
-- genotype/lineage relative-fitness scaling of division demand;
+- an explicit lineage/taxon baseline growth-rate scale, separate from genotype relative-fitness scaling of division demand;
 - simultaneous proportional allocation of shared resource across lineages;
 - biomass yield accounting;
 - local-capacity limiting;
@@ -19,7 +19,7 @@ All numeric parameters are passed by the scenario/composition layer. This module
 
 ## Authority boundaries
 
-`maxDivisionRate`, `halfSaturation`, `biomassYield`, and lineage `relativeFitness` require biological provenance in a Science-Mode preset. `localCapacity` and `spreadRate` may be calibrated/engineering parameters but must be labeled as such. The spread operator is an effective colony-front approximation, **not bacterial motility or single-cell mechanics**.
+`maxDivisionRate`, `halfSaturation`, `biomassYield`, lineage/taxon `baselineGrowthRateScale`, and genotype `relativeFitness` require explicit provenance in a Science-Mode preset. The baseline scale is the composition seam for organism-level calibrated growth differences under one shared ecology profile; it must not be hidden inside genotype fitness. `localCapacity` and `spreadRate` may be calibrated/engineering parameters but must be labeled as such. The spread operator is an effective colony-front approximation, **not bacterial motility or single-cell mechanics**.
 
 `deathHazardPerTime` is an input contract, not a hidden stress model. The caller must identify the mechanism and provenance that produced it. For the ciprofloxacin flagship, Issue #4 owns the resource×drug composition that will derive spatial loss pressure from the documented Regoes/MIC policy.
 

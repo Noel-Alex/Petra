@@ -21,6 +21,10 @@
 - Baym, M. et al. (2016). Spatiotemporal microbial evolution on antibiotic landscapes. DOI `10.1126/science.aag0822`.
 - Huseby, D.L. et al. (2017). Mutation Supply and Relative Fitness Shape the Genotypes of Ciprofloxacin-Resistant E. coli. DOI `10.1093/molbev/msx052`.
 
+## Morphology / presentation evidence
+- Nanninga, N. (1998). Morphogenesis of Escherichia coli. DOI `10.1128/MMBR.62.1.110-129.1998`.
+- van Teeffelen, S., Renner, L.D. (2018). Recent advances in understanding how rod-like bacteria stably maintain their cell shapes. DOI `10.12688/f1000research.12663.1`.
+
 ## Persistence
 - Balaban, N.Q. et al. (2004). Bacterial Persistence as a Phenotypic Switch. DOI `10.1126/science.1099390`.
 - Kussell, E. et al. (2005). Bacterial persistence: a model of survival in changing environments. DOI `10.1534/genetics.104.035352`.

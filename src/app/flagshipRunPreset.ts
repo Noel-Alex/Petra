@@ -5,10 +5,18 @@ import {
   type FlagshipFounderInoculum,
 } from "../sim/flagshipComposition";
 import {
+  projectBundledFlagshipCiprofloxacinControl,
+  type FlagshipCiprofloxacinControlProvenance,
+} from "../sim/flagshipInterventionControl";
+import {
   ENGINE_VERSION,
   PROTOCOL_VERSION,
   assertSimulationSeed,
 } from "../sim/protocol";
+import {
+  parseCiprofloxacinToolAuthority,
+  type CiprofloxacinToolAuthority,
+} from "./ciprofloxacinToolAuthority";
 
 export const FLAGSHIP_RUN_PRESET_SCHEMA_VERSION = 1 as const;
 
@@ -38,6 +46,8 @@ export interface FlagshipRunPreset {
 export interface DefaultFlagshipRun {
   readonly preset: FlagshipRunPreset;
   readonly plan: FlagshipComposedRunPlan;
+  readonly ciprofloxacinToolAuthority: CiprofloxacinToolAuthority;
+  readonly ciprofloxacinControlProvenance: FlagshipCiprofloxacinControlProvenance;
 }
 
 type UnknownRecord = Record<string, unknown>;
@@ -263,7 +273,17 @@ export function buildFlagshipRunFromPreset(value: unknown): DefaultFlagshipRun {
     );
   }
 
-  return Object.freeze({ preset, plan });
+  const ciprofloxacinControl = projectBundledFlagshipCiprofloxacinControl();
+  const ciprofloxacinToolAuthority = parseCiprofloxacinToolAuthority(
+    ciprofloxacinControl.toolAuthority,
+  );
+
+  return Object.freeze({
+    preset,
+    plan,
+    ciprofloxacinToolAuthority,
+    ciprofloxacinControlProvenance: ciprofloxacinControl.provenance,
+  });
 }
 
 export function buildDefaultFlagshipRun(): DefaultFlagshipRun {

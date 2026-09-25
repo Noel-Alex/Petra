@@ -8,7 +8,7 @@ describe("flagship provenance presentation projection", () => {
 
     expect(view.scenario).toEqual({
       id: "ecoli-ciprofloxacin-spatial",
-      version: "1.4.0-research",
+      version: "1.5.0-research",
       title: "E. coli / ciprofloxacin spatial evolution",
     });
   });
@@ -80,6 +80,29 @@ describe("flagship provenance presentation projection", () => {
     expect(referencePd?.presentation?.disclosures).toContain(
       "These are fitted source-context parameter estimates, not direct raw measurements and not an MG1655 or Petra resource-ecology calibration.",
     );
+  });
+
+  it("surfaces the source-domain ciprofloxacin control as transferred guardrail evidence", () => {
+    const view = buildFlagshipProvenanceView();
+    const control = view.records.find(
+      (record) => record.id === "drug-control:ciprofloxacin-source-domain",
+    );
+
+    expect(control?.status).toBe("complete");
+    expect(control?.rawClassification).toBe("transferred");
+    expect(control?.sourceKeys).toEqual(["regoes_2004"]);
+    expect(control?.presentation?.details).toContainEqual({
+      label: "Value",
+      value: "0–2 mg/L · default 0 mg/L · set field edit",
+    });
+    expect(control?.presentation?.disclosures).toContain(
+      "0 mg/L is the exact neutral initial flagship state and an interaction default, not a measured effective or optimal dose.",
+    );
+    expect(
+      control?.presentation?.disclosures.some((text) =>
+        text.includes("genotype MIC values do not widen the 0-2 mg/L source-domain guardrail"),
+      ),
+    ).toBe(true);
   });
 
   it("exposes the runnable ecology profile as engineering rather than measured science", () => {

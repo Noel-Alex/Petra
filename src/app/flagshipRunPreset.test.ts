@@ -9,14 +9,14 @@ import {
 
 describe("default flagship run preset", () => {
   it("binds the current composed flagship authority without upgrading engineering run state", () => {
-    const { preset, plan } = buildDefaultFlagshipRun();
+    const { preset, plan, ciprofloxacinToolAuthority, ciprofloxacinControlProvenance } = buildDefaultFlagshipRun();
 
-    expect(preset.version).toBe("1.0.1");
+    expect(preset.version).toBe("1.0.2");
     expect(preset.protocolVersion).toBe(PROTOCOL_VERSION);
     expect(preset.classification).toBe("engineering");
     expect(preset.usageScope).toBe("research-expo-engineering-default");
     expect(plan.identity.scenarioId).toBe("ecoli-ciprofloxacin-spatial");
-    expect(plan.identity.scenarioVersion).toBe("1.4.0-research");
+    expect(plan.identity.scenarioVersion).toBe("1.5.0-research");
     expect(plan.identity.parameterSetId).toBe(
       "ecoli-ciprofloxacin-baseline-composed",
     );
@@ -24,6 +24,24 @@ describe("default flagship run preset", () => {
     expect(plan.identity.protocolVersion).toBe(PROTOCOL_VERSION);
     expect(plan.identity.seed).toBe(preset.seed);
     expect(plan.config.ciprofloxacinConcentrationMgPerL.every((value) => value === 0)).toBe(true);
+    expect(ciprofloxacinToolAuthority).toMatchObject({
+      protocolCommand: "apply-ciprofloxacin",
+      parameter: {
+        unit: "mg/L",
+        minimum: 0,
+        maximum: 2,
+        defaultValue: 0,
+        precision: 3,
+      },
+      supportedGeometries: ["global", "radial", "stripe", "paint"],
+      blendMode: "set",
+    });
+    expect(ciprofloxacinControlProvenance).toMatchObject({
+      classification: "transferred",
+      citation: "regoes_2004",
+      sourceTestedRangeMgPerL: { minimum: 0, maximum: 2 },
+      defaultClassification: "engineering",
+    });
   });
 
   it("rejects stale mechanism identity rather than silently rebinding the preset", () => {

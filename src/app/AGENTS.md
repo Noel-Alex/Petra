@@ -208,3 +208,7 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - File size/MIME/read checks are cheap presentation/security guards only. They do not establish scientific validity or replay compatibility; the simulation-owned parser remains authoritative.
 - Browser-supplied empty MIME is accepted because local JSON files may not carry a type. Unsupported non-empty MIME and oversized/unreadable files fail before parsing with bounded user-facing messages.
 - This boundary does not replace the active run. Destructive replacement remains an explicit confirmed action through the existing handoff planner and a fresh authoritative runtime.
+
+## Flagship ciprofloxacin tool authority
+- `flagshipRunPreset.ts` returns the scenario-projected ciprofloxacin tool authority and its provenance alongside the composed run plan. It must validate the simulation-owned projection through `ciprofloxacinToolAuthority.ts`; React must not hard-code concentration bounds/defaults or infer them from MIC/renderer state.
+- The current flagship guardrail is a source-domain model-field edit contract, not clinical dosing or physical delivery authority. Missing/malformed authority keeps Apply unavailable rather than falling back to demo numbers.

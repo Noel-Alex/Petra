@@ -221,15 +221,15 @@ Authenticated recovery contributor/session: Noel-Alex
 
 Authenticated coordination contributor/session: Noel-Alex
 
-## 2026-09-25 — current authoritative render/UI contract after protocol-v8 and heterogeneous-scene integration
+## 2026-09-25 — current authoritative render/UI contract after protocol-v9 and heterogeneous-scene integration
 
 This supersedes older same-day handoffs where they describe protocol-v6-era state or still-pending colony-island work.
 
 ### What the live dish may treat as authoritative now
 
-- The biological source remains the accepted **composed Worker transaction**, not Pixi/React state. Current composed authority is protocol v8 with replay-critical RNG/checkpoint continuation and the integrated mutation transaction. Same seed + exact config + ordered commands remains the determinism boundary.
+- The biological source remains the accepted **composed Worker transaction**, not Pixi/React state. Current composed authority is protocol v9 with replay-critical RNG/checkpoint continuation and the integrated mutation transaction. Same seed + exact config + ordered commands remains the determinism boundary.
 - `composedDishProjection.ts` remains the only app-layer whole-dish projection from accepted composed snapshots into detached immutable render data. Scientific consumers must continue reading simulator metrics/inspection/analysis contracts rather than reconstructing biology from render buffers.
-- The live render transaction can carry exact dish mask; aligned per-lineage and aggregate `model-biomass`; authoritative `model-resource`; exact antimicrobial fields/units that the active scenario actually owns; accepted intervention footprints; accepted step-local net-growth presentation; exact taxon/presentation companions; and replay-bound lineage-origin point events where source coordinates exist.
+- The live render transaction can carry exact dish mask; aligned per-lineage and aggregate `model-biomass`; authoritative `model-resource` including accepted protocol-v9 resource edits; exact antimicrobial fields/units that the active scenario actually owns; accepted intervention footprints; accepted step-local net-growth presentation; exact taxon/presentation companions; and replay-bound lineage-origin point events where source coordinates exist.
 - `DishSceneTransaction@v1` is the heterogeneous source boundary. It admits either one accepted composed-runtime dish transaction or one standalone fungal source-validation front. Equal biological time is **not** a join key. Do not manufacture a mixed bacteria+fungus live scene by combining unrelated authorities.
 - Renderer events/overlays remain presentation projections of source-owned state/events. They are not inspector, metric, replay, or checkpoint authority.
 

@@ -1,6 +1,8 @@
 import { useId } from "react";
 
 import { PetraCompactAction } from "../ui/PetraCompactAction";
+import { PetraIcon } from "../ui/icons/PetraIcon";
+import type { PetraIconName } from "../ui/icons/spec";
 import type {
   InterventionTool,
   NormalizedDishPoint,
@@ -9,6 +11,13 @@ import type { InterventionPlacementState } from "../ui/interventionPlacement";
 import type { MotionPreference } from "../ui/motion/policy";
 import { projectInterventionCapability } from "./interventionCapability";
 import type { RuntimeUiStatus } from "./runtimeView";
+
+const INTERVENTION_ICONS = {
+  inoculate: "inoculate",
+  fungus: "fungus",
+  antibiotic: "antibiotic",
+  nutrient: "nutrient",
+} as const satisfies Readonly<Record<InterventionTool, PetraIconName>>;
 
 export interface InterventionPaletteProps {
   readonly motion: MotionPreference;
@@ -52,8 +61,11 @@ export function InterventionPalette({
       data-intervention-capability={view.reason}
       data-placement-active={activeTool === null ? "false" : "true"}
     >
-      <p className="petra-kicker">Interventions</p>
-      <h2>Shape the environment</h2>
+      <p className="petra-kicker">Experiment tools</p>
+      <h2>Add to Dish</h2>
+      <p className="petra-panel__intro">
+        Choose a population or condition to preview on the dish.
+      </p>
 
       <div className="tool-stack" aria-describedby={reasonId}>
         {view.tools.map(({ tool, label }) => (
@@ -67,8 +79,20 @@ export function InterventionPalette({
             data-intervention-tool={tool}
             onClick={() => onBeginPlacement?.(tool)}
           >
-            <span>{label}</span>
-            <small>place preview</small>
+            <span className="tool-action__icon" aria-hidden="true">
+              <PetraIcon
+                name={INTERVENTION_ICONS[tool]}
+                decorative
+                size={28}
+              />
+            </span>
+            <span className="tool-action__copy">
+              <strong>{label}</strong>
+              <small>place preview</small>
+            </span>
+            <span className="tool-action__arrow" aria-hidden="true">
+              ›
+            </span>
           </PetraCompactAction>
         ))}
       </div>

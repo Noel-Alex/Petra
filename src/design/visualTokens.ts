@@ -1,24 +1,24 @@
 export const PETRA_VISUAL_COLOR_SCHEMA_VERSION = 1 as const;
 
 /**
- * Petra's domain-neutral presentation palette.
+ * Petra's domain-neutral deep blue editorial presentation palette.
  *
  * These colors are visual language only. They never encode scientific values,
  * fitness, resistance, confidence, abundance, or causal direction by
  * themselves. Scientific surfaces must pair color with labels/pattern/shape.
  */
 export const PETRA_VISUAL_COLORS = Object.freeze({
-  inkDeep: 0x172033,
-  ink: 0x23314b,
-  inkSoft: 0x34445e,
-  cream: 0xf4ead7,
-  creamMuted: 0xd9d0be,
-  teal: 0x68aaa4,
-  mint: 0x83b89a,
-  amber: 0xd2a44d,
-  coral: 0xdf8379,
-  olive: 0x8e9b64,
-  lavender: 0x9486a9,
+  inkDeep: 0x0f1f2c,
+  ink: 0x132432,
+  inkSoft: 0x1a2f42,
+  cream: 0xf2e8d4,
+  creamMuted: 0xaebcc8,
+  teal: 0x62b7b6,
+  mint: 0x7fcaa8,
+  amber: 0xf1b650,
+  coral: 0xec6c78,
+  olive: 0x8fb76d,
+  lavender: 0x9a8bbb,
 });
 
 export type PetraVisualColorToken = keyof typeof PETRA_VISUAL_COLORS;

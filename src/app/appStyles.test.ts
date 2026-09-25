@@ -2,15 +2,16 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-// Vite resolves raw assets in the Vitest runtime; this project intentionally omits vite/client globals.
-// @ts-expect-error Vite raw asset import is runtime-supported but not declared in tsconfig types.
-import appCss from "./app.css?raw";
-// @ts-expect-error Vite raw asset import is runtime-supported but not declared in tsconfig types.
-import timelineHistoryCss from "./timelineHistory.css?raw";
-// @ts-expect-error Vite raw asset import is runtime-supported but not declared in tsconfig types.
-import analysisSurfaceCss from "./analysisSurface.css?raw";
-
 const appSource = readFileSync(fileURLToPath(new URL("./App.tsx", import.meta.url)), "utf8");
+const appCss = readFileSync(fileURLToPath(new URL("./app.css", import.meta.url)), "utf8");
+const timelineHistoryCss = readFileSync(
+  fileURLToPath(new URL("./timelineHistory.css", import.meta.url)),
+  "utf8",
+);
+const analysisSurfaceCss = readFileSync(
+  fileURLToPath(new URL("./analysisSurface.css", import.meta.url)),
+  "utf8",
+);
 
 function ruleBody(selector: string, css = appCss): string {
   const start = css.indexOf(`${selector} {`);

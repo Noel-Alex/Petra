@@ -7,6 +7,10 @@ import { ComposedSimulationEngine } from '../../src/sim/composedEngine'
 import type { CuratedMutationGraph } from '../../src/sim/evolution/graph'
 import { createFixtureComposedParameterSetBinding } from '../../src/sim/parameterSetBinding'
 import {
+  CELL_EQUIVALENT_CALIBRATION_SCHEMA_VERSION,
+  FRACTIONAL_CARRY_POPULATION_POLICY,
+} from '../../src/sim/populationAuthority'
+import {
   PROTOCOL_VERSION,
   createRunIdentity,
   type SimulationSnapshot,
@@ -81,6 +85,7 @@ const composedConfig: ComposedSimulationConfig = {
   },
   ciprofloxacin: null,
   samplingExecutionPolicy: null,
+  populationAuthority: null,
   hoursPerTick: 0.01,
 }
 
@@ -104,7 +109,42 @@ const composedSnapshot = new ComposedSimulationEngine(
   composedConfig,
 ).snapshot()
 
-describe('worker protocol-v5 runtime validation', () => {
+const populationConfig: ComposedSimulationConfig = {
+  ...composedConfig,
+  populationAuthority: {
+    calibration: {
+      schemaVersion: CELL_EQUIVALENT_CALIBRATION_SCHEMA_VERSION,
+      id: 'fixture-protocol-population-scale-v1',
+      modelBiomassPerCellEquivalent: 0.01,
+      provenance: {
+        classification: 'engineering',
+        sourceKeys: [],
+        limitation:
+          'Test-only engineering scale for protocol population validation.',
+      },
+    },
+    policy: FRACTIONAL_CARRY_POPULATION_POLICY,
+  },
+}
+const populationParameterSetId = 'fixture:protocol-runtime-population'
+const populationIdentity = createRunIdentity({
+  scenarioId: evolutionGraph.scenarioId,
+  scenarioVersion: evolutionGraph.scenarioVersion,
+  parameterSetId: populationParameterSetId,
+  parameterSetVersion,
+  parameterSetBinding: createFixtureComposedParameterSetBinding(
+    populationParameterSetId,
+    parameterSetVersion,
+    populationConfig,
+  ),
+  seed: 24,
+})
+const populationSnapshot = new ComposedSimulationEngine(
+  populationIdentity,
+  populationConfig,
+).execute({ id: 'population-step', type: 'advance', ticks: 1 })
+
+describe('worker protocol-v6 runtime validation', () => {
   it('accepts valid synthetic protocol requests and responses', () => {
     expect(
       parseWorkerRequest({
@@ -234,6 +274,71 @@ describe('worker protocol-v5 runtime validation', () => {
     ).toMatchObject({ ok: false })
   })
 
+  it('requires explicit discretePopulation state in protocol-v6 composed checkpoints', () => {
+    const malformed = structuredClone(composedSnapshot) as unknown as {
+      checkpoint: {
+        composedState: Record<string, unknown>
+      }
+    }
+    delete malformed.checkpoint.composedState.discretePopulation
+
+    const parsed = parseWorkerResponse({
+      protocolVersion: PROTOCOL_VERSION,
+      type: 'ready',
+      snapshot: malformed,
+    })
+    expect(parsed).toMatchObject({ ok: false })
+    if (!parsed.ok) expect(parsed.error).toContain('discretePopulation')
+  })
+
+  it('validates enabled discrete population checkpoint channels before promotion', () => {
+    expect(
+      parseWorkerResponse({
+        protocolVersion: PROTOCOL_VERSION,
+        type: 'ready',
+        snapshot: populationSnapshot,
+      }),
+    ).toMatchObject({ ok: true })
+
+    const corruptCount = structuredClone(populationSnapshot)
+    ;(
+      corruptCount.checkpoint.composedState.discretePopulation!
+        .standingHostCounts[0] as number[]
+    )[0] = 1.5
+    const countResult = parseWorkerResponse({
+      protocolVersion: PROTOCOL_VERSION,
+      type: 'ready',
+      snapshot: corruptCount,
+    })
+    expect(countResult).toMatchObject({ ok: false })
+    if (!countResult.ok) {
+      expect(countResult.error).toContain('standingHostCounts')
+    }
+
+    const corruptMask = structuredClone(populationSnapshot)
+    ;(
+      corruptMask.checkpoint.composedState.discretePopulation!
+        .divisionResidualCellEquivalents[0] as number[]
+    )[1] = 0.25
+    // This fixture's second cell is in-mask, so make the composed mask and all
+    // matching scientific fields explicitly zero there to exercise transport
+    // off-mask validation rather than scientific fingerprint authority.
+    corruptMask.checkpoint.composedState.mask[1] = 0
+    corruptMask.checkpoint.composedState.resource[1] = 0
+    corruptMask.checkpoint.composedState.ciprofloxacinConcentrationMgPerL[1] = 0
+    corruptMask.checkpoint.composedState.lineageBiomass.forEach(
+      (channel) => {
+        channel[1] = 0
+      },
+    )
+    const maskResult = parseWorkerResponse({
+      protocolVersion: PROTOCOL_VERSION,
+      type: 'ready',
+      snapshot: corruptMask,
+    })
+    expect(maskResult).toMatchObject({ ok: false })
+  })
+
   it('rejects non-object envelopes without throwing', () => {
     expect(parseWorkerRequest(null)).toEqual({
       ok: false,
@@ -313,7 +418,7 @@ describe('worker protocol-v5 runtime validation', () => {
       }),
     ).toEqual({
       ok: false,
-      error: 'Worker protocol mismatch: expected 4, received 99',
+      error: `Worker protocol mismatch: expected ${PROTOCOL_VERSION}, received 99`,
       commandId: null,
     })
   })

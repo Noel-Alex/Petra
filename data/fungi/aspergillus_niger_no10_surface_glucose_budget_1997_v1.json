@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "id": "aspergillus-niger-no10_surface-glucose-budget_favela-torres-1997_v1",
+  "status": "research-evidence",
+  "decision": "endpoint-budget-validation-only",
+  "organism": {
+    "sourceLabel": "Aspergillus niger 10",
+    "targetPackId": "aspergillus-niger-var-hennebergi-no10_surface-agar_larralde-1997_v1",
+    "compatibilityClassification": "same-named-strain-context-transfer",
+    "compatibilityNote": "The primary chapter names Aspergillus niger 10 and includes the ORSTOM laboratory in the author affiliations, but its microorganism methods do not repeat the var. hennebergi / ORSTOM-collection wording from the Larralde-Corona pack. Preserve this as an explicit same-named-strain context transfer rather than silently treating the chapter label alone as an exact taxonomic join."
+  },
+  "sources": [
+    {
+      "key": "favela_torres_1997_high_glucose_culture_formats",
+      "label": "Favela-Torres et al. (1997), Kinetics of Aspergillus niger growth at high glucose concentrations in different types of the cultures",
+      "publication": "Advances in Solid State Fermentation, chapter 5, pp. 49-58",
+      "isbn": "0-7923-4732-3",
+      "primaryTextUrl": "https://horizon.documentation.ird.fr/exl-doc/pleins_textes/divers20-10/010012585.pdf",
+      "classification": "primary-source-measured-and-source-derived-context"
+    },
+    {
+      "key": "favela_torres_1998_culture_format",
+      "label": "Favela-Torres et al. (1998), Kinetics of growth of Aspergillus niger during submerged, agar surface and solid state fermentations",
+      "doi": "10.1016/S0032-9592(97)00032-0",
+      "classification": "peer-reviewed-culture-format-context",
+      "note": "The 1998 article abstract reports a broader initial-glucose range and complete-consumption boundary. Do not merge its summarized rows numerically with the 1997 chapter table unless exact row equivalence is verified."
+    }
+  ],
+  "agarSurfaceContext": {
+    "cultureFormat": "surface-culture",
+    "temperatureC": 35,
+    "petriDishDiameterMm": 100,
+    "mediumVolumeMlPerDish": 30,
+    "agarPercentWv": 1.5,
+    "initialPh": 5,
+    "mediumComponentsGPerL": {
+      "potassiumDihydrogenPhosphate": 2.47,
+      "ammoniumSulfate": 6.6,
+      "calciumChloride": 0.48,
+      "magnesiumSulfateHeptahydrate": 0.38,
+      "sodiumChloride": 0.23
+    },
+    "mineralSolutionMlPerL": 1,
+    "inoculationGeometry": null,
+    "inoculationLimitation": "The accessible primary chapter text does not give enough inoculation-geometry/starting-biomass detail to equate this surface-culture setup with the current central-point fungal runtime."
+  },
+  "assays": {
+    "biomass": {
+      "basis": "surface-culture total dry weight",
+      "method": "Agar medium and biomass removed from the dish; agar dissolved in hot distilled water; suspension filtered and solids washed; total biomass determined by dry weight at 60 C.",
+      "classification": "measured"
+    },
+    "glucose": {
+      "method": "YSI Model 2000 enzymatic analyzer",
+      "classification": "measured"
+    }
+  },
+  "units": {
+    "initialGlucose": "g/L",
+    "specificGrowthRate": "h^-1",
+    "biomassYield": "g biomass/g glucose",
+    "substrateConversion": "percent",
+    "time": "h"
+  },
+  "surfaceRows": [
+    {
+      "initialGlucoseGPerL": 50,
+      "specificGrowthPerHour": 0.222,
+      "biomassYieldGPerG": 0.366,
+      "substrateConversionPercent": 96
+    },
+    {
+      "initialGlucoseGPerL": 100,
+      "specificGrowthPerHour": 0.232,
+      "biomassYieldGPerG": 0.272,
+      "substrateConversionPercent": 96
+    },
+    {
+      "initialGlucoseGPerL": 200,
+      "specificGrowthPerHour": 0.17,
+      "biomassYieldGPerG": 0.154,
+      "substrateConversionPercent": 64
+    }
+  ],
+  "sourceNarrativeChecks": {
+    "vegetativeConsumptionWindowHours": [
+      20,
+      60
+    ],
+    "surface100GPerLReportedCompleteByHours": 70,
+    "surface200GPerLReportedResidual": true,
+    "tableVsNarrativeNote": "The source table reports 96% substrate conversion at 100 g/L while the prose describes complete utilization within 70 h. Preserve both statements as a source-level rounding/summary discrepancy; do not coerce 96% to 100% in machine authority."
+  },
+  "runtimeDecision": {
+    "endpointPlateTotalBudgetValidationSupported": true,
+    "dynamicGlucoseStateSupported": false,
+    "zeroGlucoseControlSupported": false,
+    "localSpatialTransportSupported": false,
+    "constantInstantaneousYieldLawSupported": false,
+    "pirtMaintenanceLawSupported": false,
+    "interpolationAcrossInitialGlucoseSupported": false,
+    "reason": "The chapter supplies source-context endpoint/summary yield and conversion rows, but no zero-glucose row, no exact tabulated glucose-consumption time series/rate law, no transferable local transport coefficient, and no evidence that source-reported aggregate Yx/s is a constant instantaneous uptake law. The current fungal runtime also has front radius rather than a source-backed biomass state, so coupling glucose depletion to front advance would require an unsourced biomass mapping."
+  },
+  "validationHandoff": {
+    "exactRowsForFutureValidationGPerL": [
+      50,
+      100,
+      200
+    ],
+    "mayValidate": [
+      "source-context surface specific-growth summaries",
+      "source-context plate-total biomass-yield summaries",
+      "source-context substrate-conversion summaries"
+    ],
+    "mustRemainBlocked": [
+      "zero-resource growth control",
+      "exhaustion-driven runtime stepping",
+      "dynamic local glucose depletion",
+      "fungal glucose renderer field",
+      "bacteria-fungus shared-resource competition"
+    ],
+    "nextEvidenceNeed": "An exact no.10-compatible zero-resource/near-zero control and a source-backed or explicitly calibrated biomass/resource state law (or exact tabulated time-course data sufficient to fit one) are required before #615/#895 may activate a resource-coupled runtime."
+  }
+}

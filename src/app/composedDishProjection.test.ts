@@ -66,6 +66,7 @@ const config: ComposedSimulationConfig = {
     ],
   },
   samplingExecutionPolicy: null,
+  dynamicLineageLossPolicy: null,
   populationAuthority: null,
   hoursPerTick: 0.01,
 };

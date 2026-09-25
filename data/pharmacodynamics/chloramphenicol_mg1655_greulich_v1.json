@@ -1,0 +1,60 @@
+{
+  "kind": "petra-antimicrobial-response-authority",
+  "schemaVersion": 1,
+  "id": "chloramphenicol-mg1655-greulich-v1",
+  "version": "1.0.0-research",
+  "drug": {
+    "id": "chloramphenicol",
+    "concentrationUnit": "uM"
+  },
+  "organism": {
+    "scientificName": "Escherichia coli",
+    "background": "K-12 MG1655"
+  },
+  "responseModel": {
+    "kind": "growth-inhibition",
+    "id": "greulich-ribosome-cubic-v1",
+    "equation": "Greulich-2015-equation-7",
+    "sourceKey": "greulich_2015",
+    "doi": "10.15252/MSB.20145949"
+  },
+  "environmentFamilies": [
+    {
+      "id": "mops-glycerol",
+      "medium": "modified Neidhardt potassium-MOPS defined medium",
+      "carbonSource": "glycerol",
+      "carbonSourceConcentration": "0.2% v/v",
+      "temperatureC": 37,
+      "lambda0StarPerHour": 1.83,
+      "lambda0StarReportedPlusMinusPerHour": 0.06,
+      "ic50StarMicromolar": 2.49,
+      "ic50StarReportedPlusMinusMicromolar": 0.05
+    },
+    {
+      "id": "mops-glucose",
+      "medium": "modified Neidhardt potassium-MOPS defined medium",
+      "carbonSource": "glucose",
+      "carbonSourceConcentration": "0.2% w/v",
+      "temperatureC": 37,
+      "lambda0StarPerHour": 1.28,
+      "lambda0StarReportedPlusMinusPerHour": 0.02,
+      "ic50StarMicromolar": 4.5,
+      "ic50StarReportedPlusMinusMicromolar": 0.05
+    }
+  ],
+  "effectSemantics": {
+    "divisionMultiplier": "lambda/lambda0 from the selected Greulich physical branch",
+    "incrementalLossHazardPerHour": 0
+  },
+  "productGate": {
+    "status": "context-gated",
+    "reason": "The current flagship model-resource environment does not identify a source-compatible MOPS glucose or glycerol growth context. Product selection must remain disabled until an exact environment binding is versioned."
+  },
+  "limitations": [
+    "This record authorizes only the wild-type MG1655 chloramphenicol growth-inhibition response in the stated source contexts; it is not a clinical dosing model.",
+    "The glucose and glycerol parameter families are distinct and must never be averaged or selected from an unlabeled model-resource field.",
+    "This pack does not authorize an incremental chloramphenicol killing hazard.",
+    "CAT resistance phenotype evidence does not authorize an MIC-shifted Greulich response, fitness cost, or spontaneous mutation edge.",
+    "Physical chloramphenicol delivery, diffusion, decay, clearance, multi-drug interactions, and resistant-genotype concentration-response remain unbound."
+  ]
+}

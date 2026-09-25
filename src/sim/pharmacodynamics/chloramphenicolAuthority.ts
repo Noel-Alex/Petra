@@ -9,9 +9,9 @@ export interface ChloramphenicolFitRecord {
   readonly id: string;
   readonly carbonSource: "glycerol" | "glucose";
   readonly lambda0StarPerHour: number;
-  readonly lambda0StarStandardDeviationPerHour: number;
+  readonly lambda0StarReportedFitErrorPerHour: number;
   readonly ic50StarMicromolar: number;
-  readonly ic50StarStandardDeviationMicromolar: number;
+  readonly ic50StarReportedFitErrorMicromolar: number;
   readonly measuredDrugFreeGrowthRatesPerHour: readonly number[];
 }
 
@@ -32,6 +32,7 @@ export interface ChloramphenicolAuthority {
     readonly id: typeof GREULICH_CHLORAMPHENICOL_MODEL_ID;
     readonly effectKind: "growth-inhibition";
     readonly equationReference: "Greulich et al. 2015 equation 7";
+    readonly fitErrorMethod: string;
     readonly fits: readonly ChloramphenicolFitRecord[];
   };
   readonly provenance: {
@@ -57,14 +58,20 @@ const ROOT_KEYS = [
 ] as const;
 const DRUG_KEYS = ["id", "concentrationUnit"] as const;
 const ORGANISM_KEYS = ["taxon", "strain"] as const;
-const MODEL_KEYS = ["id", "effectKind", "equationReference", "fits"] as const;
+const MODEL_KEYS = [
+  "id",
+  "effectKind",
+  "equationReference",
+  "fitErrorMethod",
+  "fits",
+] as const;
 const FIT_KEYS = [
   "id",
   "carbonSource",
   "lambda0StarPerHour",
-  "lambda0StarStandardDeviationPerHour",
+  "lambda0StarReportedFitErrorPerHour",
   "ic50StarMicromolar",
-  "ic50StarStandardDeviationMicromolar",
+  "ic50StarReportedFitErrorMicromolar",
   "measuredDrugFreeGrowthRatesPerHour",
 ] as const;
 const PROVENANCE_KEYS = [
@@ -178,17 +185,17 @@ function parseFit(value: unknown, index: number): ChloramphenicolFitRecord {
       `${path}.lambda0StarPerHour`,
       fit.lambda0StarPerHour,
     ),
-    lambda0StarStandardDeviationPerHour: finiteNonNegative(
-      `${path}.lambda0StarStandardDeviationPerHour`,
-      fit.lambda0StarStandardDeviationPerHour,
+    lambda0StarReportedFitErrorPerHour: finiteNonNegative(
+      `${path}.lambda0StarReportedFitErrorPerHour`,
+      fit.lambda0StarReportedFitErrorPerHour,
     ),
     ic50StarMicromolar: finitePositive(
       `${path}.ic50StarMicromolar`,
       fit.ic50StarMicromolar,
     ),
-    ic50StarStandardDeviationMicromolar: finiteNonNegative(
-      `${path}.ic50StarStandardDeviationMicromolar`,
-      fit.ic50StarStandardDeviationMicromolar,
+    ic50StarReportedFitErrorMicromolar: finiteNonNegative(
+      `${path}.ic50StarReportedFitErrorMicromolar`,
+      fit.ic50StarReportedFitErrorMicromolar,
     ),
     measuredDrugFreeGrowthRatesPerHour: parseGrowthRates(
       `${path}.measuredDrugFreeGrowthRatesPerHour`,
@@ -323,6 +330,10 @@ export function parseChloramphenicolAuthority(
       id: GREULICH_CHLORAMPHENICOL_MODEL_ID,
       effectKind: "growth-inhibition",
       equationReference: "Greulich et al. 2015 equation 7",
+      fitErrorMethod: canonicalText(
+        "chloramphenicol authority model.fitErrorMethod",
+        model.fitErrorMethod,
+      ),
       fits,
     },
     provenance: {

@@ -520,6 +520,34 @@
         907
       ],
       "timeout_seconds": 30
+    },
+    {
+      "id": "hgt-conjugation-validation",
+      "description": "PREPARED; BLOCKED on #551/#914/#552: source-backed R388/host authority, physical area+population calibration, and authoritative replayable conjugation engine are required before validation can run.",
+      "command": [
+        "python",
+        "experiments/blocked.py",
+        "--experiment-id",
+        "hgt-conjugation-validation",
+        "--blocked-on",
+        "551",
+        "--blocked-on",
+        "914",
+        "--blocked-on",
+        "552",
+        "--reason",
+        "Issue #551 must finalize the exact named plasmid/host transfer-law pack, #914 must bind a scenario-owned physical area plus compatible cell-equivalent population scale, and #552 must expose authoritative deterministic RNG/checkpoint/replay conjugation state. Until all three exist, Petra must not validate a synthetic per-grid transfer probability or derive contact from renderer geometry."
+      ],
+      "issues": [
+        530,
+        542,
+        551,
+        552,
+        796,
+        914,
+        983
+      ],
+      "timeout_seconds": 30
     }
   ]
 }

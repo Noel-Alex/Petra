@@ -747,6 +747,11 @@ function parseSimulationEvent(
     return failure('.value must be finite when present')
   }
   if (record.type === 'ciprofloxacin-applied') {
+    if (record.resourceIntervention !== undefined) {
+      return failure(
+        '.resourceIntervention is not allowed on ciprofloxacin-applied events',
+      )
+    }
     try {
       assertCiprofloxacinIntervention(record.intervention)
     } catch (error) {
@@ -756,17 +761,25 @@ function parseSimulationEvent(
       )
     }
   } else if (record.type === 'model-resource-applied') {
+    if (record.intervention !== undefined) {
+      return failure(
+        '.intervention is not allowed on model-resource-applied events',
+      )
+    }
     try {
-      assertModelResourceIntervention(record.intervention)
+      assertModelResourceIntervention(record.resourceIntervention)
     } catch (error) {
       return failure(
-        '.intervention ' +
+        '.resourceIntervention ' +
           (error instanceof Error ? error.message : 'is invalid'),
       )
     }
-  } else if (record.intervention !== undefined) {
+  } else if (
+    record.intervention !== undefined ||
+    record.resourceIntervention !== undefined
+  ) {
     return failure(
-      '.intervention is supported only for accepted intervention events',
+      'intervention payloads are supported only for accepted intervention events',
     )
   }
 

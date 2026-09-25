@@ -4,6 +4,7 @@ import { dirname, resolve } from "node:path";
 
 import {
   NODE_MECHANISTIC_DATASET_PACKAGE_SCHEMA_VERSION,
+  createNodeMechanisticDatasetWorkerEnvelope,
   runNodeMechanisticDatasetPackage,
   type NodeMechanisticDatasetPackage,
 } from "../src/ml/node/datasetRuntime";
@@ -80,6 +81,13 @@ async function loadPackage(
       "dataset package module must export createNodeMechanisticDatasetPackage()",
     );
   }
+  if (
+    typeof module.resolveNodeMechanisticDatasetTaskDefinition !== "function"
+  ) {
+    throw new TypeError(
+      "dataset package module must export resolveNodeMechanisticDatasetTaskDefinition(task, executorData)",
+    );
+  }
   const candidate = await module.createNodeMechanisticDatasetPackage();
   if (
     candidate === null ||
@@ -110,7 +118,14 @@ async function main(): Promise<void> {
 
   try {
     const datasetPackage = await loadPackage(packageModuleUrl);
-    const result = await runNodeMechanisticDatasetPackage(datasetPackage, {
+    const runtimePackage = {
+      ...datasetPackage,
+      executorData: createNodeMechanisticDatasetWorkerEnvelope(
+        packageModuleUrl,
+        datasetPackage.executorData,
+      ),
+    };
+    const result = await runNodeMechanisticDatasetPackage(runtimePackage, {
       artifactDirectory,
       maxWorkers,
       executorModuleUrl: workerModuleUrl,

@@ -38,7 +38,7 @@
       "const": "petra-ts-core/0.1.0"
     },
     "protocolVersion": {
-      "const": 5
+      "const": 6
     },
     "scenarioId": {
       "type": "string",

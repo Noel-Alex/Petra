@@ -82,6 +82,7 @@ function composedSnapshot(args: {
       tick: args.tick ?? 12,
       simulationTimeHours: args.simulationTimeHours ?? 0.24,
       commandCount: args.commandCount ?? 4,
+      rngState: [1, 2, 3, 4],
       // This app-layer contract reads only the checkpoint envelope. Scientific
       // state/metric validation remains the protocol/Worker trust boundary.
       composedState:

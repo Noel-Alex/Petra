@@ -106,7 +106,7 @@
             "sourceKey": "regoes_2004",
             "compatibilityGroupId": "regoes-cab1-lb-37c-ciprofloxacin-pd",
             "context": {
-              "organismBackground": "Escherichia coli CAB1 (O18:K1:H7)",
+              "organismBackground": "Escherichia coli CAB1",
               "mediumSubstrate": "LB",
               "temperatureC": 37,
               "assayConvention": "first-60-minute log10 viable-density slopes fitted to four-parameter pharmacodynamics",

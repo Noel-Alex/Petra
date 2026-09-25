@@ -66,16 +66,46 @@ export interface MechanisticTaskExecutor<TInput, TTarget> {
   ): Promise<MechanisticTrajectoryResult<TInput, TTarget>>;
 }
 
+export interface ComposedSnapshotProjectionContext {
+  readonly task: MechanisticSweepTask;
+  readonly snapshotIndex: number;
+  readonly final: boolean;
+}
+
+export interface ComposedTransitionProjectionContext {
+  readonly task: MechanisticSweepTask;
+  /** Dataset-row index; source/target observation indices are explicit below. */
+  readonly snapshotIndex: number;
+  readonly sourceSnapshotIndex: number;
+  readonly targetSnapshotIndex: number;
+  readonly sourceTick: number;
+  readonly targetTick: number;
+  readonly final: boolean;
+}
+
 export interface ComposedMechanisticTaskDefinition<TInput, TTarget> {
   readonly executionDefinition: MechanisticExecutionDefinition;
   readonly config: ComposedSimulationConfig;
-  readonly project: (
+  /**
+   * Snapshot-local projection used by existing observation datasets.
+   * Exactly one of project/projectTransition must be supplied.
+   */
+  readonly project?: (
     snapshot: ComposedSimulationSnapshot,
-    context: {
-      readonly task: MechanisticSweepTask;
-      readonly snapshotIndex: number;
-      readonly final: boolean;
-    },
+    context: ComposedSnapshotProjectionContext,
+  ) => {
+    readonly input: TInput;
+    readonly target: TTarget;
+  };
+  /**
+   * Exact accepted-state transition projection. The source snapshot is captured
+   * before the advance command and the target snapshot is the authoritative
+   * post-command result. This path never infers a prior state from the target.
+   */
+  readonly projectTransition?: (
+    sourceSnapshot: ComposedSimulationSnapshot,
+    targetSnapshot: ComposedSimulationSnapshot,
+    context: ComposedTransitionProjectionContext,
   ) => {
     readonly input: TInput;
     readonly target: TTarget;
@@ -119,17 +149,16 @@ export function createComposedMechanisticTaskExecutor<TInput, TTarget>(
       let advancedTicks = 0;
       let snapshot = engine.snapshot();
 
-      const append = (final: boolean) => {
-        const projected = definition.project(snapshot, {
-          task,
-          snapshotIndex,
-          final,
-        });
+      const appendProjected = (
+        projected: { readonly input: TInput; readonly target: TTarget },
+        simulationTimeHours: number,
+        final: boolean,
+      ) => {
         samples.push({
           datasetVersion: task.datasetVersion,
           trajectory: structuredClone(task.trajectory),
           snapshotIndex,
-          simulationTimeHours: snapshot.checkpoint.simulationTimeHours,
+          simulationTimeHours,
           normalizationProfileId: task.normalizationProfileId,
           datasetSchema: structuredClone(task.datasetSchema),
           input: structuredClone(projected.input),
@@ -144,24 +173,99 @@ export function createComposedMechanisticTaskExecutor<TInput, TTarget>(
         snapshotIndex += 1;
       };
 
-      if (task.executionSchedule.totalTicks === 0) {
-        append(true);
-      } else {
-        append(false);
+      if (definition.projectTransition !== undefined) {
+        if (task.executionSchedule.totalTicks === 0) {
+          throw new RangeError(
+            "transition-projected mechanistic execution requires at least one authoritative advance",
+          );
+        }
+
+        let sourceSnapshot = snapshot;
+        let sourceTick = 0;
+        let sourceSnapshotIndex = 0;
         let commandIndex = 0;
+
         while (advancedTicks < task.executionSchedule.totalTicks) {
           const ticks = Math.min(
             task.executionSchedule.snapshotEveryTicks,
             task.executionSchedule.totalTicks - advancedTicks,
           );
-          snapshot = engine.execute({
+          const targetSnapshot = engine.execute({
             id: runnerCommandId(task.taskId, commandIndex),
             type: "advance",
             ticks,
           });
-          advancedTicks += ticks;
+          const targetTick = advancedTicks + ticks;
+          const targetSnapshotIndex = sourceSnapshotIndex + 1;
+          const final = targetTick === task.executionSchedule.totalTicks;
+          const projected = definition.projectTransition(
+            sourceSnapshot,
+            targetSnapshot,
+            {
+              task,
+              snapshotIndex,
+              sourceSnapshotIndex,
+              targetSnapshotIndex,
+              sourceTick,
+              targetTick,
+              final,
+            },
+          );
+          appendProjected(
+            projected,
+            sourceSnapshot.checkpoint.simulationTimeHours,
+            final,
+          );
+
+          snapshot = targetSnapshot;
+          sourceSnapshot = targetSnapshot;
+          advancedTicks = targetTick;
+          sourceTick = targetTick;
+          sourceSnapshotIndex = targetSnapshotIndex;
           commandIndex += 1;
-          append(advancedTicks === task.executionSchedule.totalTicks);
+        }
+      } else {
+        const project = definition.project;
+        if (project === undefined) {
+          throw new TypeError(
+            "composed mechanistic task definition has no projection",
+          );
+        }
+
+        const appendSnapshot = (final: boolean) => {
+          const projected = project(snapshot, {
+            task,
+            snapshotIndex,
+            final,
+          });
+          appendProjected(
+            projected,
+            snapshot.checkpoint.simulationTimeHours,
+            final,
+          );
+        };
+
+        if (task.executionSchedule.totalTicks === 0) {
+          appendSnapshot(true);
+        } else {
+          appendSnapshot(false);
+          let commandIndex = 0;
+          while (advancedTicks < task.executionSchedule.totalTicks) {
+            const ticks = Math.min(
+              task.executionSchedule.snapshotEveryTicks,
+              task.executionSchedule.totalTicks - advancedTicks,
+            );
+            snapshot = engine.execute({
+              id: runnerCommandId(task.taskId, commandIndex),
+              type: "advance",
+              ticks,
+            });
+            advancedTicks += ticks;
+            commandIndex += 1;
+            appendSnapshot(
+              advancedTicks === task.executionSchedule.totalTicks,
+            );
+          }
         }
       }
 
@@ -314,6 +418,14 @@ function validateComposedTaskDefinition<TInput, TTarget>(
     definition.executionDefinition,
     definition.config,
   );
+  const hasSnapshotProject = typeof definition.project === "function";
+  const hasTransitionProject =
+    typeof definition.projectTransition === "function";
+  if (hasSnapshotProject === hasTransitionProject) {
+    throw new TypeError(
+      "composed mechanistic task definition must supply exactly one of project or projectTransition",
+    );
+  }
   if (
     definition.terminationReason !== undefined &&
     definition.terminationReason.trim().length === 0

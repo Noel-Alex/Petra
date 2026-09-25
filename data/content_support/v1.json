@@ -1,7 +1,7 @@
 {
   "kind": "petra-supported-content-matrix",
   "schemaVersion": 1,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "supportedScenarios": [
     {
       "id": "flagship-ecoli-ciprofloxacin",
@@ -54,11 +54,12 @@
       "kind": "bacterial-competitor",
       "availability": "blocked-validation",
       "issues": [
-        890,
         907,
-        946
+        992,
+        946,
+        999
       ],
-      "reason": "The named E. coli MG1655 + Bacillus subtilis 168 trp+ sigE- authoritative model-unit scenario is implemented under #890 with exact replay-critical taxon revisions and shared-resource/local-capacity competition. Source-backed Bacillus rod presentation evidence has landed under completed #966/#971, and the generic exact taxon-to-render join has landed under #946; product exposure remains blocked on the registered real-engine validation under #907 plus the final product catalog/selection binding. Physical glucose/gCDW mapping, direct interaction, Bacillus ciprofloxacin/evolution, and sporulation remain unsupported."
+      "reason": "The named E. coli MG1655 + Bacillus subtilis 168 trp+ sigE- authoritative model-unit scenario is implemented and its real validation workload is runnable, but product promotion is not yet evidence-complete. #907 is waiting on laptop evidence and has identified that its compact evidence must bind a real inert content-pack identity; #992 owns that manifest. #946 is closing the exact live taxon-to-presentation binding, and #999 owns the fail-closed Sandbox/product registration after validation. Physical glucose/gCDW mapping, direct interaction, Bacillus ciprofloxacin/evolution, and sporulation remain unsupported."
     },
     {
       "id": "first-grounded-fungal-competitor",
@@ -66,20 +67,21 @@
       "availability": "blocked-implementation",
       "issues": [
         615,
-        866,
-        934
+        974,
+        1005,
+        976
       ],
-      "reason": "Research is complete for the supported Aspergillus niger var. hennebergi no. 10 agar-surface validation subset from #885/#929. Product support remains blocked on authoritative fungal spatial/runtime integration (#615), exact organism presentation completion (#866), and replay-critical composed taxon integration for mixed-species use (#934). Dynamic glucose coupling, antimicrobial effect, and direct cross-species kinetics remain unbound rather than guessed."
+      "reason": "The supported Aspergillus niger var. hennebergi no. 10 agar-surface source-validation subset is implemented, but a live competitor is not yet authoritative. #974 still gates source-backed glucose/resource coupling, #615 owns the fungal mechanism, #1005 owns the shared composed Worker/checkpoint/replay transaction, and #976 may admit a live fungal render companion only after that shared runtime authority exists. Standalone source-validation time/front geometry must not be joined to bacterial runtime state by matching time alone; antimicrobial effect and direct cross-species kinetics remain unbound."
     },
     {
       "id": "first-post-ciprofloxacin-antibiotic",
       "kind": "antimicrobial",
-      "availability": "blocked-implementation",
+      "availability": "blocked-research",
       "issues": [
         928,
-        930
+        938
       ],
-      "reason": "Chloramphenicol/MG1655 candidate and wild-type Greulich growth-inhibition authority are selected under completed #874. Product support remains blocked on canonical numerical-authority implementation #930 and source-compatible MOPS growth/environment binding #928; the current dimensionless model-resource flagship cannot choose the glucose or glycerol fit."
+      "reason": "The source-backed MG1655 chloramphenicol numerical response authority is implemented, but the current dimensionless flagship model-resource cannot select or drive a Greulich MOPS nutrient family. #928 owns the exact environment/non-identifiability decision and #938 owns the MOPS-glucose resource-to-growth calibration/source-acquisition path; physical two-dimensional dish transport remains UNBOUND. Product support stays fail-closed until a source-compatible environment bridge supplies the required pre-drug growth context."
     },
     {
       "id": "named-microbial-interactions",

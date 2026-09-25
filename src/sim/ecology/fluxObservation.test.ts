@@ -42,12 +42,13 @@ describe('ecology flux observation', () => {
       lineageIds: ['ancestor', 'variant'],
       biomassUnit: 'model-biomass',
       timeUnit: 'hour',
-      stepDuration: 0.25,
       result,
     })
 
     expect(observation.biomassUnit).toBe('model-biomass')
     expect(observation.timeUnit).toBe('hour')
+    expect(result.stepDuration).toBe(0.25)
+    expect(observation.stepDuration).toBe(result.stepDuration)
     expect(observation.mask).toEqual([1, 0])
     expect(observation.lineageIds).toEqual(['ancestor', 'variant'])
     expect(observation.divisionBiomassByCell[0]).toBeGreaterThan(0)
@@ -99,7 +100,6 @@ describe('ecology flux observation', () => {
       lineageIds: ['ancestor'],
       biomassUnit: 'model-biomass',
       timeUnit: 'hour',
-      stepDuration: 1,
       result,
     })
 
@@ -117,8 +117,7 @@ describe('ecology flux observation', () => {
         lineageIds: ['ancestor', 'variant'],
         biomassUnit: ' model-biomass ',
         timeUnit: 'hour',
-        stepDuration: 0.25,
-        result,
+          result,
       }),
     ).toThrow(/biomassUnit.*canonical/)
 
@@ -128,8 +127,7 @@ describe('ecology flux observation', () => {
         lineageIds: [' ancestor ', 'variant'],
         biomassUnit: 'model-biomass',
         timeUnit: 'hour',
-        stepDuration: 0.25,
-        result,
+          result,
       }),
     ).toThrow(/canonical/)
 
@@ -139,8 +137,7 @@ describe('ecology flux observation', () => {
         lineageIds: ['ancestor'],
         biomassUnit: 'model-biomass',
         timeUnit: 'hour',
-        stepDuration: 0.25,
-        result,
+          result,
       }),
     ).toThrow(/one flux channel per lineage id/)
 
@@ -152,8 +149,7 @@ describe('ecology flux observation', () => {
         lineageIds: ['ancestor', 'variant'],
         biomassUnit: 'model-biomass',
         timeUnit: 'hour',
-        stepDuration: 0.25,
-        result: offMask,
+          result: offMask,
       }),
     ).toThrow(/zero outside ecology mask/)
 
@@ -165,8 +161,7 @@ describe('ecology flux observation', () => {
         lineageIds: ['ancestor', 'variant'],
         biomassUnit: 'model-biomass',
         timeUnit: 'hour',
-        stepDuration: 0.25,
-        result: drifted,
+          result: drifted,
       }),
     ).toThrow(/total division biomass does not match/)
 
@@ -179,8 +174,7 @@ describe('ecology flux observation', () => {
         lineageIds: ['ancestor', 'variant'],
         biomassUnit: 'model-biomass',
         timeUnit: 'hour',
-        stepDuration: 0.25,
-        result: nonFiniteMetric,
+          result: nonFiniteMetric,
       }),
     ).toThrow(/metrics.deathBiomass/)
 
@@ -190,9 +184,8 @@ describe('ecology flux observation', () => {
         lineageIds: ['ancestor', 'variant'],
         biomassUnit: 'model-biomass',
         timeUnit: 'hour',
-        stepDuration: 0,
-        result: stepEcology(makeState(), growth, lineages, 0.25),
+        result: stepEcology(makeState(), growth, lineages, 0),
       }),
-    ).toThrow(/stepDuration/)
+    ).toThrow(/result\.stepDuration/)
   })
 })

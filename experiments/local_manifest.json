@@ -444,6 +444,30 @@
         895
       ],
       "timeout_seconds": 30
+    },
+    {
+      "id": "multidrug-collateral-validation",
+      "description": "PREPARED; BLOCKED on #573/#574: exact collateral-sensitivity evidence pack and authoritative multidrug engine are required before deterministic source-parity validation can run.",
+      "command": [
+        "python",
+        "experiments/blocked.py",
+        "--experiment-id",
+        "multidrug-collateral-validation",
+        "--blocked-on",
+        "573",
+        "--blocked-on",
+        "574",
+        "--reason",
+        "Issue #573 must approve one exact genotype × environment × multi-drug evidence pack and #574 must provide authoritative multi-drug fields/interventions/checkpoint/replay. Petra must not invent a generic synergy rule, convert disc diffusion into concentration-response authority, or run synthetic multidrug biology."
+      ],
+      "issues": [
+        542,
+        573,
+        574,
+        586,
+        905
+      ],
+      "timeout_seconds": 30
     }
   ]
 }

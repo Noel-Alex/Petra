@@ -84,12 +84,16 @@ def profile_expression(advance_ticks: list[int]) -> str:
     protocolModule,
     instrumentationModule,
     summaryModule,
+    dishProjectionModule,
+    renderPayloadModule,
   ] = await Promise.all([
     import("/src/app/workerSession.ts"),
     import("/src/sim/flagshipComposition.ts"),
     import("/src/sim/protocol.ts"),
     import("/src/worker/performanceInstrumentation.ts"),
     import("/src/app/workerPerformanceSummary.ts"),
+    import("/src/app/composedDishProjection.ts"),
+    import("/src/render/renderPayloadEstimate.ts"),
   ]);
 
   const samples = [];
@@ -211,6 +215,23 @@ def profile_expression(advance_ticks: list[int]) -> str:
       candidateDishTypedChannels,
     );
 
+    // Current product projector sizing. This is the real renderer-facing
+    // DishRenderSnapshot shape produced from the accepted composed snapshot,
+    // not a hypothetical Worker wire format. The estimator distinguishes
+    // logical channel references from unique views/backing buffers so aliased
+    // channels (currently aggregate biomass + biomass overlay) are not
+    // accidentally counted twice as transport pressure.
+    const renderBranchIdentity = "worker-transport-profile-branch-0";
+    const actualDishSnapshot =
+      dishProjectionModule.projectAuthoritativeComposedDishSnapshot(
+        finalSnapshot,
+        renderBranchIdentity,
+      );
+    const actualDishPayloadEstimate =
+      renderPayloadModule.estimateDishRenderSnapshotPayload(
+        actualDishSnapshot,
+      );
+
     return {
       browser: {
         userAgent: navigator.userAgent,
@@ -253,6 +274,13 @@ def profile_expression(advance_ticks: list[int]) -> str:
         lineages: estimate(plan.config.lineages),
         evolutionGraph: estimate(plan.config.evolutionGraph),
         ciprofloxacin: estimate(plan.config.ciprofloxacin),
+      },
+      actualDishRenderSnapshotPayloadEstimateBytes: {
+        classification: "current-product-render-snapshot-sizing",
+        runBranchIdentity: renderBranchIdentity,
+        snapshotId: actualDishSnapshot.snapshotId,
+        samplingIdentity: actualDishSnapshot.samplingIdentity,
+        ...actualDishPayloadEstimate,
       },
       candidateDishTypedChannelPayloadEstimateBytes: {
         classification: "hypothetical-renderer-channel-lower-bound",
@@ -447,11 +475,15 @@ def main() -> int:
                 "mainThreadSnapshotCloneMs measures only WorkerSession's local accepted-snapshot "
                 "copy. nonWorkerRoundTripMs is a broader request-window remainder that also "
                 "contains browser scheduling, response transport/deserialization, validation, "
-                "and main-thread handling. candidateDishTypedChannelPayloadEstimateBytes is "
-                "an arrays-only lower-bound estimate for renderer-facing mask/biomass/resource/drug/"
-                "lineage channels projected into Uint8/Float32 storage; it is not a currently transferred "
-                "payload, a complete DishRenderSnapshot wire contract, or evidence that Worker-side "
-                "projection/downsampling is beneficial. None of these values is link bandwidth or direct VRAM. "
+                "and main-thread handling. actualDishRenderSnapshotPayloadEstimateBytes sizes the "
+                "current product projector output: typed-array reference bytes, unique typed-array views, "
+                "unique backing-buffer bytes, and a reproducible JSON UTF-8 metadata proxy. It is an "
+                "application-payload sizing estimate, not browser structured-clone framing, heap usage, "
+                "receiver deserialization cost, or bytes currently transferred by the Worker. "
+                "candidateDishTypedChannelPayloadEstimateBytes remains the older arrays-only hypothetical "
+                "lower bound for renderer-facing mask/biomass/resource/drug/lineage channels and is retained "
+                "only for comparison. Neither estimate proves Worker-side projection, transferables, "
+                "downsampling, or another architecture is beneficial. None of these values is link bandwidth or direct VRAM. "
                 "Headless local-browser measurements are architecture evidence, not a release-tier "
                 "performance guarantee; any transport optimization still requires measured "
                 "before/after comparison with deterministic authority unchanged."

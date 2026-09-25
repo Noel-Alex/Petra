@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://project-petra.local/schema/content-support-matrix-v1.json",
+  "title": "Petra supported content matrix",
+  "type": "object",
+  "required": [
+    "kind",
+    "schemaVersion",
+    "version",
+    "supportedScenarios",
+    "expansionQueue"
+  ],
+  "properties": {
+    "kind": {
+      "const": "petra-supported-content-matrix"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "supportedScenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/supportedScenario"
+      }
+    },
+    "expansionQueue": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/queueEntry"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "canonicalText": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!\\s)(?:.|\\n)*(?<!\\s)$"
+    },
+    "supportedScenario": {
+      "type": "object",
+      "required": [
+        "id",
+        "availability",
+        "scienceModeStatus",
+        "scenario",
+        "organisms",
+        "environment",
+        "interventions",
+        "limitations"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/canonicalText"
+        },
+        "availability": {
+          "enum": [
+            "enabled-research",
+            "enabled-science"
+          ]
+        },
+        "scienceModeStatus": {
+          "enum": [
+            "not-admitted",
+            "admitted"
+          ]
+        },
+        "scenario": {
+          "type": "object",
+          "required": [
+            "id",
+            "version"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/canonicalText"
+            },
+            "version": {
+              "$ref": "#/$defs/canonicalText"
+            }
+          },
+          "additionalProperties": false
+        },
+        "organisms": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/organism"
+          }
+        },
+        "environment": {
+          "$ref": "#/$defs/environment"
+        },
+        "interventions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/intervention"
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/canonicalText"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "organism": {
+      "type": "object",
+      "required": [
+        "scientificName",
+        "background",
+        "microbialGroup",
+        "presentationIdentityId"
+      ],
+      "properties": {
+        "scientificName": {
+          "$ref": "#/$defs/canonicalText"
+        },
+        "background": {
+          "$ref": "#/$defs/canonicalText"
+        },
+        "microbialGroup": {
+          "enum": [
+            "bacterium",
+            "fungus"
+          ]
+        },
+        "presentationIdentityId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "environment": {
+      "type": "object",
+      "required": [
+        "resourceContextVersion",
+        "resourceBindingStatus",
+        "resourceRepresentation",
+        "medium",
+        "referenceTemperatureC"
+      ],
+      "properties": {
+        "resourceContextVersion": {
+          "$ref": "#/$defs/canonicalText"
+        },
+        "resourceBindingStatus": {
+          "enum": [
+            "unbound",
+            "calibrated",
+            "measured_or_transferred"
+          ]
+        },
+        "resourceRepresentation": {
+          "enum": [
+            "dimensionless_model_resource",
+            "physical_concentration"
+          ]
+        },
+        "medium": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "referenceTemperatureC": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "intervention": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "protocolCommand",
+        "concentrationUnit",
+        "supportedGeometries"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/canonicalText"
+        },
+        "kind": {
+          "enum": [
+            "antibiotic",
+            "antifungal",
+            "phage",
+            "resource"
+          ]
+        },
+        "protocolCommand": {
+          "$ref": "#/$defs/canonicalText"
+        },
+        "concentrationUnit": {
+          "$ref": "#/$defs/canonicalText"
+        },
+        "supportedGeometries": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "global",
+              "radial",
+              "stripe",
+              "paint"
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "queueEntry": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "availability",
+        "issues",
+        "reason"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/canonicalText"
+        },
+        "kind": {
+          "enum": [
+            "bacterial-competitor",
+            "fungal-competitor",
+            "antimicrobial",
+            "interaction"
+          ]
+        },
+        "availability": {
+          "enum": [
+            "blocked-research",
+            "blocked-implementation",
+            "blocked-validation"
+          ]
+        },
+        "issues": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "reason": {
+          "$ref": "#/$defs/canonicalText"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

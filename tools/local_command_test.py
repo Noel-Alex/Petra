@@ -22,6 +22,21 @@ class ResolveLocalCommandTests(unittest.TestCase):
         self.assertIsNot(resolved, declared)
         which.assert_not_called()
 
+    def test_windows_pins_python_to_active_interpreter_before_path_lookup(self) -> None:
+        declared = ["python", "tools/worker_transport_profile.py"]
+        active_python = r"C:\\Python312\\python.exe"
+        windows_store_alias = r"C:\\Users\\petra\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe"
+        with (
+            patch("local_command._uses_windows_command_shims", return_value=True),
+            patch("local_command.sys.executable", active_python),
+            patch("local_command.shutil.which", return_value=windows_store_alias) as which,
+        ):
+            resolved = resolve_local_command(declared)
+
+        self.assertEqual(resolved, [active_python, *declared[1:]])
+        self.assertEqual(declared[0], "python")
+        which.assert_not_called()
+
     def test_windows_resolves_path_shim_without_changing_arguments(self) -> None:
         declared = ["npm", "exec", "--offline", "--", "vitest", "run"]
         env = {"PATH": r"C:\Program Files\nodejs"}

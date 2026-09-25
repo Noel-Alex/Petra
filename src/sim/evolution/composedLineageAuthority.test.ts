@@ -16,12 +16,39 @@ import {
   CHILD_LINEAGE_MATERIALIZATION_VERSION,
   type ChildLineageMaterializationResult,
 } from "./materializeMutationLineages";
+import {
+  AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION,
+  createAuthoritativeTaxonRegistry,
+} from "../taxonIdentity";
 
 const FOUNDERS: readonly ComposedFounderLineageAuthority[] = [
   {
     founderId: "founder-wt",
     genotypeId: "WT",
     deathHazardPerHour: 0,
+  },
+];
+
+const TAXON_REGISTRY = createAuthoritativeTaxonRegistry([
+  {
+    schemaVersion: AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION,
+    id: "fixture-bacterium",
+    contentVersion: "1.0.0",
+    scientificName: "Fixture bacterium",
+    background: "test strain",
+    microbialGroup: "bacterium",
+    provenance: {
+      sourceKeys: ["fixture:taxon"],
+      context: "Test-only composed taxon authority.",
+      limitation: "Not a scientific Petra content pack.",
+    },
+  },
+]);
+const TAXON_FOUNDERS: readonly ComposedFounderLineageAuthority[] = [
+  {
+    ...FOUNDERS[0]!,
+    taxonId: "fixture-bacterium",
+    taxonContentVersion: "1.0.0",
   },
 ];
 
@@ -223,6 +250,46 @@ describe("composed dynamic lineage authority", () => {
         forged,
       ),
     ).toThrow(/checkpoint event count|preserve prior registry history/);
+  });
+
+  it("binds exact founder taxon authority and inherits it atomically to mutation children", () => {
+    const initial = initializeDynamicLineageAuthority(
+      TAXON_FOUNDERS,
+      TAXON_REGISTRY,
+    );
+    expect(initial.lineageTaxonMap).toMatchObject({
+      lineageIds: ["L1"],
+      taxonIds: ["fixture-bacterium"],
+      taxonContentVersions: ["1.0.0"],
+    });
+
+    const next = appendMaterializedMutationLineagesToAuthority(
+      initial,
+      TAXON_FOUNDERS,
+      policy(),
+      oneChildMaterialization(initial),
+      TAXON_REGISTRY,
+    );
+    expect(next.lineageTaxonMap).toMatchObject({
+      lineageIds: ["L1", "L2"],
+      taxonIds: ["fixture-bacterium", "fixture-bacterium"],
+      taxonContentVersions: ["1.0.0", "1.0.0"],
+    });
+    expect(() =>
+      validateDynamicLineageAuthorityState(
+        next,
+        TAXON_FOUNDERS,
+        policy(),
+        TAXON_REGISTRY,
+      ),
+    ).not.toThrow();
+
+    const staleFounders = [
+      { ...TAXON_FOUNDERS[0]!, taxonContentVersion: "2.0.0" },
+    ];
+    expect(() =>
+      initializeDynamicLineageAuthority(staleFounders, TAXON_REGISTRY),
+    ).toThrow(/content version does not match authoritative registry/);
   });
 
   it("rejects extra runtime roots and persisted hazard drift", () => {

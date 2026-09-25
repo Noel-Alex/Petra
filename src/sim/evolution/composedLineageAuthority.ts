@@ -16,11 +16,24 @@ import {
   type ChildLineageMaterializationResult,
   type MaterializedMutationChild,
 } from "./materializeMutationLineages";
+import {
+  createRuntimeLineageTaxonMap,
+  extendRuntimeLineageTaxonMap,
+  validateRuntimeLineageTaxonMap,
+  type AuthoritativeTaxonRegistry,
+  type RuntimeLineageTaxonMap,
+} from "../taxonIdentity";
 
 export interface ComposedFounderLineageAuthority {
   /** Static scenario/config definition identity, not runtime lineage identity. */
   readonly founderId: string;
   readonly genotypeId: string;
+  /**
+   * Exact biological taxon identity. Omission is legacy fixture compatibility
+   * only; scientific composed runs must supply both fields with a registry.
+   */
+  readonly taxonId?: string;
+  readonly taxonContentVersion?: string;
   readonly deathHazardPerHour: number;
 }
 
@@ -28,6 +41,11 @@ export interface DynamicLineageAuthorityState {
   readonly lineageIds: readonly string[];
   readonly genotypeIds: readonly string[];
   readonly baselineDeathHazardPerHour: readonly number[];
+  /**
+   * Exact ordered lineage→taxon authority when the composed run opted into
+   * taxon identity. Presentation metadata never enters this checkpoint seam.
+   */
+  readonly lineageTaxonMap?: RuntimeLineageTaxonMap;
   readonly lineageRegistry: LineageRegistryCheckpoint;
 }
 
@@ -40,6 +58,7 @@ export interface DynamicLineageAuthorityState {
  */
 export function initializeDynamicLineageAuthority(
   founders: readonly ComposedFounderLineageAuthority[],
+  taxonRegistry?: AuthoritativeTaxonRegistry,
 ): DynamicLineageAuthorityState {
   validateFounders(founders);
   const initialized = initializeFounderLineageRegistry(
@@ -52,9 +71,18 @@ export function initializeDynamicLineageAuthority(
     baselineDeathHazardPerHour: founders.map(
       (founder) => founder.deathHazardPerHour,
     ),
+    ...(taxonRegistry === undefined
+      ? {}
+      : {
+          lineageTaxonMap: createFounderTaxonMap(
+            founders,
+            initialized.bindings.map((binding) => binding.lineageId),
+            taxonRegistry,
+          ),
+        }),
     lineageRegistry: initialized.checkpoint,
   };
-  validateDynamicLineageAuthorityState(state, founders, null);
+  validateDynamicLineageAuthorityState(state, founders, null, taxonRegistry);
   return cloneState(state);
 }
 
@@ -71,6 +99,7 @@ export function validateDynamicLineageAuthorityState(
   state: DynamicLineageAuthorityState,
   founders: readonly ComposedFounderLineageAuthority[],
   dynamicLossPolicy: BaselineNonDrugLossPolicy | null,
+  taxonRegistry?: AuthoritativeTaxonRegistry,
 ): void {
   validateFounders(founders);
   validateDenseArray("dynamic lineage ids", state.lineageIds);
@@ -89,6 +118,8 @@ export function validateDynamicLineageAuthorityState(
   if (state.lineageIds.length < founders.length) {
     throw new Error("dynamic lineage state must retain every configured founder");
   }
+
+  validateTaxonAuthorityMode(state, founders, taxonRegistry);
 
   const checkpoint = canonicalCheckpoint(state.lineageRegistry);
   if (checkpoint.records.length !== state.lineageIds.length) {
@@ -161,6 +192,25 @@ export function validateDynamicLineageAuthorityState(
         "runtime-created lineage baseline loss does not match policy authority",
       );
     }
+
+    if (taxonRegistry !== undefined) {
+      const mapping = state.lineageTaxonMap!;
+      const parentIndex = state.lineageIds.indexOf(record.parentLineageId);
+      if (parentIndex < 0 || parentIndex >= index) {
+        throw new Error(
+          "runtime-created lineage taxon authority requires an earlier registered parent",
+        );
+      }
+      if (
+        mapping.taxonIds[index] !== mapping.taxonIds[parentIndex] ||
+        mapping.taxonContentVersions[index] !==
+          mapping.taxonContentVersions[parentIndex]
+      ) {
+        throw new Error(
+          "runtime-created lineage must inherit exact parent taxon identity",
+        );
+      }
+    }
   }
 }
 
@@ -175,11 +225,13 @@ export function appendMaterializedMutationLineagesToAuthority(
   founders: readonly ComposedFounderLineageAuthority[],
   dynamicLossPolicy: BaselineNonDrugLossPolicy | null,
   materialization: ChildLineageMaterializationResult,
+  taxonRegistry?: AuthoritativeTaxonRegistry,
 ): DynamicLineageAuthorityState {
   validateDynamicLineageAuthorityState(
     state,
     founders,
     dynamicLossPolicy,
+    taxonRegistry,
   );
   if (
     materialization.version !== CHILD_LINEAGE_MATERIALIZATION_VERSION
@@ -215,6 +267,16 @@ export function appendMaterializedMutationLineagesToAuthority(
   const baselineDeathHazardPerHour = [
     ...state.baselineDeathHazardPerHour,
   ];
+  const appendedTaxa: { lineageId: string; taxonId: string }[] = [];
+  const taxonByLineage =
+    taxonRegistry === undefined
+      ? null
+      : new Map(
+          state.lineageTaxonMap!.lineageIds.map((lineageId, index) => [
+            lineageId,
+            state.lineageTaxonMap!.taxonIds[index]!,
+          ] as const),
+        );
 
   for (let index = 0; index < materialization.children.length; index += 1) {
     const child = materialization.children[index]!;
@@ -239,6 +301,20 @@ export function appendMaterializedMutationLineagesToAuthority(
       dynamicLossPolicy,
       child.targetGenotypeId,
     );
+    if (taxonByLineage !== null) {
+      const parentTaxonId = taxonByLineage.get(child.parentLineageId);
+      if (parentTaxonId === undefined) {
+        throw new Error(
+          "materialized mutation child requires exact parent taxon authority",
+        );
+      }
+      appendedTaxa.push({
+        lineageId: child.lineageId,
+        taxonId: parentTaxonId,
+      });
+      taxonByLineage.set(child.lineageId, parentTaxonId);
+    }
+
     lineageIds.push(child.lineageId);
     genotypeIds.push(child.targetGenotypeId);
     baselineDeathHazardPerHour.push(hazard);
@@ -248,14 +324,118 @@ export function appendMaterializedMutationLineagesToAuthority(
     lineageIds,
     genotypeIds,
     baselineDeathHazardPerHour,
+    ...(taxonRegistry === undefined
+      ? {}
+      : {
+          lineageTaxonMap: extendRuntimeLineageTaxonMap({
+            current: state.lineageTaxonMap!,
+            registry: taxonRegistry,
+            appended: appendedTaxa,
+          }),
+        }),
     lineageRegistry: nextCheckpoint,
   };
   validateDynamicLineageAuthorityState(
     nextState,
     founders,
     dynamicLossPolicy,
+    taxonRegistry,
   );
   return cloneState(nextState);
+}
+
+function createFounderTaxonMap(
+  founders: readonly ComposedFounderLineageAuthority[],
+  runtimeLineageIds: readonly string[],
+  taxonRegistry: AuthoritativeTaxonRegistry,
+): RuntimeLineageTaxonMap {
+  const taxonIds = founders.map((founder, index) => {
+    canonicalIdentity(
+      "composed founder taxon id at index " + index,
+      founder.taxonId,
+    );
+    canonicalIdentity(
+      "composed founder taxon content version at index " + index,
+      founder.taxonContentVersion,
+    );
+    return founder.taxonId;
+  });
+  const mapping = createRuntimeLineageTaxonMap({
+    lineageIds: runtimeLineageIds,
+    taxonIds,
+    registry: taxonRegistry,
+  });
+  for (let index = 0; index < founders.length; index += 1) {
+    if (
+      mapping.taxonContentVersions[index] !==
+      founders[index]!.taxonContentVersion
+    ) {
+      throw new Error(
+        "composed founder taxon content version does not match authoritative registry",
+      );
+    }
+  }
+  return mapping;
+}
+
+function validateTaxonAuthorityMode(
+  state: DynamicLineageAuthorityState,
+  founders: readonly ComposedFounderLineageAuthority[],
+  taxonRegistry?: AuthoritativeTaxonRegistry,
+): void {
+  const founderHasTaxon = founders.map(
+    (founder) =>
+      founder.taxonId !== undefined ||
+      founder.taxonContentVersion !== undefined,
+  );
+
+  if (taxonRegistry === undefined) {
+    if (founderHasTaxon.some(Boolean)) {
+      throw new Error(
+        "composed founder taxon identity requires an authoritative taxon registry",
+      );
+    }
+    if (state.lineageTaxonMap !== undefined) {
+      throw new Error(
+        "dynamic lineage taxon map requires an authoritative taxon registry",
+      );
+    }
+    return;
+  }
+
+  if (founderHasTaxon.some((value) => !value)) {
+    throw new Error(
+      "every composed founder requires exact taxon id and content version when taxon authority is enabled",
+    );
+  }
+  if (state.lineageTaxonMap === undefined) {
+    throw new Error(
+      "taxon-authoritative dynamic lineage state requires a runtime lineage taxon map",
+    );
+  }
+
+  validateRuntimeLineageTaxonMap(
+    state.lineageTaxonMap,
+    taxonRegistry,
+    state.lineageIds,
+  );
+  const expectedFounders = createFounderTaxonMap(
+    founders,
+    state.lineageIds.slice(0, founders.length),
+    taxonRegistry,
+  );
+  for (let index = 0; index < founders.length; index += 1) {
+    if (
+      state.lineageTaxonMap.taxonIds[index] !==
+        expectedFounders.taxonIds[index] ||
+      state.lineageTaxonMap.taxonContentVersions[index] !==
+        expectedFounders.taxonContentVersions[index]
+    ) {
+      throw new Error(
+        "dynamic lineage founder taxon prefix does not match configured authority",
+      );
+    }
+  }
 }
 
 function validateMaterializedChild(
@@ -362,6 +542,18 @@ function cloneState(
     lineageIds: [...state.lineageIds],
     genotypeIds: [...state.genotypeIds],
     baselineDeathHazardPerHour: [...state.baselineDeathHazardPerHour],
+    ...(state.lineageTaxonMap === undefined
+      ? {}
+      : {
+          lineageTaxonMap: {
+            schemaVersion: state.lineageTaxonMap.schemaVersion,
+            lineageIds: [...state.lineageTaxonMap.lineageIds],
+            taxonIds: [...state.lineageTaxonMap.taxonIds],
+            taxonContentVersions: [
+              ...state.lineageTaxonMap.taxonContentVersions,
+            ],
+          },
+        }),
     lineageRegistry: canonicalCheckpoint(state.lineageRegistry),
   };
 }

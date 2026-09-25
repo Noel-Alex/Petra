@@ -48,6 +48,10 @@ import {
   validateRegoesParameters,
   type RegoesPharmacodynamics,
 } from './pharmacodynamics/ciprofloxacin'
+import type {
+  AuthoritativeTaxonRegistry,
+  RuntimeLineageTaxonMap,
+} from './taxonIdentity'
 
 /** Versioned serializable composition boundary. Biological values are caller supplied. */
 export const COMPOSED_STATE_VERSION = 5 as const
@@ -55,6 +59,13 @@ export const COMPOSED_STATE_VERSION = 5 as const
 export interface ComposedLineageConfig {
   readonly id: string
   readonly genotypeId: string
+  /**
+   * Exact biological taxon binding. These fields are optional only for legacy
+   * composed fixtures; any scientific config that supplies taxonRegistry must
+   * supply both and they are replay-critical.
+   */
+  readonly taxonId?: string
+  readonly taxonContentVersion?: string
   /**
    * Optional replay-critical organism/lineage baseline growth-rate scale.
    *
@@ -96,6 +107,11 @@ export interface ComposedSimulationConfig {
   readonly initialLineageBiomass: readonly (readonly number[])[]
   readonly growth: Readonly<GrowthParameters>
   readonly lineages: readonly ComposedLineageConfig[]
+  /**
+   * Caller-supplied biological identity authority. Omission preserves legacy
+   * infrastructure fixtures only; no taxon is inferred from genotype or labels.
+   */
+  readonly taxonRegistry?: AuthoritativeTaxonRegistry
   readonly evolutionGraph: CuratedMutationGraph
   readonly evolutionScenario: EvolutionScenarioIdentity
   /** Explicit null means this run has no ciprofloxacin PD authority. */
@@ -124,6 +140,8 @@ export interface ComposedSimulationState {
   readonly lineageIds: string[]
   readonly genotypeIds: string[]
   readonly baselineDeathHazardPerHour: number[]
+  /** Exact ordered lineage→taxon authority when configured for this run. */
+  readonly lineageTaxonMap?: RuntimeLineageTaxonMap
   readonly lineageRegistry: LineageRegistryCheckpoint
   resource: number[]
   ciprofloxacinConcentrationMgPerL: number[]
@@ -252,6 +270,10 @@ function composedFounderAuthority(
   return config.lineages.map((lineage) => ({
     founderId: lineage.id,
     genotypeId: lineage.genotypeId,
+    ...(lineage.taxonId === undefined ? {} : { taxonId: lineage.taxonId }),
+    ...(lineage.taxonContentVersion === undefined
+      ? {}
+      : { taxonContentVersion: lineage.taxonContentVersion }),
     deathHazardPerHour: lineage.deathHazardPerHour,
   }))
 }
@@ -389,6 +411,7 @@ function composedDiscretePopulationAuthorityConfig(
     lineageIds ??
     initializeDynamicLineageAuthority(
       composedFounderAuthority(config),
+      config.taxonRegistry,
     ).lineageIds
 
   return {
@@ -454,7 +477,10 @@ function validateConfig(config: ComposedSimulationConfig): void {
   // Strict scenario/genotype validation boundary. Relative fitness is owned by
   // the curated evolution graph and cannot be re-entered by composition callers.
   lineageFitness(config)
-  initializeDynamicLineageAuthority(composedFounderAuthority(config))
+  initializeDynamicLineageAuthority(
+    composedFounderAuthority(config),
+    config.taxonRegistry,
+  )
   const dynamicLineageLossPolicyIdentity =
     composedDynamicLineageLossPolicyIdentity(config.dynamicLineageLossPolicy)
   const ciprofloxacin = composedCiprofloxacinIdentity(config.ciprofloxacin)
@@ -622,6 +648,10 @@ export function composedConfigurationFingerprint(
     lineages: config.lineages.map((lineage, index) => ({
       id: lineage.id,
       genotypeId: lineage.genotypeId,
+      ...(lineage.taxonId === undefined ? {} : { taxonId: lineage.taxonId }),
+      ...(lineage.taxonContentVersion === undefined
+        ? {}
+        : { taxonContentVersion: lineage.taxonContentVersion }),
       relativeFitness: fitness[index]!.relativeFitness,
       ...(lineage.baselineGrowthRateScale === undefined
         ? {}
@@ -641,6 +671,7 @@ export function createComposedState(
   )
   const lineageAuthority = initializeDynamicLineageAuthority(
     composedFounderAuthority(config),
+    config.taxonRegistry,
   )
   const populationConfig = composedDiscretePopulationAuthorityConfig(
     config,
@@ -657,6 +688,9 @@ export function createComposedState(
     baselineDeathHazardPerHour: [
       ...lineageAuthority.baselineDeathHazardPerHour,
     ],
+    ...(lineageAuthority.lineageTaxonMap === undefined
+      ? {}
+      : { lineageTaxonMap: structuredClone(lineageAuthority.lineageTaxonMap) }),
     lineageRegistry: structuredClone(lineageAuthority.lineageRegistry),
     resource: Array.from(config.initialResource),
     ciprofloxacinConcentrationMgPerL:
@@ -738,10 +772,14 @@ export function validateComposedStateAgainstConfig(
       lineageIds: state.lineageIds,
       genotypeIds: state.genotypeIds,
       baselineDeathHazardPerHour: state.baselineDeathHazardPerHour,
+      ...(state.lineageTaxonMap === undefined
+        ? {}
+        : { lineageTaxonMap: state.lineageTaxonMap }),
       lineageRegistry: state.lineageRegistry,
     },
     composedFounderAuthority(config),
     config.dynamicLineageLossPolicy,
+    config.taxonRegistry,
   )
 
   const fitness = runtimeLineageFitness(state, config)
@@ -1122,6 +1160,9 @@ export function cloneComposedState(
     lineageIds: [...state.lineageIds],
     genotypeIds: [...state.genotypeIds],
     baselineDeathHazardPerHour: [...state.baselineDeathHazardPerHour],
+    ...(state.lineageTaxonMap === undefined
+      ? {}
+      : { lineageTaxonMap: structuredClone(state.lineageTaxonMap) }),
     lineageRegistry: structuredClone(state.lineageRegistry),
     resource: [...state.resource],
     ciprofloxacinConcentrationMgPerL: [

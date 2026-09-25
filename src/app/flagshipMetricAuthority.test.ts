@@ -86,6 +86,15 @@ describe("flagshipMetricAuthority", () => {
     ).toThrow(/exact composed parameter-set id\/version/);
   });
 
+  it("rejects ambiguous or broadened cohort semantics", () => {
+    const ambiguous = structuredClone(rawAuthority);
+    ambiguous.resistantCohort.definition = "all-mutants";
+
+    expect(() =>
+      parseFlagshipMetricAuthority(ambiguous, flagshipScenario),
+    ).toThrow(/unsupported flagship resistant-cohort definition/);
+  });
+
   it("rejects invalid metric cadence through the shared sampling validator", () => {
     const invalid = structuredClone(rawAuthority);
     invalid.samplingPolicy.everyTicks = 0;

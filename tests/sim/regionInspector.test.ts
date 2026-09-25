@@ -37,6 +37,7 @@ const config: ComposedSimulationConfig = {
   evolutionScenario: { scenarioId: 'region-test', scenarioVersion: '1' },
   ciprofloxacin: null,
   samplingExecutionPolicy: null,
+  dynamicLineageLossPolicy: null,
   lineages: [
     { id: 'ancestor', genotypeId: 'WT', deathHazardPerHour: 0 },
     { id: 'variant', genotypeId: 'VAR', deathHazardPerHour: 0 },

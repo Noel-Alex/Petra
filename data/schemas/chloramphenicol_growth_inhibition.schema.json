@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://project-petra.local/schema/chloramphenicol-growth-inhibition-authority-v1.json",
+  "title": "Petra chloramphenicol MG1655 growth-inhibition authority",
+  "type": "object",
+  "required": [
+    "kind",
+    "schemaVersion",
+    "version",
+    "drug",
+    "organism",
+    "model",
+    "assay",
+    "families",
+    "limitations"
+  ],
+  "properties": {
+    "kind": {
+      "const": "petra-chloramphenicol-growth-inhibition-authority"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "version": {
+      "const": "1.0.0"
+    },
+    "drug": {
+      "type": "object",
+      "required": ["id", "concentrationUnit"],
+      "properties": {
+        "id": { "const": "chloramphenicol" },
+        "concentrationUnit": { "const": "uM" }
+      },
+      "additionalProperties": false
+    },
+    "organism": {
+      "type": "object",
+      "required": ["scientificName", "background"],
+      "properties": {
+        "scientificName": { "const": "Escherichia coli" },
+        "background": { "const": "K-12 MG1655" }
+      },
+      "additionalProperties": false
+    },
+    "model": {
+      "type": "object",
+      "required": ["id", "effectKind", "growthRateUnit", "sourceEquation"],
+      "properties": {
+        "id": { "const": "greulich-ribosome-cubic-v1" },
+        "effectKind": { "const": "growth-inhibition" },
+        "growthRateUnit": { "const": "h^-1" },
+        "sourceEquation": { "const": "Greulich et al. 2015 equation 7" }
+      },
+      "additionalProperties": false
+    },
+    "assay": {
+      "type": "object",
+      "required": [
+        "temperatureC",
+        "baseMedium",
+        "culture",
+        "readout",
+        "adaptation"
+      ],
+      "properties": {
+        "temperatureC": { "const": 37 },
+        "baseMedium": { "type": "string", "minLength": 1 },
+        "culture": { "type": "string", "minLength": 1 },
+        "readout": { "type": "string", "minLength": 1 },
+        "adaptation": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "families": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/family" }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/canonicalText" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "canonicalText": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!\\s)(?:.|\\n)*\\S$"
+    },
+    "positiveFinite": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "fitValue": {
+      "type": "object",
+      "required": ["estimate", "reportedPlusMinus", "unit"],
+      "properties": {
+        "estimate": { "$ref": "#/$defs/positiveFinite" },
+        "reportedPlusMinus": { "$ref": "#/$defs/positiveFinite" },
+        "unit": { "enum": ["h^-1", "uM"] }
+      },
+      "additionalProperties": false
+    },
+    "family": {
+      "type": "object",
+      "required": [
+        "id",
+        "version",
+        "carbonSource",
+        "carbonSourceConcentration",
+        "carbonSourceConcentrationUnit",
+        "lambda0Star",
+        "ic50Star",
+        "provenance"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/canonicalText" },
+        "version": { "$ref": "#/$defs/canonicalText" },
+        "carbonSource": { "$ref": "#/$defs/canonicalText" },
+        "carbonSourceConcentration": { "$ref": "#/$defs/positiveFinite" },
+        "carbonSourceConcentrationUnit": { "enum": ["% v/v", "% w/v"] },
+        "lambda0Star": { "$ref": "#/$defs/fitValue" },
+        "ic50Star": { "$ref": "#/$defs/fitValue" },
+        "provenance": {
+          "type": "object",
+          "required": ["classification", "sourceKeys", "context", "limitation"],
+          "properties": {
+            "classification": { "const": "source-fitted-parameters" },
+            "sourceKeys": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "$ref": "#/$defs/canonicalText" }
+            },
+            "context": { "$ref": "#/$defs/canonicalText" },
+            "limitation": { "$ref": "#/$defs/canonicalText" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

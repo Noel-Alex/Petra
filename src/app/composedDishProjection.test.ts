@@ -136,6 +136,7 @@ describe("authoritative composed dish projection", () => {
       kind: "nutrient",
       label: "Limiting resource",
       unit: "model-resource",
+      rangeMode: "snapshot-extrema",
       minimum: 1,
       maximum: 4,
     });
@@ -150,6 +151,7 @@ describe("authoritative composed dish projection", () => {
       kind: "antibiotic",
       label: "Ciprofloxacin",
       unit: "mg/L",
+      rangeMode: "snapshot-extrema",
       minimum: 0,
       maximum: 0,
     });
@@ -161,6 +163,7 @@ describe("authoritative composed dish projection", () => {
       kind: "biomass",
       label: "Total biomass",
       unit: "model-biomass",
+      rangeMode: "snapshot-extrema",
       minimum: 0.75,
       maximum: 2,
     });
@@ -243,7 +246,11 @@ describe("authoritative composed dish projection", () => {
       (field) => field.id === "authoritative-ciprofloxacin",
     );
 
-    expect(drug).toMatchObject({ minimum: 0.125, maximum: 0.125 });
+    expect(drug).toMatchObject({
+      rangeMode: "snapshot-extrema",
+      minimum: 0.125,
+      maximum: 0.125,
+    });
     expect(drug === undefined ? null : [...drug.values]).toEqual([
       0.125, 0.125, 0.125, 0,
     ]);

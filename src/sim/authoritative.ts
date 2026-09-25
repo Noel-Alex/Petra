@@ -11,6 +11,16 @@ import {
   type EvolutionScenarioIdentity,
 } from './evolution/fitness'
 import {
+  baselineNonDrugLossPolicyIdentity,
+  type BaselineNonDrugLossPolicy,
+} from './evolution/baselineLossPolicy'
+import {
+  initializeDynamicLineageAuthority,
+  validateDynamicLineageAuthorityState,
+  type ComposedFounderLineageAuthority,
+} from './evolution/composedLineageAuthority'
+import type { LineageRegistryCheckpoint } from './evolution/lineage'
+import {
   samplingExecutionPolicyIdentity,
   type SamplingExecutionPolicy,
 } from './samplingPolicy'
@@ -36,7 +46,7 @@ import {
 } from './pharmacodynamics/ciprofloxacin'
 
 /** Versioned serializable composition boundary. Biological values are caller supplied. */
-export const COMPOSED_STATE_VERSION = 4 as const
+export const COMPOSED_STATE_VERSION = 5 as const
 
 export interface ComposedLineageConfig {
   readonly id: string
@@ -81,6 +91,11 @@ export interface ComposedSimulationConfig {
   readonly ciprofloxacin: ComposedCiprofloxacinConfig | null
   readonly samplingExecutionPolicy: SamplingExecutionPolicy | null
   /**
+   * Static authority for baseline non-drug loss assigned to runtime-created
+   * lineages. Explicit null keeps mutation-child activation fail-closed.
+   */
+  readonly dynamicLineageLossPolicy: BaselineNonDrugLossPolicy | null
+  /**
    * Explicit opt-in shared discrete host/division authority.
    * Null is the only no-calibration/default state; Petra never invents a
    * biomass↔cell-equivalent conversion.
@@ -97,6 +112,8 @@ export interface ComposedSimulationState {
   readonly mask: number[]
   readonly lineageIds: string[]
   readonly genotypeIds: string[]
+  readonly baselineDeathHazardPerHour: number[]
+  readonly lineageRegistry: LineageRegistryCheckpoint
   resource: number[]
   ciprofloxacinConcentrationMgPerL: number[]
   lineageBiomass: number[][]
@@ -216,6 +233,16 @@ function sumInMask(
   return total
 }
 
+function composedFounderAuthority(
+  config: ComposedSimulationConfig,
+): readonly ComposedFounderLineageAuthority[] {
+  return config.lineages.map((lineage) => ({
+    founderId: lineage.id,
+    genotypeId: lineage.genotypeId,
+    deathHazardPerHour: lineage.deathHazardPerHour,
+  }))
+}
+
 function lineageFitness(config: ComposedSimulationConfig) {
   return bindLineageFitness(
     config.evolutionGraph,
@@ -225,6 +252,31 @@ function lineageFitness(config: ComposedSimulationConfig) {
       genotypeId: lineage.genotypeId,
     })),
   )
+}
+
+function runtimeLineageFitness(
+  state: ComposedSimulationState,
+  config: ComposedSimulationConfig,
+) {
+  return bindLineageFitness(
+    config.evolutionGraph,
+    config.evolutionScenario,
+    state.lineageIds.map((lineageId, index) => ({
+      lineageId,
+      genotypeId: state.genotypeIds[index]!,
+    })),
+  )
+}
+
+function composedDynamicLineageLossPolicyIdentity(
+  policy: BaselineNonDrugLossPolicy | null | undefined,
+): string | null {
+  if (policy === undefined) {
+    throw new Error(
+      'dynamicLineageLossPolicy must be explicit policy or explicit null',
+    )
+  }
+  return policy === null ? null : baselineNonDrugLossPolicyIdentity(policy)
 }
 
 function composedSamplingPolicyIdentity(
@@ -311,6 +363,7 @@ function composedCiprofloxacinIdentity(
 
 function composedDiscretePopulationAuthorityConfig(
   config: ComposedSimulationConfig,
+  lineageIds?: readonly string[],
 ): DiscretePopulationAuthorityConfig | null {
   if (config.populationAuthority === undefined) {
     throw new Error(
@@ -318,11 +371,18 @@ function composedDiscretePopulationAuthorityConfig(
     )
   }
   if (config.populationAuthority === null) return null
+
+  const orderedLineageIds =
+    lineageIds ??
+    initializeDynamicLineageAuthority(
+      composedFounderAuthority(config),
+    ).lineageIds
+
   return {
     width: config.width,
     height: config.height,
     mask: config.mask,
-    lineageIds: config.lineages.map((lineage) => lineage.id),
+    lineageIds: orderedLineageIds,
     calibration: config.populationAuthority.calibration,
     policy: config.populationAuthority.policy,
   }
@@ -381,6 +441,9 @@ function validateConfig(config: ComposedSimulationConfig): void {
   // Strict scenario/genotype validation boundary. Relative fitness is owned by
   // the curated evolution graph and cannot be re-entered by composition callers.
   lineageFitness(config)
+  initializeDynamicLineageAuthority(composedFounderAuthority(config))
+  const dynamicLineageLossPolicyIdentity =
+    composedDynamicLineageLossPolicyIdentity(config.dynamicLineageLossPolicy)
   const ciprofloxacin = composedCiprofloxacinIdentity(config.ciprofloxacin)
   composedSamplingPolicyIdentity(config.samplingExecutionPolicy)
   const populationAuthority = composedDiscretePopulationAuthorityConfig(config)
@@ -391,6 +454,16 @@ function validateConfig(config: ComposedSimulationConfig): void {
   const knownGenotypes = new Set(
     config.evolutionGraph.genotypes.map((genotype) => genotype.id),
   )
+  if (dynamicLineageLossPolicyIdentity !== null) {
+    for (const entry of config.dynamicLineageLossPolicy!.entries) {
+      if (!knownGenotypes.has(entry.genotypeId)) {
+        throw new Error(
+          'dynamic lineage baseline-loss policy references unknown genotype ' +
+            entry.genotypeId,
+        )
+      }
+    }
+  }
   if (ciprofloxacin !== null) {
     const micByGenotype = new Map(
       ciprofloxacin.genotypeMicMgPerL.map((entry) => [
@@ -517,6 +590,10 @@ export function composedConfigurationFingerprint(
     samplingExecutionPolicy: composedSamplingPolicyIdentity(
       config.samplingExecutionPolicy,
     ),
+    dynamicLineageLossPolicy:
+      composedDynamicLineageLossPolicyIdentity(
+        config.dynamicLineageLossPolicy,
+      ),
     populationAuthority:
       config.populationAuthority === null
         ? null
@@ -540,15 +617,25 @@ export function createComposedState(
   const lineageBiomass = config.initialLineageBiomass.map((channel) =>
     Array.from(channel),
   )
-  const populationConfig = composedDiscretePopulationAuthorityConfig(config)
+  const lineageAuthority = initializeDynamicLineageAuthority(
+    composedFounderAuthority(config),
+  )
+  const populationConfig = composedDiscretePopulationAuthorityConfig(
+    config,
+    lineageAuthority.lineageIds,
+  )
   return {
     version: COMPOSED_STATE_VERSION,
     configurationFingerprint,
     width: config.width,
     height: config.height,
     mask: Array.from(config.mask),
-    lineageIds: config.lineages.map((lineage) => lineage.id),
-    genotypeIds: config.lineages.map((lineage) => lineage.genotypeId),
+    lineageIds: [...lineageAuthority.lineageIds],
+    genotypeIds: [...lineageAuthority.genotypeIds],
+    baselineDeathHazardPerHour: [
+      ...lineageAuthority.baselineDeathHazardPerHour,
+    ],
+    lineageRegistry: structuredClone(lineageAuthority.lineageRegistry),
     resource: Array.from(config.initialResource),
     ciprofloxacinConcentrationMgPerL:
       config.ciprofloxacinConcentrationMgPerL.map((value) =>
@@ -606,29 +693,63 @@ export function validateComposedStateAgainstConfig(
     throw new Error('composed state mask does not match configuration')
   }
 
-  if (!Array.isArray(state.lineageIds) || !Array.isArray(state.genotypeIds)) {
-    throw new Error('composed state identity channels must be arrays')
+  if (
+    !Array.isArray(state.lineageIds) ||
+    !Array.isArray(state.genotypeIds) ||
+    !Array.isArray(state.baselineDeathHazardPerHour) ||
+    !Array.isArray(state.lineageBiomass)
+  ) {
+    throw new Error('composed state lineage channels must be arrays')
   }
   if (
-    state.lineageIds.length !== config.lineages.length ||
-    state.genotypeIds.length !== config.lineages.length ||
-    state.lineageBiomass.length !== config.lineages.length
+    state.lineageIds.length !== state.genotypeIds.length ||
+    state.lineageIds.length !== state.baselineDeathHazardPerHour.length ||
+    state.lineageIds.length !== state.lineageBiomass.length
   ) {
-    throw new Error('composed state lineage channels do not match configuration')
-  }
-  state.lineageIds.forEach((id, index) => {
-    canonicalIdentity('composed state lineage id at index ' + index, id)
-    canonicalIdentity(
-      'composed state genotype id at index ' + index,
-      state.genotypeIds[index],
+    throw new Error(
+      'composed state lineage identity/parameter/biomass channels must stay aligned',
     )
-    if (id !== config.lineages[index]?.id) {
-      throw new Error('composed state lineage order does not match configuration')
-    }
-    if (state.genotypeIds[index] !== config.lineages[index]?.genotypeId) {
-      throw new Error('composed state genotype order does not match configuration')
+  }
+
+  validateDynamicLineageAuthorityState(
+    {
+      lineageIds: state.lineageIds,
+      genotypeIds: state.genotypeIds,
+      baselineDeathHazardPerHour: state.baselineDeathHazardPerHour,
+      lineageRegistry: state.lineageRegistry,
+    },
+    composedFounderAuthority(config),
+    config.dynamicLineageLossPolicy,
+  )
+
+  const fitness = runtimeLineageFitness(state, config)
+  if (fitness.length !== state.lineageIds.length) {
+    throw new Error('runtime lineage fitness channels must stay aligned')
+  }
+  state.baselineDeathHazardPerHour.forEach((hazard, index) => {
+    if (!Number.isFinite(hazard * config.hoursPerTick)) {
+      throw new Error(
+        'baselineDeathHazardPerHour[' +
+          index +
+          '] * hoursPerTick must be finite',
+      )
     }
   })
+
+  const ciprofloxacin = composedCiprofloxacinIdentity(config.ciprofloxacin)
+  if (ciprofloxacin !== null) {
+    const micGenotypeIds = new Set(
+      ciprofloxacin.genotypeMicMgPerL.map((entry) => entry.genotypeId),
+    )
+    state.genotypeIds.forEach((genotypeId) => {
+      if (!micGenotypeIds.has(genotypeId)) {
+        throw new Error(
+          'ciprofloxacin MIC table is missing active genotype ' + genotypeId,
+        )
+      }
+    })
+  }
+
   if (state.lineageBiomass.some((channel) => channel.length !== cellCount)) {
     throw new Error('composed state lineage arrays must match grid dimensions')
   }
@@ -678,7 +799,10 @@ export function validateComposedStateAgainstConfig(
     config.growth.localCapacity,
   )
 
-  const populationConfig = composedDiscretePopulationAuthorityConfig(config)
+  const populationConfig = composedDiscretePopulationAuthorityConfig(
+    config,
+    state.lineageIds,
+  )
   if (populationConfig === null) {
     if (state.discretePopulation !== null) {
       throw new Error(
@@ -691,8 +815,6 @@ export function validateComposedStateAgainstConfig(
         'composed population authority configuration requires checkpoint state',
       )
     }
-    // This validates both the population config identity/container domain and
-    // standing host/residual consistency against the exact committed biomass.
     restoreDiscretePopulationAuthorityState(
       state.discretePopulation,
       populationConfig,
@@ -713,6 +835,7 @@ function asEcologyState(state: ComposedSimulationState): EcologyState {
 
 interface PreparedComposedLineageParameters {
   readonly configurationFingerprint: string
+  readonly runtimeLineageIdentity: string
   readonly lineageParameters: readonly LineageEcologyParameters[]
 }
 
@@ -724,14 +847,20 @@ function preparedLineageParameters(
   config: ComposedSimulationConfig,
 ): readonly LineageEcologyParameters[] {
   const concentration = state.ciprofloxacinConcentrationMgPerL
+  const runtimeLineageIdentity = JSON.stringify({
+    lineageIds: state.lineageIds,
+    genotypeIds: state.genotypeIds,
+    baselineDeathHazardPerHour: state.baselineDeathHazardPerHour,
+  })
   const cached = preparedLineageParameterCache.get(concentration)
   if (
-    cached?.configurationFingerprint === state.configurationFingerprint
+    cached?.configurationFingerprint === state.configurationFingerprint &&
+    cached.runtimeLineageIdentity === runtimeLineageIdentity
   ) {
     return cached.lineageParameters
   }
 
-  const fitness = lineageFitness(config)
+  const fitness = runtimeLineageFitness(state, config)
   const ciprofloxacin = composedCiprofloxacinIdentity(config.ciprofloxacin)
   const hasDrugExposure =
     ciprofloxacin !== null &&
@@ -745,12 +874,17 @@ function preparedLineageParameters(
         entry.micMgPerL,
       ] as const),
     )
-    const activeGenotypes = [...new Set(
-      config.lineages.map((lineage) => lineage.genotypeId),
-    )].map((genotypeId) => ({
-      genotypeId,
-      genotypeMic: micByGenotype.get(genotypeId)!,
-    }))
+    const activeGenotypes = [...new Set(state.genotypeIds)].map(
+      (genotypeId) => {
+        const genotypeMic = micByGenotype.get(genotypeId)
+        if (genotypeMic === undefined) {
+          throw new Error(
+            'ciprofloxacin MIC table is missing active genotype ' + genotypeId,
+          )
+        }
+        return { genotypeId, genotypeMic }
+      },
+    )
     const composed = composeSpatialCiprofloxacinLoss(
       Float32Array.from(concentration),
       Uint8Array.from(state.mask),
@@ -766,26 +900,29 @@ function preparedLineageParameters(
     )
   }
 
-  const lineageParameters: LineageEcologyParameters[] = config.lineages.map(
-    (lineage, index) => {
+  const lineageParameters: LineageEcologyParameters[] = state.lineageIds.map(
+    (_lineageId, index) => {
+      const genotypeId = state.genotypeIds[index]!
+      const baselineDeathHazardPerHour =
+        state.baselineDeathHazardPerHour[index]!
+
       if (drugHazardByGenotype === null) {
         return {
           relativeFitness: fitness[index]!.relativeFitness,
-          deathHazardPerTime: lineage.deathHazardPerHour,
+          deathHazardPerTime: baselineDeathHazardPerHour,
         }
       }
 
-      const drugHazard = drugHazardByGenotype.get(lineage.genotypeId)
+      const drugHazard = drugHazardByGenotype.get(genotypeId)
       if (drugHazard === undefined) {
         throw new Error(
-          'missing composed ciprofloxacin hazard for genotype ' +
-            lineage.genotypeId,
+          'missing composed ciprofloxacin hazard for genotype ' + genotypeId,
         )
       }
       const combinedHazard = new Float64Array(drugHazard.length)
       for (let cell = 0; cell < drugHazard.length; cell += 1) {
         if (state.mask[cell] !== 1) continue
-        const value = lineage.deathHazardPerHour + drugHazard[cell]!
+        const value = baselineDeathHazardPerHour + drugHazard[cell]!
         if (!Number.isFinite(value) || value < 0) {
           throw new Error('composed lineage death hazard became invalid')
         }
@@ -800,6 +937,7 @@ function preparedLineageParameters(
 
   preparedLineageParameterCache.set(concentration, {
     configurationFingerprint: state.configurationFingerprint,
+    runtimeLineageIdentity,
     lineageParameters,
   })
   return lineageParameters
@@ -825,7 +963,10 @@ export function stepComposedStateDetailed(
     Array.from(channel),
   )
 
-  const populationConfig = composedDiscretePopulationAuthorityConfig(config)
+  const populationConfig = composedDiscretePopulationAuthorityConfig(
+    config,
+    state.lineageIds,
+  )
   let nextDiscretePopulation: DiscretePopulationAuthorityState | null = null
   let divisionOpportunities: readonly (readonly number[])[] | null = null
   let totalDivisionOpportunities: number | null = null
@@ -860,8 +1001,8 @@ export function stepComposedStateDetailed(
   state.discretePopulation = nextDiscretePopulation
 
   const lineageBiomass: Record<string, number> = {}
-  config.lineages.forEach((lineage, index) => {
-    lineageBiomass[lineage.id] = sumInMask(
+  state.lineageIds.forEach((lineageId, index) => {
+    lineageBiomass[lineageId] = sumInMask(
       state.lineageBiomass[index]!,
       state.mask,
     )
@@ -900,6 +1041,8 @@ export function cloneComposedState(
     mask: [...state.mask],
     lineageIds: [...state.lineageIds],
     genotypeIds: [...state.genotypeIds],
+    baselineDeathHazardPerHour: [...state.baselineDeathHazardPerHour],
+    lineageRegistry: structuredClone(state.lineageRegistry),
     resource: [...state.resource],
     ciprofloxacinConcentrationMgPerL: [
       ...state.ciprofloxacinConcentrationMgPerL,

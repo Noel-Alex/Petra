@@ -23,6 +23,7 @@ import { RegionInspectorPanel } from "../ui/RegionInspectorPanel";
 import { DishViewport } from "./DishViewport";
 import { projectComposedDishSnapshot } from "./composedDishProjection";
 import {
+  isRenderPublicationPerformanceEnabled,
   measureDishProjectionPublication,
   observeDishReactCommit,
 } from "./renderPublicationPerformance";
@@ -175,6 +176,8 @@ export function App({
   const provenance = useMemo(() => buildFlagshipProvenanceView(), []);
   const runtimeSnapshot = experiment.state?.snapshot ?? null;
   const runBranchIdentity = experiment.state?.runBranchIdentity ?? null;
+  const renderPublicationPerformanceEnabled =
+    isRenderPublicationPerformanceEnabled();
   const dishSnapshot = useMemo(
     () =>
       runBranchIdentity === null
@@ -188,14 +191,34 @@ export function App({
     [runBranchIdentity, runtimeSnapshot],
   );
 
+  const performanceDishSnapshot = renderPublicationPerformanceEnabled
+    ? dishSnapshot
+    : null;
+  const performanceRuntimeSnapshot = renderPublicationPerformanceEnabled
+    ? runtimeSnapshot
+    : null;
+  const performanceRunBranchIdentity = renderPublicationPerformanceEnabled
+    ? runBranchIdentity
+    : null;
+
   useEffect(() => {
-    if (runBranchIdentity === null) return;
+    if (
+      !renderPublicationPerformanceEnabled ||
+      performanceRunBranchIdentity === null
+    ) {
+      return;
+    }
     observeDishReactCommit(
-      runtimeSnapshot,
-      runBranchIdentity,
-      dishSnapshot,
+      performanceRuntimeSnapshot,
+      performanceRunBranchIdentity,
+      performanceDishSnapshot,
     );
-  }, [dishSnapshot, runBranchIdentity, runtimeSnapshot]);
+  }, [
+    performanceDishSnapshot,
+    performanceRunBranchIdentity,
+    performanceRuntimeSnapshot,
+    renderPublicationPerformanceEnabled,
+  ]);
   const regionInspector = useMemo(
     () =>
       projectRegionInspector(

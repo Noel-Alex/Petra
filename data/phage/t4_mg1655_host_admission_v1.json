@@ -16,7 +16,8 @@
     "taxonContentVersion": "1.0.0",
     "scientificName": "Escherichia coli",
     "background": "K-12 MG1655 for curated resistance phenotypes",
-    "genotypeId": "WT"
+    "genotypeId": "WT",
+    "taxonSourceKey": "marcusson_2009"
   },
   "admissionRule": "exact-runtime-taxon-content-and-genotype",
   "provenance": {

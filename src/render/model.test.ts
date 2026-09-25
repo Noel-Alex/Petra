@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { sampleRepresentativeGlyphs } from "./lod";
 import {
+  ACCEPTED_INTERVENTION_FOOTPRINT_VERSION,
+  type AcceptedInterventionFootprint,
+} from "./acceptedInterventionFootprint";
+import { CIPROFLOXACIN_INTERVENTION_SCHEMA_VERSION } from "../sim/ciprofloxacinIntervention";
+import {
   DEFAULT_SEMANTIC_ZOOM_POLICY,
   semanticZoomLevel,
   validateRenderSnapshot,
@@ -72,6 +77,27 @@ function temporalFixture(snapshotId: string): DishRenderSnapshot {
       },
     ],
     events: [],
+  };
+}
+
+function acceptedFootprint(
+  eventSequence: number,
+  simulationTimeHours: number,
+): AcceptedInterventionFootprint {
+  return {
+    version: ACCEPTED_INTERVENTION_FOOTPRINT_VERSION,
+    sourceEventType: "ciprofloxacin-applied",
+    eventSequence,
+    tick: eventSequence,
+    simulationTimeHours,
+    commandId: `dose-${eventSequence}`,
+    intervention: {
+      schemaVersion: CIPROFLOXACIN_INTERVENTION_SCHEMA_VERSION,
+      concentrationMgPerL: 0.03,
+      concentrationUnit: "mg/L",
+      blendMode: "set",
+      geometry: { kind: "global" },
+    },
   };
 }
 
@@ -197,6 +223,52 @@ describe("validateRenderSnapshot", () => {
         fields: [{ ...nutrient, values }],
       }),
     ).not.toThrow();
+  });
+
+  it("accepts ordered accepted intervention footprints as separate non-point data", () => {
+    const snapshot = fixture();
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        acceptedInterventionFootprints: [
+          acceptedFootprint(2, 0.5),
+          acceptedFootprint(4, 2),
+        ],
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects duplicate or out-of-order accepted intervention footprint identity", () => {
+    const snapshot = fixture();
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        acceptedInterventionFootprints: [
+          acceptedFootprint(2, 0.5),
+          acceptedFootprint(2, 1),
+        ],
+      }),
+    ).toThrow(/strictly increasing event-sequence order/);
+
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        acceptedInterventionFootprints: [
+          acceptedFootprint(4, 0.5),
+          acceptedFootprint(3, 1),
+        ],
+      }),
+    ).toThrow(/strictly increasing event-sequence order/);
+  });
+
+  it("rejects accepted intervention footprints from the future", () => {
+    const snapshot = fixture();
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        acceptedInterventionFootprints: [acceptedFootprint(3, 2.01)],
+      }),
+    ).toThrow(/cannot occur after the snapshot simulation time/);
   });
 
   it("accepts coherent spatial event metadata", () => {

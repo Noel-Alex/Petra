@@ -22,6 +22,7 @@ import { ProvenancePanel } from "../ui/provenance/ProvenancePanel";
 import { RegionInspectorPanel } from "../ui/RegionInspectorPanel";
 import { DishViewport } from "./DishViewport";
 import { projectComposedDishSnapshot } from "./composedDishProjection";
+import { RuntimeInterventionFootprintAccumulator } from "./runtimeInterventionFootprints";
 import { resolveComposedDishOrganismPresentationAuthority } from "./organismPresentationBinding";
 import { resolveCiprofloxacinToolAuthorityForRun } from "./ciprofloxacinToolBinding";
 import { createCiprofloxacinInterventionPreview } from "./ciprofloxacinInterventionDraft";
@@ -136,6 +137,12 @@ export function App({
 }: AppProps) {
   const systemReduced = useSystemReducedMotion();
   const experiment = useExperimentRuntime(runtimeFactory);
+  const interventionFootprintAccumulatorRef =
+    useRef<RuntimeInterventionFootprintAccumulator | null>(null);
+  if (interventionFootprintAccumulatorRef.current === null) {
+    interventionFootprintAccumulatorRef.current =
+      new RuntimeInterventionFootprintAccumulator();
+  }
   const ciprofloxacinIntentSequence = useRef(0);
   const onboardingProjection = useMemo(
     () => projectOnboardingRuntime(experiment.state, onboardingGates),
@@ -190,28 +197,41 @@ export function App({
     resolveCiprofloxacinToolAuthorityForRun(
       runtimeSnapshot?.checkpoint.identity ?? null,
     );
-  const dishSnapshot = useMemo(
-    () =>
-      runBranchIdentity === null
-        ? null
-        : measureDishProjectionPublication(
+  const dishSnapshot = useMemo(() => {
+    if (runBranchIdentity === null) {
+      interventionFootprintAccumulatorRef.current?.reset();
+      return null;
+    }
+
+    const interventionFootprintFrame =
+      runtimeSnapshot?.checkpoint.authority === "composed"
+        ? interventionFootprintAccumulatorRef.current!.projectSnapshot(
             runtimeSnapshot,
             runBranchIdentity,
-            () =>
-              projectComposedDishSnapshot(
-                runtimeSnapshot,
-                runBranchIdentity,
-                ecologyObservation,
-                organismPresentationAuthority,
-              ),
-          ),
-    [
-      ecologyObservation,
-      organismPresentationAuthority,
-      runBranchIdentity,
+          )
+        : null;
+    if (interventionFootprintFrame === null) {
+      interventionFootprintAccumulatorRef.current?.reset();
+    }
+
+    return measureDishProjectionPublication(
       runtimeSnapshot,
-    ],
-  );
+      runBranchIdentity,
+      () =>
+        projectComposedDishSnapshot(
+          runtimeSnapshot,
+          runBranchIdentity,
+          ecologyObservation,
+          organismPresentationAuthority,
+          interventionFootprintFrame,
+        ),
+    );
+  }, [
+    ecologyObservation,
+    organismPresentationAuthority,
+    runBranchIdentity,
+    runtimeSnapshot,
+  ]);
 
   useEffect(() => {
     if (runBranchIdentity === null) return;

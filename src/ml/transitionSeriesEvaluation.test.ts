@@ -32,9 +32,8 @@ function trajectoryRows(args: {
   sourceCount: number;
   candidateError: number;
   baselineError: number;
-  sourceTickStep?: number;
 }): TransitionSeriesRegressionEvaluationRow[] {
-  const sourceTickStep = args.sourceTickStep ?? 64;
+  const sourceTickStep = 64;
   return Array.from({ length: args.sourceCount }, (_, sourceSnapshotIndex) => {
     const sourceTick = sourceSnapshotIndex * sourceTickStep;
     const sourceSimulationTimeHours = sourceTick / 100;
@@ -112,7 +111,6 @@ describe("transition-series held-out evaluation", () => {
         sourceCount: 4,
         candidateError: 10,
         baselineError: 12,
-        sourceTickStep: 32,
       }),
       ...trajectoryRows({
         groupKey: "group-b",

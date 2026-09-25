@@ -512,6 +512,56 @@ describe('ComposedSimulationEngine', () => {
     expect(accepted.checkpoint.commandCount).toBe(1)
   })
 
+  it('refuses a non-representable accepted simulation time before mutating live authority', () => {
+    const extremeTimeConfig: ComposedSimulationConfig = {
+      ...config,
+      growth: {
+        ...config.growth,
+        maxDivisionRate: 0,
+      },
+      lineages: config.lineages.map((lineage) => ({
+        ...lineage,
+        deathHazardPerHour: 0,
+      })),
+      hoursPerTick: Number.MAX_VALUE,
+    }
+    const extremeParameterSetId = 'fixture:extreme-time-atomicity'
+    const extremeIdentity = createRunIdentity({
+      scenarioId: evolutionGraph.scenarioId,
+      scenarioVersion: evolutionGraph.scenarioVersion,
+      parameterSetId: extremeParameterSetId,
+      parameterSetVersion,
+      parameterSetBinding: createFixtureComposedParameterSetBinding(
+        extremeParameterSetId,
+        parameterSetVersion,
+        extremeTimeConfig,
+      ),
+      seed: identity.seed,
+    })
+    const engine = new ComposedSimulationEngine(
+      extremeIdentity,
+      extremeTimeConfig,
+    )
+
+    const first = engine.execute({
+      id: 'extreme-time-first',
+      type: 'advance',
+      ticks: 1,
+    })
+    expect(first.checkpoint.tick).toBe(1)
+    expect(first.checkpoint.simulationTimeHours).toBe(Number.MAX_VALUE)
+    const before = engine.snapshot()
+
+    expect(() =>
+      engine.execute({
+        id: 'extreme-time-overflow',
+        type: 'advance',
+        ticks: 1,
+      }),
+    ).toThrow(/simulation time became invalid/)
+    expect(engine.snapshot()).toEqual(before)
+  })
+
   it('publishes only the final accepted ecology step observation on advance snapshots', () => {
     const engine = new ComposedSimulationEngine(identity, config)
     const advanced = engine.execute({ id: 'observe-advance', type: 'advance', ticks: 2 })

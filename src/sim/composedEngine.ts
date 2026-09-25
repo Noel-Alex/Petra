@@ -278,7 +278,7 @@ export class ComposedSimulationEngine {
       this.pushEvent({
         type: 'model-resource-applied',
         commandId: command.id,
-        intervention: structuredClone(command.intervention),
+        resourceIntervention: structuredClone(command.intervention),
       })
       return this.snapshot()
     }

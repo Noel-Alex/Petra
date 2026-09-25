@@ -170,6 +170,20 @@ describe('ecology flux observation', () => {
       }),
     ).toThrow(/total division biomass does not match/)
 
+    const nonFiniteMetric = stepEcology(makeState(), growth, lineages, 0.25)
+    ;(nonFiniteMetric.metrics as { deathBiomass: number }).deathBiomass =
+      Number.NaN
+    expect(() =>
+      projectEcologyFluxObservation({
+        state: makeState(),
+        lineageIds: ['ancestor', 'variant'],
+        biomassUnit: 'model-biomass',
+        timeUnit: 'hour',
+        stepDuration: 0.25,
+        result: nonFiniteMetric,
+      }),
+    ).toThrow(/metrics.deathBiomass/)
+
     expect(() =>
       projectEcologyFluxObservation({
         state: makeState(),

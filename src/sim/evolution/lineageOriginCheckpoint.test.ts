@@ -132,7 +132,7 @@ describe("lineage origin checkpoint v2", () => {
         originCellIndex: null,
         mutationClass: null,
       }),
-    ).toThrow(/genesis prefix/);
+    ).toThrow(/cannot precede|genesis prefix/);
   });
 
   it("requires explicit v2 authority instead of accepting a legacy checkpoint implicitly", () => {
@@ -194,7 +194,7 @@ describe("lineage origin checkpoint v2", () => {
     };
     expect(() =>
       validateLineageOriginCheckpointV2(fakeMutationRoot),
-    ).toThrow(/mutation-child origin/);
+    ).toThrow(/mutation-child parent/);
   });
 
   it("keeps mutation creation inside the authoritative parent lifetime", () => {

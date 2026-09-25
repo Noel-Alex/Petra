@@ -173,39 +173,36 @@ export function parseBiologicalContentPackManifest(
  */
 export function biologicalContentPackManifestIdentity(value: unknown): string {
   const manifest = parseBiologicalContentPackManifest(value);
-  const sections = [
-    ["organisms", manifest.references.organisms],
-    ["antimicrobials", manifest.references.antimicrobials],
-    ["genotypeGraphs", manifest.references.genotypeGraphs],
-    ["environments", manifest.references.environments],
-    ["phageHostPairs", manifest.references.phageHostPairs],
-    ["scenarios", manifest.references.scenarios],
-    ["mechanisms", manifest.references.mechanisms],
-    ["presentationRecords", manifest.references.presentationRecords],
-  ] as const;
 
-  const referenceIdentity = sections
-    .map(
-      ([name, references]) =>
-        `${name}=${[...references]
-          .map((reference) => `${reference.id}@${reference.version}`)
-          .sort()
-          .join(",")}`,
-    )
-    .join("|");
+  const sortedReferences = (
+    references: readonly ContentPackRecordReference[],
+  ): readonly ContentPackRecordReference[] =>
+    [...references].sort(
+      (left, right) =>
+        left.id.localeCompare(right.id) ||
+        left.version.localeCompare(right.version),
+    );
 
-  const citationIdentity = [...manifest.references.citationKeys].sort().join(",");
-  const limitationIdentity = [...manifest.limitations].sort().join("\u001f");
-
-  return [
-    `content-pack:v${CONTENT_PACK_MANIFEST_SCHEMA_VERSION}`,
-    `id=${manifest.id}`,
-    `version=${manifest.version}`,
-    `maturity=${manifest.maturity}`,
-    referenceIdentity,
-    `citationKeys=${citationIdentity}`,
-    `limitations=${limitationIdentity}`,
-  ].join("|");
+  return JSON.stringify({
+    schemaVersion: CONTENT_PACK_MANIFEST_SCHEMA_VERSION,
+    id: manifest.id,
+    version: manifest.version,
+    maturity: manifest.maturity,
+    limitations: [...manifest.limitations].sort(),
+    references: {
+      organisms: sortedReferences(manifest.references.organisms),
+      antimicrobials: sortedReferences(manifest.references.antimicrobials),
+      genotypeGraphs: sortedReferences(manifest.references.genotypeGraphs),
+      environments: sortedReferences(manifest.references.environments),
+      phageHostPairs: sortedReferences(manifest.references.phageHostPairs),
+      scenarios: sortedReferences(manifest.references.scenarios),
+      mechanisms: sortedReferences(manifest.references.mechanisms),
+      presentationRecords: sortedReferences(
+        manifest.references.presentationRecords,
+      ),
+      citationKeys: [...manifest.references.citationKeys].sort(),
+    },
+  });
 }
 
 function parseReferenceArray(

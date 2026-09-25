@@ -7,6 +7,7 @@ This directory owns machine-readable published phage evidence used by Petra scie
 ## Authority
 
 - `t4_mg1655_nabergoj_2018.json` is the canonical machine-readable copy of the measured Nabergoj et al. 2018 T4 DSM 4505 / *E. coli* K-12 MG1655 DSM 18039 life-history table.
+- `t4_mg1655_host_admission_v1.json` is the conservative transferred runtime-host bridge from that exact source pair to Petra's exact flagship `ecoli-k12-mg1655@1.0.0` + `WT` identity. It is **not** a generic T4 host-range table: resistance-derived genotypes, other MG1655 content revisions, Bacillus, and other taxa remain unsupported until separately reviewed. The record must preserve the source phage/host collection identities and cite both the phage source and the runtime taxon/genotype source context.
 - `t4_hu_2010_2012_transport.json` is the canonical machine-readable copy of the Hu et al. T4 transport anchors plus Petra's explicit transferred 0.5% host-free agarose calibration selection and the source-backed refusal boundary for living-host physical transport.
 - Source rows are **measured** evidence and must preserve source units, context, uncertainty, DOI, host identity, phage identity, and measured growth-rate domain.
 - Production simulation helpers must not duplicate or silently edit source rows in TypeScript; they import this canonical evidence object. Deterministic tests may pin published row literals as an independent regression guard.

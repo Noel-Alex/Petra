@@ -166,3 +166,16 @@ Contributor/session: Noel-Alex
 - The remaining #456 critical path is still the central dish: authoritative composed snapshot projection, organism geometry/LOD, evidence-gated causal motion, and browser/expo visual acceptance against the approved references.
 
 Authenticated recovery contributor/session: sting-raider
+
+## 2026-09-25 — authoritative render-data-plane contract
+
+- #37 now has one explicit five-layer data-plane contract: replay-critical composed checkpoint → authoritative step observations → independently sampled scientific metrics/region inspections → immutable `DishRenderSnapshot` projection → presentation-only interpolation/LOD.
+- This resolves the main cross-agent boundary while #457 and #605 proceed in parallel. The renderer projection may copy/select/downsample source-owned state, but it may not become a second scientific measurement path; charts/inspector/ML continue to consume their simulator-owned contracts.
+- Local division/death biomass is a step observation, not something to infer from endpoint density or animation. Any projected rate requires the exact observation duration and truthful model-biomass/time units. It remains distinct from discrete mutation opportunities.
+- Current protocol-v6 lifecycle/ciprofloxacin events have no spatial coordinates, so the live dish must not invent event markers. Spatial mutation/infection markers wait for a source event contract that actually carries position.
+- Same biological time can contain multiple accepted authoritative states; render replay/order binds runtime `runBranchIdentity + commandCount`, not time, array arrival order, or renderer snapshot IDs.
+- Baseline transport stays correctness-first with detached/dedicated renderer projections. Transferables/downsampling/pooling or larger architecture moves are allowed only when #630/#642 local measurements justify them; engine-owned live buffers must never be detached for presentation.
+- Biology stepping, metric sampling, render publication, and animation frame cadence remain independent. Dropping/smoothing presentation output cannot change biology/RNG/replay/scientific sampling.
+
+Authenticated contributor/session: Noel-Alex
+

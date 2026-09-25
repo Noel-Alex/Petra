@@ -22,6 +22,14 @@ export const NODE_MECHANISTIC_DATASET_PACKAGE_SCHEMA_VERSION =
   "petra-ml-node-dataset-package-v1" as const;
 export const NODE_MECHANISTIC_DATASET_RESULT_SCHEMA_VERSION =
   "petra-ml-node-dataset-run-result-v1" as const;
+export const NODE_MECHANISTIC_DATASET_WORKER_ENVELOPE_SCHEMA_VERSION =
+  "petra-ml-node-dataset-worker-envelope-v1" as const;
+
+export interface NodeMechanisticDatasetWorkerEnvelope<TExecutorData = unknown> {
+  readonly schemaVersion: typeof NODE_MECHANISTIC_DATASET_WORKER_ENVELOPE_SCHEMA_VERSION;
+  readonly packageModuleUrl: string;
+  readonly packageExecutorData: TExecutorData;
+}
 
 export interface NodeMechanisticDatasetPackage<TExecutorData = unknown> {
   readonly schemaVersion: typeof NODE_MECHANISTIC_DATASET_PACKAGE_SCHEMA_VERSION;
@@ -222,6 +230,55 @@ export async function runNodeMechanisticDatasetPackage(
   });
 }
 
+export function createNodeMechanisticDatasetWorkerEnvelope<TExecutorData>(
+  packageModuleUrl: string,
+  packageExecutorData: TExecutorData,
+): NodeMechanisticDatasetWorkerEnvelope<TExecutorData> {
+  const parsed = requireLocalFileUrl("packageModuleUrl", packageModuleUrl);
+  let cloned: TExecutorData;
+  try {
+    cloned = structuredClone(packageExecutorData);
+  } catch (error) {
+    throw new TypeError(
+      `package executor data must be structured-cloneable: ${normalizeErrorMessage(error)}`,
+    );
+  }
+  return Object.freeze({
+    schemaVersion: NODE_MECHANISTIC_DATASET_WORKER_ENVELOPE_SCHEMA_VERSION,
+    packageModuleUrl: parsed.href,
+    packageExecutorData: cloned,
+  });
+}
+
+export function validateNodeMechanisticDatasetWorkerEnvelope(
+  candidate: unknown,
+): asserts candidate is NodeMechanisticDatasetWorkerEnvelope {
+  if (
+    candidate === null ||
+    typeof candidate !== "object" ||
+    Array.isArray(candidate)
+  ) {
+    throw new TypeError("node mechanistic dataset worker envelope must be an object");
+  }
+  const record = candidate as Partial<NodeMechanisticDatasetWorkerEnvelope>;
+  if (
+    record.schemaVersion !==
+    NODE_MECHANISTIC_DATASET_WORKER_ENVELOPE_SCHEMA_VERSION
+  ) {
+    throw new RangeError(
+      "unsupported node mechanistic dataset worker envelope version",
+    );
+  }
+  requireLocalFileUrl("packageModuleUrl", record.packageModuleUrl);
+  try {
+    structuredClone(record.packageExecutorData);
+  } catch (error) {
+    throw new TypeError(
+      `package executor data must be structured-cloneable: ${normalizeErrorMessage(error)}`,
+    );
+  }
+}
+
 function validateRuntimeOptions(
   options: NodeMechanisticDatasetRuntimeOptions,
 ): void {
@@ -232,17 +289,23 @@ function validateRuntimeOptions(
   if (!Number.isSafeInteger(options.maxWorkers) || options.maxWorkers < 1) {
     throw new RangeError("maxWorkers must be a positive safe integer");
   }
-  let executorUrl: URL;
+  requireLocalFileUrl("executorModuleUrl", options.executorModuleUrl);
+}
+
+function requireLocalFileUrl(name: string, value: unknown): URL {
+  requireCanonicalText(name, value);
+  let parsed: URL;
   try {
-    executorUrl = new URL(options.executorModuleUrl);
+    parsed = new URL(value);
   } catch {
-    throw new TypeError("executorModuleUrl must be an absolute URL");
+    throw new TypeError(`${name} must be an absolute URL`);
   }
-  if (executorUrl.protocol !== "file:") {
+  if (parsed.protocol !== "file:") {
     throw new TypeError(
-      "executorModuleUrl must be a local file: URL; dataset generation cannot require network worker code",
+      `${name} must be a local file: URL; dataset generation cannot require network code`,
     );
   }
+  return parsed;
 }
 
 function requireSafeName(name: string, value: unknown): asserts value is string {

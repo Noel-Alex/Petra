@@ -49,6 +49,31 @@
       "timeout_seconds": 300
     },
     {
+      "id": "render-projection-parity",
+      "description": "Authoritative composed-to-dish projection integrity: exact grid/mask/time/lineage/unit parity plus explicit Float32 presentation quantization evidence through the real product projector.",
+      "command": [
+        "npm",
+        "exec",
+        "--offline",
+        "--",
+        "vitest",
+        "run",
+        "--config",
+        "experiments/vitest.render_projection_parity.config.ts"
+      ],
+      "issues": [
+        6,
+        37,
+        42,
+        457,
+        524,
+        542,
+        630,
+        833
+      ],
+      "timeout_seconds": 300
+    },
+    {
       "id": "flagship-runtime-smoke",
       "description": "Authoritative composed flagship smoke: init/advance, real ciprofloxacin intervention, checkpoint restore, and exact replay with compact evidence.",
       "command": [

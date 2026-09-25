@@ -5,6 +5,11 @@ import { dirname } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { projectAuthoritativeComposedDishSnapshot } from '../src/app/composedDishProjection'
+import { projectAspergillusNo10SurfaceFrontForRender } from '../src/app/fungalSurfaceRenderProjection'
+import {
+  createFungalSurfaceFrontRenderCompanion,
+  createHeterogeneousDishRenderTransaction,
+} from '../src/app/heterogeneousDishRenderTransaction'
 import type { RuntimeEcologyObservation } from '../src/app/experimentRuntime'
 import { projectRuntimeEcologyNetGrowthField } from '../src/app/runtimeEcologyRenderField'
 import { ECOLOGY_NET_GROWTH_RENDER_FIELD_ID } from '../src/render/ecologyFluxField'
@@ -14,6 +19,10 @@ import {
 } from '../src/sim/ciprofloxacinIntervention'
 import { ComposedSimulationEngine } from '../src/sim/composedEngine'
 import { buildFlagshipComposedRunPlan } from '../src/sim/flagshipComposition'
+import {
+  advanceAspergillusNo10SurfaceCheckpoint,
+  createAspergillusNo10SurfaceCheckpoint,
+} from '../src/sim/fungi/aspergillusNo10Surface'
 import type { ComposedSimulationSnapshot } from '../src/sim/protocol'
 import {
   renderProjectionAuthorityFromComposedSnapshot,
@@ -187,6 +196,35 @@ describe('authoritative composed-to-dish render projection parity', () => {
   it('projects the real flagship composed state through the product adapter without scientific channel drift', () => {
     const { plan, snapshot, projected } = buildProductProjection()
     const evidence = parity(projected, snapshot)
+    const fungalProjection = projectAspergillusNo10SurfaceFrontForRender(
+      advanceAspergillusNo10SurfaceCheckpoint(
+        createAspergillusNo10SurfaceCheckpoint(70),
+        snapshot.checkpoint.simulationTimeHours,
+      ),
+    )
+    const fungalCompanion = createFungalSurfaceFrontRenderCompanion({
+      position: {
+        runBranchIdentity: RUN_BRANCH_IDENTITY,
+        acceptedCommandCount: snapshot.checkpoint.commandCount,
+        simulationTimeHours: snapshot.checkpoint.simulationTimeHours,
+      },
+      projection: fungalProjection,
+    })
+    const heterogeneousTransaction = createHeterogeneousDishRenderTransaction({
+      runBranchIdentity: RUN_BRANCH_IDENTITY,
+      simulationSnapshot: snapshot,
+      dishSnapshot: projected,
+      fungalSurfaceFronts: [fungalCompanion],
+    })
+
+    expect(heterogeneousTransaction.dishSnapshot).toBe(projected)
+    expect(heterogeneousTransaction.fungalSurfaceFronts).toHaveLength(1)
+    expect(heterogeneousTransaction.position.acceptedCommandCount).toBe(
+      snapshot.checkpoint.commandCount,
+    )
+    expect(heterogeneousTransaction.crossSpeciesInteractionAuthority).toBe(
+      'absent',
+    )
 
     expect(evidence.classification).toBe(
       'render-projection-integrity-not-biological-validation',
@@ -255,6 +293,26 @@ describe('authoritative composed-to-dish render projection parity', () => {
       renderBranchIdentity: RUN_BRANCH_IDENTITY,
       evidence,
       netGrowthEvidence,
+      heterogeneousTransactionEvidence: {
+        schemaVersion: heterogeneousTransaction.schemaVersion,
+        acceptedCommandCount:
+          heterogeneousTransaction.position.acceptedCommandCount,
+        simulationTimeHours:
+          heterogeneousTransaction.position.simulationTimeHours,
+        fungalFrontCount: heterogeneousTransaction.fungalSurfaceFronts.length,
+        fungalTaxonId:
+          heterogeneousTransaction.fungalSurfaceFronts[0]?.projection.taxonId ?? null,
+        fungalTaxonContentVersion:
+          heterogeneousTransaction.fungalSurfaceFronts[0]?.projection
+            .taxonContentVersion ?? null,
+        fungalNormalizedFrontRadius:
+          heterogeneousTransaction.fungalSurfaceFronts[0]?.projection.front
+            .normalizedRadius ?? null,
+        bacterialDishReferencePreserved:
+          heterogeneousTransaction.dishSnapshot === projected,
+        crossSpeciesInteractionAuthority:
+          heterogeneousTransaction.crossSpeciesInteractionAuthority,
+      },
       negativeCases: [
         'one-cell-resource-channel-drift',
         'lineage-identity-drift',
@@ -267,6 +325,8 @@ describe('authoritative composed-to-dish render projection parity', () => {
         'accepted-intervention-geometry-drift',
         'runtime-ecology-cross-branch-drift',
         'net-growth-one-cell-drift',
+        'heterogeneous-fungal-cross-branch-drift',
+        'heterogeneous-fungal-command-position-drift',
       ],
       limitations: [
         'This establishes product render-projection integrity for the tested authoritative keyframe, not biological validation or physical calibration.',
@@ -274,6 +334,7 @@ describe('authoritative composed-to-dish render projection parity', () => {
         'Render transfer-domain semantics remain owned by the renderer range contract and are not redefined here.',
         'Accepted intervention footprint parity proves exact event-to-render geometry transport; it does not prove biological efficacy beyond the authoritative simulator state.',
         'Runtime net-growth parity proves the product adapter preserves the accepted step-local rate field; it does not prove that the current Pixi/UI selection visibly displays that overlay.',
+        'The heterogeneous transaction proves identity-safe coexistence of bacterial render channels and the supported fungal source front only; it does not establish fungal biomass/resource coupling or bacteria-fungus interaction authority.',
         'Browser/GPU visual correctness and performance remain separate local acceptance gates.',
       ],
     })
@@ -436,5 +497,45 @@ describe('authoritative composed-to-dish render projection parity', () => {
         { ...netGrowth, values: driftedValues },
       ),
     ).toThrow(/net-growth rate differs/i)
+
+    const fungalProjection = projectAspergillusNo10SurfaceFrontForRender(
+      advanceAspergillusNo10SurfaceCheckpoint(
+        createAspergillusNo10SurfaceCheckpoint(70),
+        snapshot.checkpoint.simulationTimeHours,
+      ),
+    )
+    const wrongBranchCompanion = createFungalSurfaceFrontRenderCompanion({
+      position: {
+        runBranchIdentity: 'render-projection-parity:wrong-generation',
+        acceptedCommandCount: snapshot.checkpoint.commandCount,
+        simulationTimeHours: snapshot.checkpoint.simulationTimeHours,
+      },
+      projection: fungalProjection,
+    })
+    expect(() =>
+      createHeterogeneousDishRenderTransaction({
+        runBranchIdentity: RUN_BRANCH_IDENTITY,
+        simulationSnapshot: snapshot,
+        dishSnapshot: projected,
+        fungalSurfaceFronts: [wrongBranchCompanion],
+      }),
+    ).toThrow(/same runtime branch, accepted command position, and biological time/i)
+
+    const wrongOrderCompanion = createFungalSurfaceFrontRenderCompanion({
+      position: {
+        runBranchIdentity: RUN_BRANCH_IDENTITY,
+        acceptedCommandCount: snapshot.checkpoint.commandCount + 1,
+        simulationTimeHours: snapshot.checkpoint.simulationTimeHours,
+      },
+      projection: fungalProjection,
+    })
+    expect(() =>
+      createHeterogeneousDishRenderTransaction({
+        runBranchIdentity: RUN_BRANCH_IDENTITY,
+        simulationSnapshot: snapshot,
+        dishSnapshot: projected,
+        fungalSurfaceFronts: [wrongOrderCompanion],
+      }),
+    ).toThrow(/same runtime branch, accepted command position, and biological time/i)
   })
 })

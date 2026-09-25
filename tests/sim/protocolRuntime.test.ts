@@ -243,6 +243,26 @@ describe('worker protocol runtime validation', () => {
     }
   })
 
+  it('rejects malformed composed checkpoint RNG authority before promotion', () => {
+    const malformed = structuredClone(composedSnapshot)
+    ;(malformed.checkpoint.rngState as unknown as number[]).splice(
+      0,
+      4,
+      0,
+      0,
+      0,
+      0,
+    )
+
+    const parsed = parseWorkerResponse({
+      protocolVersion: PROTOCOL_VERSION,
+      type: 'ready',
+      snapshot: malformed,
+    })
+    expect(parsed).toMatchObject({ ok: false, commandId: null })
+    if (!parsed.ok) expect(parsed.error).toContain('rngState')
+  })
+
   it('rejects composed checkpoint state that omits mutable ciprofloxacin authority', () => {
     const malformed = structuredClone(composedSnapshot) as unknown as {
       checkpoint: {

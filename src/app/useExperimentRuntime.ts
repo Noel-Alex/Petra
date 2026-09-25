@@ -6,7 +6,7 @@ import {
   useState,
 } from "react";
 import type { RunIdentity, SimulationCheckpoint } from "../sim/protocol";
-import type { SourceOwnedLineageDensityPresentationScale } from "../render/lineageDensityScale";
+import type { SourceOwnedFixedLineageDensityPresentationScale } from "../render/lineageDensityScale";
 import type { ExperimentControlAction } from "../ui/experimentControls";
 import {
   type AuthoritativeInterventionCommand,
@@ -33,7 +33,7 @@ export interface ExperimentRuntimeBinding {
   readonly state: ExperimentRuntimeState | null;
   readonly view: ExperimentRuntimeView;
   /** Detached presentation authority; null for synthetic/non-composed runtimes. */
-  readonly lineageDensityPresentationScale: SourceOwnedLineageDensityPresentationScale | null;
+  readonly lineageDensityPresentationScale: SourceOwnedFixedLineageDensityPresentationScale | null;
   dispatch(action: ExperimentControlAction): ControlDispatchResult | null;
   restoreCheckpoint(
     checkpoint: SimulationCheckpoint,

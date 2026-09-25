@@ -19,6 +19,10 @@ import {
   createComposedEcologyObservationEnvelope,
 } from './composedEcologyObservation'
 import { applyCiprofloxacinIntervention } from './ciprofloxacinIntervention'
+import {
+  EMPTY_SIMULATION_EVENT_HISTORY,
+  appendSimulationEventHistory,
+} from './eventHistory'
 import { assertReplayCompatibility } from './replayCompatibility'
 import { SimulationRng, type RngState } from './rng'
 import {
@@ -186,7 +190,7 @@ export class ComposedSimulationEngine {
   private metrics: ComposedMetrics
   private tick = 0
   private commandCount = 0
-  private readonly events: SimulationEvent[] = []
+  private events: readonly SimulationEvent[] = EMPTY_SIMULATION_EVENT_HISTORY
   private readonly advanceExecutionPolicy: AdvanceExecutionPolicy
   private readonly mutationExecutionPolicy: MutationExecutionPolicy
 
@@ -327,10 +331,10 @@ export class ComposedSimulationEngine {
       commandId: command.id,
       value: command.ticks,
     }
-    const candidateEvents = [
-      ...this.events.map((event) => structuredClone(event)),
-      structuredClone(candidateEvent),
-    ]
+    const candidateEvents = appendSimulationEventHistory(
+      this.events,
+      candidateEvent,
+    )
     const accepted: ComposedSimulationSnapshot = {
       checkpoint: candidateCheckpoint,
       events: candidateEvents,
@@ -353,7 +357,7 @@ export class ComposedSimulationEngine {
     this.metrics = workingMetrics
     this.tick = candidateTick
     this.commandCount = candidateCommandCount
-    this.events.push(candidateEvent)
+    this.events = candidateEvents
 
     return ecologyObservation === null
       ? accepted
@@ -369,7 +373,7 @@ export class ComposedSimulationEngine {
       this.currentSimulationTimeHours(),
       this.rng.snapshot(),
     )
-    const events = this.events.map((event) => structuredClone(event))
+    const events = this.events
     return {
       checkpoint,
       events,
@@ -412,7 +416,7 @@ export class ComposedSimulationEngine {
   private pushEvent(
     event: Omit<SimulationEvent, 'sequence' | 'tick' | 'simulationTimeHours'>,
   ): void {
-    this.events.push({
+    this.events = appendSimulationEventHistory(this.events, {
       sequence: this.events.length,
       tick: this.tick,
       simulationTimeHours: this.currentSimulationTimeHours(),
@@ -460,6 +464,6 @@ export class ComposedSimulationEngine {
     this.rng = restoredRng
     this.state = restoredState
     this.metrics = restoredMetrics
-    this.events.length = 0
+    this.events = EMPTY_SIMULATION_EVENT_HISTORY
   }
 }

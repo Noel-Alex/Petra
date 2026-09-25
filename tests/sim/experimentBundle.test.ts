@@ -214,6 +214,93 @@ describe('experiment export bundle', () => {
     expect(replayed.checkpoint.identity.parameterSetBinding).toEqual(binding)
   })
 
+  it('rejects metric evidence that violates one canonical sampling history', () => {
+    const identity = createRunIdentity({
+      scenarioId: evolutionGraph.scenarioId,
+      scenarioVersion: evolutionGraph.scenarioVersion,
+      parameterSetId: binding.parameterSetId,
+      parameterSetVersion: binding.parameterSetVersion,
+      parameterSetBinding: binding,
+      seed: 31,
+    })
+    const engine = new ComposedSimulationEngine(identity, config)
+    engine.execute({ id: 'pre', type: 'advance', ticks: 2 })
+    const origin = engine.snapshot()
+    const samplingPolicy = {
+      version: 1 as const,
+      everyTicks: 1,
+      offsetTicks: 0,
+    }
+    const first = extractAuthoritativeMetricSample({
+      checkpoint: origin.checkpoint,
+      samplingPolicy,
+      resistantGenotypeIds: ['VAR'],
+    })
+
+    engine.execute({ id: 'metric-next', type: 'advance', ticks: 1 })
+    const next = extractAuthoritativeMetricSample({
+      checkpoint: engine.snapshot().checkpoint,
+      samplingPolicy,
+      resistantGenotypeIds: ['VAR'],
+    })
+
+    const offCadence = {
+      ...structuredClone(first),
+      samplingPolicy: {
+        version: 1 as const,
+        everyTicks: 2,
+        offsetTicks: 1,
+      },
+    }
+    expect(() =>
+      createExperimentBundle({
+        originCheckpoint: origin.checkpoint,
+        commands: [],
+        composedConfig: config,
+        metrics: [offCadence],
+      }),
+    ).toThrow(/off the declared sampling cadence/)
+
+    const mixedPolicy = {
+      ...structuredClone(next),
+      samplingPolicy: {
+        version: 1 as const,
+        everyTicks: 2,
+        offsetTicks: 1,
+      },
+    }
+    expect(() =>
+      createExperimentBundle({
+        originCheckpoint: origin.checkpoint,
+        commands: [],
+        composedConfig: config,
+        metrics: [first, mixedPolicy],
+      }),
+    ).toThrow(/one exact sampling policy/)
+
+    expect(() =>
+      createExperimentBundle({
+        originCheckpoint: origin.checkpoint,
+        commands: [],
+        composedConfig: config,
+        metrics: [first, structuredClone(first)],
+      }),
+    ).toThrow(/strictly increasing/)
+
+    const duplicateTime = {
+      ...structuredClone(next),
+      simulationTimeHours: first.simulationTimeHours,
+    }
+    expect(() =>
+      createExperimentBundle({
+        originCheckpoint: origin.checkpoint,
+        commands: [],
+        composedConfig: config,
+        metrics: [first, duplicateTime],
+      }),
+    ).toThrow(/strictly increasing/)
+  })
+
   it('round-trips composed ciprofloxacin intervention commands in bundle v2', () => {
     const identity = createRunIdentity({
       scenarioId: evolutionGraph.scenarioId,

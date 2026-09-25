@@ -1,0 +1,80 @@
+{
+  "kind": "petra-chloramphenicol-growth-inhibition-authority",
+  "schemaVersion": 1,
+  "version": "1.0.0",
+  "drug": {
+    "id": "chloramphenicol",
+    "concentrationUnit": "uM"
+  },
+  "organism": {
+    "scientificName": "Escherichia coli",
+    "background": "K-12 MG1655"
+  },
+  "model": {
+    "id": "greulich-ribosome-cubic-v1",
+    "effectKind": "growth-inhibition",
+    "growthRateUnit": "h^-1",
+    "sourceEquation": "Greulich et al. 2015 equation 7"
+  },
+  "assay": {
+    "temperatureC": 37,
+    "baseMedium": "modified Neidhardt potassium-MOPS defined medium",
+    "culture": "3 mL culture in 20-mm tubes at 250 rpm",
+    "readout": "OD600 exponential growth rate with viability corroborated by plating",
+    "adaptation": "At least three drug-free exponential generations before transfer, then four generations of adapted exponential growth under antibiotic before rate measurement."
+  },
+  "families": [
+    {
+      "id": "mops-glycerol",
+      "version": "1.0.0",
+      "carbonSource": "glycerol",
+      "carbonSourceConcentration": 0.2,
+      "carbonSourceConcentrationUnit": "% v/v",
+      "lambda0Star": {
+        "estimate": 1.83,
+        "reportedPlusMinus": 0.06,
+        "unit": "h^-1"
+      },
+      "ic50Star": {
+        "estimate": 2.49,
+        "reportedPlusMinus": 0.05,
+        "unit": "uM"
+      },
+      "provenance": {
+        "classification": "source-fitted-parameters",
+        "sourceKeys": ["greulich_2015"],
+        "context": "E. coli K-12 MG1655; modified Neidhardt potassium-MOPS defined medium; glycerol 0.2% v/v; 37 C; adapted exponential-growth OD600 response.",
+        "limitation": "Fitted response authority for this source-compatible growth context only. It does not bind Petra's current dimensionless model-resource field, physical chloramphenicol transport, resistant-genotype response, multi-drug interaction, or clinical dosing."
+      }
+    },
+    {
+      "id": "mops-glucose",
+      "version": "1.0.0",
+      "carbonSource": "glucose",
+      "carbonSourceConcentration": 0.2,
+      "carbonSourceConcentrationUnit": "% w/v",
+      "lambda0Star": {
+        "estimate": 1.28,
+        "reportedPlusMinus": 0.02,
+        "unit": "h^-1"
+      },
+      "ic50Star": {
+        "estimate": 4.5,
+        "reportedPlusMinus": 0.05,
+        "unit": "uM"
+      },
+      "provenance": {
+        "classification": "source-fitted-parameters",
+        "sourceKeys": ["greulich_2015"],
+        "context": "E. coli K-12 MG1655; modified Neidhardt potassium-MOPS defined medium; glucose 0.2% w/v; 37 C; adapted exponential-growth OD600 response.",
+        "limitation": "Fitted response authority for this source-compatible growth context only. It does not bind Petra's current dimensionless model-resource field, physical chloramphenicol transport, resistant-genotype response, multi-drug interaction, or clinical dosing."
+      }
+    }
+  ],
+  "limitations": [
+    "The response supplies a growth/division multiplier and no chloramphenicol killing hazard.",
+    "The source record does not establish a product concentration guardrail outside the published response experiment; scenario admission must bind any exposed concentration range separately.",
+    "The current Petra flagship model-resource context is not glucose or glycerol MOPS authority and must not select either family by name inference.",
+    "CAT resistance phenotype evidence is not a chloramphenicol dose-response transfer rule and is intentionally absent from this WT response authority."
+  ]
+}

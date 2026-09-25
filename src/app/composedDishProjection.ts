@@ -16,7 +16,10 @@ import type {
   ComposedSimulationSnapshot,
   SimulationSnapshot,
 } from "../sim/protocol";
-import type { AuthoritativeTaxonRegistry } from "../sim/taxonIdentity";
+import type {
+  AuthoritativeTaxonRegistry,
+  RuntimeLineageTaxonMap,
+} from "../sim/taxonIdentity";
 
 const BIOMASS_UNIT = "model-biomass";
 const RESOURCE_UNIT = "model-resource";
@@ -305,7 +308,7 @@ export function projectAuthoritativeComposedDishSnapshot(
 
 function projectComposedLineageOrganismPresentations(
   lineageIds: readonly string[],
-  lineageTaxonMap: import("../sim/taxonIdentity").RuntimeLineageTaxonMap | undefined,
+  lineageTaxonMap: RuntimeLineageTaxonMap | undefined,
   authority: ComposedDishOrganismPresentationAuthority,
 ) {
   if (lineageTaxonMap === undefined) {

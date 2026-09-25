@@ -58,6 +58,9 @@ export function projectEcologyNetGrowthField(
 
   canonicalUnit("ecology flux biomassUnit", observation.biomassUnit);
   canonicalUnit("ecology flux timeUnit", observation.timeUnit);
+  if (!Number.isFinite(observation.stepDuration) || observation.stepDuration <= 0) {
+    throw new RangeError("ecology flux stepDuration must be finite and positive");
+  }
 
   const values = new Float32Array(cells);
   let minimum = Number.POSITIVE_INFINITY;

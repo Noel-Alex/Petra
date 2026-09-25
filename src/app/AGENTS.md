@@ -218,3 +218,9 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 ## Authoritative ciprofloxacin intervention drafting
 - `ciprofloxacinInterventionDraft.ts` is the framework-neutral bridge from scenario-owned `CiprofloxacinToolAuthority` to the existing presentation `InterventionDraft` / preview contract. It copies the exact parameter key/label/`mg/L` bounds/default/precision and accepts only geometry kinds explicitly enabled by scenario authority.
 - Callers must author complete `global`, `radial`, `stripe`, or `paint` geometry before scientific Apply. A presentation-only `point` cursor is refused; never promote `INTERVENTION_TARGET_RING_RADIUS_FRACTION`, camera pixels/zoom, or other visual affordances into biological radius/width/brush authority. Explicit concentration overrides still pass through the shared preview validator rather than a second range policy.
+
+
+## Runtime intervention footprint history binding
+- `runtimeInterventionFootprints.ts` is the presentation-only bridge from the current `ExperimentRuntimeState` transaction to accepted ciprofloxacin footprint render data. It derives footprints only from that exact current composed `SimulationSnapshot.events`; callers must not cache event-local geometry and later attach it to a different runtime branch.
+- Every frame binds exact `RunIdentity`, runtime-owned `runBranchIdentity`, checkpoint tick/biological time/`commandCount`, and snapshot trace identity. Missing/foreign authority, malformed history identity, or accepted footprint data beyond the enclosing checkpoint frontier fails closed.
+- The frame does not become simulation/checkpoint/replay authority and does not estimate affected population, diffusion, clearance, efficacy, or representative points. Reset/replay/restore generations remain distinct even when footprint payloads are otherwise byte-equivalent.

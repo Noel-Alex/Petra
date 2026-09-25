@@ -14,6 +14,10 @@ import {
   type ScientificChartProjection,
   type ScientificSeriesProjection,
 } from "./model";
+import {
+  buildLineageTreeVisibilityPlan,
+  DEFAULT_LINEAGE_TREE_SVG_NODE_BUDGET,
+} from "./lineageTreeVisibility";
 
 import "./analysisPanel.css";
 
@@ -25,6 +29,11 @@ export interface AnalysisPanelProps {
   readonly className?: string;
   readonly selectedLineageId?: string | null;
   readonly onLineageSelect?: (lineageId: string) => void;
+  /**
+   * Presentation-only SVG budget. Complete authoritative ancestry remains in
+   * the semantic table even when lineage geometry is reduced.
+   */
+  readonly lineageTreeSvgNodeBudget?: number;
 }
 
 const CHART = {
@@ -60,6 +69,7 @@ export function AnalysisPanel({
   className,
   selectedLineageId = null,
   onLineageSelect,
+  lineageTreeSvgNodeBudget = DEFAULT_LINEAGE_TREE_SVG_NODE_BUDGET,
 }: AnalysisPanelProps): ReactElement {
   const resolvedSelectedLineageId = lineageTree.nodes.some(
     (node) => node.lineageId === selectedLineageId,
@@ -119,6 +129,7 @@ export function AnalysisPanel({
             tree={lineageTree}
             selectedLineageId={resolvedSelectedLineageId}
             onLineageSelect={onLineageSelect}
+            maxVisibleNodes={lineageTreeSvgNodeBudget}
           />
 
           <p className="analysis-card__note">
@@ -557,10 +568,12 @@ function LineageTree({
   tree,
   selectedLineageId,
   onLineageSelect,
+  maxVisibleNodes,
 }: {
   readonly tree: LineageTreeLayout;
   readonly selectedLineageId: string | null;
   readonly onLineageSelect?: (lineageId: string) => void;
+  readonly maxVisibleNodes: number;
 }): ReactElement {
   if (tree.nodes.length === 0) {
     return (
@@ -570,23 +583,42 @@ function LineageTree({
     );
   }
 
+  const visibility = buildLineageTreeVisibilityPlan(tree, {
+    maxVisibleNodes,
+    preserveLineageIds:
+      selectedLineageId === null ? [] : [selectedLineageId],
+  });
+  const hiddenDescendants = new Map(
+    visibility.collapsedFrontiers.map((frontier) => [
+      frontier.lineageId,
+      frontier.hiddenDescendantCount,
+    ]),
+  );
   const height =
     TREE.top +
     TREE.bottom +
-    Math.max(1, tree.nodes.length - 1) * TREE.rowHeight;
+    Math.max(1, visibility.nodes.length - 1) * TREE.rowHeight;
   const plotWidth = TREE.width - TREE.left - TREE.right;
   const positions = new Map(
-    tree.nodes.map((node) => [
+    visibility.nodes.map((node, index) => [
       node.lineageId,
       {
         x: TREE.left + node.x * plotWidth,
         y:
-          tree.nodes.length === 1
+          visibility.nodes.length === 1
             ? TREE.top
-            : TREE.top + node.y * (height - TREE.top - TREE.bottom),
+            : TREE.top +
+              (index / (visibility.nodes.length - 1)) *
+                (height - TREE.top - TREE.bottom),
       },
     ]),
   );
+
+  const ancestryLabel =
+    `Lineage ancestry showing ${visibility.nodes.length} of ${visibility.totalLineageCount} authoritative lineages from ${formatNumber(tree.timeMinimumHours)} to ${formatNumber(tree.timeMaximumHours)} hours` +
+    (visibility.hiddenLineageCount === 0
+      ? ""
+      : `; ${visibility.hiddenLineageCount} hidden from SVG presentation and retained in complete ancestry data`);
 
   return (
     <div className="analysis-lineage">
@@ -594,7 +626,13 @@ function LineageTree({
         className="analysis-lineage__svg"
         viewBox={`0 0 ${TREE.width} ${height}`}
         role={onLineageSelect === undefined ? "img" : "group"}
-        aria-label={`Lineage ancestry with ${tree.nodes.length} lineages from ${formatNumber(tree.timeMinimumHours)} to ${formatNumber(tree.timeMaximumHours)} hours`}
+        aria-label={ancestryLabel}
+        data-visible-lineages={visibility.nodes.length}
+        data-total-lineages={visibility.totalLineageCount}
+        data-hidden-lineages={visibility.hiddenLineageCount}
+        data-lod-budget-exceeded={
+          visibility.budgetExceededForPreservedAncestry ? "true" : "false"
+        }
       >
         <g className="analysis-lineage__time-axis" aria-hidden="true">
           <line
@@ -619,7 +657,7 @@ function LineageTree({
         </g>
 
         <g className="analysis-lineage__edges" aria-hidden="true">
-          {tree.edges.map((edge) => {
+          {visibility.edges.map((edge) => {
             const parent = positions.get(edge.parentLineageId)!;
             const child = positions.get(edge.childLineageId)!;
             const bendX = parent.x + (child.x - parent.x) * 0.5;
@@ -632,7 +670,7 @@ function LineageTree({
           })}
         </g>
 
-        {tree.nodes.map((node) => {
+        {visibility.nodes.map((node) => {
           const position = positions.get(node.lineageId)!;
           return (
             <LineageNode
@@ -642,10 +680,26 @@ function LineageTree({
               y={position.y}
               selected={selectedLineageId === node.lineageId}
               onSelect={onLineageSelect}
+              hiddenDescendantCount={
+                hiddenDescendants.get(node.lineageId) ?? 0
+              }
             />
           );
         })}
       </svg>
+
+      {visibility.hiddenLineageCount === 0 ? null : (
+        <p className="analysis-card__note" data-lineage-lod-summary>
+          SVG LOD shows {visibility.nodes.length} of{" "}
+          {visibility.totalLineageCount} authoritative lineages;{" "}
+          {visibility.hiddenLineageCount} hidden lineage
+          {visibility.hiddenLineageCount === 1 ? "" : "s"} remain available in
+          Complete ancestry data.
+          {visibility.budgetExceededForPreservedAncestry
+            ? " Selected ancestry is shown even though it exceeds the presentation budget."
+            : ""}
+        </p>
+      )}
     </div>
   );
 }
@@ -656,17 +710,24 @@ function LineageNode({
   y,
   selected,
   onSelect,
+  hiddenDescendantCount,
 }: {
   readonly node: LineageTreeNode;
   readonly x: number;
   readonly y: number;
   readonly selected: boolean;
   readonly onSelect?: (lineageId: string) => void;
+  readonly hiddenDescendantCount: number;
 }): ReactElement {
   const identityStyle = {
     "--analysis-lineage-color": `var(${petraVisualColorCssVariableName(node.colorToken)})`,
     "--analysis-lineage-stroke-scale": node.strokeWidthScale,
   } as CSSProperties;
+  const ariaLabel =
+    node.ariaLabel +
+    (hiddenDescendantCount === 0
+      ? ""
+      : `, ${hiddenDescendantCount} descendant${hiddenDescendantCount === 1 ? "" : "s"} hidden from SVG presentation`);
 
   return (
     <g
@@ -676,17 +737,26 @@ function LineageNode({
       data-lineage-appearance={node.appearanceToken}
       data-lineage-pattern={node.patternToken}
       data-contrast-mode={node.contrastMode}
+      data-hidden-descendants={
+        hiddenDescendantCount === 0 ? undefined : hiddenDescendantCount
+      }
       role={onSelect === undefined ? "img" : "button"}
-      aria-label={node.ariaLabel}
+      aria-label={ariaLabel}
       aria-pressed={onSelect === undefined ? undefined : selected}
       tabIndex={onSelect === undefined ? undefined : 0}
       data-selected={selected ? "true" : "false"}
-      onClick={onSelect === undefined ? undefined : () => onSelect(node.lineageId)}
-      onKeyDown={onSelect === undefined ? undefined : (event) => {
-        if (event.key !== "Enter" && event.key !== " ") return;
-        event.preventDefault();
-        onSelect(node.lineageId);
-      }}
+      onClick={
+        onSelect === undefined ? undefined : () => onSelect(node.lineageId)
+      }
+      onKeyDown={
+        onSelect === undefined
+          ? undefined
+          : (event) => {
+              if (event.key !== "Enter" && event.key !== " ") return;
+              event.preventDefault();
+              onSelect(node.lineageId);
+            }
+      }
       style={identityStyle}
       transform={`translate(${x} ${y})`}
     >
@@ -704,6 +774,12 @@ function LineageNode({
       <text className="analysis-lineage__node-genotype" x={14} y={11}>
         {node.genotypeId}
       </text>
+      {hiddenDescendantCount === 0 ? null : (
+        <text className="analysis-lineage__node-hidden" x={14} y={25}>
+          +{hiddenDescendantCount} hidden descendant
+          {hiddenDescendantCount === 1 ? "" : "s"}
+        </text>
+      )}
     </g>
   );
 }

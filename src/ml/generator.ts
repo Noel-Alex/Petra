@@ -219,6 +219,7 @@ export function validatePlanForCollection(
   for (const task of plan.tasks) {
     requireNonEmpty("taskId", task.taskId);
     requireNonEmpty("parameterPointId", task.parameterPointId);
+    requireNonEmpty("runConditionId", task.runConditionId);
     requireNonEmpty("interventionFamilyId", task.interventionFamilyId);
     if (taskById.has(task.taskId)) {
       throw new RangeError(`duplicate planned task id: ${task.taskId}`);

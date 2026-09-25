@@ -88,6 +88,12 @@ function useSystemReducedMotion(): boolean {
 export interface AppProps {
   readonly runtimeFactory?: ExperimentRuntimeFactory;
   /**
+   * Scenario/runtime-owned ciprofloxacin control metadata. Product defaults
+   * inject this alongside the matching authoritative runtime; custom runtimes
+   * must supply their own metadata rather than inheriting flagship values.
+   */
+  readonly ciprofloxacinMetadata?: unknown;
+  /**
    * Explicit authoritative analysis records. The current synthetic worker
    * snapshot is intentionally not adapted into this contract.
    */
@@ -114,6 +120,7 @@ function focusSourcesTrigger(): void {
 
 export function App({
   runtimeFactory,
+  ciprofloxacinMetadata = null,
   analysisRecords = null,
   causalEvents = null,
   onboardingGates = null,
@@ -562,6 +569,7 @@ export function App({
         <InterventionPalette
           motion={motionPreference}
           runtimeStatus={experiment.view.status}
+          ciprofloxacinMetadata={ciprofloxacinMetadata}
           placement={interventionPlacement}
           onBeginPlacement={(tool) => {
             setInterventionPlacement((current) =>

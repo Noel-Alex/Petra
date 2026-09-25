@@ -12,8 +12,15 @@ export type LineageOriginKind =
   | "mutation-child"
   | "external-inoculation";
 
-export interface LineageOriginRecordV2 extends LineageRecord {
+export interface LineageOriginRecordV2 {
+  readonly lineageId: string;
   readonly originKind: LineageOriginKind;
+  readonly parentLineageId: string | null;
+  readonly genotypeId: string;
+  readonly createdAtHours: number;
+  readonly originCellIndex: number | null;
+  readonly mutationClass: string | null;
+  readonly extinctAtHours: number | null;
 }
 
 export interface LineageCreatedEventV2 {

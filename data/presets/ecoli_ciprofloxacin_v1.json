@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "id": "ecoli-ciprofloxacin-spatial",
-  "version": "1.4.0-research",
+  "version": "1.5.0-research",
   "title": "E. coli / ciprofloxacin spatial evolution",
   "status": "research",
   "warning": "Educational mechanistic research scenario, not clinical guidance or a quantitative prediction of an arbitrary laboratory culture. The selected ecology execution profile uses engineering model-unit values, not a measured MG1655 physical Monod parameter pack.",
@@ -80,7 +80,41 @@
         "limitation": "Resource-by-ciprofloxacin interaction under starvation is a model composition policy, not a complete stationary-phase killing model."
       }
     },
-    "classification": "transferred_mechanistic_approximation"
+    "classification": "transferred_mechanistic_approximation",
+    "interventionControl": {
+      "schemaVersion": 1,
+      "tool": "antibiotic",
+      "protocolCommand": "apply-ciprofloxacin",
+      "parameter": {
+        "key": "ciprofloxacin-concentration",
+        "label": "Ciprofloxacin concentration",
+        "unit": "mg/L",
+        "minimum": 0,
+        "maximum": 2,
+        "defaultValue": 0,
+        "precision": 3
+      },
+      "supportedGeometries": [
+        "global",
+        "radial",
+        "stripe",
+        "paint"
+      ],
+      "blendMode": "set",
+      "provenance": {
+        "classification": "transferred",
+        "citation": "regoes_2004",
+        "context": "Escherichia coli CAB1 (O18:K1:H7), LB, 37 C",
+        "sourceTestedRangeMgPerL": {
+          "minimum": 0,
+          "maximum": 2
+        },
+        "defaultClassification": "engineering",
+        "defaultRationale": "0 mg/L is the exact neutral initial flagship state and an interaction default, not a measured effective or optimal dose.",
+        "transferNote": "The Regoes CAB1/LB/37 C tested concentration domain is used as a conservative product guardrail for the MG1655 flagship without widening it from genotype MIC values.",
+        "limitation": "This control edits the model ciprofloxacin concentration field only. It is not clinical guidance and does not establish physical delivery, diffusion, decay, clearance, or an MG1655 treatment-dose range; genotype MIC values do not widen the 0-2 mg/L source-domain guardrail."
+      }
+    }
   },
   "genotypes": [
     {
@@ -600,7 +634,7 @@
     "id": "ecoli-ciprofloxacin-ecology-engineering",
     "version": "1.1.0",
     "scenarioId": "ecoli-ciprofloxacin-spatial",
-    "scenarioVersion": "1.4.0-research",
+    "scenarioVersion": "1.5.0-research",
     "resourceContextVersion": "unbound-model-resource-v1",
     "classification": "engineering",
     "units": {
@@ -635,7 +669,7 @@
     "id": "ecoli-ciprofloxacin-baseline-composed",
     "version": "1.1.0",
     "scenarioId": "ecoli-ciprofloxacin-spatial",
-    "scenarioVersion": "1.4.0-research",
+    "scenarioVersion": "1.5.0-research",
     "executionProfileId": "ecoli-ciprofloxacin-ecology-engineering",
     "executionProfileVersion": "1.1.0",
     "resourceContextVersion": "unbound-model-resource-v1",

@@ -120,6 +120,15 @@ A fungal competitor is **not yet researched enough** for Science Mode. Need spec
 
 Status: **do not enable as scientifically grounded yet**.
 
+### Named bacteria-fungus interaction candidate (#647)
+
+Cabral et al. 2018 (DOI `10.15698/mic2018.05.631`) directly studies **E. coli K-12 MG1655** with **Candida albicans SC5314** in shaken YPD at 37 °C. MG1655-associated soluble activity inhibits and kills SC5314, and efficient toxicity requires low magnesium. The source also shows that magnesium depletion alone is insufficient to explain killing.
+
+This exact pair is therefore a valid future named interaction/validation system, but it is **not quantitatively engine-ready**. The soluble factor identity, production law, exposure→death relation, spatial transport/loss, and reusable magnesium coupling are not bound for Petra. The source is a shaken-liquid assay rather than a calibrated spatial dish. Petra must not convert the phenotype into a generic attack coefficient or renderer-driven contact effect.
+
+Status: **research OFF for the current implementation decision: direct MG1655→SC5314 fungicidal authority remains deferred/fail-closed until source-compatible factor + magnesium kinetics are bound.** Shared-resource competition and the independently selected #556 fungal pack remain separate workstreams.
+
+
 ## Numerical methods
 
 Strong enough to implement:

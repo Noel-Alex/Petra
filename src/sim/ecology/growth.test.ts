@@ -83,6 +83,68 @@ describe('resource-limited ecology step', () => {
     expect(aResult.metrics.divisionBiomass).toBeCloseTo(bResult.metrics.divisionBiomass, 6)
   })
 
+  it('separates baseline organism growth scale from genotype fitness', () => {
+    const p = {
+      ...params,
+      halfSaturation: 0.001,
+      biomassYield: 100,
+      localCapacity: 1_000,
+    }
+    const a = state(100, [1, 1])
+    const b = state(100, [1, 1])
+    const ordered: LineageEcologyParameters[] = [
+      {
+        baselineGrowthRateScale: 1,
+        relativeFitness: 1,
+        deathHazardPerTime: 0,
+      },
+      {
+        baselineGrowthRateScale: 0.5,
+        relativeFitness: 1,
+        deathHazardPerTime: 0,
+      },
+    ]
+    const reversed: LineageEcologyParameters[] = [
+      ordered[1]!,
+      ordered[0]!,
+    ]
+
+    const aResult = stepEcology(a, p, ordered, 0.1)
+    const bResult = stepEcology(b, p, reversed, 0.1)
+
+    const aFast = aResult.fluxes.divisionBiomass[0]![0]!
+    const aSlow = aResult.fluxes.divisionBiomass[1]![0]!
+    expect(aFast / aSlow).toBeCloseTo(2, 6)
+    expect(a.lineages[0]![0]).toBeCloseTo(b.lineages[1]![0]!, 6)
+    expect(a.lineages[1]![0]).toBeCloseTo(b.lineages[0]![0]!, 6)
+    expect(a.resource[0]).toBeCloseTo(b.resource[0]!, 6)
+  })
+
+  it('refuses a non-finite combined growth-rate product before mutating ecology state', () => {
+    const s = state(10, [1])
+    const before = {
+      resource: s.resource.slice(),
+      lineage: s.lineages[0]!.slice(),
+    }
+
+    expect(() =>
+      stepEcology(
+        s,
+        { ...params, maxDivisionRate: Number.MAX_VALUE },
+        [
+          {
+            baselineGrowthRateScale: Number.MAX_VALUE,
+            relativeFitness: 1,
+            deathHazardPerTime: 0,
+          },
+        ],
+        1,
+      ),
+    ).toThrow(/growth-rate product/)
+    expect(s.resource).toEqual(before.resource)
+    expect(s.lineages[0]).toEqual(before.lineage)
+  })
+
   it('matches phased execution exactly when the interphase is a no-op', () => {
     const makeState = (): EcologyState => ({
       width: 3,

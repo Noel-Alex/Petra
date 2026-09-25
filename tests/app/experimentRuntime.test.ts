@@ -252,6 +252,130 @@ describe("experiment runtime", () => {
     ]);
   });
 
+  it("shares the WorkerSession-owned accepted snapshot without a second runtime clone", () => {
+    const { session, runtime } = readyRuntime();
+
+    expect(runtime.state.snapshot).toBe(session.state.latestSnapshot);
+  });
+
+  it("extends the timeline from the new event suffix without reprojecting retained entries", () => {
+    const { port, runtime } = readyRuntime(["advance-suffix"]);
+    const retainedEntry = runtime.state.timeline[0];
+
+    expect(runtime.dispatch({ type: "step", ticks: 1 })).toEqual({
+      accepted: true,
+      reason: null,
+    });
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      commandId: "advance-suffix",
+      snapshot: makeSnapshot({
+        tick: 1,
+        commandCount: 1,
+        events: [
+          {
+            sequence: 0,
+            tick: 0,
+            simulationTimeHours: 0,
+            type: "initialized",
+          },
+          {
+            sequence: 1,
+            tick: 1,
+            simulationTimeHours: 1 / 60,
+            type: "advanced",
+            commandId: "advance-suffix",
+            value: 1,
+          },
+        ],
+      }),
+    });
+
+    expect(runtime.state.timeline).toHaveLength(2);
+    expect(runtime.state.timeline[0]).toBe(retainedEntry);
+    expect(runtime.state.timeline[1]).toMatchObject({
+      commandId: "advance-suffix",
+      sequence: 1,
+    });
+  });
+
+  it("does not confirm a pending command from a matching event in the retained prefix", () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+    const runtime = new ExperimentRuntime(
+      session,
+      syntheticIdentity,
+      commandIds("reused-command-id"),
+    );
+
+    expect(runtime.start()).toBe(true);
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: makeSnapshot({
+        tick: 1,
+        commandCount: 1,
+        events: [
+          {
+            sequence: 0,
+            tick: 0,
+            simulationTimeHours: 0,
+            type: "initialized",
+          },
+          {
+            sequence: 1,
+            tick: 1,
+            simulationTimeHours: 1 / 60,
+            type: "advanced",
+            commandId: "reused-command-id",
+            value: 1,
+          },
+        ],
+      }),
+    });
+
+    expect(runtime.dispatch({ type: "step", ticks: 1 })).toEqual({
+      accepted: true,
+      reason: null,
+    });
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      commandId: "reused-command-id",
+      snapshot: makeSnapshot({
+        tick: 2,
+        commandCount: 2,
+        events: [
+          {
+            sequence: 0,
+            tick: 0,
+            simulationTimeHours: 0,
+            type: "initialized",
+          },
+          {
+            sequence: 1,
+            tick: 1,
+            simulationTimeHours: 1 / 60,
+            type: "advanced",
+            commandId: "reused-command-id",
+            value: 1,
+          },
+          {
+            sequence: 2,
+            tick: 2,
+            simulationTimeHours: 2 / 60,
+            type: "advanced",
+            commandId: "different-command",
+            value: 1,
+          },
+        ],
+      }),
+    });
+
+    expect(runtime.state.controls.acceptedCommands).toEqual([]);
+  });
+
   it("records a replayable command only after authoritative event confirmation", () => {
     const { port, runtime } = readyRuntime(["advance-1"]);
 

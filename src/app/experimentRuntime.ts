@@ -20,7 +20,7 @@ import {
   type ExperimentControlState,
 } from "../ui/experimentControls";
 import {
-  buildScientificTimeline,
+  updateScientificTimeline,
   type TimelineEntry,
 } from "../ui/timeline";
 import {
@@ -459,14 +459,21 @@ export class ExperimentRuntime {
         return;
       }
 
+      const timelineUpdate = updateScientificTimeline({
+        previousTimeline: this.current.timeline,
+        previousEvents: this.current.snapshot?.events ?? [],
+        nextEvents: candidate.events,
+      });
+
       let controls = this.current.controls;
-      for (const [commandId, command] of this.pendingAcceptance) {
-        const confirmed = candidate.events.some((event) =>
-          eventConfirmsCommand(event, command),
-        );
-        if (!confirmed) continue;
+      for (const event of timelineUpdate.appendedEvents) {
+        if (event.commandId === undefined) continue;
+        const command = this.pendingAcceptance.get(event.commandId);
+        if (command === undefined || !eventConfirmsCommand(event, command)) {
+          continue;
+        }
         controls = recordAcceptedCommand(controls, command);
-        this.pendingAcceptance.delete(commandId);
+        this.pendingAcceptance.delete(command.id);
       }
 
       const runBranchIdentity = this.current.runBranchIdentity;
@@ -483,9 +490,13 @@ export class ExperimentRuntime {
         controls,
         runBranchIdentity,
         worker,
-        snapshot: structuredClone(candidate),
+        // WorkerSession already owns a detached accepted snapshot clone.
+        // ExperimentRuntime treats that object as immutable presentation/runtime
+        // authority, so cloning the entire checkpoint + retained event history
+        // again here is redundant and becomes increasingly expensive late-run.
+        snapshot: candidate,
         ecologyObservation,
-        timeline: buildScientificTimeline(candidate),
+        timeline: timelineUpdate.timeline,
         integrationError: null,
       };
       this.publish();

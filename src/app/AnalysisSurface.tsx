@@ -32,17 +32,19 @@ export function AnalysisSurface({
 
   if (view.status === "unavailable") {
     return (
-      <section
+      <details
         className="analysis-surface analysis-surface--unavailable"
-        aria-label="Scientific analysis"
         data-analysis-status="unavailable"
       >
-        <div>
-          <p className="petra-kicker">Analysis</p>
-          <h2>Authoritative analysis unavailable</h2>
-        </div>
-        <p>{view.message}</p>
-      </section>
+        <summary>
+          <span>
+            <span className="petra-kicker">Analysis</span>
+            <strong>Authoritative analysis unavailable</strong>
+          </span>
+          <span className="analysis-surface__identity">not connected</span>
+        </summary>
+        <p className="analysis-surface__unavailable-note">{view.message}</p>
+      </details>
     );
   }
 

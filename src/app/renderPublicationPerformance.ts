@@ -3,10 +3,7 @@ import {
   estimateDishRenderSnapshotPayload,
   type DishRenderPayloadEstimate,
 } from "../render/renderPayloadEstimate";
-import type {
-  ComposedSimulationSnapshot,
-  SimulationSnapshot,
-} from "../sim/protocol";
+import type { SimulationSnapshot } from "../sim/protocol";
 
 export const RENDER_PUBLICATION_PERFORMANCE_SAMPLE_VERSION = 1 as const;
 
@@ -265,5 +262,3 @@ function safeObserve(
   }
 }
 
-// Compile-time guard: the profiler is intended for composed authority only.
-void (0 as unknown as ComposedSimulationSnapshot);

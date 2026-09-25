@@ -915,6 +915,7 @@ function runtimeLineageBaselineGrowthRateScales(
 ): readonly number[] {
   const configuredFounderState = initializeDynamicLineageAuthority(
     composedFounderAuthority(config),
+    config.taxonRegistry,
   )
   const founderScaleByRuntimeLineage = new Map<string, number>()
   configuredFounderState.lineageIds.forEach((lineageId, index) => {

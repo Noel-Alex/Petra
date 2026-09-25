@@ -97,6 +97,9 @@ async function main(): Promise<void> {
   const packageModuleUrl = requireEnv(
     "PETRA_ML_DATASET_PACKAGE_MODULE_URL",
   );
+  const workerModuleUrl = requireEnv(
+    "PETRA_ML_DATASET_WORKER_MODULE_URL",
+  );
   const cpuCount = Math.max(1, cpus().length);
   const requestedWorkers = positiveSafeInteger(
     "PETRA_ML_DATASET_WORKERS",
@@ -110,6 +113,7 @@ async function main(): Promise<void> {
     const result = await runNodeMechanisticDatasetPackage(datasetPackage, {
       artifactDirectory,
       maxWorkers,
+      executorModuleUrl: workerModuleUrl,
     });
     writeJsonAtomically(resultPath, {
       experiment_id: EXPERIMENT_ID,

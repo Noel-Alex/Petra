@@ -1,0 +1,301 @@
+{
+  "schemaVersion": 1,
+  "recordKind": "fungal-surface-growth-evidence",
+  "id": "aspergillus-niger-hennebergi-no10-agar-surface-larralde-1997-v1",
+  "authorityStatus": "validation-evidence-only",
+  "organism": {
+    "genus": "Aspergillus",
+    "species": "niger",
+    "variety": "hennebergi",
+    "strain": "no. 10",
+    "collection": "ORSTOM fungal collection"
+  },
+  "cultureContext": {
+    "cultureFormat": "agar-surface",
+    "dishDiameterCm": 9,
+    "mediumVolumeMl": 15,
+    "carbonSource": "glucose",
+    "glucoseUnit": "g/L",
+    "glucoseSeries": [
+      10,
+      40,
+      70,
+      120,
+      200,
+      300
+    ],
+    "carbonNitrogenRatio": 12,
+    "nitrogenSources": {
+      "ratioByMass": "4:1",
+      "components": [
+        "urea",
+        "ammonium sulfate"
+      ]
+    },
+    "agarGramsPerLiter": 12,
+    "yeastExtractGramsPerLiter": 0.1,
+    "inoculumApproximateSporeCountPerPlate": 100000,
+    "inoculationModes": [
+      "lawn",
+      "central-point"
+    ],
+    "sporePreparation": {
+      "medium": "potato-dextrose agar",
+      "temperatureC": 35,
+      "durationDays": 5
+    },
+    "experimentalGrowthTemperatureC": null,
+    "contextNote": "The cited methods explicitly state 35 °C for spore preparation. This record does not promote that preparation temperature to the surface-growth experiment temperature without an explicit source statement."
+  },
+  "units": {
+    "specificGrowthRate": "1/hour",
+    "specificElongationRate": "1/hour",
+    "length": "um",
+    "radialExtensionRate": "um/hour",
+    "biomassDensity": "mg/cm^2"
+  },
+  "sparseGermTubeMeasurements": [
+    {
+      "glucoseGL": 10,
+      "specificElongationRatePerHour": 1.1,
+      "criticalLengthBeforeFirstBranchUm": 461,
+      "initialLengthUm": 6.2,
+      "hyphalDiameterUm": {
+        "mean": 6.32,
+        "sd": 0.69
+      },
+      "elapsedGrowthHoursToFirstBranch": 6,
+      "saturationLengthUm": {
+        "estimate": 150,
+        "uncertainty": 30
+      },
+      "maximalElongationRateUmPerHour": {
+        "mean": 183,
+        "sd": 11
+      }
+    },
+    {
+      "glucoseGL": 40,
+      "specificElongationRatePerHour": 1,
+      "criticalLengthBeforeFirstBranchUm": 312,
+      "initialLengthUm": 5.6,
+      "hyphalDiameterUm": {
+        "mean": 5.44,
+        "sd": 0.9
+      },
+      "elapsedGrowthHoursToFirstBranch": 8.6,
+      "saturationLengthUm": {
+        "estimate": 100,
+        "uncertainty": 5
+      },
+      "maximalElongationRateUmPerHour": {
+        "mean": 119,
+        "sd": 2
+      }
+    },
+    {
+      "glucoseGL": 70,
+      "specificElongationRatePerHour": 0.9,
+      "criticalLengthBeforeFirstBranchUm": 277,
+      "initialLengthUm": 5.2,
+      "hyphalDiameterUm": {
+        "mean": 4.95,
+        "sd": 0.64
+      },
+      "elapsedGrowthHoursToFirstBranch": 8.5,
+      "saturationLengthUm": {
+        "estimate": 130,
+        "uncertainty": 40
+      },
+      "maximalElongationRateUmPerHour": {
+        "mean": 121,
+        "sd": 16
+      }
+    },
+    {
+      "glucoseGL": 120,
+      "specificElongationRatePerHour": 0.8,
+      "criticalLengthBeforeFirstBranchUm": 157,
+      "initialLengthUm": 4.6,
+      "hyphalDiameterUm": {
+        "mean": 4.85,
+        "sd": 0.84
+      },
+      "elapsedGrowthHoursToFirstBranch": 9.2,
+      "saturationLengthUm": {
+        "estimate": 150,
+        "uncertainty": 160
+      },
+      "maximalElongationRateUmPerHour": {
+        "mean": 153,
+        "sd": 34
+      }
+    },
+    {
+      "glucoseGL": 300,
+      "specificElongationRatePerHour": 0.5,
+      "criticalLengthBeforeFirstBranchUm": 286,
+      "initialLengthUm": 3.4,
+      "hyphalDiameterUm": {
+        "mean": 3.37,
+        "sd": 0.36
+      },
+      "elapsedGrowthHoursToFirstBranch": 15,
+      "saturationLengthUm": {
+        "estimate": 75,
+        "uncertainty": 44
+      },
+      "maximalElongationRateUmPerHour": {
+        "mean": 9,
+        "sd": 2
+      }
+    }
+  ],
+  "denseColonyMeasurements": [
+    {
+      "glucoseGL": 10,
+      "radialExtensionRateUmPerHour": 346,
+      "meanDistalHyphaLengthUm": {
+        "mean": 220,
+        "sd": 95
+      },
+      "maximumDistalHyphaLengthUm": 542,
+      "maximumBiomassDensityMgPerCm2": 2
+    },
+    {
+      "glucoseGL": 40,
+      "radialExtensionRateUmPerHour": 556,
+      "meanDistalHyphaLengthUm": {
+        "mean": 540,
+        "sd": 270
+      },
+      "maximumDistalHyphaLengthUm": 1219,
+      "maximumBiomassDensityMgPerCm2": 7.5
+    },
+    {
+      "glucoseGL": 70,
+      "radialExtensionRateUmPerHour": 614,
+      "meanDistalHyphaLengthUm": {
+        "mean": 460,
+        "sd": 250
+      },
+      "maximumDistalHyphaLengthUm": 1200,
+      "maximumBiomassDensityMgPerCm2": 15
+    },
+    {
+      "glucoseGL": 120,
+      "radialExtensionRateUmPerHour": 580,
+      "meanDistalHyphaLengthUm": {
+        "mean": 450,
+        "sd": 230
+      },
+      "maximumDistalHyphaLengthUm": 874,
+      "maximumBiomassDensityMgPerCm2": 19
+    },
+    {
+      "glucoseGL": 200,
+      "radialExtensionRateUmPerHour": 430,
+      "meanDistalHyphaLengthUm": {
+        "mean": 550,
+        "sd": 270
+      },
+      "maximumDistalHyphaLengthUm": 1340,
+      "maximumBiomassDensityMgPerCm2": null
+    },
+    {
+      "glucoseGL": 300,
+      "radialExtensionRateUmPerHour": 381,
+      "meanDistalHyphaLengthUm": {
+        "mean": 640,
+        "sd": 290
+      },
+      "maximumDistalHyphaLengthUm": 1166,
+      "maximumBiomassDensityMgPerCm2": 13
+    }
+  ],
+  "dryWeightSpecificGrowthMeasurements": [
+    {
+      "glucoseGL": 10,
+      "observedPerHour": 0.3,
+      "morphometricCalculatedPerHour": 0.31
+    },
+    {
+      "glucoseGL": 40,
+      "observedPerHour": 0.18,
+      "morphometricCalculatedPerHour": 0.16
+    },
+    {
+      "glucoseGL": 70,
+      "observedPerHour": 0.2,
+      "morphometricCalculatedPerHour": 0.2
+    },
+    {
+      "glucoseGL": 120,
+      "observedPerHour": 0.19,
+      "morphometricCalculatedPerHour": 0.2
+    },
+    {
+      "glucoseGL": 300,
+      "observedPerHour": 0.09,
+      "morphometricCalculatedPerHour": 0.08
+    }
+  ],
+  "sourceDerivedFits": {
+    "substrateInhibitionFit": {
+      "maximumSpecificGrowthRatePerHour": {
+        "estimate": 0.3,
+        "uncertainty": 0.035
+      },
+      "inhibitionConstantGL": {
+        "estimate": 132,
+        "uncertainty": 52
+      },
+      "classification": "source-derived fit"
+    },
+    "morphometricSpecificGrowthRelation": {
+      "expression": "mu_calc = u_r * ln(2) / (L_av * ln(L_av / D_h))",
+      "classification": "source-derived validated relation",
+      "note": "Use as a validation relation for this source context; do not automatically make it Petra's runtime growth law."
+    }
+  },
+  "contextualEvidence": {
+    "favelaTorres1998": {
+      "doi": "10.1016/S0032-9592(97)00032-0",
+      "note": "Same A. niger 10 studied across submerged, agar-surface and solid-state formats. The reported format dependence is a warning against pooling kinetic parameters across culture formats."
+    }
+  },
+  "unresolvedRuntimeAuthority": {
+    "glucoseTransportDiffusion": "UNBOUND",
+    "glucoseUptakeRateLaw": "UNBOUND",
+    "biomassYieldFromGlucose": "UNBOUND",
+    "maintenanceMetabolism": "UNBOUND",
+    "denseColonyBranchingRule": "UNBOUND",
+    "biomassToHyphalNetworkMapping": "UNBOUND",
+    "physicalDishDepthAndThreeDimensionality": "UNBOUND"
+  },
+  "allowedClaims": [
+    "The named strain forms filamentous surface colonies whose radial extension, hyphal morphometry, biomass density and specific growth depend strongly on glucose concentration in the cited agar system.",
+    "The cited source provides quantitative validation targets for sparse germ-tube and dense-colony morphology."
+  ],
+  "prohibitedClaims": [
+    "These parameters are universal for Aspergillus niger or fungi.",
+    "The current Petra model-resource field is glucose.",
+    "A renderer hyphal line or blob is one measured hypha or a physical biomass unit.",
+    "The cited agar-surface measurements automatically specify glucose transport, uptake, biomass yield or a complete branching simulator."
+  ],
+  "provenance": {
+    "primarySource": {
+      "key": "larralde_corona_1997_aspergillus_surface",
+      "doi": "10.1002/(SICI)1097-0290(19971105)56:3<287::AID-BIT6>3.0.CO;2-F",
+      "classification": "measured-and-source-derived",
+      "context": "Aspergillus niger var. hennebergi no. 10, agar-surface cultures across a high-glucose series."
+    },
+    "contextualSource": {
+      "key": "favela_torres_1998_aspergillus_formats",
+      "doi": "10.1016/S0032-9592(97)00032-0",
+      "classification": "contextual-measured",
+      "context": "A. niger 10 growth across submerged, agar-surface and solid-state formats."
+    },
+    "limitation": "This evidence pack is not yet an executable fungal parameter pack. Runtime resource and branching authority remains explicitly unbound."
+  }
+}

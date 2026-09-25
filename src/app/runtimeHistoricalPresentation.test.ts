@@ -3,7 +3,13 @@ import { describe, expect, it } from "vitest";
 import { ComposedSimulationEngine } from "../sim/composedEngine";
 import type { ComposedSimulationSnapshot } from "../sim/protocol";
 import { buildDefaultFlagshipRun } from "./flagshipRunPreset";
-import { RuntimeHistoricalPresentationHistory } from "./runtimeHistoricalPresentation";
+import { projectHistoricalPresentation } from "./historicalPresentation";
+import {
+  RuntimeHistoricalPresentationHistory,
+  historicalDishSnapshot,
+  historicalRegionInspectorState,
+  historicalSimulationTimeLabel,
+} from "./runtimeHistoricalPresentation";
 
 function fixture() {
   const { plan } = buildDefaultFlagshipRun();
@@ -96,4 +102,51 @@ describe("runtime historical presentation history", () => {
       /cannot move backward in accepted command position/,
     );
   });
+
+  it("keeps sparse in-between cursors presentation-only across dish, inspector, and time", () => {
+    const { engine, history } = fixture();
+    history.append(engine.snapshot());
+
+    engine.execute({ id: "advance-history-gap-1", type: "advance", ticks: 1 });
+    engine.execute({ id: "advance-history-gap-2", type: "advance", ticks: 1 });
+    history.append(engine.snapshot());
+
+    const view = history.view();
+    if (view === null) throw new Error("expected history");
+
+    const resolution = view.history.resolve(1);
+    expect(resolution.kind).toBe("between-authority");
+    const frame = projectHistoricalPresentation({
+      resolution,
+      dishPresenter: view.dishPresenter,
+      dishMotion: "snap-to-authority",
+      regionSelection: {
+        id: "historical-center",
+        centerX: 0.5,
+        centerY: 0.5,
+        radius: 0.05,
+      },
+    });
+
+    expect(frame.kind).toBe("between-authority");
+    expect(frame.scientificCheckpoint).toBeNull();
+    expect(frame.regionInspection).toBeNull();
+
+    const origin = view.history.resolve(0);
+    if (origin.kind !== "authoritative") {
+      throw new Error("expected authoritative origin");
+    }
+    expect(historicalDishSnapshot(frame).snapshotId).toBe(
+      `composed-trace:${origin.keyframe.snapshot.traceHash}`,
+    );
+    expect(historicalRegionInspectorState(frame, true)).toMatchObject({
+      status: "unavailable",
+      reason:
+        "Scientific region inspection is unavailable between authoritative historical checkpoints.",
+    });
+    expect(historicalSimulationTimeLabel(frame)).toContain(
+      "presentation only",
+    );
+  });
+
 });

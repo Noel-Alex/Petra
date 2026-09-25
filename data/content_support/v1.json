@@ -1,7 +1,7 @@
 {
   "kind": "petra-supported-content-matrix",
   "schemaVersion": 1,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "supportedScenarios": [
     {
       "id": "flagship-ecoli-ciprofloxacin",
@@ -52,14 +52,13 @@
     {
       "id": "first-shared-resource-bacterial-competitor",
       "kind": "bacterial-competitor",
-      "availability": "blocked-implementation",
+      "availability": "blocked-validation",
       "issues": [
-        866,
         890,
         907,
-        934
+        946
       ],
-      "reason": "Candidate-selection research is complete for Bacillus subtilis 168 trp+ sigE-. Product support remains blocked on the first authoritative two-bacterium scenario (#890), its registered validation (#907), generic replay-critical composed taxon integration (#934), and completion of exact per-organism presentation binding under #866; #553 remains the parent umbrella rather than the executable blocker."
+      "reason": "The named E. coli MG1655 + Bacillus subtilis 168 trp+ sigE- authoritative model-unit scenario is implemented under #890 with exact replay-critical taxon revisions and shared-resource/local-capacity competition. Source-backed Bacillus rod presentation evidence has landed under completed #966/#971, and the generic exact taxon-to-render join has landed under #946; product exposure remains blocked on the registered real-engine validation under #907 plus the final product catalog/selection binding. Physical glucose/gCDW mapping, direct interaction, Bacillus ciprofloxacin/evolution, and sporulation remain unsupported."
     },
     {
       "id": "first-grounded-fungal-competitor",

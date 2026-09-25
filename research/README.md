@@ -14,6 +14,7 @@ This directory is the scientific memory of the project. The rule is simple: **if
 
 - `growth_and_resources.md` — nutrient-limited growth and spatial colony biology.
 - `antibiotic_pharmacodynamics.md` — concentration-dependent drug effect.
+- `chloramphenicol_mg1655_pack.md` — selected first post-ciprofloxacin MG1655 drug pack, exact Greulich response contract, CAT resistance boundary, and product gates.
 - `mutation_and_resistance.md` — mutation supply, resistance states, fitness and interpretation.
 - `spatial_evolution.md` — spatial gradients and the MEGA-plate precedent.
 - `stochastic_simulation.md` — Gillespie/tau-leap rationale and cohort modeling.

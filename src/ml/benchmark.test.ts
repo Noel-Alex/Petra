@@ -12,7 +12,14 @@ import {
   type SurrogateCompatibilityIdentity,
   type SurrogatePromotionRequirements,
 } from "./benchmark";
-import type { MechanisticDatasetSummary } from "./generator";
+import {
+  MECHANISTIC_DATASET_ARTIFACT_SCHEMA_VERSION,
+  type MechanisticDatasetSummary,
+} from "./generator";
+import {
+  createMechanisticExecutionSchedule,
+  mechanisticExecutionScheduleIdentity,
+} from "./executionSchedule";
 
 const compatibility: SurrogateCompatibilityIdentity = {
   schemaVersion: "surrogate-compatibility-v1",
@@ -31,8 +38,13 @@ const datasetSchema = {
   targetSchemaVersion: compatibility.targetSchemaVersion,
 };
 
+const executionSchedule = createMechanisticExecutionSchedule({
+  totalTicks: 8,
+  snapshotEveryTicks: 1,
+});
+
 const datasetSummary: MechanisticDatasetSummary = {
-  schemaVersion: "petra-ml-dataset-artifact-v4",
+  schemaVersion: MECHANISTIC_DATASET_ARTIFACT_SCHEMA_VERSION,
   planVersion: "aggregate-sweep-v1",
   datasetVersion: "mechanistic-v1",
   engineVersion: "engine-a",
@@ -40,6 +52,8 @@ const datasetSummary: MechanisticDatasetSummary = {
   scenarioVersion: "1",
   normalizationProfileId: compatibility.normalizationProfileId,
   datasetSchema,
+  executionSchedule,
+  executionScheduleIdentity: mechanisticExecutionScheduleIdentity(executionSchedule),
   splitPolicyVersion: "trajectory-group-v1",
   splitCoveragePolicyVersion: "held-out-group-coverage-v1",
   groupCount: 2,
@@ -466,6 +480,24 @@ describe("surrogate held-out benchmarks", () => {
         benchmark: goodBenchmark,
       }),
     ).toThrow(/dataset input\/target schema/);
+  });
+
+  it("refuses stale mechanistic dataset artifact schemas", () => {
+    expect(() =>
+      buildSurrogateBenchmarkEvidence({
+        modelId: "aggregate-surrogate",
+        modelVersion: "1",
+        baselineId: "mean-by-scenario-v1",
+        dataset: {
+          ...datasetSummary,
+          schemaVersion: "petra-ml-dataset-artifact-v4",
+        } as unknown as MechanisticDatasetSummary,
+        compatibility,
+        evaluationPolicyVersion: requirements.evaluationPolicyVersion,
+        heldOutSplit: requirements.heldOutSplit,
+        benchmark: goodBenchmark,
+      }),
+    ).toThrow(/unsupported mechanistic dataset artifact schema version/);
   });
 
   it("rejects benchmark evidence whose dataset schema disagrees with model compatibility", () => {

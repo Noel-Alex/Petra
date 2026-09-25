@@ -23,10 +23,11 @@ function definition(): MechanisticSweepDefinition {
     parameterPoints: [
       { id: "point-a", parameterSetHash: "params-a" },
       { id: "point-b", parameterSetHash: "params-b" },
-      // This identity deterministically supplies test-split coverage under
-      // trajectory-group-v1. It is an opaque fixture identity, not biology.
       { id: "point-c", parameterSetHash: "params-11" },
     ],
+    // This fixture identity yields held-out coverage under trajectory-group-v2.
+    // It is opaque test provenance, not a biological initialization.
+    runConditions: [{ id: "condition-a", fingerprint: "cond-1" }],
     interventionFamilies: [
       { id: "untreated", fingerprint: "none" },
       { id: "pulse", fingerprint: "dose-family-v1" },
@@ -37,7 +38,7 @@ function definition(): MechanisticSweepDefinition {
 }
 
 describe("mechanistic ML sweep planner", () => {
-  it("keeps all stochastic replicas of one parameter/intervention group in one split", () => {
+  it("keeps all stochastic replicas of one mechanism/run-condition/intervention group in one split", () => {
     const plan = planMechanisticSweep(definition());
     const grouped = new Map<string, Set<string>>();
 
@@ -54,6 +55,37 @@ describe("mechanistic ML sweep planner", () => {
     expect(plan.splitGroupCounts.train).toBeGreaterThan(0);
     expect(plan.splitGroupCounts.validation).toBeGreaterThan(0);
     expect(plan.splitGroupCounts.test).toBeGreaterThan(0);
+  });
+
+  it("uses run conditions as real held-out groups while keeping seed replicas together", () => {
+    const plan = planMechanisticSweep({
+      ...definition(),
+      parameterPoints: [{ id: "point-a", parameterSetHash: "params-a" }],
+      runConditions: [
+        { id: "condition-train", fingerprint: "condition-a" },
+        { id: "condition-validation", fingerprint: "cond-1" },
+        { id: "condition-test", fingerprint: "baseline" },
+      ],
+      interventionFamilies: [{ id: "untreated", fingerprint: "none" }],
+      maxTrajectories: 9,
+    });
+
+    expect(plan.groupCount).toBe(3);
+    expect(plan.trajectoryCount).toBe(9);
+    expect(plan.splitGroupCounts).toEqual({
+      train: 1,
+      validation: 1,
+      test: 1,
+    });
+    for (const conditionId of [
+      "condition-train",
+      "condition-validation",
+      "condition-test",
+    ]) {
+      const tasks = plan.tasks.filter((task) => task.runConditionId === conditionId);
+      expect(tasks).toHaveLength(3);
+      expect(new Set(tasks.map((task) => task.split)).size).toBe(1);
+    }
   });
 
   it("is deterministic and gives every planned trajectory a stable unique identity", () => {
@@ -83,13 +115,13 @@ describe("mechanistic ML sweep planner", () => {
       const refusal = error as SweepSplitCoverageError;
       expect(refusal.policyVersion).toBe("held-out-group-coverage-v1");
       expect(refusal.groupCounts).toEqual({
-        train: 2,
-        validation: 2,
+        train: 3,
+        validation: 1,
         test: 0,
       });
       expect(refusal.trajectoryCounts).toEqual({
-        train: 6,
-        validation: 6,
+        train: 9,
+        validation: 3,
         test: 0,
       });
       expect(refusal.gaps).toEqual([
@@ -116,7 +148,7 @@ describe("mechanistic ML sweep planner", () => {
       manifest.splitGroupCounts.validation +
       manifest.splitGroupCounts.test;
 
-    expect(manifest.schemaVersion).toBe("petra-ml-sweep-manifest-v4");
+    expect(manifest.schemaVersion).toBe("petra-ml-sweep-manifest-v5");
     expect(manifest.engineVersion).toBe("engine-v3");
     expect(manifest.datasetSchema).toEqual(plan.datasetSchema);
     expect(manifest.splitPolicyVersion).toBe(plan.splitPolicy.version);
@@ -230,6 +262,16 @@ describe("mechanistic ML sweep planner", () => {
         ],
       }),
     ).toThrow(/duplicate parameterSetHash/);
+
+    expect(() =>
+      planMechanisticSweep({
+        ...definition(),
+        runConditions: [
+          { id: "condition-a", fingerprint: "same-condition" },
+          { id: "condition-b", fingerprint: "same-condition" },
+        ],
+      }),
+    ).toThrow(/duplicate run condition fingerprint/);
 
     expect(() =>
       planMechanisticSweep({

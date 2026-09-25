@@ -44,6 +44,7 @@ This is the compact contract between Petra's interface, simulator, and evidence 
 | Cardinal temperature/pH models can parameterize growth response with organism-specific minima/optima/maxima | measured/model-supported mechanism | Ratkowsky 1983; Rosso et al. 1995 | parameters and validity range are strain/medium specific |
 | Growth stopping outside a cardinal growth range automatically means a validated death rate | **false** | environmental modeling boundary | growth and inactivation/death require separate evidence |
 | Tau-leaping may simply clamp negative populations to zero after an unsafe draw | **false** | stochastic simulation literature | use bounded sampling/adaptive leap control; post-hoc clamp can bias trajectories |
+| Petra may render a coarse rod-shaped representative glyph for the flagship E. coli K-12 MG1655 background | transferred presentation evidence | Nanninga 1998, DOI 10.1128/MMBR.62.1.110-129.1998; van Teeffelen & Renner 2018, DOI 10.12688/f1000research.12663.1 | authorizes only a representative rod silhouette; not physical cell dimensions/aspect ratio, orientation/division dynamics, literal individual identity/counts, or a simulation parameter |
 | Each rendered bacterium is literally one simulated bacterium | **false** | rendering architecture | visuals sample/aggregate local state |
 | Petra predicts human antibiotic treatment outcomes | **false** | scope | not a clinical tool |
 

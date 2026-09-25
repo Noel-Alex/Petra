@@ -35,6 +35,7 @@ export class LiveAnalysisHistory {
   private readonly identity: RunIdentity;
   private readonly samplingPolicy: MetricSamplingPolicy;
   private readonly resistantGenotypeIds: readonly string[];
+  private readonly knownGenotypeIds: ReadonlySet<string> | null;
   private readonly samples: AuthoritativeMetricSample[] = [];
   private acceptedSnapshotCount = 0;
   private lastCommandCount: number | null = null;
@@ -46,6 +47,13 @@ export class LiveAnalysisHistory {
     readonly identity: RunIdentity;
     readonly samplingPolicy: MetricSamplingPolicy;
     readonly resistantGenotypeIds: readonly string[];
+    /**
+     * Optional scenario/config-owned genotype universe. When supplied, the
+     * resistant cohort may include valid genotypes that have not materialized
+     * as runtime lineages yet. Legacy callers that omit it retain active-state
+     * fail-closed validation in the metric extractor.
+     */
+    readonly knownGenotypeIds?: readonly string[];
   }) {
     validateMetricSamplingPolicy(args.samplingPolicy);
     this.identity = structuredClone(args.identity);
@@ -65,6 +73,31 @@ export class LiveAnalysisHistory {
       this.resistantGenotypeIds.length
     ) {
       throw new Error("resistant genotype ids must be unique");
+    }
+
+    if (args.knownGenotypeIds === undefined) {
+      this.knownGenotypeIds = null;
+    } else {
+      const knownGenotypeIds = args.knownGenotypeIds.map((id, index) => {
+        if (typeof id !== "string" || id.length === 0 || id.trim() !== id) {
+          throw new Error(
+            `known genotype id at index ${index} must be a canonical non-empty string`,
+          );
+        }
+        return id;
+      });
+      if (new Set(knownGenotypeIds).size !== knownGenotypeIds.length) {
+        throw new Error("known genotype ids must be unique");
+      }
+      const knownSet = new Set(knownGenotypeIds);
+      for (const id of this.resistantGenotypeIds) {
+        if (!knownSet.has(id)) {
+          throw new Error(
+            `resistant genotype id is not present in the declared genotype universe: ${id}`,
+          );
+        }
+      }
+      this.knownGenotypeIds = knownSet;
     }
   }
 
@@ -129,10 +162,17 @@ export class LiveAnalysisHistory {
       return false;
     }
 
+    const resistantGenotypeIds =
+      this.knownGenotypeIds === null
+        ? this.resistantGenotypeIds
+        : this.resistantGenotypeIds.filter((id) =>
+            checkpoint.composedState.genotypeIds.includes(id),
+          );
+
     const sample = extractAuthoritativeMetricSample({
       checkpoint,
       samplingPolicy: this.samplingPolicy,
-      resistantGenotypeIds: this.resistantGenotypeIds,
+      resistantGenotypeIds,
     });
 
     if (

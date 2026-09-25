@@ -135,7 +135,7 @@ export class FilesystemMechanisticStagingStore {
     if (!existsSync(rowsPath)) {
       throw new RangeError("trajectory " + taskId + " is committed but its rows are missing");
     }
-    return readUtf8Lines(rowsPath);
+    return readFilesystemUtf8Lines(rowsPath);
   }
 }
 
@@ -254,7 +254,8 @@ function writeJsonAtomically(path, value) {
   }
 }
 
-function* readUtf8Lines(path) {
+export function* readFilesystemUtf8Lines(path) {
+  requireNonEmptyString("path", path);
   const descriptor = openSync(path, "r");
   const decoder = new StringDecoder("utf8");
   const buffer = Buffer.allocUnsafe(READ_CHUNK_BYTES);

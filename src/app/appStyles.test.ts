@@ -192,7 +192,7 @@ describe("Analysis shell shared visual theme", () => {
 describe("Reference-led inspector shell", () => {
   it("keeps scientific selection art, activity, and analysis inside the right rail", () => {
     expect(appSource).toContain('className="inspector-shell petra-panel--inspector"');
-    expect(appSource).toContain('className="inspector-activity"');
+    expect(appSource).toMatch(/className="inspector-activity"|<LiveDishActivity/);
     expect(appSource).toContain("emptyStateAdornment=");
     expect(appSource).toContain("<AnalysisSurface");
     expect(visualThemeCss).toContain(".inspector-shell {");

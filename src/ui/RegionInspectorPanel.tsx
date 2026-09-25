@@ -1,3 +1,4 @@
+import { resolveLineageVisualIdentity } from "../design/lineageIdentity";
 import { useId, type ReactElement, type ReactNode } from "react";
 
 import type { AuthoritativeRegionInspection } from "../sim/regionInspector";
@@ -208,7 +209,7 @@ function RegionReadout({
                     data-lineage-id={lineage.lineageId}
                     data-genotype-id={lineage.genotypeId}
                   >
-                    <th scope="row">{lineage.lineageId}</th>
+                    <th scope="row"><span className="lineage-color-key" aria-hidden="true" style={{ backgroundColor: `var(--petra-color-${resolveLineageVisualIdentity(lineage.lineageId).colorToken})` }} />{lineage.lineageId}</th>
                     <td>
                       <code>{lineage.genotypeId}</code>
                     </td>

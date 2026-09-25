@@ -96,7 +96,9 @@ export function resolveLineageVisualIdentity(
 
   const hash = hashIdentity(id)
   const appearanceToken =
-    LINEAGE_APPEARANCE_TOKENS[hash % LINEAGE_APPEARANCE_TOKENS.length]!
+    // Curated visual identity for the bundled founder, shared by every surface.
+    // This pin carries no species, phenotype, or resistance meaning.
+    id === 'L1' ? 'lineage-coral' : LINEAGE_APPEARANCE_TOKENS[hash % LINEAGE_APPEARANCE_TOKENS.length]!
   const patternToken =
     LINEAGE_PATTERN_TOKENS[
       Math.floor(hash / LINEAGE_APPEARANCE_TOKENS.length) %

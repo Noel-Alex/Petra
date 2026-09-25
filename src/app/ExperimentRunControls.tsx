@@ -119,7 +119,7 @@ export function ExperimentRunControls({
 
         <PetraCompactAction
           motionPreference={motion}
-          disabled={!view.runControls.canReset}
+          disabled={view.playing || !view.runControls.canReset}
           onClick={() => {
             dispatchAction({ type: "reset" });
           }}
@@ -129,7 +129,7 @@ export function ExperimentRunControls({
 
         <PetraCompactAction
           motionPreference={motion}
-          disabled={!view.runControls.canReplay}
+          disabled={view.playing || !view.runControls.canReplay}
           onClick={() => {
             dispatchAction({ type: "replay" });
           }}
@@ -138,6 +138,9 @@ export function ExperimentRunControls({
         </PetraCompactAction>
       </div>
 
+      <details className="run-options">
+        <summary>Run settings</summary>
+        <div className="run-options__surface">
       <form className="seed-control" onSubmit={submitSeed}>
         <label>
           <span>New run seed</span>
@@ -148,7 +151,7 @@ export function ExperimentRunControls({
             max={MAX_SIMULATION_SEED}
             step={1}
             value={seedDraft}
-            disabled={!view.runControls.canSetSeed}
+            disabled={view.playing || !view.runControls.canSetSeed}
             aria-describedby={feedbackId}
             aria-invalid={seedInvalid ? true : undefined}
             onChange={(event) => {
@@ -161,7 +164,7 @@ export function ExperimentRunControls({
         <PetraCompactAction
           type="submit"
           motionPreference={motion}
-          disabled={!view.runControls.canSetSeed}
+          disabled={view.playing || !view.runControls.canSetSeed}
         >
           New seed run
         </PetraCompactAction>
@@ -172,6 +175,9 @@ export function ExperimentRunControls({
         accepted command{view.runControls.acceptedCommandCount === 1 ? "" : "s"}.
         Reset keeps this seed; applying a seed starts a fresh run.
       </p>
+
+        </div>
+      </details>
 
       <p
         id={feedbackId}

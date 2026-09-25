@@ -1,5 +1,9 @@
 import type { OverlayKind, RenderField } from "./model";
-import { gridCellCenter } from "./gridGeometry";
+import {
+  extractNormalizedScalarContourSegments,
+  type ScalarContourPoint,
+  type ScalarContourSegment,
+} from "./scalarContours";
 
 export const FIELD_CONTOUR_PRESENTATION_VERSION = 1 as const;
 export const DEFAULT_FIELD_CONTOUR_LEVELS = Object.freeze([
@@ -8,16 +12,8 @@ export const DEFAULT_FIELD_CONTOUR_LEVELS = Object.freeze([
   0.75,
 ] as const);
 
-export interface FieldContourPoint {
-  readonly x: number;
-  readonly y: number;
-}
-
-export interface FieldContourSegment {
-  readonly level: number;
-  readonly from: FieldContourPoint;
-  readonly to: FieldContourPoint;
-}
+export type FieldContourPoint = ScalarContourPoint;
+export type FieldContourSegment = ScalarContourSegment;
 
 export function supportsFieldContours(kind: OverlayKind): boolean {
   return kind === "nutrient" || kind === "antibiotic";
@@ -52,7 +48,6 @@ export function extractFieldContourSegments(args: {
   ) {
     throw new RangeError("contour field/mask lengths must match the render grid");
   }
-  if (args.gridWidth < 2 || args.gridHeight < 2) return Object.freeze([]);
   if (
     !Number.isFinite(args.field.minimum) ||
     !Number.isFinite(args.field.maximum) ||
@@ -64,163 +59,26 @@ export function extractFieldContourSegments(args: {
   const range = args.field.maximum - args.field.minimum;
   if (range <= 0) return Object.freeze([]);
 
-  const levels = validateLevels(args.levels ?? DEFAULT_FIELD_CONTOUR_LEVELS);
   const normalized = new Float64Array(cells);
   for (let index = 0; index < cells; index += 1) {
     const value = args.field.values[index];
     if (value === undefined || !Number.isFinite(value)) {
       throw new RangeError("contour field values must be finite");
     }
-    const mask = args.dishMask[index];
-    if (mask !== 0 && mask !== 1) {
-      throw new RangeError("contour dish mask values must be 0 or 1");
-    }
-    normalized[index] = clamp((value - args.field.minimum) / range, 0, 1);
+    normalized[index] = clamp(
+      (value - args.field.minimum) / range,
+      0,
+      1,
+    );
   }
 
-  const segments: FieldContourSegment[] = [];
-  for (const level of levels) {
-    for (let row = 0; row < args.gridHeight - 1; row += 1) {
-      for (let column = 0; column < args.gridWidth - 1; column += 1) {
-        const tlIndex = row * args.gridWidth + column;
-        const trIndex = tlIndex + 1;
-        const blIndex = (row + 1) * args.gridWidth + column;
-        const brIndex = blIndex + 1;
-
-        if (
-          args.dishMask[tlIndex] !== 1 ||
-          args.dishMask[trIndex] !== 1 ||
-          args.dishMask[brIndex] !== 1 ||
-          args.dishMask[blIndex] !== 1
-        ) {
-          continue;
-        }
-
-        const tl = normalized[tlIndex]!;
-        const tr = normalized[trIndex]!;
-        const br = normalized[brIndex]!;
-        const bl = normalized[blIndex]!;
-        const code =
-          (tl >= level ? 8 : 0) |
-          (tr >= level ? 4 : 0) |
-          (br >= level ? 2 : 0) |
-          (bl >= level ? 1 : 0);
-        if (code === 0 || code === 15) continue;
-
-        const points = {
-          top: interpolateEdge(
-            gridCellCenter(tlIndex, args.gridWidth, args.gridHeight),
-            gridCellCenter(trIndex, args.gridWidth, args.gridHeight),
-            tl,
-            tr,
-            level,
-          ),
-          right: interpolateEdge(
-            gridCellCenter(trIndex, args.gridWidth, args.gridHeight),
-            gridCellCenter(brIndex, args.gridWidth, args.gridHeight),
-            tr,
-            br,
-            level,
-          ),
-          bottom: interpolateEdge(
-            gridCellCenter(blIndex, args.gridWidth, args.gridHeight),
-            gridCellCenter(brIndex, args.gridWidth, args.gridHeight),
-            bl,
-            br,
-            level,
-          ),
-          left: interpolateEdge(
-            gridCellCenter(tlIndex, args.gridWidth, args.gridHeight),
-            gridCellCenter(blIndex, args.gridWidth, args.gridHeight),
-            tl,
-            bl,
-            level,
-          ),
-        };
-
-        const pairs = segmentPairs(code, (tl + tr + br + bl) / 4 >= level);
-        for (const [fromEdge, toEdge] of pairs) {
-          segments.push(Object.freeze({
-            level,
-            from: Object.freeze(points[fromEdge]),
-            to: Object.freeze(points[toEdge]),
-          }));
-        }
-      }
-    }
-  }
-
-  return Object.freeze(segments);
-}
-
-type EdgeName = "top" | "right" | "bottom" | "left";
-
-function segmentPairs(
-  code: number,
-  centerHigh: boolean,
-): readonly (readonly [EdgeName, EdgeName])[] {
-  switch (code) {
-    case 1:
-    case 14:
-      return [["bottom", "left"]];
-    case 2:
-    case 13:
-      return [["right", "bottom"]];
-    case 3:
-    case 12:
-      return [["right", "left"]];
-    case 4:
-    case 11:
-      return [["top", "right"]];
-    case 6:
-    case 9:
-      return [["top", "bottom"]];
-    case 7:
-    case 8:
-      return [["top", "left"]];
-    case 5:
-      return centerHigh
-        ? [["top", "left"], ["right", "bottom"]]
-        : [["top", "right"], ["bottom", "left"]];
-    case 10:
-      return centerHigh
-        ? [["top", "right"], ["bottom", "left"]]
-        : [["top", "left"], ["right", "bottom"]];
-    default:
-      throw new RangeError(`unsupported marching-squares code: ${code}`);
-  }
-}
-
-function interpolateEdge(
-  from: FieldContourPoint,
-  to: FieldContourPoint,
-  fromValue: number,
-  toValue: number,
-  level: number,
-): FieldContourPoint {
-  const delta = toValue - fromValue;
-  const t = delta === 0 ? 0.5 : clamp((level - fromValue) / delta, 0, 1);
-  return {
-    x: from.x + (to.x - from.x) * t,
-    y: from.y + (to.y - from.y) * t,
-  };
-}
-
-function validateLevels(levels: readonly number[]): readonly number[] {
-  if (levels.length === 0) return Object.freeze([]);
-  let previous = -Infinity;
-  const result: number[] = [];
-  for (const level of levels) {
-    if (!Number.isFinite(level) || level <= 0 || level >= 1) {
-      throw new RangeError("contour levels must be finite values strictly in (0, 1)");
-    }
-    if (level <= previous) {
-      throw new RangeError("contour levels must be strictly increasing");
-    }
-    previous = level;
-    result.push(level);
-  }
-  return Object.freeze(result);
+  return extractNormalizedScalarContourSegments({
+    normalizedValues: normalized,
+    mask: args.dishMask,
+    width: args.gridWidth,
+    height: args.gridHeight,
+    levels: args.levels ?? DEFAULT_FIELD_CONTOUR_LEVELS,
+  });
 }
 
 function clamp(value: number, minimum: number, maximum: number): number {

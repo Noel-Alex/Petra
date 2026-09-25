@@ -1,3 +1,4 @@
+import { buildDefaultFlagshipRun } from "./flagshipRunPreset";
 import { describe, expect, it } from "vitest";
 
 import { createRendererDemoSnapshot } from "../render/pixi/demoSnapshot";
@@ -37,6 +38,7 @@ describe("dish render-source transaction", () => {
 
     expect(resolved.source).toEqual({
       kind: "awaiting-authoritative-snapshot",
+      organismPresentation: null,
       snapshot: null,
     });
     expect(resolved.state).toBe(INITIAL_DISH_RENDER_SOURCE_STATE);
@@ -167,5 +169,19 @@ describe("dish render-source transaction", () => {
 
     expect(first.source.snapshot).not.toBe(second.source.snapshot);
     expect(factory.calls()).toBe(2);
+  });
+});
+
+describe("morphology eligibility", () => {
+  it("binds rod evidence to the exact run and never leaks it into a demo or waiting view", () => {
+    const identity = buildDefaultFlagshipRun().plan.identity;
+    const snapshot = createRendererDemoSnapshot(12);
+    const resolve = (runIdentity: typeof identity | null, authoritativeSnapshot: typeof snapshot | null, demoMode = false) =>
+      resolveDishRenderSource(INITIAL_DISH_RENDER_SOURCE_STATE, { runIdentity, authoritativeSnapshot, demoMode }, () => snapshot).source;
+    expect(resolve(identity, snapshot).organismPresentation?.morphology).toBe("rod");
+    expect(resolve({ ...identity, scenarioVersion: "foreign" }, snapshot).organismPresentation).toBeNull();
+    expect(resolve(null, snapshot).organismPresentation).toBeNull();
+    expect(resolve(identity, null, true).organismPresentation).toBeNull();
+    expect(resolve(identity, null).organismPresentation).toBeNull();
   });
 });

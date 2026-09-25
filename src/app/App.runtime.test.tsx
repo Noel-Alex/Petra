@@ -58,7 +58,7 @@ describe("App authoritative runtime boundary", () => {
     );
     expect(appSource).toContain('document.querySelector(".search-trigger")');
     expect(appSource).toContain(
-      '"details.display-preferences[open], details.timeline-history[open]"',
+      '"details.display-preferences[open], details.timeline-history[open], details.run-options[open], details.event-popover[open]"',
     );
     expect(appSource).toContain("if (!surface.contains(target)) surface.open = false;");
   });

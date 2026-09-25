@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import pixiDishCss from "./PixiDish.css?raw";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+const pixiDishCss = readFileSync(fileURLToPath(new URL("./PixiDish.css", import.meta.url)), "utf8");
 import pixiDishSource from "./PixiDish.tsx?raw";
 import type { DishVisualMotionSpec } from "../visualInterpolation";
 import type { CameraMotionSpec } from "./cameraMotion";
@@ -65,7 +67,7 @@ describe("PixiDish committed renderer inputs", () => {
       "const currentSnapshot = snapshotRef.current;",
     );
     expect(onReadySource).toContain(
-      "renderer.updatePresentation(currentSnapshot, overlayRef.current);",
+      "renderer.updatePresentation(currentSnapshot, overlayRef.current, presentationRef.current);",
     );
   });
 });
@@ -140,7 +142,7 @@ describe("PixiDish render-source boundary", () => {
 
   it("keeps one stable polite atomic renderer-status region mounted", () => {
     const html = renderToStaticMarkup(
-      <PixiDish snapshot={null} cameraMotion={CAMERA_MOTION}
+      <PixiDish snapshot={null} sourceKind="awaiting-authoritative-snapshot" cameraMotion={CAMERA_MOTION}
         visualMotion={VISUAL_MOTION} />,
     );
 

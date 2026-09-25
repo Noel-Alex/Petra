@@ -21,7 +21,7 @@ describe("App authoritative region inspector shell", () => {
     const shellEnd = source.indexOf("</div>", analysisStart);
 
     expect(shellStart).toBeGreaterThanOrEqual(0);
-    expect(source.indexOf('className="inspector-activity"', shellStart)).toBeGreaterThan(shellStart);
+    expect(source.indexOf('<LiveDishActivity', shellStart)).toBeGreaterThan(shellStart);
     expect(analysisStart).toBeGreaterThan(shellStart);
     expect(shellEnd).toBeGreaterThan(analysisStart);
   });

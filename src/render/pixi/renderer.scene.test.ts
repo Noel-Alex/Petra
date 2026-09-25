@@ -6,7 +6,7 @@ describe("Pixi dish aperture scene contract", () => {
     expect(rendererSource).toContain("const dishInteriorMask = new Graphics()");
     expect(rendererSource).toContain("const dataLayer = new Container()");
     expect(rendererSource).toContain(
-      "dataLayer.addChild(fieldLayer, densityLayer, glyphLayer)",
+      "dataLayer.addChild(fieldSprite, fieldLayer, densitySprite, densityLayer, glyphLayer)",
     );
     expect(rendererSource).toContain("dataLayer.mask = dishInteriorMask");
     expect(rendererSource).toContain(
@@ -24,5 +24,19 @@ describe("Pixi dish aperture scene contract", () => {
     expect(rendererSource).toContain("const contours = extractFieldContourSegments({");
     expect(rendererSource).toContain("dishMask: snapshot.dishMask");
     expect(rendererSource).toContain(".lineTo(to.x, to.y)");
+  });
+
+  it("draws shared-scale lineage density contours with existing pattern geometry", () => {
+    expect(rendererSource).toContain(
+      'import { extractLineageDensityContourSegments } from "../lineageDensityContours"',
+    );
+    expect(rendererSource).toContain(
+      "const contourSegments = extractLineageDensityContourSegments({",
+    );
+    expect(rendererSource).toContain("sharedMaximum");
+    expect(rendererSource).toContain(
+      "const contourPattern = resolveLineagePattern(lineage.patternToken)",
+    );
+    expect(rendererSource).toContain("color: LINEAGE_PATTERN_COLOR");
   });
 });

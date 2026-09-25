@@ -1,22 +1,23 @@
-import { Application, Container, Graphics } from "pixi.js";
+import { writeFieldRaster } from "../fieldRaster";
+import { writeDensityRaster } from "../densityRaster";
+import { parseOrganismPresentationIdentity, type OrganismPresentationIdentity } from "../organismPresentationIdentity";
+import { Application, Container, Graphics, Sprite, Texture } from "pixi.js";
 import { petraVisualColor } from "../../design/visualTokens";
-import { gridCellCenter } from "../gridGeometry";
 import { extractFieldContourSegments } from "../fieldContours";
 import { sampleRepresentativeGlyphs } from "../lod";
 import { resolveLineageAppearance } from "../lineageAppearance";
 import {
-  projectComparableLineageDensity,
   resolveSharedLineageDensityMaximum,
 } from "../lineageDensityPresentation";
+import { extractLineageDensityContourSegments } from "../lineageDensityContours";
 import {
-  overlayPatternMultiplier,
-  projectOverlayScalar,
   resolveOverlayPresentation,
 } from "../overlayPresentation";
 import { resolveLineagePattern, type LineagePatternToken } from "../lineagePatterns";
 import {
   semanticZoomLevel,
   type CameraView,
+  type DishSelectionHighlight,
   type SemanticZoomLevel,
   type DishRenderSnapshot,
   type RenderField,
@@ -97,7 +98,9 @@ export interface PixiDishRenderer {
   updatePresentation(
     snapshot: DishRenderSnapshot,
     overlayId: string | null,
+    organismPresentation?: OrganismPresentationIdentity | null,
   ): void;
+  setSelection(selection: DishSelectionHighlight | null): void;
   setOverlay(overlayId: string | null): void;
   setCameraMotion(spec: CameraMotionSpec): void;
   setVisualMotion(spec: DishVisualMotionSpec): void;
@@ -109,7 +112,7 @@ export interface PixiDishRenderer {
 }
 
 const LINEAGE_PATTERN_COLOR = petraVisualColor("cream");
-const DISH_PLATE_COLOR = petraVisualColor("ink");
+const DISH_PLATE_COLOR = petraVisualColor("inkSoft");
 const DISH_RIM_COLOR = petraVisualColor("creamMuted");
 const DISH_HIGHLIGHT_COLOR = petraVisualColor("cream");
 const DISH_GLYPH_EDGE_COLOR = petraVisualColor("inkDeep");
@@ -142,14 +145,26 @@ export async function createPixiDishRenderer(
   const dataLayer = new Container();
   const fieldLayer = new Graphics();
   const densityLayer = new Graphics();
+  const fieldCanvas = document.createElement("canvas");
+  const fieldContext = fieldCanvas.getContext("2d")!;
+  const fieldTexture = Texture.from(fieldCanvas);
+  const fieldSprite = new Sprite(fieldTexture);
+  let fieldImage: ImageData | null = null;
+  const densityCanvas = document.createElement("canvas");
+  const densityContext = densityCanvas.getContext("2d")!;
+  const densityTexture = Texture.from(densityCanvas);
+  const densitySprite = new Sprite(densityTexture);
+  let densityImage: ImageData | null = null;
   const glyphLayer = new Graphics();
   const accentLayer = new Graphics();
 
-  dataLayer.addChild(fieldLayer, densityLayer, glyphLayer);
+  dataLayer.addChild(fieldSprite, fieldLayer, densitySprite, densityLayer, glyphLayer);
   dataLayer.mask = dishInteriorMask;
   root.addChild(plateLayer, dishInteriorMask, dataLayer, accentLayer);
   app.stage.addChild(root);
 
+  let selection: DishSelectionHighlight | null = null;
+  let organismPresentation: OrganismPresentationIdentity | null = null;
   let snapshot: DishRenderSnapshot | null = null;
   let drawableState: DishDrawableState | null = null;
   let visualTransition: DishVisualTransition | null = null;
@@ -183,7 +198,13 @@ export async function createPixiDishRenderer(
     options.onSemanticZoomLevelChange?.(level);
   });
 
+  // Development-only, bounded local profiling. These timings have no simulation authority.
+  const drawTimes: number[] = [];
+  const frameGaps: number[] = [];
+  let lastFrameAt = performance.now();
+  let lastReportAt = lastFrameAt;
   const render = () => {
+    const drawStartedAt = import.meta.env.DEV ? performance.now() : 0;
     if (destroyed) return;
     syncHostTouchAction();
     if (drawableState === null) return;
@@ -191,6 +212,32 @@ export async function createPixiDishRenderer(
     drawScene({
       app,
       snapshot: drawableState,
+      densitySprite,
+      fieldSprite,
+      updateFieldTexture(field) {
+        if (fieldImage === null || fieldImage.width !== drawableState!.gridWidth || fieldImage.height !== drawableState!.gridHeight) {
+          fieldCanvas.width = drawableState!.gridWidth;
+          fieldCanvas.height = drawableState!.gridHeight;
+          fieldTexture.source.resize(fieldCanvas.width, fieldCanvas.height);
+          fieldImage = fieldContext.createImageData(fieldCanvas.width, fieldCanvas.height);
+        }
+        writeFieldRaster(drawableState!, field, fieldImage.data);
+        fieldContext.putImageData(fieldImage, 0, 0);
+        fieldTexture.source.update();
+      },
+      updateDensityTexture(maximum) {
+        if (densityImage === null || densityImage.width !== drawableState!.gridWidth || densityImage.height !== drawableState!.gridHeight) {
+          densityCanvas.width = drawableState!.gridWidth;
+          densityCanvas.height = drawableState!.gridHeight;
+          densityTexture.source.resize(densityCanvas.width, densityCanvas.height);
+          densityImage = densityContext.createImageData(densityCanvas.width, densityCanvas.height);
+        }
+        writeDensityRaster(drawableState!, maximum, densityImage.data);
+        densityContext.putImageData(densityImage, 0, 0);
+        densityTexture.source.update();
+      },
+      organismPresentation,
+      selection,
       camera,
       overlayId,
       motion,
@@ -202,6 +249,10 @@ export async function createPixiDishRenderer(
       glyphLayer,
       accentLayer,
     });
+    if (import.meta.env.DEV) {
+      drawTimes.push(performance.now() - drawStartedAt);
+      if (drawTimes.length > 600) drawTimes.shift();
+    }
   };
 
   const applySnapshotOverlayUpdate = (
@@ -312,6 +363,19 @@ export async function createPixiDishRenderer(
   };
 
   const ticker = () => {
+    if (import.meta.env.DEV) {
+      const now = performance.now();
+      frameGaps.push(now - lastFrameAt);
+      lastFrameAt = now;
+      if (frameGaps.length > 600) frameGaps.shift();
+      if (now - lastReportAt >= 1000) {
+        const percentile = (values: number[], p: number) => [...values].sort((a, b) => a - b)[Math.min(values.length - 1, Math.floor(values.length * p))] ?? 0;
+        host.dataset.renderProfile = JSON.stringify({ sampleFrames: frameGaps.length,
+          frameGapP50Ms: percentile(frameGaps, .5), frameGapP95Ms: percentile(frameGaps, .95),
+          drawP50Ms: percentile(drawTimes, .5), drawP95Ms: percentile(drawTimes, .95) });
+        lastReportAt = now;
+      }
+    }
     if (destroyed || motion !== "full") return;
 
     let changed = false;
@@ -582,8 +646,14 @@ export async function createPixiDishRenderer(
       applySnapshotOverlayUpdate(nextSnapshot, overlayId);
     },
 
-    updatePresentation(nextSnapshot, nextOverlayId) {
+    updatePresentation(nextSnapshot, nextOverlayId, presentation = null) {
+      organismPresentation = presentation === null ? null : parseOrganismPresentationIdentity(presentation);
       applySnapshotOverlayUpdate(nextSnapshot, nextOverlayId);
+    },
+
+    setSelection(nextSelection) {
+      selection = nextSelection;
+      render();
     },
 
     setOverlay(nextOverlayId) {
@@ -662,6 +732,8 @@ export async function createPixiDishRenderer(
       host.removeEventListener("keydown", onKeyDown);
       app.ticker.remove(ticker);
       host.style.touchAction = previousHostTouchAction;
+      densityTexture.destroy(true);
+      fieldTexture.destroy(true);
       app.destroy({ removeView: true }, { children: true });
     },
   };
@@ -669,7 +741,13 @@ export async function createPixiDishRenderer(
 
 function drawScene(args: {
   readonly app: Application;
+  readonly densitySprite: Sprite;
+  readonly fieldSprite: Sprite;
+  readonly updateFieldTexture: (field: RenderField | null) => void;
+  readonly updateDensityTexture: (maximum: number) => void;
   readonly snapshot: DishDrawableState;
+  readonly organismPresentation: OrganismPresentationIdentity | null;
+  readonly selection: DishSelectionHighlight | null;
   readonly camera: CameraView;
   readonly overlayId: string | null;
   readonly motion: RendererMotionMode;
@@ -683,11 +761,17 @@ function drawScene(args: {
 }): void {
   const {
     app,
+    densitySprite,
+    fieldSprite,
+    updateFieldTexture,
+    updateDensityTexture,
     snapshot,
     camera,
     overlayId,
     motion,
     maxRepresentativeGlyphs,
+    organismPresentation,
+    selection,
     plateLayer,
     dishInteriorMask,
     fieldLayer,
@@ -725,18 +809,21 @@ function drawScene(args: {
     .circle(centerX, centerY, radius)
     .fill({ color: DISH_PLATE_COLOR, alpha: 0.98 })
     .stroke({ color: DISH_RIM_COLOR, alpha: 0.62, width: Math.max(1.5, dishSize * 0.006) });
-  plateLayer
-    .circle(centerX - radius * 0.12, centerY - radius * 0.14, radius * 0.91)
-    .stroke({ color: DISH_HIGHLIGHT_COLOR, alpha: 0.055, width: Math.max(1, dishSize * 0.012) });
-  plateLayer
-    .circle(centerX - radius * 0.2, centerY - radius * 0.23, radius * 0.72)
-    .stroke({ color: DISH_HIGHLIGHT_COLOR, alpha: 0.035, width: Math.max(1, dishSize * 0.02) });
+  plateLayer.circle(centerX, centerY, radius * .985)
+    .fill({ color: petraVisualColor("teal"), alpha: .14 })
+    .stroke({ color: petraVisualColor("mint"), alpha: .23, width: dishSize * .018 });
+  plateLayer.circle(centerX, centerY, radius * .96)
+    .stroke({ color: DISH_HIGHLIGHT_COLOR, alpha: .16, width: dishSize * .006 });
 
   const overlay =
     overlayId === null
       ? snapshot.fields.find((field) => field.kind === "antibiotic") ?? null
       : snapshot.fields.find((field) => field.id === overlayId) ?? null;
 
+  updateFieldTexture(overlay);
+  fieldSprite.position.set(centerX - camera.centerX * dishSize * camera.zoom, centerY - camera.centerY * dishSize * camera.zoom);
+  fieldSprite.width = dishSize * camera.zoom;
+  fieldSprite.height = dishSize * camera.zoom;
   if (overlay !== null) {
     drawField(fieldLayer, overlay, snapshot, camera, centerX, centerY, dishSize);
   }
@@ -744,6 +831,10 @@ function drawScene(args: {
   const lineageDensityMaximum =
     resolveSharedLineageDensityMaximum(snapshot);
 
+  updateDensityTexture(lineageDensityMaximum);
+  densitySprite.position.set(centerX - camera.centerX * dishSize * camera.zoom, centerY - camera.centerY * dishSize * camera.zoom);
+  densitySprite.width = dishSize * camera.zoom;
+  densitySprite.height = dishSize * camera.zoom;
   snapshot.lineages.forEach((lineage) => {
     drawLineageDensity(
       densityLayer,
@@ -754,16 +845,16 @@ function drawScene(args: {
       centerY,
       dishSize,
       resolveLineageAppearance(lineage.appearanceToken).color,
-      level,
       lineageDensityMaximum,
     );
   });
 
-  if (level !== "dish") {
-    const glyphs = sampleRepresentativeGlyphs(snapshot, camera, level, {
-      maxGlyphs: maxRepresentativeGlyphs,
-      minimumDensity: 0.03,
+  if (organismPresentation !== null || level !== "dish") {
+    const glyphs = sampleRepresentativeGlyphs(snapshot, camera, level === "dish" ? "colony" : level, {
+      maxGlyphs: Math.min(maxRepresentativeGlyphs, level === "dish" ? 140 : 260),
+      minimumDensity: lineageDensityMaximum * 0.12,
     });
+    const occupiedGlyphPositions: ScreenPoint[] = [];
     for (const glyph of glyphs) {
       const lineage = snapshot.lineages.find(
         (candidate) => candidate.id === glyph.lineageId,
@@ -778,23 +869,38 @@ function drawScene(args: {
         centerY,
         dishSize,
       );
-      const glyphRadius = Math.max(2.2, 3.2 * Math.min(camera.zoom, 4));
-      glyphLayer
-        .circle(point.x, point.y, glyphRadius)
-        .fill({ color, alpha: 0.88 })
-        .stroke({ color: DISH_GLYPH_EDGE_COLOR, alpha: 0.75, width: 1.2 });
-
-      drawLineagePatternRings(
-        glyphLayer,
-        point,
-        glyphRadius + 1.8,
-        lineage.patternToken,
-        0.72,
-        1.1,
-      );
+      const spacing = level === "dish" ? 11 : 16;
+      if (occupiedGlyphPositions.some(previous => (previous.x - point.x) ** 2 + (previous.y - point.y) ** 2 < spacing ** 2)) continue;
+      occupiedGlyphPositions.push(point);
+      const strength = Math.sqrt(glyph.weight / Math.max(lineageDensityMaximum, Number.EPSILON));
+      const glyphRadius = Math.max(2.2, (level === "dish" ? 4.3 : 5.2) * Math.min(camera.zoom, 3)) * (0.55 + strength * 0.45);
+      if (organismPresentation?.morphology === "rod") {
+        // Stable illustration pose, NOT orientation, motility, cell size, or a cell count.
+        const angle = (glyph.cellIndex * 2.399963 + glyph.lineageId.length) % Math.PI;
+        const dx = Math.cos(angle) * glyphRadius;
+        const dy = Math.sin(angle) * glyphRadius;
+        glyphLayer.moveTo(point.x - dx, point.y - dy + 1.5).lineTo(point.x + dx, point.y + dy + 1.5)
+          .stroke({ color: DISH_GLYPH_EDGE_COLOR, alpha: 0.3, width: glyphRadius * 1.5, cap: "round" });
+        glyphLayer.moveTo(point.x - dx, point.y - dy).lineTo(point.x + dx, point.y + dy)
+          .stroke({ color, alpha: 0.65 + strength * 0.3, width: glyphRadius * 1.4, cap: "round" });
+        glyphLayer.moveTo(point.x - dx * 0.65 - .6, point.y - dy * .65 - .8).lineTo(point.x + dx * .3 - .6, point.y + dy * .3 - .8)
+          .stroke({ color: DISH_HIGHLIGHT_COLOR, alpha: .35, width: Math.max(.8, glyphRadius * .3), cap: "round" });
+        if (lineage.patternToken === "double-ring") {
+          glyphLayer.circle(point.x, point.y, glyphRadius * .45).stroke({ color: LINEAGE_PATTERN_COLOR, alpha: .8, width: 1 });
+        }
+      } else {
+        glyphLayer.circle(point.x, point.y, glyphRadius).fill({ color, alpha: .88 });
+        drawLineagePatternRings(glyphLayer, point, glyphRadius + 1.8, lineage.patternToken, .72, 1.1);
+      }
     }
   }
 
+  if (selection !== null) {
+    const selected = dishToScreen(selection.centerX, selection.centerY, camera, centerX, centerY, dishSize);
+    glyphLayer.circle(selected.x, selected.y, selection.radius * dishSize * camera.zoom)
+      .stroke({ color: petraVisualColor("mint"), width: 2, alpha: .95 });
+    glyphLayer.circle(selected.x, selected.y, 3).fill({ color: petraVisualColor("mint") });
+  }
   const accentAlpha = motion === "off" ? 0.12 : 0.16;
   accentLayer
     .circle(centerX, centerY, radius * 0.985)
@@ -810,56 +916,7 @@ function drawField(
   centerY: number,
   dishSize: number,
 ): void {
-  const cellWidth = dishSize * camera.zoom / snapshot.gridWidth;
-  const cellHeight = dishSize * camera.zoom / snapshot.gridHeight;
   const presentation = resolveOverlayPresentation(field.kind);
-
-  for (let index = 0; index < field.values.length; index += 1) {
-    if (snapshot.dishMask[index] !== 1) continue;
-    const value = field.values[index] ?? field.minimum;
-    const projected = projectOverlayScalar(
-      presentation,
-      value,
-      field.minimum,
-      field.maximum,
-    );
-    if (!projected.visible) continue;
-
-    const row = Math.floor(index / snapshot.gridWidth);
-    const column = index % snapshot.gridWidth;
-    const center = gridCellCenter(
-      index,
-      snapshot.gridWidth,
-      snapshot.gridHeight,
-    );
-    const point = dishToScreen(
-      center.x,
-      center.y,
-      camera,
-      centerX,
-      centerY,
-      dishSize,
-    );
-
-    if (!insideViewport(point, centerX, centerY, dishSize)) continue;
-    const textureAlpha = overlayPatternMultiplier(
-      projected.patternToken,
-      row,
-      column,
-    );
-    graphics
-      .rect(
-        point.x - cellWidth / 2,
-        point.y - cellHeight / 2,
-        cellWidth + 0.5,
-        cellHeight + 0.5,
-      )
-      .fill({
-        color: projected.color,
-        alpha: projected.alpha * textureAlpha,
-      });
-  }
-
   const contours = extractFieldContourSegments({
     field,
     dishMask: snapshot.dishMask,
@@ -867,31 +924,14 @@ function drawField(
     gridHeight: snapshot.gridHeight,
   });
   const contourWidth = Math.max(0.9, Math.min(1.8, dishSize * 0.0018));
-  for (const segment of contours) {
-    const from = dishToScreen(
-      segment.from.x,
-      segment.from.y,
-      camera,
-      centerX,
-      centerY,
-      dishSize,
-    );
-    const to = dishToScreen(
-      segment.to.x,
-      segment.to.y,
-      camera,
-      centerX,
-      centerY,
-      dishSize,
-    );
-    graphics
-      .moveTo(from.x, from.y)
-      .lineTo(to.x, to.y)
-      .stroke({
-        color: presentation.positiveColor,
-        alpha: 0.24 + segment.level * 0.28,
-        width: contourWidth,
-      });
+  for (const level of new Set(contours.map(segment => segment.level))) {
+    for (const segment of contours) {
+      if (segment.level !== level) continue;
+      const from = dishToScreen(segment.from.x, segment.from.y, camera, centerX, centerY, dishSize);
+      const to = dishToScreen(segment.to.x, segment.to.y, camera, centerX, centerY, dishSize);
+      graphics.moveTo(from.x, from.y).lineTo(to.x, to.y);
+    }
+    graphics.stroke({ color: presentation.positiveColor, alpha: .24 + level * .28, width: contourWidth });
   }
 }
 
@@ -904,55 +944,38 @@ function drawLineageDensity(
   centerY: number,
   dishSize: number,
   color: number,
-  level: ReturnType<typeof semanticZoomLevel>,
   sharedMaximum: number,
 ): void {
   if (sharedMaximum <= 0) return;
 
-  const cellWidth = dishSize * camera.zoom / snapshot.gridWidth;
-  const cellHeight = dishSize * camera.zoom / snapshot.gridHeight;
-  const radius = Math.max(1.1, Math.min(cellWidth, cellHeight) * (level === "dish" ? 0.62 : 0.44));
-
-  for (let index = 0; index < lineage.density.length; index += 1) {
-    if (snapshot.dishMask[index] !== 1) continue;
-    const weight = lineage.density[index] ?? 0;
-    const presentation = projectComparableLineageDensity(
-      weight,
-      sharedMaximum,
-    );
-    if (!presentation.visible) continue;
-    const center = gridCellCenter(
-      index,
-      snapshot.gridWidth,
-      snapshot.gridHeight,
-    );
-    const point = dishToScreen(
-      center.x,
-      center.y,
-      camera,
-      centerX,
-      centerY,
-      dishSize,
-    );
-    if (!insideViewport(point, centerX, centerY, dishSize)) continue;
-
-    const normalized = presentation.normalized;
-    // normalized=1 preserves the previous peak radius/alpha exactly. Lower
-    // source densities remain visible without being promoted to lineage-local
-    // maxima.
-    const markRadius = radius * (0.45 + normalized);
-    graphics
-      .circle(point.x, point.y, markRadius)
-      .fill({ color, alpha: 0.02 + normalized * 0.56 });
-
-    drawLineagePatternRings(
-      graphics,
-      point,
-      markRadius,
-      lineage.patternToken,
-      0.04 + normalized * 0.32,
-      Math.max(0.65, Math.min(1.15, markRadius * 0.14)),
-    );
+  const contourSegments = extractLineageDensityContourSegments({
+    lineage,
+    dishMask: snapshot.dishMask,
+    gridWidth: snapshot.gridWidth,
+    gridHeight: snapshot.gridHeight,
+    sharedMaximum,
+  });
+  const contourBaseWidth = Math.max(
+    0.8,
+    Math.min(1.7, dishSize * 0.0016),
+  );
+  const contourPattern = resolveLineagePattern(lineage.patternToken);
+  for (const contourLevel of new Set(contourSegments.map(segment => segment.level))) {
+    const segments = contourSegments.filter(segment => segment.level === contourLevel);
+    const path = () => {
+      for (const segment of segments) {
+        const from = dishToScreen(segment.from.x, segment.from.y, camera, centerX, centerY, dishSize);
+        const to = dishToScreen(segment.to.x, segment.to.y, camera, centerX, centerY, dishSize);
+        graphics.moveTo(from.x, from.y).lineTo(to.x, to.y);
+      }
+    };
+    for (const scale of contourPattern.ringScales) {
+      path();
+      graphics.stroke({ color: LINEAGE_PATTERN_COLOR, alpha: .035 + contourLevel * .055,
+        width: contourBaseWidth * (1.25 + scale * .7) });
+    }
+    path();
+    graphics.stroke({ color, alpha: .15 + contourLevel * .32, width: contourBaseWidth });
   }
 }
 
@@ -986,14 +1009,3 @@ function dishToScreen(
   };
 }
 
-function insideViewport(
-  point: ScreenPoint,
-  centerX: number,
-  centerY: number,
-  dishSize: number,
-): boolean {
-  const dx = point.x - centerX;
-  const dy = point.y - centerY;
-  const radius = dishSize * 0.5;
-  return dx * dx + dy * dy <= radius * radius;
-}

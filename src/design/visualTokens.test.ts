@@ -39,7 +39,7 @@ describe("Petra visual token authority", () => {
     expect(entries).toHaveLength(Object.keys(PETRA_VISUAL_COLORS).length * 2);
     expect(entries).toContainEqual([
       "--petra-color-cream",
-      "#f2e8d4",
+      "#f1f3ee",
     ]);
     expect(entries).toContainEqual([
       "--petra-rgb-coral",
@@ -55,7 +55,7 @@ describe("Petra visual token authority", () => {
       },
     });
 
-    expect(variables.get("--petra-color-ink-deep")).toBe("#0f1f2c");
+    expect(variables.get("--petra-color-ink-deep")).toBe("#101e27");
     expect(variables.get("--petra-rgb-mint")).toBe("127 202 168");
   });
 

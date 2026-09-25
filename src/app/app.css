@@ -1696,7 +1696,6 @@ button:hover {
   .petra-panel {
     min-height: auto;
   }
-
   .timeline-shell {
     grid-template-columns: minmax(9rem, auto) minmax(0, 1fr);
   }

@@ -22,6 +22,10 @@ import { ProvenancePanel } from "../ui/provenance/ProvenancePanel";
 import { RegionInspectorPanel } from "../ui/RegionInspectorPanel";
 import { DishViewport } from "./DishViewport";
 import { projectComposedDishSnapshot } from "./composedDishProjection";
+import {
+  measureDishProjectionPublication,
+  observeDishReactCommit,
+} from "./renderPublicationPerformance";
 import { ExperimentRunControls } from "./ExperimentRunControls";
 import { resolveDishFocusMode } from "./dishFocusMode";
 import { CausalNarrationMount } from "./CausalNarrationMount";
@@ -175,9 +179,23 @@ export function App({
     () =>
       runBranchIdentity === null
         ? null
-        : projectComposedDishSnapshot(runtimeSnapshot, runBranchIdentity),
+        : measureDishProjectionPublication(
+            runtimeSnapshot,
+            runBranchIdentity,
+            () =>
+              projectComposedDishSnapshot(runtimeSnapshot, runBranchIdentity),
+          ),
     [runBranchIdentity, runtimeSnapshot],
   );
+
+  useEffect(() => {
+    if (runBranchIdentity === null) return;
+    observeDishReactCommit(
+      runtimeSnapshot,
+      runBranchIdentity,
+      dishSnapshot,
+    );
+  }, [dishSnapshot, runBranchIdentity, runtimeSnapshot]);
   const regionInspector = useMemo(
     () =>
       projectRegionInspector(

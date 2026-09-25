@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createMechanisticExecutionSchedule } from "./executionSchedule";
 
 import type { MechanisticTrajectoryResult } from "./generator";
 import {
@@ -38,6 +39,7 @@ function definition(): MechanisticSweepDefinition {
       inputSchemaVersion: "aggregate-input-v1",
       targetSchemaVersion: "aggregate-target-v1",
     },
+    executionSchedule: createMechanisticExecutionSchedule({ totalTicks: 4, snapshotEveryTicks: 2 }),
     parameterPoints: [
       { id: "point-a", parameterSetHash: "params-a" },
       { id: "point-b", parameterSetHash: "params-b" },

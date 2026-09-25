@@ -8,6 +8,7 @@ import {
 import type { RunIdentity } from "../sim/protocol";
 import type { ExperimentControlAction } from "../ui/experimentControls";
 import {
+  type AuthoritativeInterventionCommand,
   type ControlDispatchResult,
   ExperimentRuntime,
   type ExperimentRuntimeState,
@@ -30,6 +31,13 @@ export interface ExperimentRuntimeBinding {
   readonly state: ExperimentRuntimeState | null;
   readonly view: ExperimentRuntimeView;
   dispatch(action: ExperimentControlAction): ControlDispatchResult | null;
+  /**
+   * Route one already-validated biological intervention through the runtime
+   * owner. React receives the typed result but never constructs Worker requests.
+   */
+  dispatchAuthoritativeCommand(
+    command: AuthoritativeInterventionCommand,
+  ): ControlDispatchResult | null;
   /**
    * Explicitly construct a fresh runtime after failure. When a failed runtime
    * already established run identity, recovery refuses a factory result that
@@ -138,6 +146,15 @@ export function useExperimentRuntime(
     [],
   );
 
+  const dispatchAuthoritativeCommand = useCallback(
+    (
+      command: AuthoritativeInterventionCommand,
+    ): ControlDispatchResult | null => {
+      return runtimeRef.current?.dispatchAuthoritativeCommand(command) ?? null;
+    },
+    [],
+  );
+
   const restart = useCallback((): boolean => {
     if (factory === undefined) return false;
 
@@ -153,7 +170,7 @@ export function useExperimentRuntime(
     [setupFailure, state],
   );
 
-  return { state, view, dispatch, restart };
+  return { state, view, dispatch, dispatchAuthoritativeCommand, restart };
 }
 
 function sameRunIdentity(left: RunIdentity, right: RunIdentity): boolean {

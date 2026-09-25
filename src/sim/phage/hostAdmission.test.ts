@@ -125,6 +125,29 @@ describe("T4/MG1655 runtime host admission", () => {
     );
   });
 
+  it("rejects taxon provenance drift hidden behind the same biological strings", () => {
+    const { plan, state } = flagship();
+    const registry = {
+      ...plan.config.taxonRegistry!,
+      taxa: plan.config.taxonRegistry!.taxa.map((taxon) => ({
+        ...taxon,
+        provenance: {
+          ...taxon.provenance,
+          sourceKeys: ["different-source"],
+        },
+      })),
+    };
+
+    expect(() =>
+      resolveAdmittedPhageHostLineages({
+        taxonRegistry: registry,
+        lineageTaxonMap: state.lineageTaxonMap!,
+        lineageIds: state.lineageIds,
+        genotypeIds: state.genotypeIds,
+      }),
+    ).toThrow(/runtime taxon identity does not match reviewed authority/);
+  });
+
   it("rejects semantic drift hidden behind the same taxon id and content version", () => {
     const { plan, state } = flagship();
     const registry = {

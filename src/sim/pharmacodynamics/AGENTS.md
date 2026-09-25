@@ -13,6 +13,7 @@
 - Spatial concentration input must come from authoritative simulation state. Renderer/UI state cannot influence PD output.
 - Drug concentration/PD may alter survival or growth, but must never directly instruct mutation generation.
 - Prepared/hot-loop evaluators must be numerically equivalent to the validated reference function.
+- `fieldSet.ts` is the source-independent structural boundary for future multiple-antimicrobial concentration channels. Every channel preserves exact drug/authority/version/unit/effect-channel identity, dimensions, non-negative Float32 concentration values, and exact-mask zeroing. It performs no unit conversion and never chooses a PD model from a drug name. Until a separately reviewed scenario policy authorizes simultaneous effects, `assertSingleActiveAntimicrobialOnly(...)` must reject more than one non-zero drug field; do not multiply division effects, sum hazards, or assume Bliss/Loewe/additivity merely because multiple channels exist.
 
 ## Provenance
 Every versioned composition policy must expose a stable ID, classification, source keys, and limitation text suitable for the later Why?/Sources/Assumptions UI.

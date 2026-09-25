@@ -157,22 +157,27 @@
     },
     {
       "id": "phage-mechanism-statistics",
-      "description": "BLOCKED on #283: adsorption/infection/lysis statistical controls after Phase 10 integration.",
+      "description": "BLOCKED on #751: prepared many-seed phage mechanism statistics wait for composed free-phage/infection/lysis/checkpoint/replay authority.",
       "command": [
         "python",
         "experiments/blocked.py",
         "--experiment-id",
         "phage-mechanism-statistics",
         "--blocked-on",
-        "283",
+        "751",
         "--reason",
-        "Issue #491 has landed the infection multiplicity policy; issue #283 must still land discrete burst/lysis bookkeeping before statistical controls are meaningful."
+        "The prepared #752 harness covers pure adsorption/infection/latent/lysis controls, but issue #751 must integrate the reviewed phage mechanisms into authoritative composed state, checkpoints, replay, events, and metrics before the stable experiment can run truthful end-to-end statistics."
       ],
       "issues": [
         12,
         283,
         491,
-        542
+        529,
+        542,
+        562,
+        626,
+        751,
+        752
       ],
       "timeout_seconds": 30
     },

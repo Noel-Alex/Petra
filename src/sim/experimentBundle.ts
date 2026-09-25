@@ -122,6 +122,7 @@ const EVENT_KEYS = new Set([
   'commandId',
   'value',
   'intervention',
+  'resourceIntervention',
 ])
 const METRIC_SAMPLE_KEYS = new Set([
   'schemaVersion',
@@ -906,6 +907,12 @@ function validateEvents(
       )
     }
     if (event.type === 'ciprofloxacin-applied') {
+      if (event.resourceIntervention !== undefined) {
+        throw new ExperimentBundleError(
+          'evidence-invalid',
+          'Ciprofloxacin evidence events cannot carry model-resource intervention payloads.',
+        )
+      }
       try {
         assertCiprofloxacinIntervention(event.intervention)
       } catch (error) {
@@ -917,8 +924,14 @@ function validateEvents(
         )
       }
     } else if (event.type === 'model-resource-applied') {
+      if (event.intervention !== undefined) {
+        throw new ExperimentBundleError(
+          'evidence-invalid',
+          'Model-resource evidence events cannot carry ciprofloxacin intervention payloads.',
+        )
+      }
       try {
-        assertModelResourceIntervention(event.intervention)
+        assertModelResourceIntervention(event.resourceIntervention)
       } catch (error) {
         throw new ExperimentBundleError(
           'evidence-invalid',
@@ -927,7 +940,10 @@ function validateEvents(
             : 'Model-resource evidence intervention is invalid.',
         )
       }
-    } else if (event.intervention !== undefined) {
+    } else if (
+      event.intervention !== undefined ||
+      event.resourceIntervention !== undefined
+    ) {
       throw new ExperimentBundleError(
         'evidence-invalid',
         'Only accepted intervention events may carry intervention payloads.',

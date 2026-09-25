@@ -12,33 +12,35 @@ export interface GlyphSample {
   readonly weight: number;
 }
 
+export interface PreparedGlyphCandidate extends GlyphSample {
+  readonly score: number;
+}
+
 export interface GlyphSamplingOptions {
   readonly maxGlyphs: number;
   readonly minimumDensity: number;
 }
 
-/** Deterministic visual-proxy sampling. A glyph is not one bacterium. */
-export function sampleRepresentativeGlyphs(
+/**
+ * Camera-independent deterministic visual-proxy preparation.
+ *
+ * The returned ordering is the exact stable score/tie-break ordering used by
+ * the public sampler. Keeping viewport filtering out of this pass lets Pixi
+ * reuse the expensive grid scan across camera-only redraws without changing
+ * which proxies are selected for any camera.
+ */
+export function prepareRepresentativeGlyphCandidates(
   snapshot: DishVisualState,
-  camera: CameraView,
-  level: SemanticZoomLevel,
-  options: GlyphSamplingOptions,
-): readonly GlyphSample[] {
-  if (!Number.isInteger(options.maxGlyphs) || options.maxGlyphs < 0) {
-    throw new RangeError("maxGlyphs must be a non-negative integer");
-  }
-  if (!Number.isFinite(options.minimumDensity) || options.minimumDensity < 0) {
-    throw new RangeError("minimumDensity must be finite and >= 0");
-  }
-  if (options.maxGlyphs === 0 || level === "dish") return [];
+  minimumDensity: number,
+): readonly PreparedGlyphCandidate[] {
+  requireMinimumDensity(minimumDensity);
 
-  const candidates: Array<GlyphSample & { score: number }> = [];
+  const candidates: PreparedGlyphCandidate[] = [];
   for (const lineage of snapshot.lineages) {
     collectLineageCandidates(
       snapshot,
       lineage,
-      camera,
-      options.minimumDensity,
+      minimumDensity,
       candidates,
     );
   }
@@ -48,21 +50,70 @@ export function sampleRepresentativeGlyphs(
       a.lineageId.localeCompare(b.lineageId) ||
       a.cellIndex - b.cellIndex,
   );
-  return candidates
-    .slice(0, options.maxGlyphs)
-    .map(({ score: _score, ...glyph }) => glyph);
+  return candidates;
+}
+
+/**
+ * Cheap camera-dependent selection from a prepared, score-ordered candidate
+ * list. The visible-circle filter and budget exactly match the legacy sampler.
+ */
+export function selectRepresentativeGlyphs(
+  candidates: readonly PreparedGlyphCandidate[],
+  camera: CameraView,
+  maxGlyphs: number,
+): readonly GlyphSample[] {
+  requireMaxGlyphs(maxGlyphs);
+  if (maxGlyphs === 0) return [];
+
+  const visibleRadius = 0.5 / Math.max(1, camera.zoom);
+  const radiusSquared = visibleRadius * visibleRadius;
+  const selected: GlyphSample[] = [];
+
+  for (const candidate of candidates) {
+    const dx = candidate.x - camera.centerX;
+    const dy = candidate.y - camera.centerY;
+    if (dx * dx + dy * dy > radiusSquared) continue;
+
+    selected.push({
+      lineageId: candidate.lineageId,
+      cellIndex: candidate.cellIndex,
+      x: candidate.x,
+      y: candidate.y,
+      weight: candidate.weight,
+    });
+    if (selected.length >= maxGlyphs) break;
+  }
+
+  return selected;
+}
+
+/** Deterministic visual-proxy sampling. A glyph is not one bacterium. */
+export function sampleRepresentativeGlyphs(
+  snapshot: DishVisualState,
+  camera: CameraView,
+  level: SemanticZoomLevel,
+  options: GlyphSamplingOptions,
+): readonly GlyphSample[] {
+  requireMaxGlyphs(options.maxGlyphs);
+  requireMinimumDensity(options.minimumDensity);
+  if (options.maxGlyphs === 0 || level === "dish") return [];
+
+  return selectRepresentativeGlyphs(
+    prepareRepresentativeGlyphCandidates(
+      snapshot,
+      options.minimumDensity,
+    ),
+    camera,
+    options.maxGlyphs,
+  );
 }
 
 function collectLineageCandidates(
   snapshot: DishVisualState,
   lineage: RenderLineage,
-  camera: CameraView,
   minimumDensity: number,
-  output: Array<GlyphSample & { score: number }>,
+  output: PreparedGlyphCandidate[],
 ): void {
-  const visibleRadius = 0.5 / Math.max(1, camera.zoom);
-  const radiusSquared = visibleRadius * visibleRadius;
-
   for (let cellIndex = 0; cellIndex < lineage.density.length; cellIndex += 1) {
     const weight = lineage.density[cellIndex] ?? 0;
     if (
@@ -77,9 +128,6 @@ function collectLineageCandidates(
       snapshot.gridWidth,
       snapshot.gridHeight,
     );
-    const dx = center.x - camera.centerX;
-    const dy = center.y - camera.centerY;
-    if (dx * dx + dy * dy > radiusSquared) continue;
 
     output.push({
       lineageId: lineage.id,
@@ -91,7 +139,6 @@ function collectLineageCandidates(
     });
   }
 }
-
 function stableScore(
   snapshot: Pick<
     DishVisualState,
@@ -113,4 +160,16 @@ function stableScore(
   }
 
   return Math.log1p(weight) + ((hash >>> 0) / 0xffffffff) * 0.15;
+}
+
+function requireMaxGlyphs(maxGlyphs: number): void {
+  if (!Number.isInteger(maxGlyphs) || maxGlyphs < 0) {
+    throw new RangeError("maxGlyphs must be a non-negative integer");
+  }
+}
+
+function requireMinimumDensity(minimumDensity: number): void {
+  if (!Number.isFinite(minimumDensity) || minimumDensity < 0) {
+    throw new RangeError("minimumDensity must be finite and >= 0");
+  }
 }

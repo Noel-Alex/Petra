@@ -11,7 +11,12 @@ import {
 import { Application, Container, Graphics, Sprite, Texture } from "pixi.js";
 import { petraVisualColor } from "../../design/visualTokens";
 import { extractFieldContourSegments } from "../fieldContours";
-import { sampleRepresentativeGlyphs } from "../lod";
+import {
+  prepareRepresentativeGlyphCandidates,
+  selectRepresentativeGlyphs,
+  type GlyphSample,
+  type PreparedGlyphCandidate,
+} from "../lod";
 import { resolveLineageAppearance } from "../lineageAppearance";
 import {
   resolveSharedLineageDensityMaximum,
@@ -172,6 +177,10 @@ export async function createPixiDishRenderer(
   let densityImage: ImageData | null = null;
   let preparedLineageDensityMaximum = 0;
   let hasPreparedLineageDensityMaximum = false;
+  let preparedRepresentativeGlyphCandidates:
+    | readonly PreparedGlyphCandidate[]
+    | null = null;
+  let preparedRepresentativeGlyphMinimumDensity: number | null = null;
   const preparedLineageContours = new Map<
     string,
     ReturnType<typeof extractLineageDensityContourSegments>
@@ -246,6 +255,10 @@ export async function createPixiDishRenderer(
       preparedFieldContours = null;
       preparedFieldContourId = null;
     }
+    if (invalidation.representativeGlyphCandidates) {
+      preparedRepresentativeGlyphCandidates = null;
+      preparedRepresentativeGlyphMinimumDensity = null;
+    }
 
     drawScene({
       app,
@@ -303,6 +316,28 @@ export async function createPixiDishRenderer(
         });
         preparedLineageContours.set(lineage.id, contours);
         return contours;
+      },
+      representativeGlyphsForCamera(
+        currentCamera,
+        maxGlyphs,
+        minimumDensity,
+      ) {
+        if (
+          preparedRepresentativeGlyphCandidates === null ||
+          preparedRepresentativeGlyphMinimumDensity !== minimumDensity
+        ) {
+          preparedRepresentativeGlyphCandidates =
+            prepareRepresentativeGlyphCandidates(
+              drawableState!,
+              minimumDensity,
+            );
+          preparedRepresentativeGlyphMinimumDensity = minimumDensity;
+        }
+        return selectRepresentativeGlyphs(
+          preparedRepresentativeGlyphCandidates,
+          currentCamera,
+          maxGlyphs,
+        );
       },
       organismPresentation,
       selection,
@@ -903,6 +938,11 @@ function drawScene(args: {
     lineage: RenderLineage,
     maximum: number,
   ) => ReturnType<typeof extractLineageDensityContourSegments>;
+  readonly representativeGlyphsForCamera: (
+    camera: CameraView,
+    maxGlyphs: number,
+    minimumDensity: number,
+  ) => readonly GlyphSample[];
   readonly snapshot: DishDrawableState;
   readonly organismPresentation: OrganismPresentationIdentity | null;
   readonly selection: DishSelectionHighlight | null;
@@ -926,6 +966,7 @@ function drawScene(args: {
     updateDensityTexture,
     prepareFieldContours,
     prepareLineageContours,
+    representativeGlyphsForCamera,
     snapshot,
     camera,
     overlayId,
@@ -1025,10 +1066,11 @@ function drawScene(args: {
     lineagePresentations.hasAnySupportedDishGlyphPresentation ||
     level !== "dish"
   ) {
-    const glyphs = sampleRepresentativeGlyphs(snapshot, camera, level === "dish" ? "colony" : level, {
-      maxGlyphs: Math.min(maxRepresentativeGlyphs, level === "dish" ? 140 : 260),
-      minimumDensity: lineageDensityMaximum * 0.12,
-    });
+    const glyphs = representativeGlyphsForCamera(
+      camera,
+      Math.min(maxRepresentativeGlyphs, level === "dish" ? 140 : 260),
+      lineageDensityMaximum * 0.12,
+    );
     const occupiedGlyphPositions: ScreenPoint[] = [];
     for (const glyph of glyphs) {
       const indexedLineage = lineagePresentations.byLineageId.get(

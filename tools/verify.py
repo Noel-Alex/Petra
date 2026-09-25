@@ -704,6 +704,193 @@ def scenario_contracts() -> int:
                 require_context=True,
             )
 
+            drug_record = obj.get("drug")
+            intervention_control = (
+                drug_record.get("interventionControl")
+                if isinstance(drug_record, dict)
+                else None
+            )
+            control_path = f"{prefix}: drug.interventionControl"
+            if not isinstance(intervention_control, dict):
+                errors.append(f"{control_path} must be an object")
+            else:
+                if intervention_control.get("schemaVersion") != 1:
+                    errors.append(f"{control_path}.schemaVersion must equal 1")
+
+                tool_authority = intervention_control.get("toolAuthority")
+                tool_path = f"{control_path}.toolAuthority"
+                if not isinstance(tool_authority, dict):
+                    errors.append(f"{tool_path} must be an object")
+                else:
+                    if tool_authority.get("schemaVersion") != 1:
+                        errors.append(f"{tool_path}.schemaVersion must equal 1")
+                    if tool_authority.get("tool") != "antibiotic":
+                        errors.append(f"{tool_path}.tool must equal 'antibiotic'")
+                    if tool_authority.get("protocolCommand") != "apply-ciprofloxacin":
+                        errors.append(
+                            f"{tool_path}.protocolCommand must equal 'apply-ciprofloxacin'"
+                        )
+                    parameter = tool_authority.get("parameter")
+                    parameter_path = f"{tool_path}.parameter"
+                    if not isinstance(parameter, dict):
+                        errors.append(f"{parameter_path} must be an object")
+                    else:
+                        if parameter.get("key") != "concentration":
+                            errors.append(
+                                f"{parameter_path}.key must equal 'concentration'"
+                            )
+                        if parameter.get("unit") != "mg/L":
+                            errors.append(f"{parameter_path}.unit must equal 'mg/L'")
+                        if parameter.get("minimum") != 0:
+                            errors.append(
+                                f"{parameter_path}.minimum must remain the Regoes tested-domain lower bound 0 mg/L"
+                            )
+                        if parameter.get("maximum") != 2:
+                            errors.append(
+                                f"{parameter_path}.maximum must remain the Regoes tested-domain upper bound 2 mg/L"
+                            )
+                        if parameter.get("defaultValue") != 0.03:
+                            errors.append(
+                                f"{parameter_path}.defaultValue must remain the explicit 0.03 mg/L engineering reference anchored to the Regoes CAB1 conventional MIC"
+                            )
+                        precision = parameter.get("precision")
+                        if (
+                            not isinstance(precision, int)
+                            or isinstance(precision, bool)
+                            or precision < 2
+                            or precision > 6
+                        ):
+                            errors.append(
+                                f"{parameter_path}.precision must preserve at least two decimal places and remain <= 6"
+                            )
+
+                    expected_geometries = {
+                        "global",
+                        "radial",
+                        "stripe",
+                        "paint",
+                    }
+                    geometries = tool_authority.get("supportedGeometries")
+                    if (
+                        not isinstance(geometries, list)
+                        or len(geometries) != len(expected_geometries)
+                        or set(geometries) != expected_geometries
+                    ):
+                        errors.append(
+                            f"{tool_path}.supportedGeometries must contain exactly the protocol-v6 ciprofloxacin geometry set"
+                        )
+                    if tool_authority.get("blendMode") != "set":
+                        errors.append(
+                            f"{tool_path}.blendMode must keep the flagship initial product action explicit as 'set'"
+                        )
+
+                source_domain = intervention_control.get("sourceTestedDomain")
+                source_path = f"{control_path}.sourceTestedDomain"
+                if not isinstance(source_domain, dict):
+                    errors.append(f"{source_path} must be an object")
+                else:
+                    if source_domain.get("minimumMgPerL") != 0:
+                        errors.append(
+                            f"{source_path}.minimumMgPerL must equal the Regoes tested lower bound 0"
+                        )
+                    if source_domain.get("maximumMgPerL") != 2:
+                        errors.append(
+                            f"{source_path}.maximumMgPerL must equal the Regoes tested upper bound 2"
+                        )
+                    _validate_presentation_provenance(
+                        source_domain,
+                        source_path,
+                        errors,
+                        require_context=True,
+                    )
+                    source_provenance = source_domain.get("provenance")
+                    if isinstance(source_provenance, dict):
+                        if source_provenance.get("classification") != "transferred":
+                            errors.append(
+                                f"{source_path}.provenance.classification must be transferred"
+                            )
+                        if source_provenance.get("citation") != "regoes_2004":
+                            errors.append(
+                                f"{source_path}.provenance.citation must equal 'regoes_2004'"
+                            )
+                        if not _nonempty_string(source_provenance.get("transferNote")):
+                            errors.append(
+                                f"{source_path}.provenance.transferNote is required"
+                            )
+                        if not _nonempty_string(source_provenance.get("limitation")):
+                            errors.append(
+                                f"{source_path}.provenance.limitation is required"
+                            )
+
+                default_selection = intervention_control.get("defaultSelection")
+                default_path = f"{control_path}.defaultSelection"
+                if not isinstance(default_selection, dict):
+                    errors.append(f"{default_path} must be an object")
+                else:
+                    if default_selection.get("valueMgPerL") != 0.03:
+                        errors.append(
+                            f"{default_path}.valueMgPerL must equal the explicit 0.03 mg/L engineering reference"
+                        )
+                    _validate_presentation_provenance(
+                        default_selection,
+                        default_path,
+                        errors,
+                        require_context=True,
+                    )
+                    default_provenance = default_selection.get("provenance")
+                    if isinstance(default_provenance, dict):
+                        if default_provenance.get("classification") != "engineering":
+                            errors.append(
+                                f"{default_path}.provenance.classification must be engineering"
+                            )
+                        if not _nonempty_string(default_provenance.get("limitation")):
+                            errors.append(
+                                f"{default_path}.provenance.limitation is required"
+                            )
+
+                reference_pd = (
+                    drug_record.get("referencePharmacodynamics")
+                    if isinstance(drug_record, dict)
+                    else None
+                )
+                if isinstance(reference_pd, dict):
+                    if reference_pd.get("conventionalMIC_mg_L") != 0.03:
+                        errors.append(
+                            f"{prefix}: drug.referencePharmacodynamics.conventionalMIC_mg_L must remain the curated Regoes CAB1 value 0.03 mg/L"
+                        )
+
+                if (
+                    isinstance(tool_authority, dict)
+                    and isinstance(tool_authority.get("parameter"), dict)
+                    and isinstance(source_domain, dict)
+                ):
+                    parameter = tool_authority["parameter"]
+                    if parameter.get("minimum") != source_domain.get("minimumMgPerL"):
+                        errors.append(
+                            f"{control_path}: tool minimum must match sourceTestedDomain.minimumMgPerL"
+                        )
+                    if parameter.get("maximum") != source_domain.get("maximumMgPerL"):
+                        errors.append(
+                            f"{control_path}: tool maximum must match sourceTestedDomain.maximumMgPerL"
+                        )
+                    if (
+                        isinstance(default_selection, dict)
+                        and parameter.get("defaultValue")
+                        != default_selection.get("valueMgPerL")
+                    ):
+                        errors.append(
+                            f"{control_path}: tool default must match defaultSelection.valueMgPerL"
+                        )
+                    if (
+                        isinstance(reference_pd, dict)
+                        and isinstance(default_selection, dict)
+                        and default_selection.get("valueMgPerL")
+                        != reference_pd.get("conventionalMIC_mg_L")
+                    ):
+                        errors.append(
+                            f"{control_path}: engineering default must remain explicitly anchored to referencePharmacodynamics.conventionalMIC_mg_L"
+                        )
+
         for ref_path, source_key in _citation_references(obj):
             reference_count += 1
             if not isinstance(source_key, str) or not source_key.strip():

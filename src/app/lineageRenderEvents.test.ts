@@ -44,7 +44,7 @@ describe("authoritative lineage-origin render events", () => {
 
     const events = projectLineageOriginRenderEvents({
       lineageRegistry: checkpoint,
-      activeLineageIds: [
+      renderLineageIds: [
         founder.lineageId,
         first.lineageId,
         second.lineageId,
@@ -83,7 +83,7 @@ describe("authoritative lineage-origin render events", () => {
 
     const events = projectLineageOriginRenderEvents({
       lineageRegistry: checkpoint,
-      activeLineageIds: [
+      renderLineageIds: [
         founder.lineageId,
         first.lineageId,
         second.lineageId,
@@ -104,11 +104,11 @@ describe("authoritative lineage-origin render events", () => {
   it("omits an extinct historical child so the current render snapshot keeps same-snapshot lineage identity", () => {
     const { checkpoint, founder, first, second } =
       checkpointWithSpatialChildren(true);
-    const activeLineageIds = [founder.lineageId, second.lineageId];
+    const renderLineageIds = [founder.lineageId, second.lineageId];
 
     const events = projectLineageOriginRenderEvents({
       lineageRegistry: checkpoint,
-      activeLineageIds,
+      renderLineageIds,
       gridWidth: 3,
       gridHeight: 2,
       dishMask: [1, 1, 1, 1, 1, 1],
@@ -140,7 +140,7 @@ describe("authoritative lineage-origin render events", () => {
         dishMask: new Uint8Array([1, 1, 1, 1, 1, 1]),
         biomass: new Float32Array(6),
         fields: [],
-        lineages: activeLineageIds.map((lineageId) => {
+        lineages: renderLineageIds.map((lineageId) => {
           const identity = resolveLineageVisualIdentity(lineageId);
           return {
             id: lineageId,
@@ -177,7 +177,7 @@ describe("authoritative lineage-origin render events", () => {
     expect(() =>
       projectLineageOriginRenderEvents({
         lineageRegistry: registry.checkpoint(),
-        activeLineageIds: [founder.lineageId],
+        renderLineageIds: [founder.lineageId],
         gridWidth: 3,
         gridHeight: 2,
         dishMask: [1, 1, 1, 1, 1, 1],
@@ -206,7 +206,7 @@ describe("authoritative lineage-origin render events", () => {
     expect(() =>
       projectLineageOriginRenderEvents({
         lineageRegistry: registry.checkpoint(),
-        activeLineageIds: [founder.lineageId, child.lineageId],
+        renderLineageIds: [founder.lineageId, child.lineageId],
         gridWidth: 2,
         gridHeight: 2,
         dishMask: [1, 0, 1, 1],
@@ -221,7 +221,7 @@ describe("authoritative lineage-origin render events", () => {
     expect(() =>
       projectLineageOriginRenderEvents({
         lineageRegistry: checkpoint,
-        activeLineageIds: [
+        renderLineageIds: [
           founder.lineageId,
           first.lineageId,
           second.lineageId,
@@ -234,12 +234,12 @@ describe("authoritative lineage-origin render events", () => {
     ).toThrow(/cannot occur after the snapshot time/);
   });
 
-  it("rejects active lineage identity that is not present in canonical registry authority", () => {
+  it("rejects render lineage identity that is not present in canonical registry authority", () => {
     const { checkpoint, founder, second } = checkpointWithSpatialChildren(true);
     expect(() =>
       projectLineageOriginRenderEvents({
         lineageRegistry: checkpoint,
-        activeLineageIds: [
+        renderLineageIds: [
           founder.lineageId,
           second.lineageId,
           "foreign-lineage",
@@ -249,6 +249,6 @@ describe("authoritative lineage-origin render events", () => {
         dishMask: [1, 1, 1, 1, 1, 1],
         snapshotSimulationTimeHours: 1,
       }),
-    ).toThrow(/active lineage is absent from registry/);
+    ).toThrow(/render lineage is absent from registry/);
   });
 });

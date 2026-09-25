@@ -120,7 +120,7 @@ export function buildSurrogateBenchmarkEvidence(args: {
   requireCompatibilityText("modelVersion", args.modelVersion);
   requireCompatibilityText("baselineId", args.baselineId);
 
-  if (args.dataset.schemaVersion !== "petra-ml-dataset-artifact-v3") {
+  if (args.dataset.schemaVersion !== "petra-ml-dataset-artifact-v4") {
     throw new RangeError("unsupported mechanistic dataset artifact schema version");
   }
 

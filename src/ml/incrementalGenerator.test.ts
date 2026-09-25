@@ -48,6 +48,9 @@ function definition(): MechanisticSweepDefinition {
       { id: "point-b", parameterSetHash: "params-b" },
       { id: "point-c", parameterSetHash: "params-11" },
     ],
+    runConditions: [
+      { id: "condition-a", fingerprint: "fixture-run-condition-a" },
+    ],
     interventionFamilies: [
       { id: "untreated", fingerprint: "none" },
       { id: "pulse", fingerprint: "dose-family-v1" },

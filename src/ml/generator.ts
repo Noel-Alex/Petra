@@ -16,9 +16,9 @@ import {
 } from "./sweep";
 
 export const MECHANISTIC_DATASET_ARTIFACT_SCHEMA_VERSION =
-  "petra-ml-dataset-artifact-v3" as const;
+  "petra-ml-dataset-artifact-v4" as const;
 export const MECHANISTIC_DATASET_ROW_SCHEMA_VERSION =
-  "petra-ml-dataset-row-v3" as const;
+  "petra-ml-dataset-row-v4" as const;
 
 export interface MechanisticTrajectoryResult<TInput, TTarget> {
   readonly taskId: string;
@@ -29,6 +29,7 @@ export interface MechanisticDatasetRow<TInput, TTarget> {
   readonly schemaVersion: typeof MECHANISTIC_DATASET_ROW_SCHEMA_VERSION;
   readonly taskId: string;
   readonly parameterPointId: string;
+  readonly runConditionId: string;
   readonly interventionFamilyId: string;
   readonly split: DatasetSplit;
   readonly splitGroupKey: string;
@@ -113,6 +114,7 @@ export function buildMechanisticDatasetArtifact<TInput, TTarget>(
         schemaVersion: MECHANISTIC_DATASET_ROW_SCHEMA_VERSION,
         taskId: task.taskId,
         parameterPointId: task.parameterPointId,
+        runConditionId: task.runConditionId,
         interventionFamilyId: task.interventionFamilyId,
         split: task.split,
         splitGroupKey: task.splitGroupKey,

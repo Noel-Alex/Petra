@@ -44,6 +44,10 @@ const DATASET_SCHEMA = {
   inputSchemaVersion: "aggregate-input-v1",
   targetSchemaVersion: "aggregate-target-v1",
 };
+const RUN_CONDITION = Object.freeze({
+  id: "fixture-condition",
+  fingerprint: "fixture-run-condition-v1",
+});
 
 function splitParameterPoints(): SweepParameterPoint[] {
   const family = createNoInterventionSweepFamily("untreated");
@@ -58,6 +62,7 @@ function splitParameterPoints(): SweepParameterPoint[] {
       parameterSetHash,
       scenarioId: SCENARIO,
       scenarioVersion: SCENARIO_VERSION,
+      runConditionFingerprint: RUN_CONDITION.fingerprint,
       groupId,
     });
     if (!wanted.has(split)) continue;
@@ -84,6 +89,7 @@ function plan(seeds: readonly number[] = [11, 22]): MechanisticSweepPlan {
     normalizationProfileId: "none-v1",
     datasetSchema: DATASET_SCHEMA,
     parameterPoints: splitParameterPoints(),
+    runConditions: [RUN_CONDITION],
     interventionFamilies: [createNoInterventionSweepFamily("untreated")],
     seeds,
     maxTrajectories: 32,
@@ -264,6 +270,9 @@ describe("first aggregate dataset evidence", () => {
     expect(evidence.status).toBe("complete");
     expect(evidence.artifactIntegrityVerified).toBe(true);
     expect(evidence.promotionEvidence).toBe(false);
+    expect(evidence.plan.runConditionFingerprints).toEqual([
+      RUN_CONDITION.fingerprint,
+    ]);
     expect(evidence.dataset?.sampleCount).toBe(12);
     expect(evidence.dataset?.terminationReasonCounts).toEqual({
       "completed-horizon": 6,

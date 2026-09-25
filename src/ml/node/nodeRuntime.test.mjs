@@ -49,6 +49,9 @@ function definition() {
       { id: "point-b", parameterSetHash: "params-b" },
       { id: "point-c", parameterSetHash: "params-11" },
     ],
+    runConditions: [
+      { id: "condition-a", fingerprint: "node-fixture-run-condition-a" },
+    ],
     interventionFamilies: [
       { id: "untreated", fingerprint: "none" },
       { id: "pulse", fingerprint: "dose-family-v1" },
@@ -165,6 +168,7 @@ describe("Node mechanistic sweep adapters", () => {
           scenarioId: "scenario",
           scenarioVersion: "1",
           parameterSetHash: "params",
+          runConditionFingerprint: "node-fixture-run-condition-a",
           interventionFingerprint: "none",
         },
         seed: 1,
@@ -176,6 +180,7 @@ describe("Node mechanistic sweep adapters", () => {
         targetSchemaVersion: "target",
       },
       parameterPointId: "point",
+      runConditionId: "condition-a",
       interventionFamilyId: "none",
     });
 

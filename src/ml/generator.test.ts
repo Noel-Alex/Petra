@@ -42,6 +42,7 @@ function definition(): MechanisticSweepDefinition {
       { id: "point-b", parameterSetHash: "params-b" },
       { id: "point-c", parameterSetHash: "params-11" },
     ],
+    runConditions: [{ id: "condition-a", fingerprint: "cond-1" }],
     interventionFamilies: [
       { id: "untreated", fingerprint: "none" },
       { id: "pulse", fingerprint: "dose-family-v1" },
@@ -98,7 +99,7 @@ describe("mechanistic ML dataset generator", () => {
 
     expect(reversed).toEqual(first);
     expect(first.summary).toMatchObject({
-      schemaVersion: "petra-ml-dataset-artifact-v3",
+      schemaVersion: "petra-ml-dataset-artifact-v4",
       planVersion: plan.planVersion,
       datasetVersion: plan.datasetVersion,
       engineVersion: plan.engineVersion,
@@ -118,6 +119,7 @@ describe("mechanistic ML dataset generator", () => {
     expect(first.rows[0]).toMatchObject({
       taskId: plan.tasks[0]!.taskId,
       parameterPointId: plan.tasks[0]!.parameterPointId,
+      runConditionId: plan.tasks[0]!.runConditionId,
       interventionFamilyId: plan.tasks[0]!.interventionFamilyId,
       split: plan.tasks[0]!.split,
       splitGroupKey: plan.tasks[0]!.splitGroupKey,

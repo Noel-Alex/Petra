@@ -68,12 +68,12 @@ export function projectAuthoritativeComposedDishSnapshot(
     );
   }
 
-  const dishMask = Uint8Array.from(state.mask);
-  for (const value of dishMask) {
+  for (const value of state.mask) {
     if (value !== 0 && value !== 1) {
       throw new Error("composed dish projection requires a binary dish mask");
     }
   }
+  const dishMask = Uint8Array.from(state.mask);
 
   const biomass = new Float32Array(cells);
   const lineages: RenderLineage[] = state.lineageIds.map(
@@ -85,16 +85,16 @@ export function projectAuthoritativeComposedDishSnapshot(
         );
       }
 
+      assertSourceMaskedZero(
+        `lineage ${JSON.stringify(lineageId)} biomass`,
+        source,
+        state.mask,
+      );
       const density = finiteFloat32Field(
         `lineage ${JSON.stringify(lineageId)} biomass`,
         source,
       );
       for (let cell = 0; cell < cells; cell += 1) {
-        if (dishMask[cell] === 0 && density[cell] !== 0) {
-          throw new Error(
-            `lineage ${JSON.stringify(lineageId)} biomass must be zero outside the dish mask`,
-          );
-        }
         biomass[cell] = finiteFloat32(
           "aggregate model biomass",
           biomass[cell]! + density[cell]!,
@@ -112,6 +112,16 @@ export function projectAuthoritativeComposedDishSnapshot(
     },
   );
 
+  assertSourceMaskedZero(
+    "limiting model resource",
+    state.resource,
+    state.mask,
+  );
+  assertSourceMaskedZero(
+    "ciprofloxacin concentration",
+    state.ciprofloxacinConcentrationMgPerL,
+    state.mask,
+  );
   const resource = finiteFloat32Field(
     "limiting model resource",
     state.resource,
@@ -120,8 +130,6 @@ export function projectAuthoritativeComposedDishSnapshot(
     "ciprofloxacin concentration",
     state.ciprofloxacinConcentrationMgPerL,
   );
-  assertMaskedZero("limiting model resource", resource, dishMask);
-  assertMaskedZero("ciprofloxacin concentration", ciprofloxacin, dishMask);
 
   const fields: RenderField[] = [
     renderField(
@@ -242,10 +250,10 @@ function finiteFloat32(name: string, value: number): number {
   return rounded;
 }
 
-function assertMaskedZero(
+function assertSourceMaskedZero(
   name: string,
-  values: Float32Array,
-  mask: Uint8Array,
+  values: readonly number[],
+  mask: readonly number[],
 ): void {
   for (let index = 0; index < values.length; index += 1) {
     if (mask[index] === 0 && values[index] !== 0) {

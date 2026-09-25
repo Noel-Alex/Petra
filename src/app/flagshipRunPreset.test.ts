@@ -11,7 +11,7 @@ describe("default flagship run preset", () => {
   it("binds the current composed flagship authority without upgrading engineering run state", () => {
     const { preset, plan, ciprofloxacinToolAuthority, ciprofloxacinControlProvenance } = buildDefaultFlagshipRun();
 
-    expect(preset.version).toBe("1.0.5");
+    expect(preset.version).toBe("1.0.6");
     expect(preset.protocolVersion).toBe(PROTOCOL_VERSION);
     expect(preset.classification).toBe("engineering");
     expect(preset.usageScope).toBe("research-expo-engineering-default");

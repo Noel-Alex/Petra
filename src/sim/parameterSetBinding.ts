@@ -20,6 +20,13 @@ export interface ComposedParameterSetBinding {
   readonly parameterSetId: string
   readonly parameterSetVersion: string
   readonly configurationFingerprint: string
+  /**
+   * Canonical identity of an accepted parameter/source compatibility decision.
+   *
+   * Omitted for legacy/fixture bindings and for provenance packs that do not
+   * compose records across an explicit compatibility/transfer boundary.
+   */
+  readonly parameterCompatibilityDecisionIdentity?: string
 }
 
 export interface ParameterSetBoundIdentity {
@@ -99,6 +106,26 @@ export function assertComposedParameterSetBindingRecord(
     'bound composed configuration fingerprint',
     binding.configurationFingerprint,
   )
+  if (binding.parameterCompatibilityDecisionIdentity !== undefined) {
+    canonicalIdentity(
+      'bound parameter compatibility decision identity',
+      binding.parameterCompatibilityDecisionIdentity,
+    )
+    if (
+      !binding.parameterCompatibilityDecisionIdentity.startsWith(
+        'parameter-compatibility-v1:',
+      )
+    ) {
+      throw new Error(
+        'bound parameter compatibility decision identity must use the canonical parameter-compatibility-v1 namespace',
+      )
+    }
+    if (binding.authority !== 'provenance') {
+      throw new Error(
+        'parameter compatibility decision identity is provenance-only authority',
+      )
+    }
+  }
 
   if (binding.authority === 'fixture') {
     if (!binding.parameterSetId.startsWith('fixture:')) {
@@ -155,6 +182,8 @@ export function sameComposedParameterSetBinding(
     left.authority === right.authority &&
     left.parameterSetId === right.parameterSetId &&
     left.parameterSetVersion === right.parameterSetVersion &&
-    left.configurationFingerprint === right.configurationFingerprint
+    left.configurationFingerprint === right.configurationFingerprint &&
+    left.parameterCompatibilityDecisionIdentity ===
+      right.parameterCompatibilityDecisionIdentity
   )
 }

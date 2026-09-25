@@ -240,6 +240,118 @@ describe("experiment runtime", () => {
     });
   });
 
+  it("routes a validated intervention only after ciprofloxacin acceptance evidence", () => {
+    const { port, runtime } = readyRuntime();
+    const command = {
+      id: "intervention-1",
+      type: "apply-ciprofloxacin" as const,
+      intervention: {
+        schemaVersion: 1 as const,
+        concentrationMgPerL: 0,
+        concentrationUnit: "mg/L" as const,
+        blendMode: "set" as const,
+        geometry: { kind: "global" as const },
+      },
+    };
+
+    expect(runtime.dispatchAuthoritativeCommand(command)).toEqual({
+      accepted: true,
+      reason: null,
+    });
+    expect(runtime.state.controls.acceptedCommands).toEqual([]);
+    expect(port.posted[1]).toEqual({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "command",
+      command,
+    });
+    expect(
+      runtime.dispatchAuthoritativeCommand({
+        ...command,
+        id: "intervention-busy",
+      }),
+    ).toEqual({ accepted: false, reason: "worker-busy" });
+
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      commandId: command.id,
+      snapshot: makeSnapshot({
+        tick: 0,
+        commandCount: 1,
+        events: [
+          {
+            sequence: 0,
+            tick: 0,
+            simulationTimeHours: 0,
+            type: "initialized",
+          },
+          {
+            sequence: 1,
+            tick: 0,
+            simulationTimeHours: 0,
+            type: "ciprofloxacin-applied",
+            commandId: command.id,
+            intervention: command.intervention,
+          },
+        ],
+      }),
+    });
+
+    expect(runtime.state.controls.acceptedCommands).toEqual([command]);
+    expect(runtime.state.timeline.at(-1)).toMatchObject({
+      commandId: command.id,
+      kind: "intervention",
+    });
+  });
+
+  it("does not promote a same-id intervention on the wrong authoritative event type", () => {
+    const { port, runtime } = readyRuntime();
+    const command = {
+      id: "intervention-1",
+      type: "apply-ciprofloxacin" as const,
+      intervention: {
+        schemaVersion: 1 as const,
+        concentrationMgPerL: 0,
+        concentrationUnit: "mg/L" as const,
+        blendMode: "set" as const,
+        geometry: { kind: "global" as const },
+      },
+    };
+
+    expect(runtime.dispatchAuthoritativeCommand(command)).toEqual({
+      accepted: true,
+      reason: null,
+    });
+
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      commandId: command.id,
+      snapshot: makeSnapshot({
+        tick: 1,
+        commandCount: 1,
+        events: [
+          {
+            sequence: 0,
+            tick: 0,
+            simulationTimeHours: 0,
+            type: "initialized",
+          },
+          {
+            sequence: 1,
+            tick: 1,
+            simulationTimeHours: 1 / 60,
+            type: "advanced",
+            commandId: command.id,
+            value: 1,
+          },
+        ],
+      }),
+    });
+
+    expect(runtime.state.controls.acceptedCommands).toEqual([]);
+  });
+
   it("does not pile playback requests while the worker is busy", () => {
     const { port, runtime } = readyRuntime(["playback-1", "playback-2"]);
 

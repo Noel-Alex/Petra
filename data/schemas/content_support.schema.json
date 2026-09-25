@@ -138,6 +138,15 @@
                     ]
                   }
                 }
+              },
+              "organisms": {
+                "items": {
+                  "properties": {
+                    "taxon": {
+                      "$ref": "#/$defs/taxonReference"
+                    }
+                  }
+                }
               }
             }
           }
@@ -147,6 +156,7 @@
     "organism": {
       "type": "object",
       "required": [
+        "taxon",
         "scientificName",
         "background",
         "microbialGroup",
@@ -171,6 +181,16 @@
             "null"
           ],
           "minLength": 1
+        },
+        "taxon": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/taxonReference"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "additionalProperties": false
@@ -321,6 +341,22 @@
           }
         },
         "reason": {
+          "$ref": "#/$defs/canonicalText"
+        }
+      },
+      "additionalProperties": false
+    },
+    "taxonReference": {
+      "type": "object",
+      "required": [
+        "id",
+        "contentVersion"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/canonicalText"
+        },
+        "contentVersion": {
           "$ref": "#/$defs/canonicalText"
         }
       },

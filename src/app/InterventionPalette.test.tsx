@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { createInterventionPlacementState, beginInterventionPlacement } from "../ui/interventionPlacement";
 import { App } from "./App";
 import { InterventionPalette } from "./InterventionPalette";
+import { buildFlagshipCiprofloxacinControlAuthority } from "./flagshipInterventionAuthority";
 
 describe("InterventionPalette", () => {
   it("offers placement-only tools when runtime is ready while scientific Apply stays locked", () => {
@@ -28,6 +29,26 @@ describe("InterventionPalette", () => {
     expect(html).toContain('role="status"');
     expect(html).toContain("Protocol v5 supports authoritative ciprofloxacin application");
     expect(html).not.toMatch(/mg\/l|µg\/ml|dose|concentration/i);
+  });
+
+  it("accepts validated scenario-owned ciprofloxacin metadata without enabling unsupported tool families", () => {
+    const metadata = buildFlagshipCiprofloxacinControlAuthority().toolAuthority;
+    const html = renderToStaticMarkup(
+      <InterventionPalette
+        motion="full"
+        runtimeStatus="ready"
+        ciprofloxacinMetadata={metadata}
+        placement={createInterventionPlacementState()}
+      />,
+    );
+
+    expect(html).not.toContain(
+      'data-intervention-capability="authoritative-metadata-unavailable"',
+    );
+    expect(html).toContain(
+      "Authoritative ciprofloxacin intervention metadata is available.",
+    );
+    expect(html.match(/place preview/g)).toHaveLength(4);
   });
 
   it("shows keyboard-equivalent coordinates and a disabled Apply gate while placing", () => {

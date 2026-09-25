@@ -3,8 +3,8 @@
 
 Starts a minimal Vite page plus Chrome/Chromium, imports Petra's actual browser
 WorkerSession and flagship composed run-plan boundary, executes a deterministic
-advance workload, and writes compact observational transport evidence through
-PETRA_LOCAL_RESULT_JSON.
+advance workload plus a matched-biological-state event-history-age probe, and
+writes compact observational transport evidence through PETRA_LOCAL_RESULT_JSON.
 
 This helper intentionally does not choose an optimization. It exists to make
 #630's before/after evidence runnable before transferable buffers, downsampling,
@@ -119,7 +119,7 @@ def profile_expression(advance_ticks: list[int]) -> str:
       const timer = window.setTimeout(() => {
         unsubscribe();
         reject(new Error("Timed out waiting for " + label));
-      }, 30000);
+      }, 120000);
       unsubscribe = targetSession.subscribe((state) => {
         if (state.phase === "ready") {
           window.clearTimeout(timer);
@@ -261,6 +261,11 @@ def profile_expression(advance_ticks: list[int]) -> str:
         if (snapshot.events.length !== frontier) {
           throw new Error(
             "snapshot-only history probe changed authoritative event count",
+          );
+        }
+        if (snapshot.checkpoint.commandCount !== frontier - 1) {
+          throw new Error(
+            "history-age workload command position does not match zero-tick event growth",
           );
         }
 
@@ -696,7 +701,7 @@ def main() -> int:
         return 0
     except Exception as exc:
         result = {
-            "schema_version": 1,
+            "schema_version": 2,
             "kind": "petra-worker-transport-profile",
             "status": "failed",
             "target_url": TARGET_URL,

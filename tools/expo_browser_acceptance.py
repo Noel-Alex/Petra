@@ -223,7 +223,7 @@ def check(name: str, passed: bool, detail: Any = None, status: str | None = None
 
 
 def install_browser_performance_probes(cdp: CDP) -> None:
-    """Install local-only renderer/jank probes before Petra page scripts execute."""
+    """Install local-only renderer/jank/publication probes for subsequent workloads."""
     source = r"""
 (() => {
   const state = {
@@ -235,6 +235,7 @@ def install_browser_performance_probes(cdp: CDP) -> None:
     gcSupported: false,
     wrappedMethods: [],
     observers: [],
+    renderPublicationSamples: [],
     windowStart: performance.now()
   };
 
@@ -301,6 +302,18 @@ def install_browser_performance_probes(cdp: CDP) -> None:
     enumerable: false,
     value: state
   });
+
+  Object.defineProperty(globalThis, '__petraRenderPublicationPerformanceProbe', {
+    configurable: false,
+    enumerable: false,
+    value: Object.freeze({
+      version: 1,
+      now: () => performance.now(),
+      observe: (sample) => {
+        state.renderPublicationSamples.push(sample);
+      }
+    })
+  });
 })();
 """
     cdp.eval(source)
@@ -315,6 +328,7 @@ def reset_browser_performance_probe(cdp: CDP) -> None:
           probe.drawCallsByMethod = {};
           probe.longTasks = [];
           probe.gcEvents = [];
+          probe.renderPublicationSamples = [];
           probe.windowStart = performance.now();
           return true;
         })()"""
@@ -344,11 +358,255 @@ def browser_performance_probe_snapshot(cdp: CDP) -> dict[str, Any] | None:
             longTaskMaxMs: longTaskDurations.length ? Math.max(...longTaskDurations) : 0,
             gcSupported: probe.gcSupported,
             gcEventCount: gcEvents.length,
-            gcTotalMs: gcDurations.reduce((sum, value) => sum + value, 0)
+            gcTotalMs: gcDurations.reduce((sum, value) => sum + value, 0),
+            renderPublicationSamples: probe.renderPublicationSamples.map((sample) => ({
+              ...sample,
+              payloadEstimate: sample.payloadEstimate
+                ? { ...sample.payloadEstimate }
+                : null
+            }))
           };
         })()"""
     )
     return snapshot if isinstance(snapshot, dict) else None
+
+
+def click_exact_run_control(cdp: CDP, label: str) -> bool:
+    result = cdp.eval(
+        """(() => {
+          const root = document.querySelector('[aria-label="Run controls"]');
+          if (!root) return false;
+          const label = __LABEL__;
+          const button = Array.from(root.querySelectorAll('button')).find(
+            (candidate) => candidate.textContent?.trim() === label
+          );
+          if (!(button instanceof HTMLButtonElement) || button.disabled) return false;
+          button.click();
+          return true;
+        })()""".replace("__LABEL__", json.dumps(label))
+    )
+    return result is True
+
+
+def wait_run_controls_ready(cdp: CDP, timeout: float = 10.0) -> bool:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        status = cdp.eval(
+            """document.querySelector('[aria-label="Run controls"]')
+              ?.getAttribute('data-run-controls-status') ?? null"""
+        )
+        if status == "ready":
+            return True
+        if status == "error":
+            return False
+        time.sleep(0.025)
+    return False
+
+
+def distribution_summary(values: list[float]) -> dict[str, Any]:
+    finite = sorted(value for value in values if isinstance(value, (int, float)))
+    if not finite:
+        return {"count": 0, "mean": None, "p50": None, "p95": None, "max": None}
+
+    def nearest_rank(fraction: float) -> float:
+        rank = max(1, int((len(finite) * fraction) + 0.999999999))
+        return finite[min(len(finite) - 1, rank - 1)]
+
+    return {
+        "count": len(finite),
+        "mean": round(sum(finite) / len(finite), 6),
+        "p50": round(nearest_rank(0.50), 6),
+        "p95": round(nearest_rank(0.95), 6),
+        "max": round(finite[-1], 6),
+    }
+
+
+def summarize_render_publication_samples(
+    samples: list[dict[str, Any]],
+    observation_window_ms: float,
+) -> dict[str, Any]:
+    transactions: dict[tuple[Any, ...], dict[str, dict[str, Any]]] = {}
+    for sample in samples:
+        if not isinstance(sample, dict):
+            continue
+        key = (
+            sample.get("runBranchIdentity"),
+            sample.get("traceHash"),
+            sample.get("tick"),
+            sample.get("commandCount"),
+            sample.get("simulationTimeHours"),
+        )
+        phase = sample.get("phase")
+        if phase not in {
+            "runtime-snapshot-published",
+            "dish-projection",
+            "react-dish-committed",
+        }:
+            continue
+        record = transactions.setdefault(key, {})
+        # React development StrictMode may repeat an effect. Keep the earliest
+        # sample for one exact authoritative transaction/phase.
+        existing = record.get(phase)
+        if existing is None:
+            record[phase] = sample
+        else:
+            old_time = existing.get("observedAtMs", existing.get("projectionStartedAtMs"))
+            new_time = sample.get("observedAtMs", sample.get("projectionStartedAtMs"))
+            if isinstance(new_time, (int, float)) and (
+                not isinstance(old_time, (int, float)) or new_time < old_time
+            ):
+                record[phase] = sample
+
+    runtime_samples = [
+        record["runtime-snapshot-published"]
+        for record in transactions.values()
+        if "runtime-snapshot-published" in record
+    ]
+    projection_samples = [
+        record["dish-projection"]
+        for record in transactions.values()
+        if record.get("dish-projection", {}).get("outcome") == "snapshot"
+    ]
+    commit_samples = [
+        record["react-dish-committed"]
+        for record in transactions.values()
+        if "react-dish-committed" in record
+    ]
+    complete = [
+        record
+        for record in transactions.values()
+        if "runtime-snapshot-published" in record
+        and record.get("dish-projection", {}).get("outcome") == "snapshot"
+        and "react-dish-committed" in record
+    ]
+
+    runtime_to_projection_ms: list[float] = []
+    projection_to_commit_ms: list[float] = []
+    runtime_to_commit_ms: list[float] = []
+    for record in complete:
+        runtime_at = record["runtime-snapshot-published"].get("observedAtMs")
+        projection_start = record["dish-projection"].get("projectionStartedAtMs")
+        projection_end = record["dish-projection"].get("projectionCompletedAtMs")
+        commit_at = record["react-dish-committed"].get("observedAtMs")
+        if all(
+            isinstance(value, (int, float))
+            for value in (runtime_at, projection_start, projection_end, commit_at)
+        ):
+            runtime_to_projection_ms.append(projection_start - runtime_at)
+            projection_to_commit_ms.append(commit_at - projection_end)
+            runtime_to_commit_ms.append(commit_at - runtime_at)
+
+    payloads = [
+        sample.get("payloadEstimate")
+        for sample in projection_samples
+        if isinstance(sample.get("payloadEstimate"), dict)
+    ]
+    seconds = observation_window_ms / 1000 if observation_window_ms > 0 else 0
+    return {
+        "sampleCount": len(samples),
+        "authoritativeTransactionCount": len(runtime_samples),
+        "dishProjectionCount": len(projection_samples),
+        "reactCommitCount": len(commit_samples),
+        "completeTransactionCount": len(complete),
+        "observationWindowMs": round(observation_window_ms, 3),
+        "authoritativeTransactionsPerSecond": (
+            round(len(runtime_samples) / seconds, 3) if seconds > 0 else None
+        ),
+        "reactCommitsPerSecond": (
+            round(len(commit_samples) / seconds, 3) if seconds > 0 else None
+        ),
+        "projectionDurationMs": distribution_summary([
+            float(sample["projectionDurationMs"])
+            for sample in projection_samples
+            if isinstance(sample.get("projectionDurationMs"), (int, float))
+        ]),
+        "payloadEstimateOverheadMs": distribution_summary([
+            float(sample["payloadEstimateDurationMs"])
+            for sample in projection_samples
+            if isinstance(sample.get("payloadEstimateDurationMs"), (int, float))
+        ]),
+        "runtimeToProjectionStartMs": distribution_summary(runtime_to_projection_ms),
+        "projectionEndToReactCommitMs": distribution_summary(projection_to_commit_ms),
+        "runtimeToReactCommitMs": distribution_summary(runtime_to_commit_ms),
+        "estimatedApplicationPayloadBytes": distribution_summary([
+            float(payload["estimatedApplicationPayloadBytes"])
+            for payload in payloads
+            if isinstance(payload.get("estimatedApplicationPayloadBytes"), (int, float))
+        ]),
+        "uniqueBackingBufferBytes": distribution_summary([
+            float(payload["uniqueBackingBufferBytes"])
+            for payload in payloads
+            if isinstance(payload.get("uniqueBackingBufferBytes"), (int, float))
+        ]),
+        "typedArrayReferenceBytes": distribution_summary([
+            float(payload["typedArrayReferenceBytes"])
+            for payload in payloads
+            if isinstance(payload.get("typedArrayReferenceBytes"), (int, float))
+        ]),
+        "netGrowthProjectionCount": sum(
+            sample.get("hasNetGrowthField") is True for sample in projection_samples
+        ),
+        "evidenceBoundary": (
+            "Wall-clock observations correlate one accepted ExperimentRuntime snapshot publication, "
+            "the product composed-to-dish projection, and the first matching React dish commit by "
+            "run branch + trace + tick + accepted command position + simulation time. Projection "
+            "duration excludes payload-estimator overhead. Payload bytes are renderer application-"
+            "data sizing estimates, not Worker wire framing, bandwidth, heap/GPU memory, or proof "
+            "that a transport/cadence architecture change is beneficial."
+        ),
+    }
+
+
+def profile_authoritative_render_publication(
+    cdp: CDP,
+    speed: int,
+    wall_seconds: float = 1.25,
+) -> dict[str, Any]:
+    # Use the same seed/genesis for each speed when Reset is available. The
+    # first profile may already be at genesis, where Reset can legitimately be
+    # unavailable; later profiles should reset after their accepted commands.
+    reset_applied = click_exact_run_control(cdp, "Reset")
+    if reset_applied and not wait_run_controls_ready(cdp):
+        raise RuntimeError(f"runtime did not become ready after reset before {speed}x profile")
+
+    if not click_exact_run_control(cdp, f"{speed}×"):
+        raise RuntimeError(f"could not select {speed}x playback speed")
+
+    reset_browser_performance_probe(cdp)
+    window_start = cdp.eval("performance.now()")
+    if not click_exact_run_control(cdp, "Play"):
+        raise RuntimeError(f"could not start {speed}x authoritative playback")
+
+    time.sleep(wall_seconds)
+
+    if not click_exact_run_control(cdp, "Pause"):
+        raise RuntimeError(f"could not pause {speed}x authoritative playback")
+    if not wait_run_controls_ready(cdp):
+        raise RuntimeError(f"runtime did not settle after {speed}x playback profile")
+    window_end = cdp.eval("performance.now()")
+
+    probe = browser_performance_probe_snapshot(cdp) or {}
+    samples = probe.get("renderPublicationSamples")
+    if not isinstance(samples, list):
+        samples = []
+    observation_window_ms = (
+        float(window_end) - float(window_start)
+        if isinstance(window_start, (int, float)) and isinstance(window_end, (int, float))
+        else wall_seconds * 1000
+    )
+    return {
+        "speed": speed,
+        "resetApplied": reset_applied,
+        "requestedWallSeconds": wall_seconds,
+        "summary": summarize_render_publication_samples(
+            [sample for sample in samples if isinstance(sample, dict)],
+            observation_window_ms,
+        ),
+        "longTaskSupported": probe.get("longTaskSupported"),
+        "longTaskCount": probe.get("longTaskCount"),
+        "longTaskTotalMs": probe.get("longTaskTotalMs"),
+        "longTaskMaxMs": probe.get("longTaskMaxMs"),
+    }
 
 
 def chromium_runtime_metrics(cdp: CDP) -> dict[str, Any]:
@@ -1590,6 +1848,24 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
             ),
         ]
     )
+
+    # The product profiler is opt-in through the experiment-installed global
+    # sink above. Collect the missing accepted-runtime -> dish projection ->
+    # React publication seam at the three exposed playback speeds without
+    # changing scientific cadence or selecting an optimization.
+    click_overview_reset(cdp)
+    time.sleep(0.1)
+    for speed in (1, 4, 16):
+        publication_profile = profile_authoritative_render_publication(cdp, speed)
+        publication_summary = publication_profile["summary"]
+        checks.append(
+            check(
+                f"performance publication {speed}x: correlated authoritative transactions captured",
+                publication_summary["completeTransactionCount"] > 0,
+                publication_profile,
+            )
+        )
+
     return checks
 
 
@@ -1683,8 +1959,9 @@ def main() -> int:
         "evidence_boundary": (
             "Headless browser evidence checks layout, accessibility plumbing, motion modes, "
             "input event ownership/cancellation, pointer continuity, screenshots, representative renderer frame/redraw time, WebGL draw-call "
-            "counts from a separate profiled redraw workload, Chromium heap/DOM trends, and "
-            "long-task/GC symptoms where exposed. The GPU "
+            "counts from a separate profiled redraw workload, Chromium heap/DOM trends, long-task/GC symptoms where exposed, and 1x/4x/16x "
+            "accepted-runtime -> dish-projection -> React-publication timing/rate evidence. Publication payload sizes are application-data "
+            "estimates rather than browser transport measurements. The GPU "
             "record is explicitly a canvas/capability proxy, not measured VRAM. Human visible-browser "
             "review remains required for final aesthetic judgment; this run does not validate "
             "scientific correctness or simulator throughput."

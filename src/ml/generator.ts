@@ -10,13 +10,18 @@ import {
   type MechanisticSample,
 } from "./dataset";
 import {
+  mechanisticExecutionScheduleIdentity,
+  validateMechanisticExecutionSchedule,
+  type MechanisticExecutionSchedule,
+} from "./executionSchedule";
+import {
   validateSplitCoveragePolicy,
   type MechanisticSweepPlan,
   type MechanisticSweepTask,
 } from "./sweep";
 
 export const MECHANISTIC_DATASET_ARTIFACT_SCHEMA_VERSION =
-  "petra-ml-dataset-artifact-v4" as const;
+  "petra-ml-dataset-artifact-v5" as const;
 export const MECHANISTIC_DATASET_ROW_SCHEMA_VERSION =
   "petra-ml-dataset-row-v4" as const;
 
@@ -46,6 +51,8 @@ export interface MechanisticDatasetSummary {
   readonly scenarioVersion: string;
   readonly normalizationProfileId: string;
   readonly datasetSchema: MechanisticDatasetSchemaIdentity;
+  readonly executionSchedule: MechanisticExecutionSchedule;
+  readonly executionScheduleIdentity: string;
   readonly splitPolicyVersion: string;
   readonly splitCoveragePolicyVersion: string;
   readonly groupCount: number;
@@ -138,6 +145,8 @@ export function buildMechanisticDatasetArtifact<TInput, TTarget>(
     scenarioVersion: plan.scenarioVersion,
     normalizationProfileId: plan.normalizationProfileId,
     datasetSchema: Object.freeze({ ...plan.datasetSchema }),
+    executionSchedule: Object.freeze({ ...plan.executionSchedule }),
+    executionScheduleIdentity: plan.executionScheduleIdentity,
     splitPolicyVersion: plan.splitPolicy.version,
     splitCoveragePolicyVersion: plan.splitCoveragePolicy.version,
     groupCount: plan.groupCount,
@@ -193,6 +202,11 @@ export function validatePlanForCollection(
   requireNonEmpty("scenarioVersion", plan.scenarioVersion);
   requireNonEmpty("normalizationProfileId", plan.normalizationProfileId);
   validateMechanisticDatasetSchemaIdentity(plan.datasetSchema);
+  validateMechanisticExecutionSchedule(plan.executionSchedule);
+  const expectedScheduleIdentity = mechanisticExecutionScheduleIdentity(plan.executionSchedule);
+  if (plan.executionScheduleIdentity !== expectedScheduleIdentity) {
+    throw new TypeError("mechanistic sweep executionScheduleIdentity does not match executionSchedule");
+  }
   const planDatasetSchemaKey = mechanisticDatasetSchemaKey(plan.datasetSchema);
   validateSplitCoveragePolicy(plan.splitCoveragePolicy);
 
@@ -225,6 +239,10 @@ export function validatePlanForCollection(
     }
     taskById.set(task.taskId, task);
 
+    if (task.executionScheduleIdentity !== plan.executionScheduleIdentity ||
+        mechanisticExecutionScheduleIdentity(task.executionSchedule) !== plan.executionScheduleIdentity) {
+      throw new TypeError(`task ${task.taskId} execution schedule does not match sweep plan`);
+    }
     if (task.datasetVersion !== plan.datasetVersion) {
       throw new TypeError(
         `task ${task.taskId} datasetVersion does not match its sweep plan`,

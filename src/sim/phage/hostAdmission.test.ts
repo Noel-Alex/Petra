@@ -7,6 +7,7 @@ import { buildFlagshipComposedRunPlan } from "../flagshipComposition";
 import { buildTwoBacteriumSharedResourceRunPlan } from "../twoBacteriumComposition";
 import {
   T4_FLAGSHIP_MG1655_HOST_ADMISSION,
+  phageHostAdmissionAuthorityIdentity,
   resolveAdmittedPhageHostLineages,
   validatePhageHostAdmissionAuthority,
   type PhageHostAdmissionAuthority,
@@ -29,6 +30,22 @@ function flagship() {
 }
 
 describe("T4/MG1655 runtime host admission", () => {
+  it("has a canonical replay/configuration identity for the reviewed host binding", () => {
+    const identity = JSON.parse(phageHostAdmissionAuthorityIdentity()) as {
+      runtimeHost: { taxonId: string; taxonContentVersion: string; genotypeId: string };
+      phage: { collectionId: string };
+      provenance: { classification: string };
+    };
+
+    expect(identity.runtimeHost).toMatchObject({
+      taxonId: "ecoli-k12-mg1655",
+      taxonContentVersion: "1.0.0",
+      genotypeId: "WT",
+    });
+    expect(identity.phage.collectionId).toBe("DSM 4505");
+    expect(identity.provenance.classification).toBe("transferred");
+  });
+
   it("admits only the exact flagship MG1655@1.0.0 WT lineage", () => {
     const { plan, state } = flagship();
 

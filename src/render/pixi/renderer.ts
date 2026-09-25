@@ -265,7 +265,6 @@ export async function createPixiDishRenderer(
       organismPresentation,
       selection,
       camera,
-      overlayId,
       motion,
       maxRepresentativeGlyphs,
       plateLayer,

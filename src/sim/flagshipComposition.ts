@@ -8,6 +8,11 @@ import {
   projectEcologyExecutionProfile,
   type EcologyExecutionProjection,
 } from './ecology/executionProfile'
+import {
+  projectFlagshipCiprofloxacinControl,
+  type FlagshipCiprofloxacinControlProvenance,
+  type FlagshipCiprofloxacinToolAuthority,
+} from './flagshipInterventionControl'
 import { buildCuratedMutationGraph } from './evolution/graph'
 import {
   COMPOSED_PARAMETER_SET_BINDING_SCHEMA_VERSION,
@@ -49,6 +54,8 @@ export interface FlagshipComposedRunPlan {
   readonly parameterSetBinding: ComposedParameterSetBinding
   readonly executionProfile: EcologyExecutionProjection
   readonly resourceContext: ScenarioResourceContext
+  readonly ciprofloxacinToolAuthority: FlagshipCiprofloxacinToolAuthority
+  readonly ciprofloxacinControlProvenance: FlagshipCiprofloxacinControlProvenance
 }
 
 interface BaselineLineageRecord {
@@ -571,6 +578,10 @@ export function buildFlagshipComposedRunPlan(
     scenarioRecord.composedParameterSet,
   )
   const ciprofloxacin = projectFlagshipCiprofloxacinAuthority(scenarioRecord)
+  const drug = requireRecord('scenario.drug', scenarioRecord.drug)
+  const ciprofloxacinControl = projectFlagshipCiprofloxacinControl(
+    drug.interventionControl,
+  )
   assertFlagshipReferences({
     scenario: scenarioRecord,
     resourceContext,
@@ -657,5 +668,7 @@ export function buildFlagshipComposedRunPlan(
     parameterSetBinding,
     executionProfile,
     resourceContext,
+    ciprofloxacinToolAuthority: ciprofloxacinControl.toolAuthority,
+    ciprofloxacinControlProvenance: ciprofloxacinControl.provenance,
   })
 }

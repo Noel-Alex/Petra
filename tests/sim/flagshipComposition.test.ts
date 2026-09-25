@@ -24,7 +24,7 @@ const baseline: FlagshipRunInitialization = {
 }
 
 describe('flagship composed run planning', () => {
-  it('projects bundled scenario authority into a provenance-bound protocol-v5 config', () => {
+  it('projects bundled scenario authority into the current provenance-bound config', () => {
     const plan = buildFlagshipComposedRunPlan(baseline)
     const center = 80 * plan.config.width + 80
 

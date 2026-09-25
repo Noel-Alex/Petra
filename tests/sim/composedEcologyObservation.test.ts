@@ -154,9 +154,16 @@ describe('composed ecology observation envelope', () => {
     expect(() =>
       createComposedEcologyObservationEnvelope(position, {
         ...observation,
-        lineageIds: [...observation.lineageIds].reverse(),
+        lineageIds: ['wrong-lineage'],
       }),
     ).toThrow(/lineage order does not match/i)
+
+    expect(() =>
+      createComposedEcologyObservationEnvelope(position, {
+        ...observation,
+        divisionBiomassByCell: [0, 0, 0, 1],
+      }),
+    ).toThrow(/zero outside the ecology mask/i)
 
     expect(() =>
       createComposedEcologyObservationEnvelope(position, {

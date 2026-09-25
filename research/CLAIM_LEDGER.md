@@ -62,5 +62,12 @@ This is the compact contract between Petra's interface, simulator, and evidence 
 | Each rendered bacterium is literally one simulated bacterium | **false** | rendering architecture | visuals sample/aggregate local state |
 | Petra predicts human antibiotic treatment outcomes | **false** | scope | not a clinical tool |
 
+| *Aspergillus niger* var. *hennebergi* no. 10 has source-backed filamentous/hyphal surface growth with glucose-dependent germ-tube morphology and colony radial extension on agar | measured | Larralde-Corona et al. 1997, DOI 10.1002/(SICI)1097-0290(19971105)56:3<287::AID-BIT6>3.0.CO;2-F | exact ORSTOM no. 10 strain and source agar context only; not all *A. niger* or all fungi |
+| Petra may use the Larralde-Corona first-order morphometric relation as a validation observable for the named surface pack | source-derived model | same 1997 source; reported mean mu_calc/mu_obs 0.97 ± 0.09 | validation relationship over source morphometry; not automatically a stochastic hyphal-network update law |
+| The 1997 fitted high-glucose inhibition Ki is a Monod half-saturation constant or a local dynamic glucose-uptake law | **false** | same 1997 source distinguishes high-glucose inhibition fit from morphometric/source measurements | current fungal glucose diffusion/uptake/yield coupling remains UNBOUND |
+| One universal *A. niger* growth constant can be obtained by averaging agar-surface, submerged and solid-state cultures | **false** | Favela-Torres et al. 1998, DOI 10.1016/S0032-9592(97)00032-0 | culture-format dependence is measured; preserve format/context instead of pooling |
+| Ciprofloxacin may be applied as an antifungal effect to the first *A. niger* pack without separate evidence | **false** | antimicrobial evidence boundary | this pack contains no fungal ciprofloxacin pharmacodynamics; overlap with a bacterial antibiotic field does not imply fungal killing |
+| Visually merging dense neighboring fungal masses proves biological hyphal anastomosis | **false** | render/biology authority boundary | merged density/isoband presentation is allowed for legibility/performance, but fusion requires a separately sourced biological mechanism |
+
 ## UI requirement
 Each curated scenario exposes a **Why? / Sources / Assumptions** surface containing active rules, source identifiers, transfers/approximations, and non-claims. Scientific honesty is part of the product.

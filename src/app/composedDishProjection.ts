@@ -6,7 +6,7 @@ import {
 } from "./lineageOrganismPresentation";
 import { projectLineageOriginRenderEvents } from "./lineageRenderEvents";
 import { projectRuntimeEcologyRateFields } from "./runtimeEcologyRenderField";
-import { projectAcceptedInterventionFootprint } from "../render/acceptedInterventionFootprint";
+import {\n  resolveComposedInterventionFootprints,\n  type RuntimeInterventionFootprintFrame,\n} from "./runtimeInterventionFootprints";
 import {
   assertLineageDensityWithinPresentationScale,
   validateLineageDensityPresentationScale,
@@ -307,10 +307,12 @@ export function projectAuthoritativeComposedDishSnapshot(
   );
   fields.push(...ecologyRateFields);
 
-  const acceptedInterventionFootprints = snapshot.events.flatMap((event) => {
-    const footprint = projectAcceptedInterventionFootprint(event);
-    return footprint === null ? [] : [footprint];
-  });
+  const acceptedInterventionFootprints =
+    resolveComposedInterventionFootprints(
+      snapshot,
+      runBranchIdentity,
+      interventionFootprintFrame,
+    );
   const lineageOriginEvents = projectLineageOriginRenderEvents({
     lineageRegistry: state.lineageRegistry,
     activeLineageIds: state.lineageIds,

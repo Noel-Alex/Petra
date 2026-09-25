@@ -119,9 +119,14 @@ export function projectColonyMassPresentation(args: {
         "colony mass lineage density must be finite and non-negative",
       );
     }
-    if (mask !== 1 || density === 0 || args.sharedMaximum === 0) {
+    if (mask !== 1 || density === 0) {
       alpha[index] = 0;
       continue;
+    }
+    if (args.sharedMaximum === 0 || density > args.sharedMaximum) {
+      throw new RangeError(
+        "colony mass shared maximum must cover every positive in-mask lineage density",
+      );
     }
 
     const projected = projectComparableLineageDensity(

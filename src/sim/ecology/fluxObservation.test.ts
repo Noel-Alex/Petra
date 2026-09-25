@@ -117,7 +117,7 @@ describe('ecology flux observation', () => {
         lineageIds: ['ancestor', 'variant'],
         biomassUnit: ' model-biomass ',
         timeUnit: 'hour',
-          result,
+        result,
       }),
     ).toThrow(/biomassUnit.*canonical/)
 
@@ -127,7 +127,7 @@ describe('ecology flux observation', () => {
         lineageIds: [' ancestor ', 'variant'],
         biomassUnit: 'model-biomass',
         timeUnit: 'hour',
-          result,
+        result,
       }),
     ).toThrow(/canonical/)
 
@@ -137,7 +137,7 @@ describe('ecology flux observation', () => {
         lineageIds: ['ancestor'],
         biomassUnit: 'model-biomass',
         timeUnit: 'hour',
-          result,
+        result,
       }),
     ).toThrow(/one flux channel per lineage id/)
 
@@ -149,7 +149,7 @@ describe('ecology flux observation', () => {
         lineageIds: ['ancestor', 'variant'],
         biomassUnit: 'model-biomass',
         timeUnit: 'hour',
-          result: offMask,
+        result: offMask,
       }),
     ).toThrow(/zero outside ecology mask/)
 
@@ -161,7 +161,7 @@ describe('ecology flux observation', () => {
         lineageIds: ['ancestor', 'variant'],
         biomassUnit: 'model-biomass',
         timeUnit: 'hour',
-          result: drifted,
+        result: drifted,
       }),
     ).toThrow(/total division biomass does not match/)
 
@@ -174,7 +174,7 @@ describe('ecology flux observation', () => {
         lineageIds: ['ancestor', 'variant'],
         biomassUnit: 'model-biomass',
         timeUnit: 'hour',
-          result: nonFiniteMetric,
+        result: nonFiniteMetric,
       }),
     ).toThrow(/metrics.deathBiomass/)
 

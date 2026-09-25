@@ -48,6 +48,10 @@
 - Sørum, V. et al. (2022). Evolutionary Instability of Collateral Susceptibility Networks in Ciprofloxacin-Resistant Clinical Escherichia coli Strains. DOI `10.1128/mbio.00441-22`.
 - Chauhan, V. et al. (2026). Evolutionary trajectories determine feasibility of collateral sensitivity-based antibiotic treatment strategies in critical bacterial pathogens. DOI `10.1038/s42003-025-09303-1`.
 
+## Fungal surface growth
+- Larralde-Corona, C.P., López-Isunza, F., Viniegra-González, G. (1997). Morphometric evaluation of the specific growth rate of Aspergillus niger grown in agar plates at high glucose levels. DOI `10.1002/(SICI)1097-0290(19971105)56:3<287::AID-BIT6>3.0.CO;2-F`.
+- Favela-Torres, E., Córdova, J., García-Rivero, M., Gutiérrez-Rojas, M. (1998). Kinetics of growth of Aspergillus niger during submerged, agar surface and solid state fermentations. DOI `10.1016/S0032-9592(97)00032-0`.
+
 ## Bacteria-fungus interactions
 - Rosenzweig, W.D., Stotzky, G. (1979). Influence of Environmental Factors on Antagonism of Fungi by Bacteria in Soil: Clay Minerals and pH. DOI `10.1128/aem.38.6.1120-1126.1979`.
 - Rosenzweig, W.D., Stotzky, G. (1980). Influence of Environmental Factors on Antagonism of Fungi by Bacteria in Soil: Nutrient Levels. DOI `10.1128/aem.39.2.354-360.1980`.

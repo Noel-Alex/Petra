@@ -52,11 +52,7 @@ export function projectInterventionCapability(
         "Authoritative simulation is starting. Intervention tools stay unavailable until compatible intervention authority is ready.",
       );
     case "pending":
-      return unavailable(
-        "runtime-pending",
-        "An authoritative simulation request is in flight. Placement preview remains available, but scientific application stays locked until authority is ready.",
-        true,
-      );
+      return projectPendingCapability(ciprofloxacinMetadata);
     case "error":
       return unavailable(
         "runtime-error",
@@ -65,6 +61,29 @@ export function projectInterventionCapability(
     case "ready":
       return projectReadyCapability(ciprofloxacinMetadata);
   }
+}
+
+function projectPendingCapability(
+  ciprofloxacinMetadata: unknown,
+): InterventionCapabilityView {
+  let authority: CiprofloxacinToolAuthority | null = null;
+  if (ciprofloxacinMetadata !== null && ciprofloxacinMetadata !== undefined) {
+    try {
+      authority = parseCiprofloxacinToolAuthority(ciprofloxacinMetadata);
+    } catch {
+      authority = null;
+    }
+  }
+
+  return {
+    available: false,
+    previewAvailable: true,
+    reason: "runtime-pending",
+    message:
+      "An authoritative simulation request is in flight. Existing scenario controls remain visible, but scientific application stays locked until the runtime is ready.",
+    tools: toolAvailability(false),
+    ciprofloxacinAuthority: authority,
+  };
 }
 
 function projectReadyCapability(

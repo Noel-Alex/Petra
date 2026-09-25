@@ -27,6 +27,11 @@
       "command": ["python", "tools/verify.py", "_run_preset"]
     },
     {
+      "id": "content-support-contracts",
+      "modes": ["quick", "premerge"],
+      "command": ["python", "tools/verify.py", "_content_support"]
+    },
+    {
       "id": "local-command-resolution",
       "modes": ["quick", "premerge"],
       "command": ["python", "tools/local_command_test.py"]

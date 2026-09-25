@@ -17,7 +17,6 @@ import { assertComposedParameterSetBinding } from './parameterSetBinding'
 import { createComposedStepObservationPosition } from './composedObservationTransaction'
 import {
   createComposedEcologyObservationEnvelope,
-  type ComposedEcologyObservationEnvelope,
 } from './composedEcologyObservation'
 import { applyCiprofloxacinIntervention } from './ciprofloxacinIntervention'
 import { assertReplayCompatibility } from './replayCompatibility'

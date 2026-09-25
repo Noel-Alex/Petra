@@ -46,6 +46,11 @@ export function validateRenderSnapshot(snapshot: DishRenderSnapshot): void {
   assertFiniteNonNegative("simulationTimeHours", snapshot.simulationTimeHours); assertPositiveInteger("gridWidth", snapshot.gridWidth); assertPositiveInteger("gridHeight", snapshot.gridHeight);
   const cells = snapshot.gridWidth * snapshot.gridHeight;
   assertLength("dishMask", snapshot.dishMask.length, cells); assertLength("biomass", snapshot.biomass.length, cells); assertFiniteNonNegativeArray("biomass", snapshot.biomass);
+  for (const mask of snapshot.dishMask) {
+    if (mask !== 0 && mask !== 1) {
+      throw new RangeError("dishMask values must be 0 or 1");
+    }
+  }
   const fieldIds = new Set<string>();
   for (const field of snapshot.fields) {
     if (!isOverlayKind(field.kind)) {
@@ -58,6 +63,7 @@ export function validateRenderSnapshot(snapshot: DishRenderSnapshot): void {
     assertLength(`field ${field.id}`, field.values.length, cells); assertFiniteArray(`field ${field.id}`, field.values);
     if (!Number.isFinite(field.minimum) || !Number.isFinite(field.maximum)) throw new TypeError(`field ${field.id} bounds must be finite`);
     if (field.maximum < field.minimum) throw new RangeError(`field ${field.id} maximum must be >= minimum`);
+    assertInMaskFieldValuesWithinDomain(field, snapshot.dishMask);
   }
   const lineageIds = new Set<string>();
   for (const lineage of snapshot.lineages) {
@@ -67,7 +73,20 @@ export function validateRenderSnapshot(snapshot: DishRenderSnapshot): void {
     if (lineageIds.has(lineage.id)) throw new RangeError(`duplicate lineage id: ${lineage.id}`); lineageIds.add(lineage.id);
     assertLength(`lineage ${lineage.id}`, lineage.density.length, cells); assertFiniteNonNegativeArray(`lineage ${lineage.id}`, lineage.density);
   }
-  for (const mask of snapshot.dishMask) if (mask !== 0 && mask !== 1) throw new RangeError("dishMask values must be 0 or 1");
+}
+function assertInMaskFieldValuesWithinDomain(
+  field: RenderField,
+  dishMask: Uint8Array,
+): void {
+  for (let index = 0; index < field.values.length; index += 1) {
+    if (dishMask[index] !== 1) continue;
+    const value = field.values[index]!;
+    if (value < field.minimum || value > field.maximum) {
+      throw new RangeError(
+        `field ${field.id} contains an in-mask value outside its declared domain`,
+      );
+    }
+  }
 }
 function assertPositiveInteger(name: string, value: number): void { if (!Number.isInteger(value) || value <= 0) throw new RangeError(`${name} must be a positive integer`); }
 function assertFinitePositive(name: string, value: number): void { if (!Number.isFinite(value) || value <= 0) throw new RangeError(`${name} must be finite and > 0`); }

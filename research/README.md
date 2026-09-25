@@ -22,6 +22,7 @@ This directory is the scientific memory of the project. The rule is simple: **if
 - `phage_extension.md` / `phage_host_state.md` — lytic phage model and host-physiology dependence.
 - `phage_t4_mg1655_pack.md` — selected T4 DSM 4505 / MG1655 DSM 18039 life-history calibration, measured domain, transfer boundary, and remaining transport gaps.
 - `horizontal_gene_transfer.md` — plasmid conjugation, cost and density/contact cautions.
+- `r388_bw27783_hgt_pack.md` — selected R388 / E. coli K-12 BW27783 surface-conjugation pack, transfer law, carriage/acquisition cost, unit boundary, and HGT validation contract.
 - `competition_consumer_resource.md` — mechanistic competition before arbitrary pairwise coefficients.
 - `bacillus_subtilis_competitor_pack.md` — selected first named bacterial competitor, source physiology, model-unit boundary, and validation contract.
 - `temperature.md` / `environment_temperature_ph.md` — cardinal temperature and pH modeling.

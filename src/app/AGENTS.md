@@ -146,7 +146,8 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Active placement gets first refusal on Escape, including while a range input is focused; cancellation precedes dish-camera reset and never sends worker traffic.
 - `DishViewport.tsx` recenters to whole-dish overview when a placement tool becomes active so the DOM/SVG target and Pixi viewport share a stable coordinate projection during targeting.
 - `InterventionPlacementOverlay.tsx` consumes `src/render/pixi/camera.ts` aperture geometry rather than repeating dish diameter assumptions. Pointer/touch outside the circular aperture is ignored.
-- Tool buttons may enable **placement preview** in ready/pending runtime states even while `InterventionCapabilityView.available` remains false. A visible disabled Apply gate and explanatory copy preserve that distinction until #37/#158 provides authoritative intervention schema/metadata.
+- Tool buttons may enable **placement preview** in ready/pending runtime states even while `InterventionCapabilityView.available` remains false. A visible disabled Apply gate and explanatory copy preserve that distinction until validated scenario/runtime intervention metadata is supplied.
+- For the bundled flagship, ciprofloxacin labels/units/bounds/default/precision/geometry/blend metadata must come from `buildFlagshipComposedRunPlan(...).ciprofloxacinToolAuthority` (or a lossless runtime projection of that exact record) and pass `parseCiprofloxacinToolAuthority(...)`; React literals, genotype MIC-derived bounds, and renderer state are never substitutes. The separate `ciprofloxacinControlProvenance` record supplies the source-domain/default/physical-delivery limitations for explanatory surfaces.
 - Placement colors consume the shared Petra visual-token CSS variables locally; #458 does not own or fork the central visual theme.
 
 

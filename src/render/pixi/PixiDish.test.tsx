@@ -131,6 +131,21 @@ describe("PixiDish render-source boundary", () => {
     expect(html).not.toContain('data-render-demo-disclosure="true"');
   });
 
+  it("refuses snapshot-bearing render sources without an explicit density scale", () => {
+    const authoritative = createRendererDemoSnapshot(12);
+    expect(() =>
+      renderToStaticMarkup(
+        <PixiDish
+          snapshot={authoritative}
+          lineageDensityPresentationScale={null}
+          sourceKind="authoritative-snapshot"
+          cameraMotion={CAMERA_MOTION}
+          visualMotion={VISUAL_MOTION}
+        />,
+      ),
+    ).toThrow(/requires an explicit lineage density presentation scale/);
+  });
+
   it("rejects source identity that disagrees with snapshot presence", () => {
     expect(() =>
       renderToStaticMarkup(

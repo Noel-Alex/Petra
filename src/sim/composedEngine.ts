@@ -20,6 +20,7 @@ import {
 } from './composedEcologyObservation'
 import { applyCiprofloxacinIntervention } from './ciprofloxacinIntervention'
 import { assertReplayCompatibility } from './replayCompatibility'
+import { SimulationRng, type RngState } from './rng'
 import {
   simulationSnapshotTraceHash,
   stableSnapshotStringify,
@@ -175,6 +176,7 @@ function isComposedCheckpoint(
 export class ComposedSimulationEngine {
   private readonly identity: RunIdentity
   private readonly config: ComposedSimulationConfig
+  private rng: SimulationRng
   private state: ComposedSimulationState
   private metrics: ComposedMetrics
   private tick = 0
@@ -202,6 +204,7 @@ export class ComposedSimulationEngine {
     this.identity = structuredClone(identity)
     this.config = structuredClone(config)
     this.advanceExecutionPolicy = Object.freeze({ ...advanceExecutionPolicy })
+    this.rng = new SimulationRng(identity.seed)
     this.state = createComposedState(this.config)
     this.metrics = aggregateState(this.state)
     this.pushEvent({ type: 'initialized' })
@@ -274,6 +277,7 @@ export class ComposedSimulationEngine {
     // a partially advanced live checkpoint behind: rejected commands are replay
     // no-ops.
     const workingState = cloneComposedState(this.state)
+    const workingRng = new SimulationRng(this.rng.snapshot())
     let workingMetrics = cloneMetrics(this.metrics)
     let finalEcologyObservation = null as ReturnType<
       typeof stepComposedStateDetailed
@@ -294,6 +298,7 @@ export class ComposedSimulationEngine {
       candidateTick,
       candidateCommandCount,
       candidateSimulationTimeHours,
+      workingRng.snapshot(),
     )
     const candidateEvent: SimulationEvent = {
       sequence: this.events.length,
@@ -325,6 +330,7 @@ export class ComposedSimulationEngine {
 
     // No validation or projection that can refuse remains after this point.
     this.state = workingState
+    this.rng = workingRng
     this.metrics = workingMetrics
     this.tick = candidateTick
     this.commandCount = candidateCommandCount
@@ -342,6 +348,7 @@ export class ComposedSimulationEngine {
       this.tick,
       this.commandCount,
       this.currentSimulationTimeHours(),
+      this.rng.snapshot(),
     )
     const events = this.events.map((event) => structuredClone(event))
     return {
@@ -357,6 +364,7 @@ export class ComposedSimulationEngine {
     tick: number,
     commandCount: number,
     simulationTimeHours: number,
+    rngState: RngState,
   ): ComposedSimulationCheckpoint {
     return {
       authority: 'composed',
@@ -364,6 +372,7 @@ export class ComposedSimulationEngine {
       tick,
       simulationTimeHours,
       commandCount,
+      rngState: [...rngState] as RngState,
       composedState: cloneComposedState(state),
       metrics: cloneMetrics(metrics),
     }
@@ -422,12 +431,14 @@ export class ComposedSimulationEngine {
       )
     }
 
+    const restoredRng = new SimulationRng(checkpoint.rngState)
     validateComposedStateAgainstConfig(checkpoint.composedState, this.config)
     const restoredState = cloneComposedState(checkpoint.composedState)
     const restoredMetrics = validateMetrics(checkpoint.metrics, restoredState)
 
     this.tick = checkpoint.tick
     this.commandCount = checkpoint.commandCount
+    this.rng = restoredRng
     this.state = restoredState
     this.metrics = restoredMetrics
     this.events.length = 0

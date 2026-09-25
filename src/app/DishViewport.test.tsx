@@ -28,6 +28,27 @@ describe("DishViewport render-source truth boundary", () => {
     expect(html).not.toContain("visual-only renderer fixture");
   });
 
+  it("supports inspection-only dish activation without inventing renderer authority", () => {
+    const html = renderToStaticMarkup(
+      <DishViewport
+        motion="off"
+        snapshot={null}
+        onRegionPointActivate={() => {}}
+        regionSelectionActive
+        onClearRegionSelection={() => {}}
+      />,
+    );
+
+    expect(html).toContain(
+      "authoritative region inspection is available",
+    );
+    expect(html).toContain("inspection ready · render waiting");
+    expect(html).toContain("Clear region");
+    expect(html).toContain('data-render-source="awaiting-authoritative-snapshot"');
+    expect(html).not.toContain('data-render-source="authoritative-snapshot"');
+    expect(html).not.toContain("visual demo · not biology");
+  });
+
   it("commits render-source cache transitions outside the render body", () => {
     expect(dishViewportSource).not.toContain(
       "useRef(INITIAL_DISH_RENDER_SOURCE_STATE)",

@@ -55,6 +55,10 @@ export interface DishViewportProps {
   /** Presentation-only target selection. Scientific application remains separate. */
   readonly placement?: InterventionPlacementState | null;
   readonly onPlacementPointChange?: (point: NormalizedDishPoint) => void;
+  /** Presentation-only point selection; scientific values are resolved by app authority. */
+  readonly onRegionPointActivate?: (point: NormalizedDishPoint) => void;
+  readonly regionSelectionActive?: boolean;
+  readonly onClearRegionSelection?: () => void;
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -74,6 +78,9 @@ export function DishViewport({
   onEscapeBeforeOverview,
   placement = null,
   onPlacementPointChange,
+  onRegionPointActivate,
+  regionSelectionActive = false,
+  onClearRegionSelection,
 }: DishViewportProps) {
   const interactionHintId = useId();
   const authoritativeSnapshot = snapshot ?? null;
@@ -214,13 +221,16 @@ export function DishViewport({
           overlayId={resolvedOverlayId}
           resetCameraSignal={cameraResetSignal}
           onSemanticZoomLevelChange={handleSemanticZoomLevelChange}
+          onDishPointActivate={onRegionPointActivate}
           className="dish-renderer-canvas"
           ariaLabel={
             usingAuthoritative
               ? "Interactive Petra Petri dish from authoritative simulation state"
               : usingDemo
                 ? "Interactive Petra Petri dish using clearly labelled visual demonstration data"
-                : "Petra Petri dish waiting for authoritative simulation data"
+                : onRegionPointActivate !== undefined
+                  ? "Petra Petri dish waiting for a render snapshot; authoritative region inspection is available"
+                  : "Petra Petri dish waiting for authoritative simulation data"
           }
           ariaDescribedBy={interactionHintId}
         />
@@ -237,11 +247,23 @@ export function DishViewport({
             ? "authoritative snapshot"
             : usingDemo
               ? "visual demo · not biology"
-              : "waiting for authority"}
+              : onRegionPointActivate !== undefined
+                ? "inspection ready · render waiting"
+                : "waiting for authority"}
         </span>
       </div>
 
       <div className="dish-renderer-controls">
+        {regionSelectionActive && onClearRegionSelection !== undefined ? (
+          <PetraCompactAction
+            motionPreference={motion}
+            className="ghost-button"
+            onClick={onClearRegionSelection}
+            aria-label="Clear authoritative region selection"
+          >
+            Clear region
+          </PetraCompactAction>
+        ) : null}
         <PetraCompactAction
           motionPreference={motion}
           className="ghost-button"

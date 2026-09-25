@@ -287,7 +287,7 @@ describe("runtime intervention footprint binding", () => {
       "dose-after-advances",
     ]);
     expect(afterDose.footprints[0]).toBe(retained);
-    expect(afterDose.footprints[1]).not.toBe(sameTimeDose.intervention);
+    expect(afterDose.footprints[1]!.intervention).not.toBe(\n      sameTimeDose.intervention,\n    );
   });
 
   it("rebuilds rather than reusing footprints after a runtime branch change", () => {

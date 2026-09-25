@@ -166,3 +166,11 @@ Contributor/session: Noel-Alex
 - The remaining #456 critical path is still the central dish: authoritative composed snapshot projection, organism geometry/LOD, evidence-gated causal motion, and browser/expo visual acceptance against the approved references.
 
 Authenticated recovery contributor/session: sting-raider
+
+
+## 2026-09-25 — render morphology authority boundary (#816)
+
+- Fresh flagship/render audit found that the composed Worker already carries the numeric spatial authority needed by the active #457 snapshot-to-dish projection, while the renderer contract intentionally has no source-backed organism morphology identity. The scenario's free-text `Escherichia coli` name is not sufficient authority for render code to infer rods.
+- #816 introduces a separate, versioned **presentation-only** organism identity. Schema v1 is deliberately narrow: `bacterium + rod` for the K-12 MG1655 representative-cell layer, backed by Nanninga 1998 (DOI `10.1128/MMBR.62.1.110-129.1998`) and explicitly classified as a species-level morphology transfer to the flagship presentation.
+- This record authorizes only the coarse representative silhouette. It does **not** authorize physical length/width/aspect ratio, orientation dynamics, division geometry, individual identity, literal cell counts, simulation mechanisms, configuration fingerprints, checkpoints, or replay identity.
+- Coordination: the active #457 composed-snapshot projection remains owner of numeric mask/biomass/lineage/resource/ciprofloxacin render data and should not be raced. After #816 lands, that adapter/renderer may consume the validated presentation identity instead of inferring organism shape from lineage/color/density/taxon text. #744 colony isocontours remain independent and morphology-neutral.

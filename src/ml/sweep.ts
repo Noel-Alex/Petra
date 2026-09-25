@@ -13,6 +13,11 @@ import {
   type TrajectoryIdentity,
 } from "./dataset";
 import { assertSimulationSeed } from "../sim/seed";
+import {
+  mechanisticExecutionScheduleIdentity,
+  validateMechanisticExecutionSchedule,
+  type MechanisticExecutionSchedule,
+} from "./executionSchedule";
 
 export interface SweepParameterPoint {
   readonly id: string;
@@ -86,6 +91,7 @@ export interface MechanisticSweepDefinition {
   readonly scenarioVersion: string;
   readonly normalizationProfileId: string;
   readonly datasetSchema: MechanisticDatasetSchemaIdentity;
+  readonly executionSchedule: MechanisticExecutionSchedule;
   readonly parameterPoints: readonly SweepParameterPoint[];
   readonly runConditions: readonly SweepRunCondition[];
   readonly interventionFamilies: readonly SweepInterventionFamily[];
@@ -100,6 +106,8 @@ export interface MechanisticSweepTask {
   readonly datasetVersion: string;
   readonly normalizationProfileId: string;
   readonly datasetSchema: MechanisticDatasetSchemaIdentity;
+  readonly executionSchedule: MechanisticExecutionSchedule;
+  readonly executionScheduleIdentity: string;
   readonly parameterPointId: string;
   readonly runConditionId: string;
   readonly interventionFamilyId: string;
@@ -117,6 +125,8 @@ export interface MechanisticSweepPlan {
   readonly scenarioVersion: string;
   readonly normalizationProfileId: string;
   readonly datasetSchema: MechanisticDatasetSchemaIdentity;
+  readonly executionSchedule: MechanisticExecutionSchedule;
+  readonly executionScheduleIdentity: string;
   readonly splitPolicy: SplitPolicy;
   readonly splitCoveragePolicy: SplitCoveragePolicy;
   readonly groupCount: number;
@@ -132,6 +142,7 @@ export interface SweepManifestTrajectory {
   readonly parameterPointId: string;
   readonly runConditionId: string;
   readonly runConditionFingerprint: string;
+  readonly executionScheduleIdentity: string;
   readonly interventionFamilyId: string;
   readonly seed: number;
   readonly splitGroupKey: string;
@@ -139,7 +150,7 @@ export interface SweepManifestTrajectory {
 }
 
 export interface MechanisticSweepManifest {
-  readonly schemaVersion: "petra-ml-sweep-manifest-v5";
+  readonly schemaVersion: "petra-ml-sweep-manifest-v6";
   readonly planVersion: string;
   readonly datasetVersion: string;
   readonly engineVersion: string;
@@ -147,6 +158,8 @@ export interface MechanisticSweepManifest {
   readonly scenarioVersion: string;
   readonly normalizationProfileId: string;
   readonly datasetSchema: MechanisticDatasetSchemaIdentity;
+  readonly executionSchedule: MechanisticExecutionSchedule;
+  readonly executionScheduleIdentity: string;
   readonly splitPolicyVersion: string;
   readonly splitCoveragePolicyVersion: string;
   readonly groupCount: number;
@@ -176,6 +189,9 @@ export function planMechanisticSweep(
   validateSplitCoveragePolicy(splitCoveragePolicy);
   const datasetSchema = Object.freeze({ ...definition.datasetSchema });
   const datasetSchemaIdentityKey = mechanisticDatasetSchemaKey(datasetSchema);
+  const executionSchedule = Object.freeze({ ...definition.executionSchedule });
+  validateMechanisticExecutionSchedule(executionSchedule);
+  const executionScheduleIdentity = mechanisticExecutionScheduleIdentity(executionSchedule);
 
   const groupCount =
     definition.parameterPoints.length *
@@ -260,11 +276,14 @@ export function planMechanisticSweep(
         taskId: stableTaskId(
           definition.planVersion,
           datasetSchemaIdentityKey,
+          executionScheduleIdentity,
           key,
         ),
         datasetVersion: definition.datasetVersion,
         normalizationProfileId: definition.normalizationProfileId,
         datasetSchema,
+        executionSchedule,
+        executionScheduleIdentity,
         parameterPointId: parameterPoint.id,
         runConditionId: runCondition.id,
         interventionFamilyId: interventionFamily.id,
@@ -284,6 +303,8 @@ export function planMechanisticSweep(
     scenarioVersion: definition.scenarioVersion,
     normalizationProfileId: definition.normalizationProfileId,
     datasetSchema,
+    executionSchedule,
+    executionScheduleIdentity,
     splitPolicy,
     splitCoveragePolicy,
     groupCount,
@@ -300,7 +321,7 @@ export function buildMechanisticSweepManifest(
   const splitCounts = { ...plan.splitTrajectoryCounts };
 
   return {
-    schemaVersion: "petra-ml-sweep-manifest-v5",
+    schemaVersion: "petra-ml-sweep-manifest-v6",
     planVersion: plan.planVersion,
     datasetVersion: plan.datasetVersion,
     engineVersion: plan.engineVersion,
@@ -308,6 +329,8 @@ export function buildMechanisticSweepManifest(
     scenarioVersion: plan.scenarioVersion,
     normalizationProfileId: plan.normalizationProfileId,
     datasetSchema: { ...plan.datasetSchema },
+    executionSchedule: { ...plan.executionSchedule },
+    executionScheduleIdentity: plan.executionScheduleIdentity,
     splitPolicyVersion: plan.splitPolicy.version,
     splitCoveragePolicyVersion: plan.splitCoveragePolicy.version,
     groupCount: plan.groupCount,
@@ -320,6 +343,7 @@ export function buildMechanisticSweepManifest(
       parameterPointId: task.parameterPointId,
       runConditionId: task.runConditionId,
       runConditionFingerprint: task.trajectory.group.runConditionFingerprint,
+      executionScheduleIdentity: task.executionScheduleIdentity,
       interventionFamilyId: task.interventionFamilyId,
       seed: task.trajectory.seed,
       splitGroupKey: task.splitGroupKey,
@@ -400,6 +424,7 @@ function validateSweepDefinition(definition: MechanisticSweepDefinition): void {
   requireNonEmpty("scenarioVersion", definition.scenarioVersion);
   requireNonEmpty("normalizationProfileId", definition.normalizationProfileId);
   validateMechanisticDatasetSchemaIdentity(definition.datasetSchema);
+  validateMechanisticExecutionSchedule(definition.executionSchedule);
 
   if (!Number.isSafeInteger(definition.maxTrajectories) || definition.maxTrajectories < 1) {
     throw new RangeError("maxTrajectories must be a positive safe integer");
@@ -495,9 +520,10 @@ function interventionGroupId(fingerprint: string): string {
 function stableTaskId(
   planVersion: string,
   datasetSchemaKey: string,
+  executionScheduleIdentity: string,
   key: string,
 ): string {
-  return `sweep:${encodePart(planVersion)}:${encodePart(datasetSchemaKey)}:${encodePart(key)}`;
+  return `sweep:${encodePart(planVersion)}:${encodePart(datasetSchemaKey)}:${encodePart(executionScheduleIdentity)}:${encodePart(key)}`;
 }
 
 function encodePart(value: string): string {

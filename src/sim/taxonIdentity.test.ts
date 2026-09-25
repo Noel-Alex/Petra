@@ -13,6 +13,7 @@ import {
 const ecoli: AuthoritativeTaxonIdentity = {
   schemaVersion: AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION,
   id: 'ecoli-k12-mg1655',
+  contentVersion: '1.0.0',
   scientificName: 'Escherichia coli',
   background: 'K-12 MG1655',
   microbialGroup: 'bacterium',
@@ -25,6 +26,7 @@ const ecoli: AuthoritativeTaxonIdentity = {
 const fungus: AuthoritativeTaxonIdentity = {
   schemaVersion: AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION,
   id: 'fungus-fixture',
+  contentVersion: '1.0.0',
   scientificName: 'Example fungus',
   background: 'fixture isolate',
   microbialGroup: 'fungus',
@@ -52,9 +54,9 @@ describe('authoritative taxon identity', () => {
     expect(registry.schemaVersion).toBe(
       AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION,
     )
-    expect(registry.taxa.map((taxon) => taxon.id)).toEqual([
-      'ecoli-k12-mg1655',
-      'fungus-fixture',
+    expect(registry.taxa.map((taxon) => [taxon.id, taxon.contentVersion])).toEqual([
+      ['ecoli-k12-mg1655', '1.0.0'],
+      ['fungus-fixture', '1.0.0'],
     ])
 
     mutableSourceKeys[0] = 'mutated'
@@ -119,6 +121,23 @@ describe('runtime lineage taxon map', () => {
     expect(taxonIdForRuntimeLineage(mapping, registry, 'L2')).toBe(
       'fungus-fixture',
     )
+    expect(mapping.taxonContentVersions).toEqual(['1.0.0', '1.0.0'])
+  })
+
+  it('fails closed when a taxon id is reinterpreted under a different content version', () => {
+    const mapping = createRuntimeLineageTaxonMap({
+      lineageIds: ['L1'],
+      taxonIds: ['ecoli-k12-mg1655'],
+      registry,
+    })
+    const revisedRegistry = createAuthoritativeTaxonRegistry([
+      { ...ecoli, contentVersion: '1.0.1' },
+      fungus,
+    ])
+
+    expect(() =>
+      taxonIdForRuntimeLineage(mapping, revisedRegistry, 'L1'),
+    ).toThrow(/taxon content version mismatch/)
   })
 
   it('fails closed on unknown taxa, duplicate lineage ids, or expected-order drift', () => {
@@ -174,6 +193,7 @@ describe('runtime lineage taxon map', () => {
       'ecoli-k12-mg1655',
       'fungus-fixture',
     ])
+    expect(next.taxonContentVersions).toEqual(['1.0.0', '1.0.0', '1.0.0'])
     expect(() =>
       assertRuntimeLineageTaxonPrefixPreserved(founder, next, registry),
     ).not.toThrow()

@@ -20,6 +20,8 @@
 - Andersson, D.I., Hughes, D. (2010). Antibiotic resistance and its cost. DOI `10.1038/nrmicro2319`.
 - Baym, M. et al. (2016). Spatiotemporal microbial evolution on antibiotic landscapes. DOI `10.1126/science.aag0822`.
 - Huseby, D.L. et al. (2017). Mutation Supply and Relative Fitness Shape the Genotypes of Ciprofloxacin-Resistant E. coli. DOI `10.1093/molbev/msx052`.
+- Greulich, P., Scott, M., Evans, M.R., Allen, R.J. (2015). Growth-dependent bacterial susceptibility to ribosome-targeting antibiotics. DOI `10.15252/MSB.20145949`.
+- Graf, F.E. et al. (2024). Molecular mechanisms of re-emerging chloramphenicol susceptibility in extended-spectrum beta-lactamase-producing Enterobacterales. DOI `10.1038/s41467-024-53391-2`.
 
 ## Morphology / presentation evidence
 - Nanninga, N. (1998). Morphogenesis of Escherichia coli. DOI `10.1128/MMBR.62.1.110-129.1998`.

@@ -44,6 +44,29 @@ export interface ComposedLineageConfig {
   readonly deathHazardPerHour: number
 }
 
+export const COMPOSED_DYNAMIC_LINEAGE_LOSS_POLICY_SCHEMA_VERSION = 1 as const
+
+export interface ComposedDynamicLineageLossEntry {
+  readonly genotypeId: string
+  readonly deathHazardPerHour: number
+}
+
+/**
+ * Optional static authority for runtime-created lineage baseline non-drug loss.
+ *
+ * Absence means the composed run is founder-only. This policy is deliberately
+ * model-policy metadata: relative fitness remains graph-owned and drug loss
+ * remains PD/MIC-owned.
+ */
+export interface ComposedDynamicLineageLossPolicy {
+  readonly schemaVersion: typeof COMPOSED_DYNAMIC_LINEAGE_LOSS_POLICY_SCHEMA_VERSION
+  readonly id: string
+  readonly evidenceClass: 'engineering'
+  readonly rule: 'genotype-table'
+  readonly genotypeDeathHazardPerHour: readonly ComposedDynamicLineageLossEntry[]
+  readonly limitation: string
+}
+
 export interface ComposedGenotypeCiprofloxacinMic {
   readonly genotypeId: string
   readonly micMgPerL: number
@@ -74,7 +97,16 @@ export interface ComposedSimulationConfig {
   readonly ciprofloxacinConcentrationMgPerL: readonly number[]
   readonly initialLineageBiomass: readonly (readonly number[])[]
   readonly growth: Readonly<GrowthParameters>
+  /**
+   * Static founder/genesis lineages. Runtime-created lineage channels live only
+   * in ComposedSimulationState and must preserve this array as an exact prefix.
+   */
   readonly lineages: readonly ComposedLineageConfig[]
+  /**
+   * Optional authority for runtime-created lineage baseline non-drug loss.
+   * Omission preserves the historical founder-only contract and fingerprint.
+   */
+  readonly dynamicLineageLossPolicy?: ComposedDynamicLineageLossPolicy | null
   readonly evolutionGraph: CuratedMutationGraph
   readonly evolutionScenario: EvolutionScenarioIdentity
   /** Explicit null means this run has no ciprofloxacin PD authority. */
@@ -227,6 +259,142 @@ function lineageFitness(config: ComposedSimulationConfig) {
   )
 }
 
+function runtimeLineageFitness(
+  state: ComposedSimulationState,
+  config: ComposedSimulationConfig,
+) {
+  return bindLineageFitness(
+    config.evolutionGraph,
+    config.evolutionScenario,
+    state.lineageIds.map((lineageId, index) => ({
+      lineageId,
+      genotypeId: state.genotypeIds[index]!,
+    })),
+  )
+}
+
+function composedDynamicLineageLossPolicyIdentity(
+  policy: ComposedDynamicLineageLossPolicy | null | undefined,
+  config: ComposedSimulationConfig,
+): Readonly<{
+  schemaVersion: typeof COMPOSED_DYNAMIC_LINEAGE_LOSS_POLICY_SCHEMA_VERSION
+  id: string
+  evidenceClass: 'engineering'
+  rule: 'genotype-table'
+  genotypeDeathHazardPerHour: readonly ComposedDynamicLineageLossEntry[]
+}> | null {
+  if (policy === undefined || policy === null) return null
+  if (
+    policy.schemaVersion !==
+    COMPOSED_DYNAMIC_LINEAGE_LOSS_POLICY_SCHEMA_VERSION
+  ) {
+    throw new Error('unsupported dynamic lineage loss policy schema version')
+  }
+  canonicalIdentity('dynamic lineage loss policy id', policy.id)
+  if (policy.evidenceClass !== 'engineering') {
+    throw new Error('dynamic lineage loss policy evidenceClass must be engineering')
+  }
+  if (policy.rule !== 'genotype-table') {
+    throw new Error('unsupported dynamic lineage loss policy rule')
+  }
+  if (
+    typeof policy.limitation !== 'string' ||
+    policy.limitation.trim().length === 0 ||
+    policy.limitation !== policy.limitation.trim()
+  ) {
+    throw new Error(
+      'dynamic lineage loss policy limitation must be a canonical non-empty string',
+    )
+  }
+  if (
+    !Array.isArray(policy.genotypeDeathHazardPerHour) ||
+    policy.genotypeDeathHazardPerHour.length === 0
+  ) {
+    throw new Error(
+      'dynamic lineage loss policy genotype table must be a non-empty array',
+    )
+  }
+
+  const knownGenotypes = new Set(
+    config.evolutionGraph.genotypes.map((genotype) => genotype.id),
+  )
+  const seenGenotypes = new Set<string>()
+  const genotypeDeathHazardPerHour = policy.genotypeDeathHazardPerHour.map(
+    (entry, index) => {
+      if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
+        throw new Error(
+          'dynamic lineage loss policy entry at index ' + index + ' must be an object',
+        )
+      }
+      canonicalIdentity(
+        'dynamic lineage loss policy genotype id at index ' + index,
+        entry.genotypeId,
+      )
+      if (!knownGenotypes.has(entry.genotypeId)) {
+        throw new Error(
+          'dynamic lineage loss policy references unknown genotype ' +
+            entry.genotypeId,
+        )
+      }
+      if (seenGenotypes.has(entry.genotypeId)) {
+        throw new Error(
+          'dynamic lineage loss policy genotype ids must be unique',
+        )
+      }
+      seenGenotypes.add(entry.genotypeId)
+      finiteNonNegative(
+        'dynamic lineage deathHazardPerHour(' + entry.genotypeId + ')',
+        entry.deathHazardPerHour,
+      )
+      if (
+        !Number.isFinite(entry.deathHazardPerHour * config.hoursPerTick)
+      ) {
+        throw new Error(
+          'dynamic lineage deathHazardPerHour(' +
+            entry.genotypeId +
+            ') * hoursPerTick must be finite',
+        )
+      }
+      return {
+        genotypeId: entry.genotypeId,
+        deathHazardPerHour: entry.deathHazardPerHour,
+      }
+    },
+  )
+
+  return {
+    schemaVersion: policy.schemaVersion,
+    id: policy.id,
+    evidenceClass: policy.evidenceClass,
+    rule: policy.rule,
+    genotypeDeathHazardPerHour,
+  }
+}
+
+function dynamicLineageDeathHazardPerHour(
+  genotypeId: string,
+  config: ComposedSimulationConfig,
+): number {
+  const policy = composedDynamicLineageLossPolicyIdentity(
+    config.dynamicLineageLossPolicy,
+    config,
+  )
+  if (policy === null) {
+    throw new Error(
+      'runtime-created lineage requires explicit dynamic lineage baseline loss policy',
+    )
+  }
+  const entry = policy.genotypeDeathHazardPerHour.find(
+    (candidate) => candidate.genotypeId === genotypeId,
+  )
+  if (entry === undefined) {
+    throw new Error(
+      'dynamic lineage baseline loss policy is missing genotype ' + genotypeId,
+    )
+  }
+  return entry.deathHazardPerHour
+}
+
 function composedSamplingPolicyIdentity(
   policy: SamplingExecutionPolicy | null | undefined,
 ): string | null {
@@ -311,6 +479,7 @@ function composedCiprofloxacinIdentity(
 
 function composedDiscretePopulationAuthorityConfig(
   config: ComposedSimulationConfig,
+  lineageIds: readonly string[] = config.lineages.map((lineage) => lineage.id),
 ): DiscretePopulationAuthorityConfig | null {
   if (config.populationAuthority === undefined) {
     throw new Error(
@@ -322,7 +491,7 @@ function composedDiscretePopulationAuthorityConfig(
     width: config.width,
     height: config.height,
     mask: config.mask,
-    lineageIds: config.lineages.map((lineage) => lineage.id),
+    lineageIds: Array.from(lineageIds),
     calibration: config.populationAuthority.calibration,
     policy: config.populationAuthority.policy,
   }
@@ -381,6 +550,10 @@ function validateConfig(config: ComposedSimulationConfig): void {
   // Strict scenario/genotype validation boundary. Relative fitness is owned by
   // the curated evolution graph and cannot be re-entered by composition callers.
   lineageFitness(config)
+  composedDynamicLineageLossPolicyIdentity(
+    config.dynamicLineageLossPolicy,
+    config,
+  )
   const ciprofloxacin = composedCiprofloxacinIdentity(config.ciprofloxacin)
   composedSamplingPolicyIdentity(config.samplingExecutionPolicy)
   const populationAuthority = composedDiscretePopulationAuthorityConfig(config)
@@ -491,6 +664,11 @@ export function composedConfigurationFingerprint(
 ): string {
   validateConfig(config)
   const fitness = lineageFitness(config)
+  const dynamicLineageLossPolicy =
+    composedDynamicLineageLossPolicyIdentity(
+      config.dynamicLineageLossPolicy,
+      config,
+    )
   return JSON.stringify({
     width: config.width,
     height: config.height,
@@ -523,6 +701,9 @@ export function composedConfigurationFingerprint(
         : discretePopulationConfigurationIdentity(
             composedDiscretePopulationAuthorityConfig(config)!,
           ),
+    ...(dynamicLineageLossPolicy === null
+      ? {}
+      : { dynamicLineageLossPolicy }),
     lineages: config.lineages.map((lineage, index) => ({
       id: lineage.id,
       genotypeId: lineage.genotypeId,
@@ -610,25 +791,68 @@ export function validateComposedStateAgainstConfig(
     throw new Error('composed state identity channels must be arrays')
   }
   if (
-    state.lineageIds.length !== config.lineages.length ||
-    state.genotypeIds.length !== config.lineages.length ||
-    state.lineageBiomass.length !== config.lineages.length
+    state.lineageIds.length !== state.genotypeIds.length ||
+    state.lineageIds.length !== state.lineageBiomass.length ||
+    state.lineageIds.length < config.lineages.length
   ) {
-    throw new Error('composed state lineage channels do not match configuration')
+    throw new Error(
+      'composed state lineage identity/biomass channels must stay aligned and include every configured founder',
+    )
   }
+
+  const runtimeLineageIds = new Set<string>()
+  const knownGenotypes = new Set(
+    config.evolutionGraph.genotypes.map((genotype) => genotype.id),
+  )
+  const ciprofloxacin = composedCiprofloxacinIdentity(config.ciprofloxacin)
+  const micGenotypeIds =
+    ciprofloxacin === null
+      ? null
+      : new Set(
+          ciprofloxacin.genotypeMicMgPerL.map((entry) => entry.genotypeId),
+        )
+
   state.lineageIds.forEach((id, index) => {
     canonicalIdentity('composed state lineage id at index ' + index, id)
+    const genotypeId = state.genotypeIds[index]
     canonicalIdentity(
       'composed state genotype id at index ' + index,
-      state.genotypeIds[index],
+      genotypeId,
     )
-    if (id !== config.lineages[index]?.id) {
-      throw new Error('composed state lineage order does not match configuration')
+    if (runtimeLineageIds.has(id)) {
+      throw new Error('composed state lineage ids must be unique')
     }
-    if (state.genotypeIds[index] !== config.lineages[index]?.genotypeId) {
-      throw new Error('composed state genotype order does not match configuration')
+    runtimeLineageIds.add(id)
+
+    const founder = config.lineages[index]
+    if (founder !== undefined) {
+      if (id !== founder.id) {
+        throw new Error(
+          'composed state founder lineage order does not match configuration',
+        )
+      }
+      if (genotypeId !== founder.genotypeId) {
+        throw new Error(
+          'composed state founder genotype order does not match configuration',
+        )
+      }
+      return
+    }
+
+    if (!knownGenotypes.has(genotypeId)) {
+      throw new Error(
+        'runtime-created lineage references unknown genotype ' + genotypeId,
+      )
+    }
+    dynamicLineageDeathHazardPerHour(genotypeId, config)
+    if (micGenotypeIds !== null && !micGenotypeIds.has(genotypeId)) {
+      throw new Error(
+        'ciprofloxacin MIC table is missing runtime genotype ' + genotypeId,
+      )
     }
   })
+  runtimeLineageFitness(state, config)
+
   if (state.lineageBiomass.some((channel) => channel.length !== cellCount)) {
     throw new Error('composed state lineage arrays must match grid dimensions')
   }
@@ -678,7 +902,10 @@ export function validateComposedStateAgainstConfig(
     config.growth.localCapacity,
   )
 
-  const populationConfig = composedDiscretePopulationAuthorityConfig(config)
+  const populationConfig = composedDiscretePopulationAuthorityConfig(
+    config,
+    state.lineageIds,
+  )
   if (populationConfig === null) {
     if (state.discretePopulation !== null) {
       throw new Error(
@@ -713,6 +940,7 @@ function asEcologyState(state: ComposedSimulationState): EcologyState {
 
 interface PreparedComposedLineageParameters {
   readonly configurationFingerprint: string
+  readonly runtimeLineageIdentity: string
   readonly lineageParameters: readonly LineageEcologyParameters[]
 }
 
@@ -724,14 +952,19 @@ function preparedLineageParameters(
   config: ComposedSimulationConfig,
 ): readonly LineageEcologyParameters[] {
   const concentration = state.ciprofloxacinConcentrationMgPerL
+  const runtimeLineageIdentity = JSON.stringify({
+    lineageIds: state.lineageIds,
+    genotypeIds: state.genotypeIds,
+  })
   const cached = preparedLineageParameterCache.get(concentration)
   if (
-    cached?.configurationFingerprint === state.configurationFingerprint
+    cached?.configurationFingerprint === state.configurationFingerprint &&
+    cached.runtimeLineageIdentity === runtimeLineageIdentity
   ) {
     return cached.lineageParameters
   }
 
-  const fitness = lineageFitness(config)
+  const fitness = runtimeLineageFitness(state, config)
   const ciprofloxacin = composedCiprofloxacinIdentity(config.ciprofloxacin)
   const hasDrugExposure =
     ciprofloxacin !== null &&
@@ -745,9 +978,7 @@ function preparedLineageParameters(
         entry.micMgPerL,
       ] as const),
     )
-    const activeGenotypes = [...new Set(
-      config.lineages.map((lineage) => lineage.genotypeId),
-    )].map((genotypeId) => ({
+    const activeGenotypes = [...new Set(state.genotypeIds)].map((genotypeId) => ({
       genotypeId,
       genotypeMic: micByGenotype.get(genotypeId)!,
     }))
@@ -766,26 +997,32 @@ function preparedLineageParameters(
     )
   }
 
-  const lineageParameters: LineageEcologyParameters[] = config.lineages.map(
-    (lineage, index) => {
+  const lineageParameters: LineageEcologyParameters[] = state.lineageIds.map(
+    (_lineageId, index) => {
+      const genotypeId = state.genotypeIds[index]!
+      const founder = config.lineages[index]
+      const baselineDeathHazardPerHour =
+        founder === undefined
+          ? dynamicLineageDeathHazardPerHour(genotypeId, config)
+          : founder.deathHazardPerHour
+
       if (drugHazardByGenotype === null) {
         return {
           relativeFitness: fitness[index]!.relativeFitness,
-          deathHazardPerTime: lineage.deathHazardPerHour,
+          deathHazardPerTime: baselineDeathHazardPerHour,
         }
       }
 
-      const drugHazard = drugHazardByGenotype.get(lineage.genotypeId)
+      const drugHazard = drugHazardByGenotype.get(genotypeId)
       if (drugHazard === undefined) {
         throw new Error(
-          'missing composed ciprofloxacin hazard for genotype ' +
-            lineage.genotypeId,
+          'missing composed ciprofloxacin hazard for genotype ' + genotypeId,
         )
       }
       const combinedHazard = new Float64Array(drugHazard.length)
       for (let cell = 0; cell < drugHazard.length; cell += 1) {
         if (state.mask[cell] !== 1) continue
-        const value = lineage.deathHazardPerHour + drugHazard[cell]!
+        const value = baselineDeathHazardPerHour + drugHazard[cell]!
         if (!Number.isFinite(value) || value < 0) {
           throw new Error('composed lineage death hazard became invalid')
         }
@@ -800,6 +1037,7 @@ function preparedLineageParameters(
 
   preparedLineageParameterCache.set(concentration, {
     configurationFingerprint: state.configurationFingerprint,
+    runtimeLineageIdentity,
     lineageParameters,
   })
   return lineageParameters
@@ -825,7 +1063,10 @@ export function stepComposedStateDetailed(
     Array.from(channel),
   )
 
-  const populationConfig = composedDiscretePopulationAuthorityConfig(config)
+  const populationConfig = composedDiscretePopulationAuthorityConfig(
+    config,
+    state.lineageIds,
+  )
   let nextDiscretePopulation: DiscretePopulationAuthorityState | null = null
   let divisionOpportunities: readonly (readonly number[])[] | null = null
   let totalDivisionOpportunities: number | null = null
@@ -860,8 +1101,8 @@ export function stepComposedStateDetailed(
   state.discretePopulation = nextDiscretePopulation
 
   const lineageBiomass: Record<string, number> = {}
-  config.lineages.forEach((lineage, index) => {
-    lineageBiomass[lineage.id] = sumInMask(
+  state.lineageIds.forEach((lineageId, index) => {
+    lineageBiomass[lineageId] = sumInMask(
       state.lineageBiomass[index]!,
       state.mask,
     )

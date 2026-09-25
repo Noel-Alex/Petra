@@ -62,11 +62,15 @@ export interface DiscretePopulationAuthorityState {
   readonly divisionResidualCellEquivalents: readonly ArrayLike<number>[]
 }
 
-export interface DiscretePopulationAdvanceResult {
+export interface DiscreteDivisionOpportunityResult {
   readonly state: DiscretePopulationAuthorityState
   readonly divisionOpportunities: readonly ArrayLike<number>[]
-  readonly totalStandingHosts: number
   readonly totalDivisionOpportunities: number
+}
+
+export interface DiscretePopulationAdvanceResult
+  extends DiscreteDivisionOpportunityResult {
+  readonly totalStandingHosts: number
 }
 
 export interface DiscreteHostRemovalPlan {
@@ -222,39 +226,30 @@ export function extendDiscretePopulationAuthorityLineages(
 }
 
 /**
- * Advance the shared discrete authority after one already-authoritative ecology
- * transition.
+ * Advance only the division-opportunity side of shared population authority.
  *
- * Standing hosts are decomposed from the committed continuous biomass exactly
- * once per transition. Division opportunities are independent: they accumulate
- * only the ecology division-flux ledger, so death/spread/net change can never be
- * misread as mutation supply.
+ * This is the reviewed interphase seam for higher-level mechanisms such as
+ * mutation: it consumes the exact local division-flux ledger and advances only
+ * division residuals/revision. Standing hosts intentionally remain from the
+ * previously committed continuous state until the caller completes spread and
+ * reconciles against final biomass.
+ *
+ * The returned intermediate state is detached transaction authority. It must
+ * not be published as a completed composed population checkpoint.
  */
-export function advanceDiscretePopulationAuthority(
+export function beginDiscretePopulationAuthorityAdvance(
   state: DiscretePopulationAuthorityState,
   config: DiscretePopulationAuthorityConfig,
-  args: {
-    readonly currentLineageBiomass: readonly ArrayLike<number>[]
-    readonly divisionBiomass: readonly ArrayLike<number>[]
-  },
-): DiscretePopulationAdvanceResult {
+  divisionBiomass: readonly ArrayLike<number>[],
+): DiscreteDivisionOpportunityResult {
   validateConfig(config)
   validateStateAgainstConfig(state, config)
   validateBiomassChannels(
-    'current lineage biomass',
-    args.currentLineageBiomass,
-    config,
-  )
-  validateBiomassChannels(
     'division biomass flux',
-    args.divisionBiomass,
+    divisionBiomass,
     config,
   )
 
-  const standing = decomposeStandingBiomass(
-    args.currentLineageBiomass,
-    config,
-  )
   const divisionOpportunities: number[][] = []
   const divisionResidualCellEquivalents: number[][] = []
   let totalDivisionOpportunities = 0
@@ -268,7 +263,7 @@ export function advanceDiscretePopulationAuthority(
     const residualChannel: number[] = []
     const priorResidual =
       state.divisionResidualCellEquivalents[lineageIndex]!
-    const flux = args.divisionBiomass[lineageIndex]!
+    const flux = divisionBiomass[lineageIndex]!
 
     for (let cell = 0; cell < flux.length; cell += 1) {
       if (config.mask[cell] === 0) {
@@ -303,25 +298,94 @@ export function advanceDiscretePopulationAuthority(
   }
 
   const nextState: DiscretePopulationAuthorityState = {
-    schemaVersion: DISCRETE_POPULATION_AUTHORITY_SCHEMA_VERSION,
-    configurationIdentity: state.configurationIdentity,
+    ...cloneDiscretePopulationAuthorityState(state),
     revision: safeIntegerAdd('population authority revision', state.revision, 1),
-    width: state.width,
-    height: state.height,
-    lineageIds: [...state.lineageIds],
-    standingHostCounts: standing.counts,
-    standingResidualCellEquivalents: standing.residuals,
     divisionResidualCellEquivalents,
   }
+  validateStateAgainstConfig(nextState, config)
 
   return {
     state: nextState,
     divisionOpportunities,
+    totalDivisionOpportunities,
+  }
+}
+
+/**
+ * Reconcile standing-host authority against one final committed continuous
+ * biomass state without consuming division supply a second time.
+ *
+ * This completes the beginDiscretePopulationAuthorityAdvance(...) transaction
+ * after higher-level interphase work and spatial spread. The population
+ * revision is retained: one ordinary ecology transition still advances the
+ * authority exactly once.
+ */
+export function reconcileDiscretePopulationStandingAuthority(
+  state: DiscretePopulationAuthorityState,
+  config: DiscretePopulationAuthorityConfig,
+  currentLineageBiomass: readonly ArrayLike<number>[],
+): DiscretePopulationAuthorityState {
+  validateConfig(config)
+  validateStateAgainstConfig(state, config)
+  validateBiomassChannels(
+    'current lineage biomass',
+    currentLineageBiomass,
+    config,
+  )
+
+  const standing = decomposeStandingBiomass(
+    currentLineageBiomass,
+    config,
+  )
+  const nextState: DiscretePopulationAuthorityState = {
+    ...cloneDiscretePopulationAuthorityState(state),
+    standingHostCounts: standing.counts,
+    standingResidualCellEquivalents: standing.residuals,
+  }
+  validateStateAgainstConfig(nextState, config)
+  validateStandingStateAgainstBiomass(
+    nextState,
+    config,
+    currentLineageBiomass,
+  )
+  return nextState
+}
+
+/**
+ * Compatibility one-shot advance after one already-authoritative ecology
+ * transition.
+ *
+ * Standing hosts are decomposed from the committed continuous biomass exactly
+ * once per transition. Division opportunities remain independent: they
+ * accumulate only the ecology division-flux ledger, so death/spread/net change
+ * can never be misread as mutation supply.
+ */
+export function advanceDiscretePopulationAuthority(
+  state: DiscretePopulationAuthorityState,
+  config: DiscretePopulationAuthorityConfig,
+  args: {
+    readonly currentLineageBiomass: readonly ArrayLike<number>[]
+    readonly divisionBiomass: readonly ArrayLike<number>[]
+  },
+): DiscretePopulationAdvanceResult {
+  const division = beginDiscretePopulationAuthorityAdvance(
+    state,
+    config,
+    args.divisionBiomass,
+  )
+  const reconciled = reconcileDiscretePopulationStandingAuthority(
+    division.state,
+    config,
+    args.currentLineageBiomass,
+  )
+
+  return {
+    ...division,
+    state: reconciled,
     totalStandingHosts: sumCounts(
       'total standing hosts',
-      nextState.standingHostCounts,
+      reconciled.standingHostCounts,
     ),
-    totalDivisionOpportunities,
   }
 }
 

@@ -143,3 +143,10 @@ function assertNormalizedCoordinate(name: string, value: number): void { if (!Nu
 function assertLength(name: string, actual: number, expected: number): void { if (actual !== expected) throw new RangeError(`${name} length ${actual} does not match grid cell count ${expected}`); }
 function assertFiniteArray(name: string, values: Float32Array): void { for (const value of values) if (!Number.isFinite(value)) throw new RangeError(`${name} contains a non-finite value`); }
 function assertFiniteNonNegativeArray(name: string, values: Float32Array): void { for (const value of values) if (!Number.isFinite(value) || value < 0) throw new RangeError(`${name} contains a non-finite or negative value`); }
+
+/** Presentation of the exact normalized region queried by the inspector. */
+export interface DishSelectionHighlight {
+  readonly centerX: number;
+  readonly centerY: number;
+  readonly radius: number;
+}

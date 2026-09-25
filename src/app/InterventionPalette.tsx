@@ -160,7 +160,9 @@ export function InterventionPalette({
         className="panel-note"
         role={view.reason === "runtime-error" ? "alert" : "status"}
       >
-        {view.message}
+        {runtimeStatus === "ready" || runtimeStatus === "pending"
+          ? "Tools preview placement. Applying changes is not connected yet."
+          : view.message}
       </p>
     </aside>
   );

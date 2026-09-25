@@ -1,3 +1,4 @@
+import { LiveDishActivity } from "./LiveDishActivity";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { PetraCompactAction } from "../ui/PetraCompactAction";
 import {
@@ -242,6 +243,45 @@ export function App({
     );
     focusSourcesTrigger();
   };
+
+  useEffect(() => {
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+
+      const sourcesPanel = document.getElementById("petra-sources-panel");
+      const sourcesTrigger = document.getElementById(SOURCES_TRIGGER_ID);
+      const searchTrigger = document.querySelector(".search-trigger");
+      const clickedWithinSources =
+        sourcesPanel?.contains(target) === true ||
+        sourcesTrigger?.contains(target) === true ||
+        searchTrigger?.contains(target) === true;
+
+      if (sourcesLifecycle.requestedOpen && !clickedWithinSources) {
+        if (
+          document.activeElement instanceof HTMLElement &&
+          sourcesPanel?.contains(document.activeElement)
+        ) {
+          document.activeElement.blur();
+        }
+        setFocusSourceSearch(false);
+        setSourcesLifecycle((current) =>
+          closeSourcesSurface(current, hideSourcesPlan),
+        );
+      }
+
+      document
+        .querySelectorAll<HTMLDetailsElement>(
+          "details.display-preferences[open], details.timeline-history[open], details.run-options[open], details.event-popover[open]",
+        )
+        .forEach((surface) => {
+          if (!surface.contains(target)) surface.open = false;
+        });
+    };
+
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [hideSourcesPlan, sourcesLifecycle.requestedOpen]);
 
   useEffect(() => {
     const delayMs = sourcesExitDelayMs(sourcesLifecycle, hideSourcesPlan);
@@ -633,6 +673,7 @@ export function App({
           <DishViewport
             motion={motionPreference}
             snapshot={dishSnapshot}
+            runIdentity={runtimeSnapshot?.checkpoint.identity ?? null}
             placement={
               interventionPlacement.phase === "placing"
                 ? interventionPlacement
@@ -657,6 +698,7 @@ export function App({
                   }
                 : undefined
             }
+            selection={regionInspector.state.status === "ready" ? regionInspectionRequest?.selection ?? null : null}
             regionSelectionActive={regionInspectionRequest !== null}
             onClearRegionSelection={() => setRegionInspectionRequest(null)}
             onEscapeBeforeOverview={() => {
@@ -722,14 +764,7 @@ export function App({
             motion={motionPreference}
             contrastMode={visualContrast}
           />
-          <section className="inspector-activity" aria-label="Live activity">
-            <div className="inspector-activity__heading">
-              <h3>Live activity</h3>
-              <span>No samples</span>
-            </div>
-            <p>Recorded trends appear when authoritative measurements are available.</p>
-            <div className="inspector-activity__empty" aria-hidden="true" />
-          </section>
+          <LiveDishActivity key={runBranchIdentity ?? "waiting"} snapshot={runtimeSnapshot} overview={regionInspectionRequest === null} />
         </div>
       </section>
 
@@ -753,7 +788,10 @@ export function App({
           </span>
         </div>
 
-        <TimelineHistory entries={experiment.view.timeline} />
+        <details className="event-popover">
+          <summary>Event history <span>{experiment.view.timeline.length}</span></summary>
+          <div className="event-popover__surface"><TimelineHistory entries={experiment.view.timeline} /></div>
+        </details>
 
         <ExperimentRunControls
           motion={motionPreference}

@@ -1,0 +1,101 @@
+/* Laptop composition: one stable vessel row, independent of playback cadence. */
+:root { color-scheme: dark; }
+select option { background: var(--petra-color-ink); color: var(--petra-color-cream); }
+.petra-app { font-size: 14px; }
+.petra-app button, .petra-app input, .petra-app select { min-width: 0; }
+.petra-topbar { box-shadow: none; }
+.petra-panel--tools > .petra-kicker { display: none; }
+.petra-panel--tools .panel-note { min-height: 4.7rem; font-size: 12px; }
+.inspector-shell { display: flex; flex-direction: column; gap: 18px; }
+.inspector-shell > * { flex: 0 0 auto; }
+.inspector-activity { margin-top: auto; }
+.inspector-shell > .analysis-surface { margin-top: 0; order: 3; }
+.inspector-shell .region-inspector-panel { display: flex; flex-direction: column; }
+.inspector-shell .region-inspector-readout { background: transparent; border: 0; padding: 0; }
+.inspector-shell .region-inspector-panel__truth-disclosure { margin-top: 8px; }
+.inspector-shell .region-inspector-panel__status-copy { border: 0; padding: 0; background: transparent; }
+.inspector-shell .region-inspector-readout__metrics > div { padding-block: 8px; }
+.sources-drawer { background: var(--petra-color-ink); }
+.sources-drawer .provenance-panel__filters { grid-template-columns: minmax(0, 1fr) auto; border-color: rgb(var(--petra-rgb-cream-muted) / .18); }
+.sources-drawer .provenance-panel__filters label:first-child { grid-column: 1 / -1; }
+.sources-drawer .provenance-panel__filters label { min-width: 0; }
+.sources-drawer .provenance-panel__filters input, .sources-drawer .provenance-panel__filters select { width: 100%; min-width: 0; background: var(--petra-color-ink-soft); border-color: rgb(var(--petra-rgb-cream-muted) / .25); }
+.sources-drawer .provenance-record { border-color: rgb(var(--petra-rgb-cream-muted) / .18); }
+.event-popover, .run-options { position: relative; }
+.event-popover > summary, .run-options > summary { min-height: 44px; display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; list-style: none; color: var(--petra-color-cream-muted); white-space: nowrap; border-radius: 10px; }
+.event-popover > summary:hover, .run-options > summary:hover { background: var(--petra-color-ink-soft); }
+.event-popover summary span { font-variant-numeric: tabular-nums; color: var(--petra-color-mint); }
+.event-popover__surface, .run-options__surface { position: absolute; bottom: calc(100% + 20px); right: 0; width: 360px; padding: 18px; border: 1px solid rgb(var(--petra-rgb-cream-muted) / .2); border-radius: 16px; background: var(--petra-color-ink); box-shadow: 0 20px 60px #0008; z-index: 40; }
+.run-options__surface { display: grid; gap: 16px; }
+.event-popover__surface .timeline-history-shell { display: grid; max-width: 100%; }
+.timeline-shell .experiment-run-controls { display: flex; align-items: center; gap: 12px; }
+.experiment-run-controls__primary { flex-wrap: nowrap; }
+.experiment-run-controls__feedback:not(:empty) { position: absolute; bottom: 100%; padding: 12px; background: var(--petra-color-ink); }
+.runtime-status { max-width: 250px; font-size: 12px; }
+.petra-app[data-dish-focus="focused"] .runtime-status { color: var(--petra-color-mint); border-color: rgb(var(--petra-rgb-mint) / .25); background: rgb(var(--petra-rgb-mint) / .07); }
+@media (min-width: 1081px) {
+  .petra-app { height: 100svh; min-height: 640px; grid-template-rows: 62px minmax(0, 1fr) 76px; gap: 16px; padding: 0 22px 18px; }
+  .petra-app:has(> .petra-runtime-recovery) { grid-template-rows: auto 62px minmax(0, 1fr) 76px; }
+  .petra-topbar { margin-inline: -22px; border-radius: 0; border-width: 0 0 1px; padding: 8px 30px; min-height: 0; }
+  .petra-topbar h1 { font-size: 27px; }
+  .search-trigger { max-width: 370px; justify-self: end; width: 100%; }
+  .petra-workspace { grid-template-columns: minmax(240px, .95fr) minmax(0, 2.1fr) minmax(260px, 1fr); gap: 22px; transition: none; }
+  .petra-panel--tools, .inspector-shell { align-self: stretch; padding: 20px 18px; border-radius: 14px; margin-block: 12px; }
+  .dish-stage { min-height: 0; height: 100%; background: transparent; overflow: hidden; container-type: size; border-radius: 0; }
+  .dish-renderer-shell { width: min(96cqw, calc(100cqh - 100px)); max-height: none; max-width: none; aspect-ratio: auto; display: grid; gap: 8px; }
+  .dish-renderer-frame { width: 100%; height: auto; aspect-ratio: 1; }
+  .dish-renderer-controls { position: relative; inset: auto; border: 0; padding: 0; background: transparent; border-radius: 0; width: 100%; min-height: 44px; }
+  .dish-renderer-controls > button { min-height: 44px; padding: 8px; font-size: 12px; }
+  .dish-overlay-control { flex: 0 1 160px; font-size: 12px; }
+  .dish-overlay-control select { min-height: 44px; width: 100%; font-size: 12px; }
+  .dish-overlay-legend { flex: 1 1 120px; font-size: 12px; border: 0; background: transparent; padding: 4px; }
+  .dish-overlay-swatch { width: 20px; }
+  .dish-semantic-guide { position: relative; inset: auto; width: 100%; padding: 3px; min-height: 30px; }
+  .dish-semantic-guide > span { padding: 4px; min-height: 0; }
+  .dish-semantic-guide__current { font-size: 12px; }
+  .dish-source-badge { top: 7%; font-size: 12px; letter-spacing: .05em; }
+  .timeline-shell { position: relative; grid-template-columns: minmax(200px, 1fr) auto auto; padding: 10px 18px; gap: 16px; border-radius: 16px; }
+  .timeline-summary { min-width: 0; gap: 18px; }
+  .timeline-summary .petra-kicker { display: none; }
+  .timeline-summary strong { white-space: nowrap; font-size: 15px; font-weight: 500; }
+  .timeline-shell .experiment-run-controls { grid-column: 2; grid-row: 1; }
+  .event-popover { grid-column: 3; grid-row: 1; }
+  .timeline-controls button { min-height: 44px; padding: 9px 12px; }
+  .timeline-controls button:first-child { min-width: 62px; border-radius: 50%; height: 52px; background: var(--petra-color-mint); color: var(--petra-color-ink-deep); }
+  .timeline-summary .runtime-status { border: 0; background: transparent; padding: 0; }
+  .tool-stack { gap: 14px; margin-top: 24px; }
+  .tool-stack button[data-intervention-tool] { min-height: 80px; grid-template-columns: 48px minmax(0, 1fr) auto; padding: 10px 12px; gap: 12px; }
+  .tool-action__copy strong { font-size: 14px; }
+  .tool-action__copy small { font-size: 12px; font-weight: 400; }
+  .tool-action__icon { width: 48px; height: 48px; }
+}
+
+.inspector-shell[data-no-region-selected="true"] .region-inspector-readout--empty,
+.inspector-shell[data-no-region-selected="true"] .region-inspector-panel__truth-disclosure { display: none; }
+.colony-overview { order: 1; }
+.inspector-shell__region { order: 0; }
+.inspector-activity { order: 2; }
+.colony-overview__identity { display: flex; gap: 14px; align-items: center; }
+.colony-overview__portrait { flex: 0 0 74px; height: 74px; border-radius: 50%; background: rgb(var(--petra-rgb-coral) / .08); padding: 8px; }
+.colony-overview__identity h3 { font-size: 16px; margin: 0 0 4px; }
+.colony-overview__identity p { font-size: 12px; font-style: italic; color: var(--petra-color-cream-muted); margin: 0 0 10px; }
+.colony-tag { font-size: 12px; padding: 4px 10px; border-radius: 20px; background: rgb(var(--petra-rgb-coral) / .25); color: var(--petra-color-cream); text-transform: capitalize; }
+.colony-overview h4 { margin: 28px 0 8px; font-size: 14px; }
+.colony-overview__description { font-size: 13px; color: var(--petra-color-cream-muted); line-height: 1.65; margin: 0; }
+.colony-overview__metrics { border-top: 1px solid rgb(var(--petra-rgb-cream-muted) / .15); margin-top: 20px; padding-top: 12px; font-size: 12px; }
+.colony-overview__metrics > div { display: flex; justify-content: space-between; gap: 14px; margin-block: 12px; }
+.colony-overview__metrics dt { color: var(--petra-color-cream-muted); }
+.colony-overview__metrics dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.colony-overview__metrics dd small { display: block; color: var(--petra-color-cream-muted); font-size: 12px; }
+.live-biomass-chart { width: 100%; height: 108px; margin-top: 10px; }
+.live-biomass-chart__axis { display: flex; justify-content: space-between; color: var(--petra-color-cream-muted); font-size: 12px; }
+
+.colony-overview h4 { margin-top: 18px; }
+.colony-overview__metrics { margin-top: 14px; padding-top: 6px; }
+.colony-overview__metrics > div { margin-block: 9px; }
+.inspector-shell > .analysis-surface { order: 3; }
+.inspector-shell .analysis-surface__identity { display: none; }
+.inspector-shell > .analysis-surface > summary { min-height: 44px; }
+.live-biomass-chart { height: 90px; }
+
+.lineage-color-key { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }

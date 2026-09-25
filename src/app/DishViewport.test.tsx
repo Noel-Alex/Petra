@@ -88,7 +88,7 @@ describe("DishViewport render-source truth boundary", () => {
     );
 
     expect(html).toContain('data-render-source="authoritative-snapshot"');
-    expect(html).toContain("authoritative snapshot");
+    expect(html).toContain("Live simulation · representative view");
     expect(html).not.toContain("visual demo · not biology");
     expect(html).not.toContain("visual-only renderer fixture");
   });
@@ -141,7 +141,7 @@ describe("DishViewport render-source truth boundary", () => {
       <DishViewport motion="full" snapshot={null} />,
     );
 
-    expect(html.match(/aria-live="polite"/g)).toHaveLength(1);
+    expect(html.match(/class="dish-overlay-legend"[^>]*aria-live="polite"/g)).toHaveLength(1);
     expect(html).toContain('aria-atomic="true"');
     expect(html).toContain('class="dish-overlay-legend"');
     expect(html).toContain('class="dish-overlay-legend__visual"');

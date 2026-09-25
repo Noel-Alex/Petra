@@ -1,3 +1,6 @@
+import type { RunIdentity } from "../sim/protocol";
+import type { OrganismPresentationIdentity } from "../render/organismPresentationIdentity";
+import { resolveOrganismPresentationForRun } from "./organismPresentationBinding";
 import type { DishRenderSnapshot } from "../render/model";
 
 export type DishRenderSourceKind =
@@ -12,6 +15,7 @@ export interface DishRenderSourceState {
 
 export interface DishRenderSource {
   readonly kind: DishRenderSourceKind;
+  readonly organismPresentation: OrganismPresentationIdentity | null;
   readonly snapshot: DishRenderSnapshot | null;
 }
 
@@ -23,6 +27,7 @@ export interface DishRenderSourceResolution {
 export interface DishRenderSourceInput {
   readonly authoritativeSnapshot?: DishRenderSnapshot | null;
   readonly demoMode: boolean;
+  readonly runIdentity?: RunIdentity | null;
 }
 
 /**
@@ -66,6 +71,7 @@ export function resolveDishRenderSource(
       state,
       source: {
         kind: "authoritative-snapshot",
+        organismPresentation: resolveOrganismPresentationForRun(input.runIdentity ?? null),
         snapshot: authoritativeSnapshot,
       },
     };
@@ -76,6 +82,7 @@ export function resolveDishRenderSource(
       state,
       source: {
         kind: "awaiting-authoritative-snapshot",
+        organismPresentation: null,
         snapshot: null,
       },
     };
@@ -91,6 +98,7 @@ export function resolveDishRenderSource(
     state: nextState,
     source: {
       kind: "visual-demo",
+      organismPresentation: null,
       snapshot: demoSnapshot,
     },
   };

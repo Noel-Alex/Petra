@@ -1,3 +1,4 @@
+import type { RunIdentity } from "../sim/protocol";
 import {
   useEffect,
   useId,
@@ -6,7 +7,7 @@ import {
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import type { DishRenderSnapshot, SemanticZoomLevel } from "../render/model";
+import type { DishRenderSnapshot, DishSelectionHighlight, SemanticZoomLevel } from "../render/model";
 import { PixiDish } from "../render/pixi/PixiDish";
 import type { NormalizedDishPoint } from "../ui/interventionPreview";
 import type { InterventionPlacementState } from "../ui/interventionPlacement";
@@ -44,6 +45,7 @@ import { resolveDishVisualMotion } from "./dishVisualMotion";
 export interface DishViewportProps {
   readonly motion: RendererMotionMode;
   readonly snapshot?: DishRenderSnapshot | null;
+  readonly runIdentity?: RunIdentity | null;
   /** Explicit visual-development fixture opt-in. Product/runtime default is false. */
   readonly demoMode?: boolean;
   /**
@@ -57,6 +59,7 @@ export interface DishViewportProps {
   readonly onPlacementPointChange?: (point: NormalizedDishPoint) => void;
   /** Presentation-only point selection; scientific values are resolved by app authority. */
   readonly onRegionPointActivate?: (point: NormalizedDishPoint) => void;
+  readonly selection?: DishSelectionHighlight | null;
   readonly regionSelectionActive?: boolean;
   readonly onClearRegionSelection?: () => void;
 }
@@ -74,12 +77,14 @@ function isEditableTarget(target: EventTarget | null): boolean {
 export function DishViewport({
   motion,
   snapshot,
+  runIdentity = null,
   demoMode = false,
   onEscapeBeforeOverview,
   placement = null,
   onPlacementPointChange,
   onRegionPointActivate,
   regionSelectionActive = false,
+  selection = null,
   onClearRegionSelection,
 }: DishViewportProps) {
   const interactionHintId = useId();
@@ -89,7 +94,7 @@ export function DishViewport({
   );
   const renderSourceResolution = resolveDishRenderSource(
     renderSourceState,
-    { authoritativeSnapshot, demoMode },
+    { authoritativeSnapshot, demoMode, runIdentity },
     createRendererDemoSnapshot,
   );
 
@@ -213,7 +218,9 @@ export function DishViewport({
     >
       <div className="dish-renderer-frame">
         <PixiDish
+          selection={selection}
           snapshot={activeSnapshot}
+          organismPresentation={renderSource.organismPresentation}
           sourceKind={renderSource.kind}
           motion={cameraPlan.mode}
           cameraMotion={cameraPlan.cameraMotion}
@@ -244,7 +251,7 @@ export function DishViewport({
         ) : null}
         <span className="dish-source-badge">
           {usingAuthoritative
-            ? "authoritative snapshot"
+            ? "Live simulation · representative view"
             : usingDemo
               ? "visual demo · not biology"
               : onRegionPointActivate !== undefined

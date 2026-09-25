@@ -7,6 +7,7 @@ import { applyPetraVisualCssVariables } from "./design/visualTokens";
 import "./ui/typography.css";
 import "./app/app.css";
 import "./app/visualTheme.css";
+import "./app/laptopShell.css";
 
 applyPetraVisualCssVariables(document.documentElement.style);
 

@@ -1,6 +1,7 @@
+import type { OrganismPresentationIdentity } from "../organismPresentationIdentity";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { PetraCompactAction } from "../../ui/PetraCompactAction";
-import type { DishRenderSnapshot, SemanticZoomLevel } from "../model";
+import type { DishRenderSnapshot, DishSelectionHighlight, SemanticZoomLevel } from "../model";
 import type { DishVisualMotionSpec } from "../visualInterpolation";
 import type { CameraMotionSpec } from "./cameraMotion";
 import { resolveDishActivationPoint } from "./dishActivation";
@@ -21,6 +22,8 @@ export type PixiDishSourceKind =
 export interface PixiDishProps {
   readonly snapshot: DishRenderSnapshot | null;
   readonly sourceKind: PixiDishSourceKind;
+  readonly selection?: DishSelectionHighlight | null;
+  readonly organismPresentation?: OrganismPresentationIdentity | null;
   readonly motion?: RendererMotionMode;
   readonly cameraMotion: CameraMotionSpec;
   readonly visualMotion: DishVisualMotionSpec;
@@ -64,6 +67,8 @@ function assertRenderSource(
 export function PixiDish({
   snapshot,
   sourceKind,
+  organismPresentation = null,
+  selection = null,
   motion = "full",
   cameraMotion,
   visualMotion,
@@ -77,6 +82,7 @@ export function PixiDish({
 }: PixiDishProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const rendererRef = useRef<PixiDishRenderer | null>(null);
+  const selectionRef = useRef(selection);
   const motionRef = useRef(motion);
   const cameraMotionRef = useRef(cameraMotion);
   const visualMotionRef = useRef(visualMotion);
@@ -93,9 +99,12 @@ export function PixiDish({
   const usingDemo = sourceKind === "visual-demo";
   const renderSnapshot = snapshot;
   const renderEnabled = renderSnapshot !== null;
+  const presentation = usingAuthoritative ? organismPresentation : null;
+  const presentationRef = useRef(presentation);
   const snapshotRef = useRef<DishRenderSnapshot | null>(renderSnapshot);
 
   useLayoutEffect(() => {
+    selectionRef.current = selection;
     motionRef.current = motion;
     cameraMotionRef.current = cameraMotion;
     visualMotionRef.current = visualMotion;
@@ -103,13 +112,16 @@ export function PixiDish({
     semanticZoomCallbackRef.current = onSemanticZoomLevelChange;
     dishPointActivateCallbackRef.current = onDishPointActivate;
     snapshotRef.current = renderSnapshot;
+    presentationRef.current = presentation;
   }, [
+    selection,
     cameraMotion,
     motion,
     onSemanticZoomLevelChange,
     onDishPointActivate,
     overlayId,
     renderSnapshot,
+    presentation,
     visualMotion,
   ]);
 
@@ -147,12 +159,13 @@ export function PixiDish({
       {
         onReady(renderer) {
           rendererRef.current = renderer;
+          renderer.setSelection(selectionRef.current);
           renderer.setCameraMotion(cameraMotionRef.current);
           renderer.setVisualMotion(visualMotionRef.current);
           renderer.setMotionMode(motionRef.current);
           const currentSnapshot = snapshotRef.current;
           if (currentSnapshot !== null) {
-            renderer.updatePresentation(currentSnapshot, overlayRef.current);
+            renderer.updatePresentation(currentSnapshot, overlayRef.current, presentationRef.current);
           }
           setStartup({ status: "ready", errorMessage: null });
         },
@@ -186,9 +199,11 @@ export function PixiDish({
 
   useEffect(() => {
     if (renderSnapshot !== null) {
-      rendererRef.current?.updatePresentation(renderSnapshot, overlayId);
+      rendererRef.current?.updatePresentation(renderSnapshot, overlayId, presentation);
     }
-  }, [renderSnapshot, overlayId]);
+  }, [renderSnapshot, overlayId, presentation]);
+
+  useEffect(() => { rendererRef.current?.setSelection(selection); }, [selection]);
 
   const resolvedAriaLabel =
     startup.status === "failed"

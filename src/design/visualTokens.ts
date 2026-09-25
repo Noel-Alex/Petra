@@ -8,10 +8,10 @@ export const PETRA_VISUAL_COLOR_SCHEMA_VERSION = 1 as const;
  * themselves. Scientific surfaces must pair color with labels/pattern/shape.
  */
 export const PETRA_VISUAL_COLORS = Object.freeze({
-  inkDeep: 0x0f1f2c,
-  ink: 0x132432,
-  inkSoft: 0x1a2f42,
-  cream: 0xf2e8d4,
+  inkDeep: 0x101e27,
+  ink: 0x162731,
+  inkSoft: 0x20363f,
+  cream: 0xf1f3ee,
   creamMuted: 0xaebcc8,
   teal: 0x62b7b6,
   mint: 0x7fcaa8,

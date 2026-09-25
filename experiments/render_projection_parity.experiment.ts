@@ -574,9 +574,17 @@ describe('authoritative composed-to-dish render projection parity', () => {
         second,
       ]),
     ).toThrow(/event label/i)
+    const firstWithoutLiveLineageLink = {
+      id: first.id,
+      kind: first.kind,
+      simulationTimeHours: first.simulationTimeHours,
+      x: first.x,
+      y: first.y,
+      label: first.label,
+    }
     expect(() =>
       verifyLineageOriginFixture(fixture, [
-        { ...first, lineageId: undefined },
+        firstWithoutLiveLineageLink,
         second,
       ]),
     ).toThrow(/live lineage link/i)

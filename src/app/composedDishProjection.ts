@@ -5,7 +5,7 @@ import {
   type OrganismPresentationTaxonCatalog,
 } from "./lineageOrganismPresentation";
 import { projectLineageOriginRenderEvents } from "./lineageRenderEvents";
-import { projectRuntimeEcologyNetGrowthField } from "./runtimeEcologyRenderField";
+import { projectRuntimeEcologyRateFields } from "./runtimeEcologyRenderField";
 import { projectAcceptedInterventionFootprint } from "../render/acceptedInterventionFootprint";
 import {
   validateRenderSnapshot,
@@ -274,12 +274,12 @@ export function projectAuthoritativeComposedDishSnapshot(
     ),
   ];
 
-  const netGrowthField = projectRuntimeEcologyNetGrowthField(
+  const ecologyRateFields = projectRuntimeEcologyRateFields(
     snapshot,
     runBranchIdentity,
     ecologyObservation,
   );
-  if (netGrowthField !== null) fields.push(netGrowthField);
+  fields.push(...ecologyRateFields);
 
   const acceptedInterventionFootprints = snapshot.events.flatMap((event) => {
     const footprint = projectAcceptedInterventionFootprint(event);

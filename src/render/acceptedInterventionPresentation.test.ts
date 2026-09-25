@@ -180,7 +180,7 @@ describe("accepted intervention presentation plan", () => {
     });
   });
 
-  it("rejects invalid presentation budgets and non-canonical identities", () => {
+  it("rejects invalid presentation budgets and empty identities", () => {
     expect(() =>
       prepareAcceptedInterventionPresentation(
         {
@@ -195,12 +195,12 @@ describe("accepted intervention presentation plan", () => {
     expect(() =>
       prepareAcceptedInterventionPresentation(
         {
-          snapshotId: " snapshot",
+          snapshotId: "",
           samplingIdentity: "branch",
           acceptedInterventionFootprints: [],
         },
         { maxVisibleFootprints: 1 },
       ),
-    ).toThrow(/snapshotId.*canonical/i);
+    ).toThrow(/snapshotId.*non-empty/i);
   });
 });

@@ -1,0 +1,43 @@
+{
+  "command": [
+    "python",
+    "experiments/blocked.py",
+    "--experiment-id",
+    "phage-mechanism-statistics",
+    "--blocked-on",
+    "751",
+    "--reason",
+    "The prepared #752 harness covers pure adsorption/infection/latent/lysis controls, but issue #751 must integrate the reviewed phage mechanisms into authoritative composed state, checkpoints, replay, events, and metrics before the stable experiment can run truthful end-to-end statistics."
+  ],
+  "compact_result": {
+    "blocked_on_issues": [
+      751
+    ],
+    "experiment_id": "phage-mechanism-statistics",
+    "next_action": "Land the listed prerequisite issue(s), then replace this gate command with the real experiment helper while preserving the stable experiment id.",
+    "reason": "The prepared #752 harness covers pure adsorption/infection/latent/lysis controls, but issue #751 must integrate the reviewed phage mechanisms into authoritative composed state, checkpoints, replay, events, and metrics before the stable experiment can run truthful end-to-end statistics.",
+    "schema_version": 1,
+    "status": "blocked"
+  },
+  "cwd": ".",
+  "description": "BLOCKED on #751: prepared many-seed phage mechanism statistics wait for composed free-phage/infection/lysis/checkpoint/replay authority.",
+  "duration_seconds": 0.081077,
+  "error": null,
+  "id": "phage-mechanism-statistics",
+  "issues": [
+    12,
+    283,
+    491,
+    529,
+    542,
+    562,
+    626,
+    751,
+    752
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T153036329888Z\\phage-mechanism-statistics\\artifacts",
+  "log_tail": "phage-mechanism-statistics: BLOCKED on #751\r\nThe prepared #752 harness covers pure adsorption/infection/latent/lysis controls, but issue #751 must integrate the reviewed phage mechanisms into authoritative composed state, checkpoints, replay, events, and metrics before the stable experiment can run truthful end-to-end statistics.\r\n",
+  "return_code": 2,
+  "status": "failed",
+  "timeout_seconds": 30
+}

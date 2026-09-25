@@ -1,0 +1,42 @@
+{
+  "command": [
+    "npm",
+    "exec",
+    "--offline",
+    "--",
+    "vitest",
+    "run",
+    "--config",
+    "experiments/vitest.population_scale_calibration.config.ts"
+  ],
+  "compact_result": {
+    "completed_at_utc": "2026-09-25T15:31:17.991Z",
+    "experiment_id": "population-scale-calibration",
+    "failure": {
+      "message": "composed founder taxon identity requires an authoritative taxon registry",
+      "name": "Error"
+    },
+    "local_run_id": "20260925T153036329888Z",
+    "schema_version": 1,
+    "started_at_utc": "2026-09-25T15:31:17.971Z",
+    "status": "failed"
+  },
+  "cwd": ".",
+  "description": "Effective mutation-supply population-scale calibration: zero-ciprofloxacin flagship ecology plus 4e8/4e9/4e10 terminal cell-equivalent sensitivity through exact fractional-carry population authority; calibrated/non-physical and non-promotable until evidence review.",
+  "duration_seconds": 1.541491,
+  "error": null,
+  "id": "population-scale-calibration",
+  "issues": [
+    5,
+    37,
+    542,
+    562,
+    740,
+    796
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T153036329888Z\\population-scale-calibration\\artifacts",
+  "log_tail": "\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv3.2.7 \u001b[39m\u001b[90mN:/projects/Petra\u001b[39m\n\n \u001b[31m\u276f\u001b[39m experiments/population_scale_calibration.experiment.ts \u001b[2m(\u001b[22m\u001b[2m1 test\u001b[22m\u001b[2m | \u001b[22m\u001b[31m1 failed\u001b[39m\u001b[2m)\u001b[22m\u001b[32m 27\u001b[2mms\u001b[22m\u001b[39m\n\u001b[31m   \u001b[31m\u00d7\u001b[31m population scale calibration local experiment\u001b[2m > \u001b[22mmeasures an effective mutation-supply scale without inventing physical biomass or feeding discreteness back into ecology\u001b[39m\u001b[32m 27\u001b[2mms\u001b[22m\u001b[39m\n\u001b[31m     \u2192 composed founder taxon identity requires an authoritative taxon registry\u001b[39m\n\n\u001b[31m\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u001b[39m\u001b[1m\u001b[41m Failed Tests 1 \u001b[49m\u001b[22m\u001b[31m\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u001b[39m\n\n\u001b[41m\u001b[1m FAIL \u001b[22m\u001b[49m experiments/population_scale_calibration.experiment.ts\u001b[2m > \u001b[22mpopulation scale calibration local experiment\u001b[2m > \u001b[22mmeasures an effective mutation-supply scale without inventing physical biomass or feeding discreteness back into ecology\n\u001b[31m\u001b[1mError\u001b[22m: composed founder taxon identity requires an authoritative taxon registry\u001b[39m\n\u001b[36m \u001b[2m\u276f\u001b[22m validateTaxonAuthorityMode src/sim/evolution/composedLineageAuthority.ts:\u001b[2m394:13\u001b[22m\u001b[39m\n    \u001b[90m392| \u001b[39m  \u001b[35mif\u001b[39m (taxonRegistry \u001b[33m===\u001b[39m undefined) {\n    \u001b[90m393| \u001b[39m    \u001b[35mif\u001b[39m (founderHasTaxon\u001b[33m.\u001b[39m\u001b[34msome\u001b[39m(\u001b[33mBoolean\u001b[39m)) {\n    \u001b[90m394| \u001b[39m      \u001b[35mthrow\u001b[39m \u001b[35mnew\u001b[39m \u001b[33mError\u001b[39m(\n    \u001b[90m   | \u001b[39m            \u001b[31m^\u001b[39m\n    \u001b[90m395| \u001b[39m        \"composed founder taxon identity requires an authoritative tax\u2026\n    \u001b[90m396| \u001b[39m      )\u001b[33m;\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m validateDynamicLineageAuthorityState src/sim/evolution/composedLineageAuthority.ts:\u001b[2m122:3\u001b[22m\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m initializeDynamicLineageAuthority src/sim/evolution/composedLineageAuthority.ts:\u001b[2m85:3\u001b[22m\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m runtimeLineageBaselineGrowthRateScales src/sim/authoritative.ts:\u001b[2m916:34\u001b[22m\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m preparedLineageParameters src/sim/authoritative.ts:\u001b[2m987:5\u001b[22m\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m stepComposedStateDetailed src/sim/authoritative.ts:\u001b[2m1091:29\u001b[22m\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m runBaseline experiments/population_scale_calibration.experiment.ts:\u001b[2m247:18\u001b[22m\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m experiments/population_scale_calibration.experiment.ts:\u001b[2m590:24\u001b[22m\u001b[39m\n\n\u001b[31m\u001b[2m\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af[1/1]\u23af\u001b[22m\u001b[39m\n\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[31m1 failed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[31m1 failed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m   Start at \u001b[22m 21:01:17\n\u001b[2m   Duration \u001b[22m 446ms\u001b[2m (transform 170ms, setup 0ms, collect 253ms, tests 27ms, environment 0ms, prepare 56ms)\u001b[22m\n\n",
+  "return_code": 1,
+  "status": "failed",
+  "timeout_seconds": 1800
+}

@@ -1,0 +1,31 @@
+{
+  "command": [
+    "python",
+    "tools/worker_transport_profile.py"
+  ],
+  "compact_result": {
+    "browser_executable": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "error": "RuntimeError('browser transport profile did not return samples')",
+    "evidence_boundary": "The profile failed before valid compact Worker transport evidence was produced. No architecture or optimization conclusion should be drawn from this result.",
+    "kind": "petra-worker-transport-profile",
+    "schema_version": 1,
+    "status": "failed",
+    "target_url": "http://127.0.0.1:4175/tools/worker_transport_profile.html"
+  },
+  "cwd": ".",
+  "description": "Real composed browser Worker transport profile: payload-size breakdown, sender postMessage handoff, request-window/worker time, and accepted-snapshot clone cost.",
+  "duration_seconds": 1.823825,
+  "error": null,
+  "id": "worker-transport-profile",
+  "issues": [
+    519,
+    577,
+    630,
+    642
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T153036329888Z\\worker-transport-profile\\artifacts",
+  "log_tail": "{\"error\": \"RuntimeError('browser transport profile did not return samples')\", \"status\": \"failed\"}\r\n",
+  "return_code": 1,
+  "status": "failed",
+  "timeout_seconds": 300
+}

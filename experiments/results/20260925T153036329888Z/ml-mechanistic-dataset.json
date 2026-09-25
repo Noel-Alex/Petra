@@ -1,0 +1,42 @@
+{
+  "command": [
+    "python",
+    "experiments/blocked.py",
+    "--experiment-id",
+    "ml-mechanistic-dataset",
+    "--blocked-on",
+    "594",
+    "--reason",
+    "The first #544 package is prepared in src/ml/firstAggregateDatasetPackage.ts with exact run-condition/schedule authority, a bounded 9-group/27-trajectory engineering sweep, and compact authoritative aggregate projection. #594 must still record local distinct-worker parity, multicore execution, durable resume, and finalization evidence before broad dataset generation is treated as verified. After that gate clears, activate the existing experiments/ml_mechanistic_dataset.py launcher; PETRA_ML_DATASET_PACKAGE_ENTRY is already pinned in this registration, so do not redesign the sweep or ask the human for extra commands."
+  ],
+  "compact_result": {
+    "blocked_on_issues": [
+      594
+    ],
+    "experiment_id": "ml-mechanistic-dataset",
+    "next_action": "Land the listed prerequisite issue(s), then replace this gate command with the real experiment helper while preserving the stable experiment id.",
+    "reason": "The first #544 package is prepared in src/ml/firstAggregateDatasetPackage.ts with exact run-condition/schedule authority, a bounded 9-group/27-trajectory engineering sweep, and compact authoritative aggregate projection. #594 must still record local distinct-worker parity, multicore execution, durable resume, and finalization evidence before broad dataset generation is treated as verified. After that gate clears, activate the existing experiments/ml_mechanistic_dataset.py launcher; PETRA_ML_DATASET_PACKAGE_ENTRY is already pinned in this registration, so do not redesign the sweep or ask the human for extra commands.",
+    "schema_version": 1,
+    "status": "blocked"
+  },
+  "cwd": ".",
+  "description": "PREPARED; BLOCKED on #594 local verification: the first authoritative group-split aggregate package is repository-owned and the generic durable Node runtime is on main; bulky datasets remain local.",
+  "duration_seconds": 0.07574,
+  "error": null,
+  "id": "ml-mechanistic-dataset",
+  "issues": [
+    13,
+    442,
+    531,
+    542,
+    544,
+    594,
+    682,
+    685
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T153036329888Z\\ml-mechanistic-dataset\\artifacts",
+  "log_tail": "ml-mechanistic-dataset: BLOCKED on #594\r\nThe first #544 package is prepared in src/ml/firstAggregateDatasetPackage.ts with exact run-condition/schedule authority, a bounded 9-group/27-trajectory engineering sweep, and compact authoritative aggregate projection. #594 must still record local distinct-worker parity, multicore execution, durable resume, and finalization evidence before broad dataset generation is treated as verified. After that gate clears, activate the existing experiments/ml_mechanistic_dataset.py launcher; PETRA_ML_DATASET_PACKAGE_ENTRY is already pinned in this registration, so do not redesign the sweep or ask the human for extra commands.\r\n",
+  "return_code": 2,
+  "status": "failed",
+  "timeout_seconds": 30
+}

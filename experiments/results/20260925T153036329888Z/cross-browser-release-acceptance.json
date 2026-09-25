@@ -1,0 +1,41 @@
+{
+  "command": [
+    "python",
+    "tools/cross_browser_acceptance.py"
+  ],
+  "compact_result": {
+    "browsers": [],
+    "build": {
+      "error": null,
+      "log": "N:\\projects\\Petra\\.petra_local\\runs\\20260925T153036329888Z\\cross-browser-release-acceptance\\artifacts\\release-build.log",
+      "return_code": 2,
+      "status": "fail"
+    },
+    "deep_chromium": null,
+    "evidence_boundary": "Release build failed; no browser compatibility claim is possible.",
+    "kind": "petra-cross-browser-release-acceptance",
+    "platform": "Windows-11-10.0.22631-SP0",
+    "schema_version": 1,
+    "summary": {
+      "blocked": 0,
+      "fail": 1,
+      "pass": 0,
+      "unavailable": 0
+    }
+  },
+  "cwd": ".",
+  "description": "Build-release compatibility matrix: deep Chromium acceptance plus Firefox and Safari/WebKit smoke when local automation is available.",
+  "duration_seconds": 5.627854,
+  "error": null,
+  "id": "cross-browser-release-acceptance",
+  "issues": [
+    59,
+    532,
+    643
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T153036329888Z\\cross-browser-release-acceptance\\artifacts",
+  "log_tail": "N:\\projects\\Petra\\tools\\expo_browser_acceptance.py:1945: SyntaxWarning: \"\\.\" is an invalid escape sequence. Such sequences will not work in the future. Did you mean \"\\\\.\"? A raw string is also an option.\r\n  const timeMatch = /^Simulation time ([0-9]+(?:\\.[0-9]+)?) h$/.exec(\r\n{\"blocked\": 0, \"fail\": 1, \"pass\": 0, \"unavailable\": 0}\r\n",
+  "return_code": 1,
+  "status": "failed",
+  "timeout_seconds": 900
+}

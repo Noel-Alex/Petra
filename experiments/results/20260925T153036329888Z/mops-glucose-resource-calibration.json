@@ -1,0 +1,423 @@
+{
+  "command": [
+    "python",
+    "experiments/mops_glucose_resource_calibration.py"
+  ],
+  "compact_result": {
+    "blocked_on_issues": [
+      938
+    ],
+    "calibration_fit_authorized": false,
+    "details": {
+      "candidate_count": 189,
+      "candidate_list_truncated": true,
+      "candidates": [
+        {
+          "checksum": "c197cfa49ab2b7bb14e6ab6f976e087d",
+          "checksum_type": "MD5",
+          "content_type": "text/tab-separated-values",
+          "id": 10433918,
+          "path": "ImagingData/EcoliMG1655_MediumDependence/20230201_EcoliMG1655_Glucose11mMGlutamate5M_Tshift27to37_TEMPERATURE.tab",
+          "score": 15,
+          "size_bytes": 450433
+        },
+        {
+          "checksum": "377025f2298f7a171fe1949f02131773",
+          "checksum_type": "MD5",
+          "content_type": "text/tab-separated-values",
+          "id": 10434123,
+          "path": "ImagingData/EcoliMG1655_MediumDependence/20230406_EcoliMG1655_Glucose11mM_Tshift27to37_TEMPERATURE.tab",
+          "score": 15,
+          "size_bytes": 667080
+        },
+        {
+          "checksum": "82cea271a6438c109f69e33b37cca414",
+          "checksum_type": "MD5",
+          "content_type": "application/matlab-mat",
+          "id": 10433605,
+          "path": "ImagingData/EcoliMG1655_MediumDependence/20230201_EcoliMG1655_Glucose11mMGlutamate5M_Tshift27to37_CELLLENGTH.mat",
+          "score": 14,
+          "size_bytes": 193787
+        },
+        {
+          "checksum": "e748a640d74553b043921d58999db8c4",
+          "checksum_type": "MD5",
+          "content_type": "application/matlab-mat",
+          "id": 10434063,
+          "path": "ImagingData/EcoliMG1655_MediumDependence/20230406_EcoliMG1655_Glucose11mM_Tshift27to37_CELLLENGTH.mat",
+          "score": 14,
+          "size_bytes": 203532
+        },
+        {
+          "checksum": "5a9870f43ee77d2ccd806b1db7617261",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10434119,
+          "path": "MonodLaw_Data/20211124_sugar_amino_acids/arrhenius_analysis/monod_fit_glucose_Arrhenius.m",
+          "score": 14,
+          "size_bytes": 2922
+        },
+        {
+          "checksum": "5d989d9eb25a8fdb7eccf104daa2884d",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10433895,
+          "path": "MonodLaw_Data/20211124_sugar_amino_acids/arrhenius_analysis/unweighted_analysis/monod_fit_glucose_Arrhenius.m",
+          "score": 14,
+          "size_bytes": 1868
+        },
+        {
+          "checksum": "95e76c2c2241ab9d3c215ae0d12bf8a1",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10433696,
+          "path": "MonodLaw_Data/20211124_sugar_amino_acids/maxOD_analysis/monod_maxOD_glucose_calibrated.m",
+          "score": 14,
+          "size_bytes": 1542
+        },
+        {
+          "checksum": "4c063e049c4a9cc83e9ede221e84244d",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10433647,
+          "path": "MonodLaw_Data/20211124_sugar_amino_acids/monod_fit_glucose.m",
+          "score": 14,
+          "size_bytes": 3127
+        },
+        {
+          "checksum": "9cc32a336ddba2ae3be9936a9f268b1e",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10433674,
+          "path": "MonodLaw_Data/20211124_sugar_amino_acids/unweighted_analysis/monod_fit_glucose.m",
+          "score": 14,
+          "size_bytes": 2962
+        },
+        {
+          "checksum": "83625e65b0e6e5d9a33a7157e9549cda",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10434102,
+          "path": "MonodLaw_Data/20211124_sugar_amino_acids/unweighted_analysis/monod_fit_glucose_v2.m",
+          "score": 14,
+          "size_bytes": 2974
+        },
+        {
+          "checksum": "3904621f2f87adcca619c53450929518",
+          "checksum_type": "MD5",
+          "content_type": "application/matlab-mat",
+          "id": 10433771,
+          "path": "MonodLaw_Data/20211209_sugars_amino_acids/aggregate_analysis_sugars_proline/arrhenius_analysis/unweighted_analysis/individual_data_files/Ea_glucose.mat",
+          "score": 14,
+          "size_bytes": 311
+        },
+        {
+          "checksum": "74d6cd1c937d1bed518cd1882bc5d128",
+          "checksum_type": "MD5",
+          "content_type": "application/matlab-mat",
+          "id": 10434057,
+          "path": "MonodLaw_Data/20211209_sugars_amino_acids/aggregate_analysis_sugars_proline/arrhenius_analysis/unweighted_analysis/individual_data_files/grmax_glucose.mat",
+          "score": 14,
+          "size_bytes": 522
+        },
+        {
+          "checksum": "20e4d1d65150ca45cda2e6fdb8652d17",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10433901,
+          "path": "MonodLaw_Data/20211209_sugars_amino_acids/aggregate_analysis_sugars_proline/arrhenius_analysis/unweighted_analysis/monod_fit_glucose_Arrhenius.m",
+          "score": 14,
+          "size_bytes": 1776
+        },
+        {
+          "checksum": "95e76c2c2241ab9d3c215ae0d12bf8a1",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10433531,
+          "path": "MonodLaw_Data/20211209_sugars_amino_acids/aggregate_analysis_sugars_proline/maxOD_analysis/monod_maxOD_glucose_calibrated.m",
+          "score": 14,
+          "size_bytes": 1542
+        },
+        {
+          "checksum": "8b0ccfd4445c921d11a6c536f72d0f9e",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10433528,
+          "path": "MonodLaw_Data/20211209_sugars_amino_acids/aggregate_analysis_sugars_proline/unweighted_analysis/monod_fit_glucose.m",
+          "score": 14,
+          "size_bytes": 2873
+        },
+        {
+          "checksum": "38bc52cbcf93d74566fdaefe82b38385",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10433928,
+          "path": "MonodLaw_Data/20211209_sugars_amino_acids/analysis_25C/analysis/maxOD_analysis/calibrated_analysis/monod_maxOD_glucose_calibrated.m",
+          "score": 14,
+          "size_bytes": 788
+        },
+        {
+          "checksum": "6b8d954cde2bcdc8f345f918830446e1",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10433656,
+          "path": "MonodLaw_Data/20211209_sugars_amino_acids/analysis_25C/analysis/maxOD_analysis/monod_maxOD_glucose.m",
+          "score": 14,
+          "size_bytes": 726
+        },
+        {
+          "checksum": "bd8fc9cc6123cd0f48b67f2dd8b47d02",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10434167,
+          "path": "MonodLaw_Data/20211209_sugars_amino_acids/analysis_25C/analysis/monod_fit_glucose.m",
+          "score": 14,
+          "size_bytes": 995
+        },
+        {
+          "checksum": "38bc52cbcf93d74566fdaefe82b38385",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10434096,
+          "path": "MonodLaw_Data/20211209_sugars_amino_acids/analysis_30C/analysis/maxOD_analysis/calibrated_analysis/monod_maxOD_glucose_calibrated.m",
+          "score": 14,
+          "size_bytes": 788
+        },
+        {
+          "checksum": "6b8d954cde2bcdc8f345f918830446e1",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10434099,
+          "path": "MonodLaw_Data/20211209_sugars_amino_acids/analysis_30C/analysis/maxOD_analysis/monod_maxOD_glucose.m",
+          "score": 14,
+          "size_bytes": 726
+        },
+        {
+          "checksum": "c51bc423dd5885b5e66f87d5e1ef41f2",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10433819,
+          "path": "MonodLaw_Data/20211209_sugars_amino_acids/analysis_30C/analysis/monod_fit_glucose.m",
+          "score": 14,
+          "size_bytes": 995
+        },
+        {
+          "checksum": "38bc52cbcf93d74566fdaefe82b38385",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10433615,
+          "path": "MonodLaw_Data/20211209_sugars_amino_acids/analysis_37C/analysis/maxOD_analysis/calibrated_analysis/monod_maxOD_glucose_calibrated.m",
+          "score": 14,
+          "size_bytes": 788
+        },
+        {
+          "checksum": "6b8d954cde2bcdc8f345f918830446e1",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10433759,
+          "path": "MonodLaw_Data/20211209_sugars_amino_acids/analysis_37C/analysis/maxOD_analysis/monod_maxOD_glucose.m",
+          "score": 14,
+          "size_bytes": 726
+        },
+        {
+          "checksum": "0cb4918469c753bf034b9d52e54ed8a8",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10434201,
+          "path": "MonodLaw_Data/20211209_sugars_amino_acids/analysis_37C/analysis/monod_fit_glucose.m",
+          "score": 14,
+          "size_bytes": 997
+        },
+        {
+          "checksum": "b06e0cbeb5880e404b65e2f9cd094b6a",
+          "checksum_type": "MD5",
+          "content_type": "application/x-xfig",
+          "id": 10433582,
+          "path": "MonodLaw_Data/20211124_sugar_amino_acids/arrhenius_analysis/Ea_vs_concentration_glucose.fig",
+          "score": 12,
+          "size_bytes": 23675
+        },
+        {
+          "checksum": "800675011b744b3c7fc6863ee73587be",
+          "checksum_type": "MD5",
+          "content_type": "application/x-xfig",
+          "id": 10434147,
+          "path": "MonodLaw_Data/20211124_sugar_amino_acids/arrhenius_analysis/unweighted_analysis/monod_fit_glucose_Arrhenius.fig",
+          "score": 12,
+          "size_bytes": 30348
+        },
+        {
+          "checksum": "27f311b600f83af4191515a2c4023814",
+          "checksum_type": "MD5",
+          "content_type": "application/x-xfig",
+          "id": 10434202,
+          "path": "MonodLaw_Data/20211124_sugar_amino_acids/maxOD_analysis/monod_maxOD_glucose_calibrated_alltemps.fig",
+          "score": 12,
+          "size_bytes": 27266
+        },
+        {
+          "checksum": "583efc560e002176ed6468c825f2f2ec",
+          "checksum_type": "MD5",
+          "content_type": "application/x-xfig",
+          "id": 10433632,
+          "path": "MonodLaw_Data/20211124_sugar_amino_acids/unweighted_analysis/monod_fit_glucose.fig",
+          "score": 12,
+          "size_bytes": 107370
+        },
+        {
+          "checksum": "8d64ca1e6cd1f2395b00c0a04fd634c5",
+          "checksum_type": "MD5",
+          "content_type": "application/x-xfig",
+          "id": 10434158,
+          "path": "MonodLaw_Data/20211209_sugars_amino_acids/aggregate_analysis_sugars_proline/arrhenius_analysis/unweighted_analysis/monod_fit_glucose_Arrhenius.fig",
+          "score": 12,
+          "size_bytes": 29891
+        },
+        {
+          "checksum": "27f311b600f83af4191515a2c4023814",
+          "checksum_type": "MD5",
+          "content_type": "application/x-xfig",
+          "id": 10433857,
+          "path": "MonodLaw_Data/20211209_sugars_amino_acids/aggregate_analysis_sugars_proline/maxOD_analysis/monod_maxOD_glucose_calibrated_alltemps.fig",
+          "score": 12,
+          "size_bytes": 27266
+        },
+        {
+          "checksum": "ba7690a45b4441fcc8c8b476ed4f249b",
+          "checksum_type": "MD5",
+          "content_type": "application/x-xfig",
+          "id": 10433710,
+          "path": "MonodLaw_Data/20211209_sugars_amino_acids/aggregate_analysis_sugars_proline/unweighted_analysis/monod_fit_glucose_alltemps.fig",
+          "score": 12,
+          "size_bytes": 107045
+        },
+        {
+          "checksum": "0d2babb2899c7b2e45adb48e0cca8712",
+          "checksum_type": "MD5",
+          "content_type": "application/x-xfig",
+          "id": 10433909,
+          "path": "MonodLaw_Data/20211209_sugars_amino_acids/analysis_25C/analysis/monod_fit_glucose.fig",
+          "score": 12,
+          "size_bytes": 55445
+        },
+        {
+          "checksum": "41a0c0e377db429fffa5cb339b924087",
+          "checksum_type": "MD5",
+          "content_type": "application/x-xfig",
+          "id": 10433629,
+          "path": "MonodLaw_Data/20211209_sugars_amino_acids/analysis_30C/analysis/monod_fit_glucose.fig",
+          "score": 12,
+          "size_bytes": 54111
+        },
+        {
+          "checksum": "08106d1a8ac97ef93d36e0757e7c9ee3",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10433831,
+          "path": "Data_LiquidCulture/Ecoli_LabStrains_LiquidCulture/plot_growthrates.m",
+          "score": 10,
+          "size_bytes": 836
+        },
+        {
+          "checksum": "724a2b4703441d2380c5dcc903601181",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10433725,
+          "path": "Data_LiquidCulture/Ecoli_LabStrains_LiquidCulture/plot_growthrates_all.m",
+          "score": 10,
+          "size_bytes": 2248
+        },
+        {
+          "checksum": "cecf04412818d372108bce8f3cfa7b0c",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10434156,
+          "path": "Data_LiquidCulture/Ecoli_LabStrains_LiquidCulture/plot_growthrates_all_otherfitting.m",
+          "score": 10,
+          "size_bytes": 1488
+        },
+        {
+          "checksum": "1f59ab3225a58f2553675a47a29f4ad7",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10433994,
+          "path": "Data_LiquidCulture/Ecoli_LabStrains_LiquidCulture/plot_growthrates_MG1655.m",
+          "score": 10,
+          "size_bytes": 2292
+        },
+        {
+          "checksum": "e8c84d0742018238d0496be9103b8075",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10433580,
+          "path": "Data_LiquidCulture/Ecoli_LabStrains_LiquidCulture/plot_growthrates_MG1655_otherfitting.m",
+          "score": 10,
+          "size_bytes": 1937
+        },
+        {
+          "checksum": "21d41ffca7b8b283460ae8ca2afd55e7",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10433818,
+          "path": "Data_LiquidCulture/Ecoli_LabStrains_LiquidCulture/plot_growthrates_WTonly_notMG1655.m",
+          "score": 10,
+          "size_bytes": 2769
+        },
+        {
+          "checksum": "5a5e606e9d9e3b42cefe27f8b8e96d85",
+          "checksum_type": "MD5",
+          "content_type": "text/x-matlab",
+          "id": 10433568,
+          "path": "Data_LiquidCulture/Ecoli_RamStrains_LiquidCulture/find_clean_maxgrowthrate_sampleplate.m",
+          "score": 10,
+          "size_bytes": 4476
+        }
+      ],
+      "dataset_persistent_id": "doi:10.7910/DVN/SC2KXZ",
+      "dataset_unf": "UNF:6:z2Eszn30yn1HR7lMASu3Ug==",
+      "dataset_version": "1.0",
+      "file_count": 713,
+      "local_inventory_file": "knapp_sc2kxz_v1_file_inventory.json",
+      "metadata_sha256": "f28815ec4d04b3c2dbcc3cb5d6b0c649b9aa301ab1621cf555e03505ad3e69c7",
+      "next_action": "Review the exact candidate file/schema, preserve replicate uncertainty, then replace this discovery-only stop with an exact source parser and #657 fit/hold-out objective. Spatial transport remains independently unbound.",
+      "target_semantics": {
+        "concentration_range_mM": [
+          0.17,
+          11
+        ],
+        "medium": "MOPS minimal medium",
+        "organism": "Escherichia coli K-12 MG1655",
+        "replicates_per_concentration": 3,
+        "response": "maximum growth rate (1/h)",
+        "substrate": "D-glucose",
+        "temperature_celsius": 37
+      }
+    },
+    "evidence_boundary": "Source acquisition/inventory only. No figure digitization, parameter fit, physical spatial transport, or Science-Mode promotion is established.",
+    "experiment_id": "mops-glucose-resource-calibration",
+    "message": "Exact Dataverse V1 metadata was acquired and candidate source files were ranked from repository-owned target semantics. Candidate ranking is discovery only: inspect the exact file/schema and identify the 37 C D-glucose replicate/summary rows before adding a parser or fit.",
+    "schema_version": 1,
+    "source_inventory_ready": true,
+    "spatial_promotion_authorized": false,
+    "stage": "source-inventory",
+    "status": "blocked"
+  },
+  "cwd": ".",
+  "description": "SOURCE INVENTORY RUNNABLE; calibration remains blocked on #938: acquire and verify the exact Knapp Harvard Dataverse V1 file inventory, then stop before fitting until the 37 C D-glucose table/schema and uncertainty representation are reviewed; physical spatial transport remains independently unbound.",
+  "duration_seconds": 5.116528,
+  "error": null,
+  "id": "mops-glucose-resource-calibration",
+  "issues": [
+    227,
+    542,
+    657,
+    874,
+    928,
+    938
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T153036329888Z\\mops-glucose-resource-calibration\\artifacts",
+  "log_tail": "mops-glucose-resource-calibration: BLOCKED after source-inventory\r\nExact Dataverse V1 metadata was acquired and candidate source files were ranked from repository-owned target semantics. Candidate ranking is discovery only: inspect the exact file/schema and identify the 37 C D-glucose replicate/summary rows before adding a parser or fit.\r\n",
+  "return_code": 2,
+  "status": "failed",
+  "timeout_seconds": 180
+}

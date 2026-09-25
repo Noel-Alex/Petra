@@ -1,0 +1,174 @@
+{
+  "command": [
+    "npm",
+    "exec",
+    "--offline",
+    "--",
+    "vitest",
+    "run",
+    "--config",
+    "experiments/vitest.evolution_replicate_statistics.config.ts"
+  ],
+  "compact_result": {
+    "acceptance": {
+      "accelerated_exact_sampler_exercised": true,
+      "all_edge_marginals_within_declared_envelope": true,
+      "at_least_one_frequency_within_declared_envelope": true,
+      "deterministic_replay_exact": true,
+      "overall": true
+    },
+    "at_least_one_mutation": {
+      "accepted": true,
+      "exact_at_least_one_probability_per_replicate": 0.8649351439066815,
+      "exact_no_event_probability_per_replicate": 0.13506485609331853,
+      "expected_replicates_with_any_mutation": 3542.7743494417673,
+      "observed_replicates_with_any_mutation": 3500,
+      "sigma": 21.874741316835095,
+      "tolerance": 174.99793053468076,
+      "total_mutation_probability_per_division": 2.002e-07,
+      "variance": 478.50430767845245
+    },
+    "authority": {
+      "mutation_probability_source": "repository-owned curated mutation graph",
+      "probability_claim": "configured model-target / mechanistic-approximation probabilities only",
+      "scenario_id": "ecoli-ciprofloxacin-spatial",
+      "scenario_version": "1.5.0-research",
+      "source_genotype_id": "A"
+    },
+    "completed_at_utc": "2026-09-25T15:31:26.834Z",
+    "deterministic_replay": {
+      "accepted": true,
+      "sequence_sha256": "dac99ef0eca01f09d9bfe2179ba8ffe806c2bf173a459ae0ce5383e66cb5b038"
+    },
+    "edge_statistics": [
+      {
+        "accepted": true,
+        "citationDoi": "10.1093/molbev/msx052",
+        "citationKey": "huseby_2017",
+        "expectedAggregateCount": 4.096,
+        "fromGenotypeId": "A",
+        "limitation": "This is a curated point-mutation target order of magnitude, not a measured probability of this exact Petra transition.",
+        "modelTargetClassification": "model_target_probability",
+        "observedAggregateCount": 2,
+        "probabilityPerDivision": 1e-10,
+        "provenanceClassification": "mechanistic_approximation",
+        "sigma": 2.02385770240657,
+        "toGenotypeId": "AC",
+        "tolerance": 16.19086161925256,
+        "variance": 4.0959999995904
+      },
+      {
+        "accepted": true,
+        "citationDoi": "10.1093/molbev/msx052",
+        "citationKey": "huseby_2017",
+        "expectedAggregateCount": 4.096,
+        "fromGenotypeId": "A",
+        "limitation": "This is a curated point-mutation target order of magnitude, not a measured probability of this exact Petra transition.",
+        "modelTargetClassification": "model_target_probability",
+        "observedAggregateCount": 2,
+        "probabilityPerDivision": 1e-10,
+        "provenanceClassification": "mechanistic_approximation",
+        "sigma": 2.02385770240657,
+        "toGenotypeId": "AB",
+        "tolerance": 16.19086161925256,
+        "variance": 4.0959999995904
+      },
+      {
+        "accepted": true,
+        "citationDoi": "10.1093/molbev/msx052",
+        "citationKey": "huseby_2017",
+        "expectedAggregateCount": 4096,
+        "fromGenotypeId": "A",
+        "limitation": "This is a regulator-disruption target-class order of magnitude, not a measured probability of this exact Petra transition.",
+        "modelTargetClassification": "model_target_class_probability",
+        "observedAggregateCount": 4035,
+        "probabilityPerDivision": 1e-07,
+        "provenanceClassification": "mechanistic_approximation",
+        "sigma": 63.99999679999992,
+        "toGenotypeId": "AD",
+        "tolerance": 511.99997439999936,
+        "variance": 4095.9995904
+      },
+      {
+        "accepted": true,
+        "citationDoi": "10.1093/molbev/msx052",
+        "citationKey": "huseby_2017",
+        "expectedAggregateCount": 4096,
+        "fromGenotypeId": "A",
+        "limitation": "This is a regulator-disruption target-class order of magnitude, not a measured probability of this exact Petra transition.",
+        "modelTargetClassification": "model_target_class_probability",
+        "observedAggregateCount": 4018,
+        "probabilityPerDivision": 1e-07,
+        "provenanceClassification": "mechanistic_approximation",
+        "sigma": 63.99999679999992,
+        "toGenotypeId": "AE",
+        "tolerance": 511.99997439999936,
+        "variance": 4095.9995904
+      }
+    ],
+    "experiment_id": "evolution-replicate-statistics",
+    "guardrails": {
+      "accelerated_mode_only": true,
+      "every_replicate_mutant_count_lte_division_opportunities": true,
+      "reference_path_matches_bounded_sampler_below_exact_limit": true,
+      "zero_probability_control_produces_zero_mutations": true
+    },
+    "limitations": [
+      "Agreement validates the numerical sampler against Petra's configured multinomial/Binomial model law; it is not biological validation of the mutation probabilities.",
+      "The Huseby-derived Petra edge values are explicitly mechanistic approximations/model targets, not measured probabilities of these exact curated transitions.",
+      "This sampler-focused harness consumes explicit safe-integer division opportunities directly. The composed ecology\u2192opportunity\u2192child-lineage transaction is now implemented on main, but this workload does not exercise that end-to-end path or supply the #796 population-scale calibration required for flagship evolution activation.",
+      "Selected appearance-rate validation targets in the flagship preset are aggregate experimental outcomes and are deliberately not relabeled as exact edge probabilities here.",
+      "The experiment-owned sampling policy is numerical work-budget configuration only and does not alter mutation biology."
+    ],
+    "local_run_id": "20260925T153036329888Z",
+    "sampling_policy": {
+      "acceleration": "exact-sparse-binomial-v1",
+      "exactTrialLimit": 10000,
+      "id": "evolution-replicate-statistics-v1",
+      "identity": "{\"schemaVersion\":1,\"id\":\"evolution-replicate-statistics-v1\",\"exactTrialLimit\":10000,\"acceleration\":\"exact-sparse-binomial-v1\",\"maximumExpectedAcceleratedDraws\":1000,\"maximumAcceleratedDraws\":2000,\"sparseBinomialAlgorithmVersion\":1}",
+      "maximumAcceleratedDraws": 2000,
+      "maximumExpectedAcceleratedDraws": 1000,
+      "observed_modes": [
+        "exact-sparse-multinomial"
+      ],
+      "schemaVersion": 1,
+      "total_rng_draws": 24441
+    },
+    "schema_version": 1,
+    "started_at_utc": "2026-09-25T15:31:26.798Z",
+    "status": "passed",
+    "tolerances": {
+      "minimum_absolute_count_tolerance": 8,
+      "note": "This is a conservative finite-sample numerical acceptance envelope, not a biological confidence interval.",
+      "policy": "Observed marginal edge counts and replicate-level at-least-one frequency must lie within max(8 counts, 8 standard deviations) of the exact configured law.",
+      "sigma_multiplier": 8
+    },
+    "workload": {
+      "aggregate_division_opportunities": 40960000000,
+      "division_opportunities_per_replicate": 10000000,
+      "note": "Division opportunities here are an explicit statistical workload for the sampler contract, not a measured population size or biological calibration.",
+      "replicate_count": 4096,
+      "seed_count": 4096,
+      "seed_end": 1946161151,
+      "seed_start": 1946157056
+    }
+  },
+  "cwd": ".",
+  "description": "Prepared 4,096-seed mutation-sampler statistics over the repository-owned flagship mutation graph: per-edge configured-law agreement, at-least-one-event frequency, exact replay digest, and bounded exact accelerated-sampler guardrails; numerical/model-contract evidence only, not biological calibration.",
+  "duration_seconds": 1.255504,
+  "error": null,
+  "id": "evolution-replicate-statistics",
+  "issues": [
+    5,
+    37,
+    542,
+    562,
+    740,
+    796
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T153036329888Z\\evolution-replicate-statistics\\artifacts",
+  "log_tail": "\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv3.2.7 \u001b[39m\u001b[90mN:/projects/Petra\u001b[39m\n\n \u001b[32m\u2713\u001b[39m experiments/evolution_replicate_statistics.experiment.ts \u001b[2m(\u001b[22m\u001b[2m1 test\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 39\u001b[2mms\u001b[22m\u001b[39m\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m1 passed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m1 passed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m   Start at \u001b[22m 21:01:26\n\u001b[2m   Duration \u001b[22m 277ms\u001b[2m (transform 55ms, setup 0ms, collect 74ms, tests 39ms, environment 0ms, prepare 59ms)\u001b[22m\n\n",
+  "return_code": 0,
+  "status": "passed",
+  "timeout_seconds": 1800
+}

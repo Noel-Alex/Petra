@@ -1,0 +1,110 @@
+{
+  "command": [
+    "npm",
+    "exec",
+    "--offline",
+    "--",
+    "vitest",
+    "run",
+    "--config",
+    "experiments/vitest.two_bacterium_shared_resource_validation.config.ts"
+  ],
+  "compact_result": {
+    "completedAtUtc": "2026-09-25T15:31:35.098Z",
+    "controls": [
+      {
+        "detail": "composed founder taxon identity requires an authoritative taxon registry",
+        "id": "isolated-ecoli-growth",
+        "status": "failed"
+      },
+      {
+        "detail": "composed founder taxon identity requires an authoritative taxon registry",
+        "id": "isolated-bacillus-growth",
+        "status": "failed"
+      },
+      {
+        "detail": "composed founder taxon identity requires an authoritative taxon registry",
+        "id": "zero-resource-no-biomass-production",
+        "status": "failed"
+      },
+      {
+        "detail": "composed founder taxon identity requires an authoritative taxon registry",
+        "id": "identical-trait-symmetry",
+        "status": "failed"
+      },
+      {
+        "detail": "composed founder taxon identity requires an authoritative taxon registry",
+        "id": "lineage-species-iteration-order-invariance",
+        "status": "failed"
+      },
+      {
+        "detail": "composed founder taxon identity requires an authoritative taxon registry",
+        "id": "shared-resource-local-capacity-coherence",
+        "status": "failed"
+      },
+      {
+        "detail": "composed founder taxon identity requires an authoritative taxon registry",
+        "id": "same-seed-replay",
+        "status": "failed"
+      },
+      {
+        "detail": "composed founder taxon identity requires an authoritative taxon registry",
+        "id": "checkpoint-restore-continuation",
+        "status": "failed"
+      },
+      {
+        "detail": "Runtime L1/L2 channels carry the exact E. coli and Bacillus taxon content revisions from the scenario.",
+        "id": "exact-lineage-taxon-identity",
+        "status": "passed"
+      },
+      {
+        "detail": "composed founder taxon identity requires an authoritative taxon registry",
+        "id": "isolated-growth-target-distance-reported",
+        "status": "failed"
+      },
+      {
+        "detail": "A non-zero ciprofloxacin refusal sentinel was rejected atomically because the mixed scenario has no Bacillus pharmacodynamic authority.",
+        "id": "bacillus-ciprofloxacin-refusal",
+        "status": "passed"
+      },
+      {
+        "detail": "The scenario contains no mutation transitions and the current protocol refuses an untyped Bacillus evolution command before engine dispatch.",
+        "id": "bacillus-evolution-refusal",
+        "status": "passed"
+      }
+    ],
+    "experimentId": "two-bacterium-shared-resource-validation",
+    "failure": {
+      "message": "required control failed: isolated-ecoli-growth; required control failed: isolated-bacillus-growth; required control failed: zero-resource-no-biomass-production; required control failed: identical-trait-symmetry; required control failed: lineage-species-iteration-order-invariance; required control failed: shared-resource-local-capacity-coherence; required control failed: same-seed-replay; required control failed: checkpoint-restore-continuation; required control failed: isolated-growth-target-distance-reported; runtime did not complete: failed; runtime reported one or more failures\n\nfalse !== true\n",
+      "name": "AssertionError"
+    },
+    "localRunId": "20260925T153036329888Z",
+    "runtimeMemory": {
+      "peakRssBytes": null,
+      "rssEndBytes": 170033152,
+      "rssStartBytes": 78876672
+    },
+    "schemaVersion": "petra-two-bacterium-shared-resource-validation-v1",
+    "startedAtUtc": "2026-09-25T15:31:34.824Z",
+    "status": "failed"
+  },
+  "cwd": ".",
+  "description": "Authoritative E. coli MG1655 + B. subtilis 168 trp+ sigE- shared-resource validation: isolated controls, symmetry/order, resource-capacity accounting, replay/restore, exact taxa, calibration-distance reporting, and unsupported-path refusal.",
+  "duration_seconds": 1.785575,
+  "error": null,
+  "id": "two-bacterium-shared-resource-validation",
+  "issues": [
+    530,
+    542,
+    553,
+    873,
+    877,
+    890,
+    907
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T153036329888Z\\two-bacterium-shared-resource-validation\\artifacts",
+  "log_tail": "\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv3.2.7 \u001b[39m\u001b[90mN:/projects/Petra\u001b[39m\n\n \u001b[31m\u276f\u001b[39m experiments/two_bacterium_shared_resource_validation.experiment.ts \u001b[2m(\u001b[22m\u001b[2m1 test\u001b[22m\u001b[2m | \u001b[22m\u001b[31m1 failed\u001b[39m\u001b[2m)\u001b[22m\u001b[32m 278\u001b[2mms\u001b[22m\u001b[39m\n\u001b[31m   \u001b[31m\u00d7\u001b[31m two-bacterium shared-resource local validation\u001b[2m > \u001b[22mrecords the complete real-engine validation contract\u001b[39m\u001b[32m 277\u001b[2mms\u001b[22m\u001b[39m\n\u001b[31m     \u2192 required control failed: isolated-ecoli-growth; required control failed: isolated-bacillus-growth; required control failed: zero-resource-no-biomass-production; required control failed: identical-trait-symmetry; required control failed: lineage-species-iteration-order-invariance; required control failed: shared-resource-local-capacity-coherence; required control failed: same-seed-replay; required control failed: checkpoint-restore-continuation; required control failed: isolated-growth-target-distance-reported; runtime did not complete: failed; runtime reported one or more failures\n\nfalse !== true\n\u001b[39m\n\n\u001b[31m\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u001b[39m\u001b[1m\u001b[41m Failed Tests 1 \u001b[49m\u001b[22m\u001b[31m\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u001b[39m\n\n\u001b[41m\u001b[1m FAIL \u001b[22m\u001b[49m experiments/two_bacterium_shared_resource_validation.experiment.ts\u001b[2m > \u001b[22mtwo-bacterium shared-resource local validation\u001b[2m > \u001b[22mrecords the complete real-engine validation contract\n\u001b[31m\u001b[1mAssertionError\u001b[22m: required control failed: isolated-ecoli-growth; required control failed: isolated-bacillus-growth; required control failed: zero-resource-no-biomass-production; required control failed: identical-trait-symmetry; required control failed: lineage-species-iteration-order-invariance; required control failed: shared-resource-local-capacity-coherence; required control failed: same-seed-replay; required control failed: checkpoint-restore-continuation; required control failed: isolated-growth-target-distance-reported; runtime did not complete: failed; runtime reported one or more failures\n\nfalse !== true\n\u001b[39m\n\n\u001b[32m- Expected\u001b[39m\n\u001b[31m+ Received\u001b[39m\n\n\u001b[32m- true\u001b[39m\n\u001b[31m+ false\u001b[39m\n\n\u001b[36m \u001b[2m\u276f\u001b[22m experiments/two_bacterium_shared_resource_validation.experiment.ts:\u001b[2m610:14\u001b[22m\u001b[39m\n    \u001b[90m608| \u001b[39m      \u001b[34mwriteCompactResult\u001b[39m(compactResult)\n    \u001b[90m609| \u001b[39m\n    \u001b[90m610| \u001b[39m      assert\u001b[33m.\u001b[39m\u001b[34mequal\u001b[39m(\n    \u001b[90m   | \u001b[39m             \u001b[31m^\u001b[39m\n    \u001b[90m611| \u001b[39m        assessment\u001b[33m.\u001b[39maccepted\u001b[33m,\u001b[39m\n    \u001b[90m612| \u001b[39m        \u001b[35mtrue\u001b[39m\u001b[33m,\u001b[39m\n\n\u001b[31m\u001b[2m\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af[1/1]\u23af\u001b[22m\u001b[39m\n\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[31m1 failed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[31m1 failed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m   Start at \u001b[22m 21:01:34\n\u001b[2m   Duration \u001b[22m 785ms\u001b[2m (transform 213ms, setup 0ms, collect 338ms, tests 278ms, environment 0ms, prepare 60ms)\u001b[22m\n\n",
+  "return_code": 1,
+  "status": "failed",
+  "timeout_seconds": 1800
+}

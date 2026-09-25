@@ -1,0 +1,54 @@
+{
+  "command": [
+    "npm",
+    "exec",
+    "--offline",
+    "--",
+    "vitest",
+    "run",
+    "--config",
+    "experiments/vitest.flagship_long_soak.config.ts"
+  ],
+  "compact_result": {
+    "completed_at_utc": "2026-09-25T15:31:22.777Z",
+    "completed_seed_results": [],
+    "experiment_id": "flagship-long-soak",
+    "failure": {
+      "message": "composed founder taxon identity requires an authoritative taxon registry",
+      "name": "Error"
+    },
+    "local_run_id": "20260925T153036329888Z",
+    "profile": {
+      "chunk_ticks": 64,
+      "command_stress_batch_ticks": 64,
+      "command_stress_ticks": 256,
+      "seeds": [
+        1592594996,
+        1592594997,
+        1592594998
+      ],
+      "total_ticks_per_seed": 1024
+    },
+    "schema_version": 2,
+    "started_at_utc": "2026-09-25T15:31:22.731Z",
+    "status": "failed"
+  },
+  "cwd": ".",
+  "description": "Multi-seed authoritative composed-engine soak with invariant, replay-continuation, memory, event-growth, command-granularity retention, and throughput evidence.",
+  "duration_seconds": 1.492538,
+  "error": null,
+  "id": "flagship-long-soak",
+  "issues": [
+    3,
+    5,
+    37,
+    542,
+    558,
+    628
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T153036329888Z\\flagship-long-soak\\artifacts",
+  "log_tail": "\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv3.2.7 \u001b[39m\u001b[90mN:/projects/Petra\u001b[39m\n\n \u001b[31m\u276f\u001b[39m experiments/flagship_long_soak.experiment.ts \u001b[2m(\u001b[22m\u001b[2m1 test\u001b[22m\u001b[2m | \u001b[22m\u001b[31m1 failed\u001b[39m\u001b[2m)\u001b[22m\u001b[32m 53\u001b[2mms\u001b[22m\u001b[39m\n\u001b[31m   \u001b[31m\u00d7\u001b[31m flagship long-soak local experiment\u001b[2m > \u001b[22mrecords multi-seed composed-engine stability and replay evidence\u001b[39m\u001b[32m 52\u001b[2mms\u001b[22m\u001b[39m\n\u001b[31m     \u2192 composed founder taxon identity requires an authoritative taxon registry\u001b[39m\n\n\u001b[31m\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u001b[39m\u001b[1m\u001b[41m Failed Tests 1 \u001b[49m\u001b[22m\u001b[31m\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u001b[39m\n\n\u001b[41m\u001b[1m FAIL \u001b[22m\u001b[49m experiments/flagship_long_soak.experiment.ts\u001b[2m > \u001b[22mflagship long-soak local experiment\u001b[2m > \u001b[22mrecords multi-seed composed-engine stability and replay evidence\n\u001b[31m\u001b[1mError\u001b[22m: composed founder taxon identity requires an authoritative taxon registry\u001b[39m\n\u001b[36m \u001b[2m\u276f\u001b[22m validateTaxonAuthorityMode src/sim/evolution/composedLineageAuthority.ts:\u001b[2m394:13\u001b[22m\u001b[39m\n    \u001b[90m392| \u001b[39m  \u001b[35mif\u001b[39m (taxonRegistry \u001b[33m===\u001b[39m undefined) {\n    \u001b[90m393| \u001b[39m    \u001b[35mif\u001b[39m (founderHasTaxon\u001b[33m.\u001b[39m\u001b[34msome\u001b[39m(\u001b[33mBoolean\u001b[39m)) {\n    \u001b[90m394| \u001b[39m      \u001b[35mthrow\u001b[39m \u001b[35mnew\u001b[39m \u001b[33mError\u001b[39m(\n    \u001b[90m   | \u001b[39m            \u001b[31m^\u001b[39m\n    \u001b[90m395| \u001b[39m        \"composed founder taxon identity requires an authoritative tax\u2026\n    \u001b[90m396| \u001b[39m      )\u001b[33m;\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m validateDynamicLineageAuthorityState src/sim/evolution/composedLineageAuthority.ts:\u001b[2m122:3\u001b[22m\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m initializeDynamicLineageAuthority src/sim/evolution/composedLineageAuthority.ts:\u001b[2m85:3\u001b[22m\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m runtimeLineageBaselineGrowthRateScales src/sim/authoritative.ts:\u001b[2m916:34\u001b[22m\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m preparedLineageParameters src/sim/authoritative.ts:\u001b[2m987:5\u001b[22m\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m stepComposedStateDetailed src/sim/authoritative.ts:\u001b[2m1091:29\u001b[22m\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m ComposedSimulationEngine.execute src/sim/composedEngine.ts:\u001b[2m296:20\u001b[22m\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m runSeed experiments/flagship_long_soak.experiment.ts:\u001b[2m527:28\u001b[22m\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m experiments/flagship_long_soak.experiment.ts:\u001b[2m673:22\u001b[22m\u001b[39m\n\n\u001b[31m\u001b[2m\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af[1/1]\u23af\u001b[22m\u001b[39m\n\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[31m1 failed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[31m1 failed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m   Start at \u001b[22m 21:01:22\n\u001b[2m   Duration \u001b[22m 512ms\u001b[2m (transform 192ms, setup 0ms, collect 300ms, tests 53ms, environment 0ms, prepare 54ms)\u001b[22m\n\n",
+  "return_code": 1,
+  "status": "failed",
+  "timeout_seconds": 3600
+}

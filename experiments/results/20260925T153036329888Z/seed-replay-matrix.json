@@ -1,0 +1,69 @@
+{
+  "command": [
+    "npm",
+    "exec",
+    "--offline",
+    "--",
+    "vitest",
+    "run",
+    "--config",
+    "experiments/vitest.seed_replay_matrix.config.ts"
+  ],
+  "compact_result": {
+    "completed_at_utc": "2026-09-25T15:31:24.298Z",
+    "completed_seed_results": [],
+    "experiment_id": "seed-replay-matrix",
+    "failure": {
+      "message": "composed founder taxon identity requires an authoritative taxon registry",
+      "name": "Error"
+    },
+    "local_run_id": "20260925T153036329888Z",
+    "profile": {
+      "ordered_command_trace": [
+        {
+          "id": "matrix-advance-0",
+          "ticks": 1,
+          "type": "advance"
+        },
+        {
+          "id": "matrix-advance-1",
+          "ticks": 7,
+          "type": "advance"
+        },
+        {
+          "id": "matrix-advance-2",
+          "ticks": 32,
+          "type": "advance"
+        },
+        {
+          "id": "matrix-advance-3",
+          "ticks": 64,
+          "type": "advance"
+        }
+      ],
+      "seeds": [
+        0,
+        1592594996,
+        4294967295
+      ]
+    },
+    "schema_version": 1,
+    "started_at_utc": "2026-09-25T15:31:24.257Z",
+    "status": "failed"
+  },
+  "cwd": ".",
+  "description": "Fixed-seed authoritative composed replay matrix covering genesis trace equality, checkpoint continuation, and cross-seed restore refusal.",
+  "duration_seconds": 1.508642,
+  "error": null,
+  "id": "seed-replay-matrix",
+  "issues": [
+    5,
+    37,
+    542
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T153036329888Z\\seed-replay-matrix\\artifacts",
+  "log_tail": "\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv3.2.7 \u001b[39m\u001b[90mN:/projects/Petra\u001b[39m\n\n \u001b[31m\u276f\u001b[39m experiments/seed_replay_matrix.experiment.ts \u001b[2m(\u001b[22m\u001b[2m1 test\u001b[22m\u001b[2m | \u001b[22m\u001b[31m1 failed\u001b[39m\u001b[2m)\u001b[22m\u001b[32m 48\u001b[2mms\u001b[22m\u001b[39m\n\u001b[31m   \u001b[31m\u00d7\u001b[31m seed replay matrix local experiment\u001b[2m > \u001b[22mrecords deterministic genesis replay, checkpoint continuation, and cross-seed refusal evidence\u001b[39m\u001b[32m 47\u001b[2mms\u001b[22m\u001b[39m\n\u001b[31m     \u2192 composed founder taxon identity requires an authoritative taxon registry\u001b[39m\n\n\u001b[31m\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u001b[39m\u001b[1m\u001b[41m Failed Tests 1 \u001b[49m\u001b[22m\u001b[31m\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u001b[39m\n\n\u001b[41m\u001b[1m FAIL \u001b[22m\u001b[49m experiments/seed_replay_matrix.experiment.ts\u001b[2m > \u001b[22mseed replay matrix local experiment\u001b[2m > \u001b[22mrecords deterministic genesis replay, checkpoint continuation, and cross-seed refusal evidence\n\u001b[31m\u001b[1mError\u001b[22m: composed founder taxon identity requires an authoritative taxon registry\u001b[39m\n\u001b[36m \u001b[2m\u276f\u001b[22m validateTaxonAuthorityMode src/sim/evolution/composedLineageAuthority.ts:\u001b[2m394:13\u001b[22m\u001b[39m\n    \u001b[90m392| \u001b[39m  \u001b[35mif\u001b[39m (taxonRegistry \u001b[33m===\u001b[39m undefined) {\n    \u001b[90m393| \u001b[39m    \u001b[35mif\u001b[39m (founderHasTaxon\u001b[33m.\u001b[39m\u001b[34msome\u001b[39m(\u001b[33mBoolean\u001b[39m)) {\n    \u001b[90m394| \u001b[39m      \u001b[35mthrow\u001b[39m \u001b[35mnew\u001b[39m \u001b[33mError\u001b[39m(\n    \u001b[90m   | \u001b[39m            \u001b[31m^\u001b[39m\n    \u001b[90m395| \u001b[39m        \"composed founder taxon identity requires an authoritative tax\u2026\n    \u001b[90m396| \u001b[39m      )\u001b[33m;\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m validateDynamicLineageAuthorityState src/sim/evolution/composedLineageAuthority.ts:\u001b[2m122:3\u001b[22m\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m initializeDynamicLineageAuthority src/sim/evolution/composedLineageAuthority.ts:\u001b[2m85:3\u001b[22m\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m runtimeLineageBaselineGrowthRateScales src/sim/authoritative.ts:\u001b[2m916:34\u001b[22m\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m preparedLineageParameters src/sim/authoritative.ts:\u001b[2m987:5\u001b[22m\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m stepComposedStateDetailed src/sim/authoritative.ts:\u001b[2m1091:29\u001b[22m\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m ComposedSimulationEngine.execute src/sim/composedEngine.ts:\u001b[2m296:20\u001b[22m\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m executeTrace experiments/seed_replay_matrix.experiment.ts:\u001b[2m142:27\u001b[22m\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m runSeed experiments/seed_replay_matrix.experiment.ts:\u001b[2m154:27\u001b[22m\u001b[39m\n\u001b[90m \u001b[2m\u276f\u001b[22m experiments/seed_replay_matrix.experiment.ts:\u001b[2m267:21\u001b[22m\u001b[39m\n\n\u001b[31m\u001b[2m\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af[1/1]\u23af\u001b[22m\u001b[39m\n\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[31m1 failed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[31m1 failed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m   Start at \u001b[22m 21:01:23\n\u001b[2m   Duration \u001b[22m 515ms\u001b[2m (transform 199ms, setup 0ms, collect 301ms, tests 48ms, environment 0ms, prepare 58ms)\u001b[22m\n\n",
+  "return_code": 1,
+  "status": "failed",
+  "timeout_seconds": 1800
+}

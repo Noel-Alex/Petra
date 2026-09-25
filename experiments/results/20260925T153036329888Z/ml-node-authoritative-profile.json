@@ -1,0 +1,35 @@
+{
+  "command": [
+    "python",
+    "experiments/ml_node_authoritative_profile.py"
+  ],
+  "compact_result": {
+    "evidence_boundary": "Infrastructure-only authoritative Node worker evidence; no biological or model-promotion claim.",
+    "experiment_id": "ml-node-authoritative-profile",
+    "return_code": 1,
+    "schema_version": 1,
+    "stage": "execute",
+    "status": "failed"
+  },
+  "cwd": ".",
+  "description": "Authoritative composed Node worker_threads profile: direct parity, distinct-worker concurrency, durable resume/finalization, and CPU/RSS evidence; infrastructure-only and non-promotable.",
+  "duration_seconds": 0.958203,
+  "error": null,
+  "id": "ml-node-authoritative-profile",
+  "issues": [
+    13,
+    37,
+    531,
+    542,
+    543,
+    544,
+    594,
+    682,
+    685
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T153036329888Z\\ml-node-authoritative-profile\\artifacts",
+  "log_tail": "\u001b[36mvite v8.3.0 \u001b[32mbuilding ssr environment for production...\u001b[36m\u001b[39m\ntransforming...\n\u2713 50 modules transformed.\nrendering chunks...\ncomputing gzip size...\n.petra_local/runs/20260925T153036329888Z/ml-node-authoritative-profile/artifacts/ml-node-authoritative-profile-bundle/worker.mjs                                                  0.69 kB \u2502 gzip:  0.37 kB \u2502 map:   1.27 kB\n.petra_local/runs/20260925T153036329888Z/ml-node-authoritative-profile/artifacts/ml-node-authoritative-profile-bundle/runner.mjs                                                103.47 kB \u2502 gzip: 22.22 kB \u2502 map: 185.67 kB\n.petra_local/runs/20260925T153036329888Z/ml-node-authoritative-profile/artifacts/ml-node-authoritative-profile-bundle/chunks/ml_node_authoritative_profile.shared-CJQ-h6fO.mjs  269.19 kB \u2502 gzip: 55.14 kB \u2502 map: 587.33 kB\n\n\u001b[32m\u2713 built in 46ms\u001b[39m\nfile:///N:/projects/Petra/.petra_local/runs/20260925T153036329888Z/ml-node-authoritative-profile/artifacts/ml-node-authoritative-profile-bundle/chunks/ml_node_authoritative_profile.shared-CJQ-h6fO.mjs:1299\r\n\t\tif (founderHasTaxon.some(Boolean)) throw new Error(\"composed founder taxon identity requires an authoritative taxon registry\");\r\n\t\t                                         ^\r\n\r\nError: composed founder taxon identity requires an authoritative taxon registry\r\n    at validateTaxonAuthorityMode (file:///N:/projects/Petra/.petra_local/runs/20260925T153036329888Z/ml-node-authoritative-profile/artifacts/ml-node-authoritative-profile-bundle/chunks/ml_node_authoritative_profile.shared-CJQ-h6fO.mjs:1299:44)\r\n    at validateDynamicLineageAuthorityState (file:///N:/projects/Petra/.petra_local/runs/20260925T153036329888Z/ml-node-authoritative-profile/artifacts/ml-node-authoritative-profile-bundle/chunks/ml_node_authoritative_profile.shared-CJQ-h6fO.mjs:1195:2)\r\n    at initializeDynamicLineageAuthority (file:///N:/projects/Petra/.petra_local/runs/20260925T153036329888Z/ml-node-authoritative-profile/artifacts/ml-node-authoritative-profile-bundle/chunks/ml_node_authoritative_profile.shared-CJQ-h6fO.mjs:1176:2)\r\n    at runtimeLineageBaselineGrowthRateScales (file:///N:/projects/Petra/.petra_local/runs/20260925T153036329888Z/ml-node-authoritative-profile/artifacts/ml-node-authoritative-profile-bundle/chunks/ml_node_authoritative_profile.shared-CJQ-h6fO.mjs:2677:33)\r\n    at preparedLineageParameters (file:///N:/projects/Petra/.petra_local/runs/20260925T153036329888Z/ml-node-authoritative-profile/artifacts/ml-node-authoritative-profile-bundle/chunks/ml_node_authoritative_profile.shared-CJQ-h6fO.mjs:2708:35)\r\n    at stepComposedStateDetailed (file:///N:/projects/Petra/.petra_local/runs/20260925T153036329888Z/ml-node-authoritative-profile/artifacts/ml-node-authoritative-profile-bundle/chunks/ml_node_authoritative_profile.shared-CJQ-h6fO.mjs:2762:28)\r\n    at ComposedSimulationEngine.execute (file:///N:/projects/Petra/.petra_local/runs/20260925T153036329888Z/ml-node-authoritative-profile/artifacts/ml-node-authoritative-profile-bundle/chunks/ml_node_authoritative_profile.shared-CJQ-h6fO.mjs:4776:17)\r\n    at Object.execute (file:///N:/projects/Petra/.petra_local/runs/20260925T153036329888Z/ml-node-authoritative-profile/artifacts/ml-node-authoritative-profile-bundle/chunks/ml_node_authoritative_profile.shared-CJQ-h6fO.mjs:4959:24)\r\n    at main (file:///N:/projects/Petra/.petra_local/runs/20260925T153036329888Z/ml-node-authoritative-profile/artifacts/ml-node-authoritative-profile-bundle/runner.mjs:2163:44)\r\n    at file:///N:/projects/Petra/.petra_local/runs/20260925T153036329888Z/ml-node-authoritative-profile/artifacts/ml-node-authoritative-profile-bundle/runner.mjs:2280:7\r\n\r\nNode.js v24.14.0\r\n",
+  "return_code": 1,
+  "status": "failed",
+  "timeout_seconds": 1800
+}

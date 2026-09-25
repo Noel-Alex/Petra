@@ -1,0 +1,47 @@
+{
+  "command": [
+    "python",
+    "experiments/blocked.py",
+    "--experiment-id",
+    "hgt-conjugation-validation",
+    "--blocked-on",
+    "551",
+    "--blocked-on",
+    "914",
+    "--blocked-on",
+    "552",
+    "--reason",
+    "Issue #551 must finalize the exact named plasmid/host transfer-law pack, #914 must bind a scenario-owned physical area plus compatible cell-equivalent population scale, and #552 must expose authoritative deterministic RNG/checkpoint/replay conjugation state. Until all three exist, Petra must not validate a synthetic per-grid transfer probability or derive contact from renderer geometry."
+  ],
+  "compact_result": {
+    "blocked_on_issues": [
+      551,
+      552,
+      914
+    ],
+    "experiment_id": "hgt-conjugation-validation",
+    "next_action": "Land the listed prerequisite issue(s), then replace this gate command with the real experiment helper while preserving the stable experiment id.",
+    "reason": "Issue #551 must finalize the exact named plasmid/host transfer-law pack, #914 must bind a scenario-owned physical area plus compatible cell-equivalent population scale, and #552 must expose authoritative deterministic RNG/checkpoint/replay conjugation state. Until all three exist, Petra must not validate a synthetic per-grid transfer probability or derive contact from renderer geometry.",
+    "schema_version": 1,
+    "status": "blocked"
+  },
+  "cwd": ".",
+  "description": "PREPARED; BLOCKED on #551/#914/#552: source-backed R388/host authority, physical area+population calibration, and authoritative replayable conjugation engine are required before validation can run.",
+  "duration_seconds": 0.075615,
+  "error": null,
+  "id": "hgt-conjugation-validation",
+  "issues": [
+    530,
+    542,
+    551,
+    552,
+    796,
+    914,
+    983
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T153036329888Z\\hgt-conjugation-validation\\artifacts",
+  "log_tail": "hgt-conjugation-validation: BLOCKED on #551, #552, #914\r\nIssue #551 must finalize the exact named plasmid/host transfer-law pack, #914 must bind a scenario-owned physical area plus compatible cell-equivalent population scale, and #552 must expose authoritative deterministic RNG/checkpoint/replay conjugation state. Until all three exist, Petra must not validate a synthetic per-grid transfer probability or derive contact from renderer geometry.\r\n",
+  "return_code": 2,
+  "status": "failed",
+  "timeout_seconds": 30
+}

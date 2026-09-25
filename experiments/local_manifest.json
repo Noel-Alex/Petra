@@ -229,22 +229,18 @@
     },
     {
       "id": "ml-mechanistic-dataset",
-      "description": "BLOCKED on #682, #685, #544, and #594: authoritative group-split mechanistic dataset generation; bulky datasets remain local.",
+      "description": "PREPARED; BLOCKED on #544 and #594 local verification: generic durable dataset packaging/runtime now consumes settled run-condition and schedule identity, but the first truthful held-out sweep package and decisive laptop execution are still required.",
       "command": [
         "python",
         "experiments/blocked.py",
         "--experiment-id",
         "ml-mechanistic-dataset",
         "--blocked-on",
-        "682",
-        "--blocked-on",
-        "685",
-        "--blocked-on",
         "544",
         "--blocked-on",
         "594",
         "--reason",
-        "Issue #682 must land explicit run-condition identity, #685 must bind horizon/cadence into task and resume identity, #544 must declare the first authoritative held-out sweep, and #594 must provide the concrete laptop worker/CLI path before broad local generation is reproducible."
+        "#682 run-condition identity and #685 execution-schedule/resume identity are on main. The generic #594 worker_threads/filesystem package launcher is source-prepared but still needs local execution evidence; #544 must declare the first authoritative held-out sweep package (values, schemas, projection) before broad dataset generation can run truthfully."
       ],
       "issues": [
         13,

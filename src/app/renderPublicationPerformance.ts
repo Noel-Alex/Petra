@@ -79,6 +79,10 @@ declare global {
     | undefined;
 }
 
+export function isRenderPublicationPerformanceEnabled(): boolean {
+  return activeProbe() !== null;
+}
+
 export function observeRuntimeSnapshotPublication(
   snapshot: SimulationSnapshot | null,
   runBranchIdentity: string,

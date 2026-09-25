@@ -192,7 +192,7 @@ describe('authoritative composed-to-dish render projection parity', () => {
       evidence,
       negativeCases: [
         'one-cell-resource-channel-drift',
-        'lineage-order-drift',
+        'lineage-identity-drift',
         'resource-unit-drift',
         'dish-mask-drift',
         'biological-time-drift',
@@ -225,12 +225,20 @@ describe('authoritative composed-to-dish render projection parity', () => {
       /model resource differs/i,
     )
 
-    const wrongLineageOrder = cloneProjection(projected)
+    const wrongLineageIdentity = cloneProjection(projected)
+    const firstLineage = wrongLineageIdentity.lineages[0]
+    assert.ok(firstLineage !== undefined, 'flagship projection must contain a lineage')
     expect(() =>
       parity(
         {
-          ...wrongLineageOrder,
-          lineages: [...wrongLineageOrder.lineages].reverse(),
+          ...wrongLineageIdentity,
+          lineages: [
+            {
+              ...firstLineage,
+              id: firstLineage.id + '-wrong',
+            },
+            ...wrongLineageIdentity.lineages.slice(1),
+          ],
         },
         snapshot,
       ),

@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   ExperimentRuntime,
 } from "../../src/app/experimentRuntime";
+import { ComposedSimulationEngine } from "../../src/sim/composedEngine";
 import {
   WorkerSession,
   type WorkerPort,
@@ -57,7 +58,15 @@ const composedConfig: ComposedSimulationConfig = {
   hoursPerTick: 0.01,
 };
 
-const identity = createRunIdentity({
+const syntheticIdentity = createRunIdentity({
+  scenarioId: "runtime-fixture",
+  scenarioVersion: "1",
+  parameterSetId,
+  parameterSetVersion,
+  seed: 23,
+});
+
+const composedIdentity = createRunIdentity({
   scenarioId: "runtime-fixture",
   scenarioVersion: "1",
   parameterSetId,
@@ -79,7 +88,7 @@ function makeSnapshot(args: {
   const commandCount = args.commandCount ?? 0;
   return {
     checkpoint: {
-      identity: args.identity ?? identity,
+      identity: args.identity ?? syntheticIdentity,
       tick: args.tick,
       simulationTimeHours: args.tick / 60,
       syntheticPopulation: 100 + args.tick,
@@ -87,7 +96,7 @@ function makeSnapshot(args: {
       commandCount,
     },
     events: args.events ?? [],
-    traceHash: `trace-${args.identity?.seed ?? identity.seed}-${args.tick}-${commandCount}`,
+    traceHash: `trace-${args.identity?.seed ?? syntheticIdentity.seed}-${args.tick}-${commandCount}`,
   };
 }
 
@@ -121,7 +130,11 @@ function commandIds(...ids: string[]): () => string {
 function readyRuntime(ids: string[] = ["step-1"]) {
   const port = new FakePort();
   const session = new WorkerSession(port);
-  const runtime = new ExperimentRuntime(session, identity, commandIds(...ids));
+  const runtime = new ExperimentRuntime(
+    session,
+    syntheticIdentity,
+    commandIds(...ids),
+  );
   expect(runtime.start()).toBe(true);
   port.emit({
     protocolVersion: PROTOCOL_VERSION,
@@ -134,13 +147,32 @@ function readyRuntime(ids: string[] = ["step-1"]) {
   return { port, session, runtime };
 }
 
+function readyComposedRuntime(ids: string[] = ["step-1"]) {
+  const port = new FakePort();
+  const session = new WorkerSession(port);
+  const runtime = new ExperimentRuntime(
+    session,
+    composedIdentity,
+    commandIds(...ids),
+    composedConfig,
+  );
+  const engine = new ComposedSimulationEngine(composedIdentity, composedConfig);
+  expect(runtime.start()).toBe(true);
+  port.emit({
+    protocolVersion: PROTOCOL_VERSION,
+    type: "ready",
+    snapshot: engine.snapshot(),
+  });
+  return { port, session, runtime, engine };
+}
+
 describe("experiment runtime", () => {
   it("starts and reinitializes with the same composed simulation authority", () => {
     const port = new FakePort();
     const session = new WorkerSession(port);
     const runtime = new ExperimentRuntime(
       session,
-      identity,
+      composedIdentity,
       commandIds("unused"),
       composedConfig,
     );
@@ -148,7 +180,7 @@ describe("experiment runtime", () => {
     expect(runtime.start()).toBe(true);
     expect(port.posted[0]).toMatchObject({
       type: "initialize",
-      identity,
+      composedIdentity,
       composedConfig,
     });
     expect(
@@ -159,7 +191,10 @@ describe("experiment runtime", () => {
     port.emit({
       protocolVersion: PROTOCOL_VERSION,
       type: "ready",
-      snapshot: makeSnapshot({ tick: 0 }),
+      snapshot: new ComposedSimulationEngine(
+        composedIdentity,
+        composedConfig,
+      ).snapshot(),
     });
     expect(runtime.dispatch({ type: "reset" })).toEqual({
       accepted: true,
@@ -176,7 +211,7 @@ describe("experiment runtime", () => {
 
     expect(port.posted[0]).toMatchObject({
       type: "initialize",
-      identity,
+      identity: syntheticIdentity,
     });
     expect(runtime.state.worker.phase).toBe("ready");
     expect(runtime.state.snapshot?.checkpoint.tick).toBe(0);
@@ -383,7 +418,7 @@ describe("experiment runtime", () => {
   it("rejects manual worker effects before initialization is ready", () => {
     const port = new FakePort();
     const session = new WorkerSession(port);
-    const runtime = new ExperimentRuntime(session, identity, commandIds("step-1"));
+    const runtime = new ExperimentRuntime(session, syntheticIdentity, commandIds("step-1"));
 
     expect(runtime.dispatch({ type: "step" })).toEqual({
       accepted: false,
@@ -395,7 +430,7 @@ describe("experiment runtime", () => {
   it("refuses mismatched run identity instead of rendering foreign state", () => {
     const port = new FakePort();
     const session = new WorkerSession(port);
-    const runtime = new ExperimentRuntime(session, identity, commandIds());
+    const runtime = new ExperimentRuntime(session, syntheticIdentity, commandIds());
     const otherIdentity = createRunIdentity({
       scenarioId: "other",
       scenarioVersion: "1",
@@ -427,7 +462,7 @@ describe("experiment runtime", () => {
   it("rejects a snapshot with the same parameter-set label but a different bound config", () => {
     const port = new FakePort();
     const session = new WorkerSession(port);
-    const runtime = new ExperimentRuntime(session, identity, commandIds());
+    const runtime = new ExperimentRuntime(session, syntheticIdentity, commandIds());
     const foreignIdentity = structuredClone(identity);
     if (foreignIdentity.parameterSetBinding === undefined) {
       throw new Error("expected bound fixture identity");

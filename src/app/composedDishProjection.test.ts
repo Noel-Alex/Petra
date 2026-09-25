@@ -23,6 +23,7 @@ import {
   projectAuthoritativeComposedDishSnapshot,
   projectComposedDishSnapshot,
 } from "./composedDishProjection";
+import { RuntimeInterventionFootprintAccumulator } from "./runtimeInterventionFootprints";
 import { createOrganismPresentationTaxonCatalog } from "./lineageOrganismPresentation";
 
 const graph: CuratedMutationGraph = {
@@ -552,6 +553,67 @@ describe("authoritative composed dish projection", () => {
     expect(dish.events).toEqual([]);
   });
 
+
+  it("admits an exact prepared footprint frame alongside fixed density authority", () => {
+    const engine = composedEngine();
+    engine.execute({
+      id: "dose-prepared",
+      type: "apply-ciprofloxacin",
+      intervention: {
+        schemaVersion: 1,
+        concentrationMgPerL: 0.125,
+        concentrationUnit: "mg/L",
+        blendMode: "set",
+        geometry: { kind: "global" },
+      },
+    });
+    const simulation = engine.snapshot();
+    if (simulation.checkpoint.authority !== "composed") {
+      throw new Error("expected composed snapshot");
+    }
+
+    const accumulator = new RuntimeInterventionFootprintAccumulator();
+    const frame = accumulator.projectSnapshot(
+      simulation,
+      "fixture-branch-0",
+    );
+    const reference = projectAuthoritativeComposedDishSnapshot(
+      simulation,
+      "fixture-branch-0",
+      null,
+      null,
+      FIXED_DENSITY_SCALE,
+    );
+    const prepared = projectAuthoritativeComposedDishSnapshot(
+      simulation,
+      "fixture-branch-0",
+      null,
+      null,
+      FIXED_DENSITY_SCALE,
+      frame,
+    );
+
+    expect(prepared.acceptedInterventionFootprints).toBe(frame.footprints);
+    expect(prepared.acceptedInterventionFootprints).toEqual(
+      reference.acceptedInterventionFootprints,
+    );
+
+    const advanced = engine.execute({
+      id: "advance-after-prepared-dose",
+      type: "advance",
+      ticks: 1,
+    });
+    expect(() =>
+      projectAuthoritativeComposedDishSnapshot(
+        advanced,
+        "fixture-branch-0",
+        null,
+        null,
+        FIXED_DENSITY_SCALE,
+        frame,
+      ),
+    ).toThrow(/exact dish snapshot frontier/);
+  });
 
   it("composes fresh runtime-bound ecology rate fields atomically into the authoritative dish transaction", () => {
     const engine = composedEngine();

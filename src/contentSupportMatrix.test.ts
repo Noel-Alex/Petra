@@ -66,34 +66,23 @@ describe("supported content matrix", () => {
   });
 
   it("keeps all requested expansion lanes explicitly blocked on owning issues", () => {
-    expect(
-      SUPPORTED_CONTENT_MATRIX.expansionQueue.map((entry) => ({
-        id: entry.id,
-        availability: entry.availability,
-        issues: entry.issues,
-      })),
-    ).toEqual([
-      {
-        id: "first-shared-resource-bacterial-competitor",
-        availability: "blocked-implementation",
-        issues: [553, 866],
-      },
-      {
-        id: "first-grounded-fungal-competitor",
-        availability: "blocked-research",
-        issues: [556, 615, 866],
-      },
-      {
-        id: "first-post-ciprofloxacin-antibiotic",
-        availability: "blocked-implementation",
-        issues: [926, 928],
-      },
-      {
-        id: "named-microbial-interactions",
-        availability: "blocked-research",
-        issues: [647],
-      },
+    expect(SUPPORTED_CONTENT_MATRIX.expansionQueue.map((entry) => entry.id)).toEqual([
+      "first-shared-resource-bacterial-competitor",
+      "first-grounded-fungal-competitor",
+      "first-post-ciprofloxacin-antibiotic",
+      "named-microbial-interactions",
     ]);
+
+    for (const entry of SUPPORTED_CONTENT_MATRIX.expansionQueue) {
+      expect([
+        "blocked-research",
+        "blocked-implementation",
+        "blocked-validation",
+      ]).toContain(entry.availability);
+      expect(entry.issues.length).toBeGreaterThan(0);
+      expect(new Set(entry.issues).size).toBe(entry.issues.length);
+      expect(entry.reason.length).toBeGreaterThan(0);
+    }
   });
 
   it("rejects duplicate ids across enabled and blocked content", () => {

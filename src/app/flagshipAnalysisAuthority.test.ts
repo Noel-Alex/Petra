@@ -121,6 +121,27 @@ describe("flagship lineage-analysis authority", () => {
     ).toThrow(/MIC drifted from composed authority/i);
   });
 
+  it("refuses relative-fitness drift under a freshly rebound config", () => {
+    const run = buildDefaultFlagshipRun();
+    const changedConfig = {
+      ...run.plan.config,
+      evolutionGraph: {
+        ...run.plan.config.evolutionGraph,
+        genotypes: run.plan.config.evolutionGraph.genotypes.map((genotype) =>
+          genotype.id === "A"
+            ? { ...genotype, relativeFitness: genotype.relativeFitness + 0.01 }
+            : genotype,
+        ),
+      },
+    };
+
+    expect(() =>
+      createFlagshipRuntimeLineageAnalysisAuthority(
+        withReboundConfig(run, changedConfig),
+      ),
+    ).toThrow(/relative fitness drifted from scenario authority/i);
+  });
+
   it("refuses graph/evidence identity drift under a freshly rebound config", () => {
     const run = buildDefaultFlagshipRun();
     const changedConfig = {

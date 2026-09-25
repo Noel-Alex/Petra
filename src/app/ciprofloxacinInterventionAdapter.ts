@@ -16,7 +16,7 @@ export const CIPROFLOXACIN_INTENT_ADAPTER_SCHEMA_VERSION = 1 as const
  * App-layer mapping metadata supplied by authoritative scenario/runtime tooling.
  *
  * This object does not define biological values. It binds the UI parameter key
- * and allowed range to the protocol-v5 ciprofloxacin command contract so the
+ * and allowed range to the protocol-v6 ciprofloxacin command contract so the
  * adapter never invents units, bounds, or set/add semantics.
  */
 export interface CiprofloxacinIntentAuthority {
@@ -34,7 +34,7 @@ export type ApplyCiprofloxacinCommand = Extract<
 >
 
 /**
- * Convert one already-previewed UI intent into the exact protocol-v5 mutation.
+ * Convert one already-previewed UI intent into the exact protocol-v6 mutation.
  *
  * The conversion is deliberately fail-closed:
  * - only the antibiotic tool is supported;

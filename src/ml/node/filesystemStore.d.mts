@@ -25,6 +25,8 @@ export class FilesystemMechanisticFinalOutput
   abort(): void;
 }
 
+export function readFilesystemDatasetLines(path: string): Iterable<string>;
+
 export function readFilesystemFinalization(
   path: string,
 ): MechanisticDatasetFinalization;

@@ -52,7 +52,7 @@ Grid resolution, display scale, LOD thresholds, normalized diffusion CFL coeffic
 
 ### Research-stage flagship ecology execution profile
 
-Scenario `ecoli-ciprofloxacin-spatial@1.4.0-research` selects the versioned
+Scenario `ecoli-ciprofloxacin-spatial@1.5.0-research` selects the versioned
 `ecoli-ciprofloxacin-ecology-engineering@1.1.0` profile so the composed
 resource-limited ecology loop can execute before a source-compatible physical
 Monod package exists.

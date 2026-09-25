@@ -51,6 +51,7 @@ export interface ChloramphenicolResponseAuthority {
   readonly responseModel: Readonly<{
     kind: "growth-inhibition";
     id: typeof CHLORAMPHENICOL_RESPONSE_MODEL_ID;
+    classification: "source-fitted-mechanistic-model";
     equation: "Greulich-2015-equation-7";
     sourceKey: "greulich_2015";
     doi: "10.15252/MSB.20145949";
@@ -249,7 +250,7 @@ export function parseChloramphenicolResponseAuthority(
   const responseModel = expectRecord(root.responseModel, "responseModel");
   expectExactKeys(
     responseModel,
-    ["kind", "id", "equation", "sourceKey", "doi"],
+    ["kind", "id", "classification", "equation", "sourceKey", "doi"],
     "responseModel",
   );
   const parsedResponseModel = Object.freeze({
@@ -262,6 +263,11 @@ export function parseChloramphenicolResponseAuthority(
       responseModel.id,
       CHLORAMPHENICOL_RESPONSE_MODEL_ID,
       "responseModel.id",
+    ),
+    classification: expectLiteral(
+      responseModel.classification,
+      "source-fitted-mechanistic-model",
+      "responseModel.classification",
     ),
     equation: expectLiteral(
       responseModel.equation,

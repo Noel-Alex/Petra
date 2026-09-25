@@ -19,6 +19,7 @@ import {
   createComposedEcologyObservationEnvelope,
 } from './composedEcologyObservation'
 import { applyCiprofloxacinIntervention } from './ciprofloxacinIntervention'
+import { applyModelResourceIntervention } from './resourceIntervention'
 import { assertReplayCompatibility } from './replayCompatibility'
 import { SimulationRng, type RngState } from './rng'
 import {
@@ -258,6 +259,35 @@ export class ComposedSimulationEngine {
         type: 'ciprofloxacin-applied',
         commandId: command.id,
         intervention: structuredClone(command.intervention),
+      })
+      return this.snapshot()
+    }
+
+    if (command.type === 'apply-model-resource') {
+      if (!Number.isSafeInteger(this.commandCount + 1)) {
+        throw new Error(
+          'model-resource intervention would exceed the safe integer command-count domain',
+        )
+      }
+
+      const workingState = cloneComposedState(this.state)
+      applyModelResourceIntervention(
+        workingState,
+        this.config,
+        command.intervention,
+      )
+      const workingMetrics = aggregateState(workingState, {
+        divisionBiomass: this.metrics.divisionBiomass,
+        deathBiomass: this.metrics.deathBiomass,
+        resourceConsumed: this.metrics.resourceConsumed,
+      })
+      this.state = workingState
+      this.metrics = workingMetrics
+      this.commandCount += 1
+      this.pushEvent({
+        type: 'model-resource-applied',
+        commandId: command.id,
+        resourceIntervention: structuredClone(command.intervention),
       })
       return this.snapshot()
     }

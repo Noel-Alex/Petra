@@ -6,6 +6,19 @@ import type { RenderField } from "./model";
 
 export const ECOLOGY_NET_GROWTH_RENDER_FIELD_ID =
   "authoritative-net-local-biomass-rate" as const;
+export const ECOLOGY_DIVISION_RATE_RENDER_FIELD_ID =
+  "authoritative-local-division-biomass-rate" as const;
+export const ECOLOGY_DEATH_RATE_RENDER_FIELD_ID =
+  "authoritative-local-death-biomass-rate" as const;
+
+interface EcologyRateFieldProjection {
+  readonly id: RenderField["id"];
+  readonly kind: RenderField["kind"];
+  readonly label: string;
+  readonly source: readonly number[];
+  readonly sourceName: string;
+  readonly requireNonNegative: boolean;
+}
 
 function canonicalUnit(name: string, value: unknown): asserts value is string {
   if (typeof value !== "string" || value.length === 0) {
@@ -22,16 +35,9 @@ function positiveSafeInteger(name: string, value: number): void {
   }
 }
 
-/**
- * Projects an already-authoritative ecology step observation into the signed
- * renderer field used for the net-growth overlay.
- *
- * The source quantity is the interval-average, pre-spread net local biomass
- * rate. This adapter only narrows/copies it for presentation; it never derives
- * rates from endpoint snapshots, animation, or glyph motion.
- */
-export function projectEcologyNetGrowthField(
+function projectEcologyRateField(
   observation: EcologyFluxObservation,
+  projection: EcologyRateFieldProjection,
 ): RenderField {
   if (
     observation.schemaVersion !== ECOLOGY_FLUX_OBSERVATION_SCHEMA_VERSION
@@ -47,12 +53,9 @@ export function projectEcologyNetGrowthField(
   if (!Number.isSafeInteger(cells)) {
     throw new RangeError("ecology flux grid cell count must be a safe integer");
   }
-  if (
-    observation.mask.length !== cells ||
-    observation.averageNetLocalBiomassRateByCell.length !== cells
-  ) {
+  if (observation.mask.length !== cells || projection.source.length !== cells) {
     throw new RangeError(
-      "ecology net-growth projection arrays must match grid dimensions",
+      `ecology ${projection.sourceName} projection arrays must match grid dimensions`,
     );
   }
 
@@ -75,22 +78,27 @@ export function projectEcologyNetGrowthField(
       );
     }
 
-    const source = observation.averageNetLocalBiomassRateByCell[index]!;
+    const source = projection.source[index]!;
     if (!Number.isFinite(source)) {
       throw new RangeError(
-        `ecology net-growth rate must be finite at cell ${index}`,
+        `ecology ${projection.sourceName} rate must be finite at cell ${index}`,
+      );
+    }
+    if (projection.requireNonNegative && source < 0) {
+      throw new RangeError(
+        `ecology ${projection.sourceName} rate must be non-negative at cell ${index}`,
       );
     }
     if (mask === 0 && source !== 0) {
       throw new RangeError(
-        `ecology net-growth rate must be zero outside the mask at cell ${index}`,
+        `ecology ${projection.sourceName} rate must be zero outside the mask at cell ${index}`,
       );
     }
 
     const narrowed = Math.fround(source);
     if (!Number.isFinite(narrowed)) {
       throw new RangeError(
-        `ecology net-growth rate must fit finite Float32 storage at cell ${index}`,
+        `ecology ${projection.sourceName} rate must fit finite Float32 storage at cell ${index}`,
       );
     }
     values[index] = narrowed;
@@ -104,14 +112,14 @@ export function projectEcologyNetGrowthField(
 
   if (inMaskCells === 0) {
     throw new RangeError(
-      "ecology net-growth projection requires at least one in-mask cell",
+      `ecology ${projection.sourceName} projection requires at least one in-mask cell`,
     );
   }
 
   return {
-    id: ECOLOGY_NET_GROWTH_RENDER_FIELD_ID,
-    kind: "net-growth",
-    label: "Net local biomass rate (pre-spread)",
+    id: projection.id,
+    kind: projection.kind,
+    label: projection.label,
     unit: `${observation.biomassUnit}/${observation.timeUnit}`,
     width: observation.width,
     height: observation.height,
@@ -120,4 +128,72 @@ export function projectEcologyNetGrowthField(
     minimum,
     maximum,
   };
+}
+
+/**
+ * Projects the exact interval-average pre-spread division biomass production
+ * ledger for the accepted ecology step. This is continuous biomass flux, not
+ * a discrete division/cell-count channel.
+ */
+export function projectEcologyDivisionRateField(
+  observation: EcologyFluxObservation,
+): RenderField {
+  return projectEcologyRateField(observation, {
+    id: ECOLOGY_DIVISION_RATE_RENDER_FIELD_ID,
+    kind: "division-rate",
+    label: "Division biomass rate (pre-spread)",
+    source: observation.averageDivisionBiomassRateByCell,
+    sourceName: "division",
+    requireNonNegative: true,
+  });
+}
+
+/**
+ * Projects the exact interval-average pre-spread death biomass loss ledger
+ * for the accepted ecology step. Values are loss magnitudes and therefore
+ * remain non-negative; sign is represented only in the net-growth field.
+ */
+export function projectEcologyDeathRateField(
+  observation: EcologyFluxObservation,
+): RenderField {
+  return projectEcologyRateField(observation, {
+    id: ECOLOGY_DEATH_RATE_RENDER_FIELD_ID,
+    kind: "death-rate",
+    label: "Death biomass rate (pre-spread)",
+    source: observation.averageDeathBiomassRateByCell,
+    sourceName: "death",
+    requireNonNegative: true,
+  });
+}
+
+/**
+ * Projects the exact signed interval-average, pre-spread net local biomass
+ * rate. This adapter never derives rates from endpoint snapshots, animation,
+ * or representative glyph motion.
+ */
+export function projectEcologyNetGrowthField(
+  observation: EcologyFluxObservation,
+): RenderField {
+  return projectEcologyRateField(observation, {
+    id: ECOLOGY_NET_GROWTH_RENDER_FIELD_ID,
+    kind: "net-growth",
+    label: "Net local biomass rate (pre-spread)",
+    source: observation.averageNetLocalBiomassRateByCell,
+    sourceName: "net-growth",
+    requireNonNegative: false,
+  });
+}
+
+/**
+ * Coherent renderer bundle for one already-authoritative ecology step.
+ * Net growth remains first to preserve the established field ordering.
+ */
+export function projectEcologyRateFields(
+  observation: EcologyFluxObservation,
+): readonly RenderField[] {
+  return Object.freeze([
+    projectEcologyNetGrowthField(observation),
+    projectEcologyDivisionRateField(observation),
+    projectEcologyDeathRateField(observation),
+  ]);
 }

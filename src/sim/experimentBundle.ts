@@ -415,7 +415,7 @@ export function validateExperimentBundle(bundle: ExperimentBundle): void {
   if (record.counterfactualAncestry !== null) {
     throw new ExperimentBundleError(
       'counterfactual-ancestry-unsupported',
-      'Experiment bundle v2 does not accept counterfactual ancestry until the parent trace contract is independently verifiable.',
+      'Experiment bundle v3 does not accept counterfactual ancestry until the parent trace contract is independently verifiable.',
     )
   }
 
@@ -437,7 +437,7 @@ export function validateExperimentBundle(bundle: ExperimentBundle): void {
   ) {
     throw new ExperimentBundleError(
       'capability-claim-invalid',
-      'Experiment bundle v2 cannot claim renderer state, raw datasets, or counterfactual ancestry.',
+      'Experiment bundle v3 cannot claim renderer state, raw datasets, or counterfactual ancestry.',
     )
   }
 }

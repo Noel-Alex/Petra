@@ -240,7 +240,7 @@ def install_render_publication_probe(cdp: CDP) -> None:
             configurable: true,
             enumerable: false,
             value: {
-              version: 1,
+              version: 2,
               observe(sample) {
                 if (state.samples.length >= state.maxSamples) {
                   state.dropped += 1;
@@ -283,6 +283,81 @@ def render_publication_probe_snapshot(cdp: CDP) -> dict[str, Any] | None:
         })()"""
     )
     return result if isinstance(result, dict) else None
+
+
+def authoritative_load_at_command(
+    probe: dict[str, Any] | None,
+    command_count: int | None,
+) -> dict[str, Any] | None:
+    """Resolve exact simulator-owned load metrics at one accepted frontier.
+
+    Repeated runtime observations at the same command frontier are allowed only
+    when their source-owned load values and transaction identity agree.
+    """
+    if not isinstance(probe, dict) or not isinstance(command_count, int):
+        return None
+    samples = probe.get("samples")
+    if not isinstance(samples, list):
+        return None
+
+    matches = [
+        sample
+        for sample in samples
+        if isinstance(sample, dict)
+        and sample.get("phase") == "runtime-snapshot-published"
+        and sample.get("commandCount") == command_count
+    ]
+    if not matches:
+        return None
+
+    canonical: tuple[Any, ...] | None = None
+    for sample in matches:
+        total_biomass = sample.get("totalBiomass")
+        occupied_cells = sample.get("occupiedCells")
+        if (
+            not isinstance(total_biomass, (int, float))
+            or isinstance(total_biomass, bool)
+            or total_biomass < 0
+            or not isinstance(occupied_cells, int)
+            or isinstance(occupied_cells, bool)
+            or occupied_cells < 0
+        ):
+            return None
+        current = (
+            sample.get("runBranchIdentity"),
+            sample.get("traceHash"),
+            sample.get("tick"),
+            sample.get("commandCount"),
+            sample.get("simulationTimeHours"),
+            float(total_biomass),
+            int(occupied_cells),
+        )
+        if canonical is None:
+            canonical = current
+        elif current != canonical:
+            return None
+
+    if canonical is None:
+        return None
+    (
+        run_branch_identity,
+        trace_hash,
+        tick,
+        accepted_count,
+        biological_time_hours,
+        total_biomass,
+        occupied_cells,
+    ) = canonical
+    return {
+        "runBranchIdentity": run_branch_identity,
+        "traceHash": trace_hash,
+        "tick": tick,
+        "commandCount": accepted_count,
+        "simulationTimeHours": biological_time_hours,
+        "totalBiomass": total_biomass,
+        "occupiedCells": occupied_cells,
+        "matchingRuntimeSampleCount": len(matches),
+    }
 
 
 def wait_accepted_command_count(
@@ -386,6 +461,8 @@ def summarize_render_publication_samples(
     metadata_bytes: list[int] = []
     event_counts: list[int] = []
     footprint_counts: list[int] = []
+    total_biomass_values: list[float] = []
+    occupied_cell_values: list[int] = []
     net_growth_count = 0
 
     for _, runtime, projection, react in complete:
@@ -407,6 +484,17 @@ def summarize_render_publication_samples(
             projection_to_commit_ms.append(float(react_at - projection_completed))
         if isinstance(runtime_at, (int, float)) and isinstance(react_at, (int, float)):
             runtime_to_commit_ms.append(float(react_at - runtime_at))
+        total_biomass = runtime.get("totalBiomass")
+        occupied_cells = runtime.get("occupiedCells")
+        if isinstance(total_biomass, (int, float)) and not isinstance(
+            total_biomass, bool
+        ):
+            total_biomass_values.append(float(total_biomass))
+        if isinstance(occupied_cells, int) and not isinstance(
+            occupied_cells, bool
+        ):
+            occupied_cell_values.append(occupied_cells)
+
         if isinstance(payload, dict):
             estimated = payload.get("estimatedApplicationPayloadBytes")
             backing = payload.get("uniqueBackingBufferBytes")
@@ -472,13 +560,20 @@ def summarize_render_publication_samples(
         "acceptedInterventionFootprintCount": numeric_summary(
             [float(value) for value in footprint_counts]
         ),
+        "authoritativeTotalBiomass": numeric_summary(total_biomass_values),
+        "authoritativeOccupiedCells": numeric_summary(
+            [float(value) for value in occupied_cell_values]
+        ),
         "limitation": (
             "Reset-bounded browser publication observations. Projection timing excludes the "
             "payload-estimator duration; payload bytes are renderer-facing application estimates. "
             "Metadata bytes include projected render events and accepted intervention footprints, "
             "while typed-array reference bytes retain logical channel references. These are not "
             "Worker framing, bandwidth, heap, GPU memory, or proof that "
-            "coalescing/transferables are beneficial."
+            "coalescing/transferables are beneficial. Authoritative total biomass and "
+            "occupied-cell summaries come directly from the accepted composed checkpoint; "
+            "they are model-state context, not physical cell counts, CFU, visible-pixel "
+            "density, or causal attribution for renderer cost."
         ),
     }
 
@@ -2295,11 +2390,11 @@ def profile_post_growth_camera_redraw(
     cdp: CDP,
     target_accepted_commands: int = 16,
 ) -> dict[str, Any]:
-    """Measure renderer-owned camera redraws after real authoritative progress.
+    """Measure camera redraws at a later accepted state with exact load context.
 
-    The browser surface currently proves accepted-command and biological-time
-    progress, not biomass/occupancy. Keep this evidence labelled post-growth or
-    later-run until source-owned occupancy authority is exposed.
+    Timing remains renderer-owned presentation evidence. Simulator-owned
+    totalBiomass / occupiedCells are carried only as exact scientific-state
+    context and are never inferred from pixels.
     """
     current = run_control_state(cdp)
     if current and current.get("playing") is True:
@@ -2311,6 +2406,8 @@ def profile_post_growth_camera_redraw(
                 f"{pause}, {paused}"
             )
 
+    install_render_publication_probe(cdp)
+    reset_render_publication_probe(cdp)
     reset_action = click_run_control(cdp, "Reset")
     reset_state = wait_run_status(cdp, "ready")
     camera_reset_action = click_overview_reset(cdp)
@@ -2319,6 +2416,9 @@ def profile_post_growth_camera_redraw(
     before = run_control_state(cdp)
     before_count = before.get("acceptedCommandCount") if before else None
     before_hours = before.get("simulationTimeHours") if before else None
+    time.sleep(0.05)
+    before_probe = render_publication_probe_snapshot(cdp)
+    before_load = authoritative_load_at_command(before_probe, before_count)
 
     if (
         reset_action.get("clicked") is not True
@@ -2350,6 +2450,12 @@ def profile_post_growth_camera_redraw(
 
     after_count = after.get("acceptedCommandCount")
     after_hours = after.get("simulationTimeHours")
+    time.sleep(0.05)
+    after_probe = render_publication_probe_snapshot(cdp)
+    after_load = authoritative_load_at_command(
+        after_probe,
+        int(after_count) if isinstance(after_count, (int, float)) else None,
+    )
     accepted_delta = (
         int(after_count) - before_count
         if isinstance(after_count, (int, float))
@@ -2360,6 +2466,30 @@ def profile_post_growth_camera_redraw(
         if isinstance(after_hours, (int, float))
         else None
     )
+    authoritative_load = {
+        "before": before_load,
+        "after": after_load,
+        "frontiersCorrelated": (
+            before_load is not None
+            and after_load is not None
+            and before_load.get("commandCount") == before_count
+            and after_load.get("commandCount") == after_count
+        ),
+        "totalBiomassDelta": (
+            round(
+                float(after_load["totalBiomass"])
+                - float(before_load["totalBiomass"]),
+                12,
+            )
+            if before_load is not None and after_load is not None
+            else None
+        ),
+        "occupiedCellsDelta": (
+            int(after_load["occupiedCells"]) - int(before_load["occupiedCells"])
+            if before_load is not None and after_load is not None
+            else None
+        ),
+    }
 
     camera_reset_after_growth = click_overview_reset(cdp)
     time.sleep(0.1)
@@ -2385,6 +2515,7 @@ def profile_post_growth_camera_redraw(
         "after": after,
         "acceptedCommandAdvance": accepted_delta,
         "biologicalTimeAdvanceHours": biological_delta,
+        "authoritativeLoad": authoritative_load,
         "cameraResetAfterGrowth": camera_reset_after_growth,
         "wholeDish": whole,
         "colonyZoom": zoomed,
@@ -2398,10 +2529,11 @@ def profile_post_growth_camera_redraw(
         "wholeDishSha256": hashlib.sha256(whole_png).hexdigest(),
         "colonyZoomSha256": hashlib.sha256(zoom_png).hexdigest(),
         "limitation": (
-            "This workload proves a later accepted authoritative state by "
-            "command/time progress. It does not label that state dense or "
-            "high-biomass because the product DOM does not expose a source-owned "
-            "occupancy measurement."
+            "Camera timings are presentation observations. totalBiomass and "
+            "occupiedCells are exact accepted composed-checkpoint metrics used "
+            "only to characterize simulator state; they are not physical cell "
+            "counts/CFU, visible-pixel density, or proof that any load change "
+            "caused a renderer timing change."
         ),
     }
 
@@ -2528,6 +2660,12 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
         and post_growth_after.get("renderSource") == "authoritative"
         and post_growth_after.get("rendererStatus") == "ready"
     )
+    post_growth_load = (
+        post_growth.get("authoritativeLoad")
+        if isinstance(post_growth.get("authoritativeLoad"), dict)
+        else {}
+    )
+    post_growth_load_ok = post_growth_load.get("frontiersCorrelated") is True
     initial_whole_p95 = whole.get("p95FrameMs")
     initial_zoom_p95 = zoomed.get("p95FrameMs")
     post_growth_whole_p95 = post_growth_whole.get("p95FrameMs")
@@ -2678,6 +2816,22 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
                 "blocked" if not post_growth_progress_ok else None,
             ),
             check(
+                "performance post-growth: authoritative load frontiers correlated",
+                post_growth_progress_ok and post_growth_load_ok,
+                {
+                    "authoritativeLoad": post_growth_load,
+                    "measurementBoundary": (
+                        "These are exact accepted composed-checkpoint metrics. "
+                        "They characterize model state only and do not establish "
+                        "physical cell count/CFU, visible-pixel density, or causal "
+                        "renderer scaling."
+                    ),
+                },
+                "blocked"
+                if not (post_growth_progress_ok and post_growth_load_ok)
+                else None,
+            ),
+            check(
                 "performance post-growth whole-dish: renderer-owned redraw samples captured",
                 post_growth_progress_ok
                 and post_growth.get("cameraResetAfterGrowth") is True
@@ -2691,6 +2845,7 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
                         "wholeDishP95RatioToInitial"
                     ],
                     "artifact": post_growth.get("wholeDishArtifact"),
+                    "authoritativeLoad": post_growth_load,
                     "limitation": post_growth.get("limitation"),
                 },
                 "blocked" if not post_growth_progress_ok else None,
@@ -2709,6 +2864,7 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
                         "colonyZoomP95RatioToInitial"
                     ],
                     "artifact": post_growth.get("colonyZoomArtifact"),
+                    "authoritativeLoad": post_growth_load,
                     "limitation": post_growth.get("limitation"),
                 },
                 "blocked" if not post_growth_progress_ok else None,

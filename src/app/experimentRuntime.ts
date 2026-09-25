@@ -1,4 +1,5 @@
 import type { ComposedSimulationConfig } from "../sim/authoritative";
+import type { SourceOwnedFixedLineageDensityPresentationScale } from "../render/lineageDensityScale";
 import type { ComposedEcologyObservationEnvelope } from "../sim/composedEcologyObservation";
 import {
   PROTOCOL_VERSION,
@@ -27,6 +28,7 @@ import {
   type WorkerSessionState,
 } from "./workerSession";
 import { createRunBranchIdentity } from "./runBranchIdentity";
+import { projectRuntimeLineageDensityPresentationScale } from "./runtimeLineageDensityPresentationScale";
 
 export interface RuntimeEcologyObservation {
   readonly runBranchIdentity: string;
@@ -72,6 +74,7 @@ export class ExperimentRuntime {
   private readonly pendingAcceptance = new Map<string, SimulationCommand>();
   private readonly unsubscribeWorker: () => void;
   private readonly composedConfig: ComposedSimulationConfig | undefined;
+  private currentLineageDensityPresentationScale: SourceOwnedFixedLineageDensityPresentationScale | null;
   private runBranchGeneration = 0;
   private checkpointHistoryOrigin: CheckpointHistoryOrigin | null = null;
   private current: ExperimentRuntimeState;
@@ -84,9 +87,21 @@ export class ExperimentRuntime {
   ) {
     this.composedConfig =
       composedConfig === undefined ? undefined : structuredClone(composedConfig);
+    const initialRunBranchIdentity = createRunBranchIdentity(
+      identity,
+      this.runBranchGeneration,
+    );
+    this.currentLineageDensityPresentationScale =
+      this.composedConfig === undefined
+        ? null
+        : projectRuntimeLineageDensityPresentationScale(
+            this.composedConfig,
+            identity,
+            initialRunBranchIdentity,
+          );
     this.current = {
       controls: createExperimentControlState(identity),
-      runBranchIdentity: createRunBranchIdentity(identity, this.runBranchGeneration),
+      runBranchIdentity: initialRunBranchIdentity,
       worker: session.state,
       snapshot: null,
       ecologyObservation: null,
@@ -101,6 +116,15 @@ export class ExperimentRuntime {
 
   get state(): ExperimentRuntimeState {
     return this.current;
+  }
+
+  /**
+   * Detached renderer authority derived from the immutable composed config.
+   * It is stable for ordinary accepted commands and rotates with run-branch
+   * identity on reset/reseed/replay/restore.
+   */
+  get lineageDensityPresentationScale(): SourceOwnedFixedLineageDensityPresentationScale | null {
+    return this.currentLineageDensityPresentationScale;
   }
 
   subscribe(listener: ExperimentRuntimeListener): () => void {
@@ -480,7 +504,19 @@ export class ExperimentRuntime {
       throw new RangeError("run branch generation exhausted safe integer range");
     }
     this.runBranchGeneration += 1;
-    return createRunBranchIdentity(identity, this.runBranchGeneration);
+    const runBranchIdentity = createRunBranchIdentity(
+      identity,
+      this.runBranchGeneration,
+    );
+    this.currentLineageDensityPresentationScale =
+      this.composedConfig === undefined
+        ? null
+        : projectRuntimeLineageDensityPresentationScale(
+            this.composedConfig,
+            identity,
+            runBranchIdentity,
+          );
+    return runBranchIdentity;
   }
 
   private publish(): void {

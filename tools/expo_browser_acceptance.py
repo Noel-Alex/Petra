@@ -476,7 +476,27 @@ def render_publication_pass(cdp: CDP, steps: int = 6) -> list[dict[str, Any]]:
         accepted += 1
         wait_run_controls_ready(cdp, minimum_accepted_commands=accepted)
 
+    # DOM readiness can become visible just before React passive effects publish
+    # the commit observation. Poll briefly for the complete three-phase sample
+    # set instead of racing the final effect after the last accepted Step.
+    deadline = time.monotonic() + 2.0
     probe = render_publication_probe_snapshot(cdp)
+    while time.monotonic() < deadline:
+        samples_now = probe.get("samples", []) if probe else []
+        phases_now = [
+            sample.get("phase")
+            for sample in samples_now
+            if isinstance(sample, dict)
+        ]
+        if (
+            phases_now.count("runtime-snapshot-published") >= steps
+            and phases_now.count("dish-projection") >= steps
+            and phases_now.count("react-dish-committed") >= steps
+        ):
+            break
+        time.sleep(0.01)
+        probe = render_publication_probe_snapshot(cdp)
+
     samples = probe.get("samples", []) if probe else []
     typed_samples = [sample for sample in samples if isinstance(sample, dict)]
     summary = summarize_render_publication_samples(typed_samples)

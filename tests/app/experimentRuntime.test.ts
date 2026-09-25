@@ -779,4 +779,57 @@ describe("experiment runtime", () => {
     expect(runtime.state.runBranchIdentity).toBe(branchIdentity);
   });
 
+  it("binds step-local ecology observations to the active runtime history generation and clears stale ones", () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+    const runtime = new ExperimentRuntime(
+      session,
+      composedIdentity,
+      commandIds("observed-step", "plain-snapshot"),
+      composedConfig,
+    );
+    const engine = new ComposedSimulationEngine(composedIdentity, composedConfig);
+
+    runtime.start();
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: engine.snapshot(),
+    });
+    expect(runtime.state.ecologyObservation).toBeNull();
+
+    expect(runtime.dispatch({ type: "step", ticks: 1 })).toEqual({
+      accepted: true,
+      reason: null,
+    });
+    const observed = engine.execute({
+      id: "observed-step",
+      type: "advance",
+      ticks: 1,
+    });
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      commandId: "observed-step",
+      snapshot: observed,
+    });
+
+    expect(runtime.state.ecologyObservation?.runBranchIdentity).toBe(
+      runtime.state.runBranchIdentity,
+    );
+    expect(runtime.state.ecologyObservation?.envelope.position.commandCount).toBe(1);
+
+    expect(runtime.dispatch({ type: "snapshot" })).toEqual({
+      accepted: true,
+      reason: null,
+    });
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      commandId: "plain-snapshot",
+      snapshot: engine.snapshot(),
+    });
+    expect(runtime.state.ecologyObservation).toBeNull();
+  });
+
 });

@@ -1,7 +1,11 @@
+import { mechanisticDatasetSchemaKey, type DatasetSplit, type MechanisticDatasetSchemaIdentity } from "./dataset";
 import type { RegressionMetrics, RegressionTargetMetrics } from "./benchmark";
 
 export const GROUP_HORIZON_BALANCED_EVALUATION_POLICY_VERSION =
   "group-horizon-balanced-strict-v1";
+
+export const TRANSITION_SERIES_BALANCED_EVALUATION_POLICY_VERSION =
+  "group-trajectory-transition-balanced-strict-v1";
 
 export interface EvaluationHorizon {
   readonly id: string;
@@ -21,6 +25,31 @@ export interface RegressionEvaluationRow {
   readonly actual: Readonly<Record<string, number>>;
   readonly candidate: Readonly<Record<string, number>>;
   readonly baseline: Readonly<Record<string, number>>;
+}
+
+export interface TransitionSeriesEvaluationHorizon extends EvaluationHorizon {
+  readonly ticks: number;
+}
+
+export interface TransitionSeriesEvaluationDatasetIdentity {
+  readonly datasetVersion: string;
+  readonly normalizationProfileId: string;
+  readonly datasetSchema: MechanisticDatasetSchemaIdentity;
+  readonly heldOutSplit: Exclude<DatasetSplit, "train">;
+}
+
+export interface TransitionSeriesRegressionEvaluationRow
+  extends RegressionEvaluationRow {
+  readonly datasetVersion: string;
+  readonly normalizationProfileId: string;
+  readonly datasetSchema: MechanisticDatasetSchemaIdentity;
+  readonly heldOutSplit: Exclude<DatasetSplit, "train">;
+  readonly sourceSnapshotIndex: number;
+  readonly targetSnapshotIndex: number;
+  readonly sourceTick: number;
+  readonly targetTick: number;
+  readonly sourceSimulationTimeHours: number;
+  readonly targetSimulationTimeHours: number;
 }
 
 export interface EvaluationStratumCoverage {
@@ -54,7 +83,7 @@ export interface StratifiedRegressionMetrics {
   readonly byGroup: Readonly<Record<string, RegressionMetrics>>;
   /** Equal-weight aggregate across groups at each requested horizon. */
   readonly byHorizon: Readonly<Record<string, RegressionMetrics>>;
-  /** Raw paired-row metrics for each group × horizon stratum. */
+  /** Metrics for each group × horizon; the versioned policy defines row weighting. */
   readonly byGroupHorizon: Readonly<
     Record<string, Readonly<Record<string, RegressionMetrics>>>
   >;
@@ -304,6 +333,304 @@ export function computeStratifiedRegressionBenchmark(args: {
     },
   };
 }
+
+
+export function computeTransitionSeriesRegressionBenchmark(args: {
+  readonly targetIds: readonly string[];
+  readonly requiredGroupKeys: readonly string[];
+  readonly requiredHorizons: readonly TransitionSeriesEvaluationHorizon[];
+  readonly datasetIdentity: TransitionSeriesEvaluationDatasetIdentity;
+  readonly rows: readonly TransitionSeriesRegressionEvaluationRow[];
+}): PairedStratifiedBenchmark {
+  const targetIds = validateUniqueStrings("target id", args.targetIds);
+  const groupKeys = validateUniqueStrings(
+    "required group key",
+    args.requiredGroupKeys,
+  );
+  const horizons = validateTransitionHorizons(args.requiredHorizons);
+  const datasetIdentity = validateTransitionDatasetIdentity(
+    args.datasetIdentity,
+  );
+  if (args.rows.length === 0) {
+    throw new RangeError(
+      "at least one transition-series evaluation row is required",
+    );
+  }
+
+  const groupSet = new Set(groupKeys);
+  const horizonById = new Map(horizons.map((horizon) => [horizon.id, horizon]));
+  const trajectoryGroups = new Map<string, string>();
+  const trajectoryHorizons = new Map<string, Set<string>>();
+  const sourceIdentityByTrajectory = new Map<
+    string,
+    Map<number, { readonly tick: number; readonly timeHours: number }>
+  >();
+  const rowIdentities = new Set<string>();
+  const rowsByTrajectoryHorizon = new Map<
+    string,
+    TransitionSeriesRegressionEvaluationRow[]
+  >();
+
+  for (let rowIndex = 0; rowIndex < args.rows.length; rowIndex += 1) {
+    const row = args.rows[rowIndex];
+    if (row === undefined) {
+      throw new RangeError("transition-series evaluation rows must be complete");
+    }
+
+    requireNonEmpty("groupKey", row.groupKey);
+    requireNonEmpty("trajectoryKey", row.trajectoryKey);
+    requireNonEmpty("horizonId", row.horizonId);
+    assertTransitionRowDatasetIdentity(row, datasetIdentity, rowIndex);
+
+    if (!groupSet.has(row.groupKey)) {
+      throw new RangeError(`unexpected held-out group: ${row.groupKey}`);
+    }
+    const horizon = horizonById.get(row.horizonId);
+    if (horizon === undefined) {
+      throw new RangeError(`unexpected forecast horizon: ${row.horizonId}`);
+    }
+    assertTransitionPosition(row, horizon, rowIndex);
+
+    const previousGroup = trajectoryGroups.get(row.trajectoryKey);
+    if (previousGroup !== undefined && previousGroup !== row.groupKey) {
+      throw new RangeError(
+        `trajectory ${row.trajectoryKey} appears in multiple held-out groups`,
+      );
+    }
+    trajectoryGroups.set(row.trajectoryKey, row.groupKey);
+
+    const identity = stratumKey(
+      row.groupKey,
+      row.trajectoryKey,
+      row.horizonId,
+      String(row.sourceSnapshotIndex),
+    );
+    if (rowIdentities.has(identity)) {
+      throw new RangeError(
+        `duplicate transition evaluation record for trajectory ${row.trajectoryKey} at horizon ${row.horizonId} source snapshot ${row.sourceSnapshotIndex}`,
+      );
+    }
+    rowIdentities.add(identity);
+
+    const knownSourcePositions =
+      sourceIdentityByTrajectory.get(row.trajectoryKey) ??
+      new Map<number, { readonly tick: number; readonly timeHours: number }>();
+    const previousSource = knownSourcePositions.get(row.sourceSnapshotIndex);
+    if (
+      previousSource !== undefined &&
+      (previousSource.tick !== row.sourceTick ||
+        !approximatelyEqual(
+          previousSource.timeHours,
+          row.sourceSimulationTimeHours,
+        ))
+    ) {
+      throw new RangeError(
+        `trajectory ${row.trajectoryKey} source snapshot ${row.sourceSnapshotIndex} has cross-horizon identity drift`,
+      );
+    }
+    knownSourcePositions.set(row.sourceSnapshotIndex, {
+      tick: row.sourceTick,
+      timeHours: row.sourceSimulationTimeHours,
+    });
+    sourceIdentityByTrajectory.set(row.trajectoryKey, knownSourcePositions);
+
+    const seenHorizons =
+      trajectoryHorizons.get(row.trajectoryKey) ?? new Set<string>();
+    seenHorizons.add(row.horizonId);
+    trajectoryHorizons.set(row.trajectoryKey, seenHorizons);
+
+    assertExactTargets(row.actual, targetIds, `actual row ${rowIndex}`);
+    assertExactTargets(row.candidate, targetIds, `candidate row ${rowIndex}`);
+    assertExactTargets(row.baseline, targetIds, `baseline row ${rowIndex}`);
+    assertFiniteTargets(row.actual, targetIds, `actual row ${rowIndex}`);
+    assertFiniteTargets(row.candidate, targetIds, `candidate row ${rowIndex}`);
+    assertFiniteTargets(row.baseline, targetIds, `baseline row ${rowIndex}`);
+
+    const key = stratumKey(row.trajectoryKey, row.horizonId);
+    const bucket = rowsByTrajectoryHorizon.get(key) ?? [];
+    bucket.push(row);
+    rowsByTrajectoryHorizon.set(key, bucket);
+  }
+
+  const requiredHorizonIds = horizons.map((horizon) => horizon.id);
+  for (const [trajectoryKey, seen] of trajectoryHorizons) {
+    const missing = requiredHorizonIds.filter((id) => !seen.has(id));
+    if (missing.length > 0) {
+      throw new RangeError(
+        `trajectory ${trajectoryKey} is missing required transition horizons: ${missing.join(", ")}`,
+      );
+    }
+  }
+
+  const trajectoryKeysByGroup = new Map<string, string[]>();
+  for (const groupKey of groupKeys) {
+    const trajectoryKeys = [...trajectoryGroups.entries()]
+      .filter(([, value]) => value === groupKey)
+      .map(([trajectoryKey]) => trajectoryKey)
+      .sort();
+    if (trajectoryKeys.length === 0) {
+      throw new RangeError(
+        `required held-out group has no trajectories: ${groupKey}`,
+      );
+    }
+    trajectoryKeysByGroup.set(groupKey, trajectoryKeys);
+  }
+
+  for (const trajectoryKey of [...trajectoryGroups.keys()].sort()) {
+    for (const horizon of horizons) {
+      const key = stratumKey(trajectoryKey, horizon.id);
+      const rows = rowsByTrajectoryHorizon.get(key);
+      if (rows === undefined || rows.length === 0) {
+        throw new RangeError(
+          `trajectory ${trajectoryKey} has no rows at required horizon ${horizon.id}`,
+        );
+      }
+      rows.sort(compareTransitionRows);
+      validateCompleteTransitionSourceSequence(
+        trajectoryKey,
+        horizon.id,
+        rows,
+      );
+    }
+  }
+
+  const candidateMatrix: Record<string, Record<string, RegressionMetrics>> = {};
+  const baselineMatrix: Record<string, Record<string, RegressionMetrics>> = {};
+  const coverageMatrix: Record<
+    string,
+    Record<string, EvaluationStratumCoverage>
+  > = {};
+
+  for (const groupKey of groupKeys) {
+    candidateMatrix[groupKey] = {};
+    baselineMatrix[groupKey] = {};
+    coverageMatrix[groupKey] = {};
+    const trajectoryKeys = trajectoryKeysByGroup.get(groupKey);
+    if (trajectoryKeys === undefined) throw new Error("unreachable held-out group");
+
+    for (const horizon of horizons) {
+      const candidateTrajectories: RegressionMetrics[] = [];
+      const baselineTrajectories: RegressionMetrics[] = [];
+      let rowCount = 0;
+
+      for (const trajectoryKey of trajectoryKeys) {
+        const rows =
+          rowsByTrajectoryHorizon.get(
+            stratumKey(trajectoryKey, horizon.id),
+          ) ?? [];
+        if (rows.length === 0) {
+          throw new RangeError(
+            `required stratum ${groupKey} × ${horizon.id} is missing trajectory ${trajectoryKey}`,
+          );
+        }
+        candidateTrajectories.push(
+          computeMetrics(
+            targetIds,
+            rows.map((row) => row.actual),
+            rows.map((row) => row.candidate),
+          ),
+        );
+        baselineTrajectories.push(
+          computeMetrics(
+            targetIds,
+            rows.map((row) => row.actual),
+            rows.map((row) => row.baseline),
+          ),
+        );
+        rowCount += rows.length;
+      }
+
+      candidateMatrix[groupKey]![horizon.id] = averageStrata(
+        targetIds,
+        candidateTrajectories,
+      );
+      baselineMatrix[groupKey]![horizon.id] = averageStrata(
+        targetIds,
+        baselineTrajectories,
+      );
+      coverageMatrix[groupKey]![horizon.id] = {
+        rowCount,
+        trajectoryCount: trajectoryKeys.length,
+      };
+    }
+  }
+
+  const candidateByGroup: Record<string, RegressionMetrics> = {};
+  const baselineByGroup: Record<string, RegressionMetrics> = {};
+  const coverageByGroup: Record<string, EvaluationStratumCoverage> = {};
+  for (const groupKey of groupKeys) {
+    candidateByGroup[groupKey] = averageStrata(
+      targetIds,
+      horizons.map((horizon) => candidateMatrix[groupKey]![horizon.id]!),
+    );
+    baselineByGroup[groupKey] = averageStrata(
+      targetIds,
+      horizons.map((horizon) => baselineMatrix[groupKey]![horizon.id]!),
+    );
+    const matrix = coverageMatrix[groupKey]!;
+    coverageByGroup[groupKey] = {
+      rowCount: horizons.reduce(
+        (total, horizon) => total + matrix[horizon.id]!.rowCount,
+        0,
+      ),
+      trajectoryCount: trajectoryKeysByGroup.get(groupKey)!.length,
+    };
+  }
+
+  const candidateByHorizon: Record<string, RegressionMetrics> = {};
+  const baselineByHorizon: Record<string, RegressionMetrics> = {};
+  const coverageByHorizon: Record<string, EvaluationHorizonCoverage> = {};
+  for (const horizon of horizons) {
+    candidateByHorizon[horizon.id] = averageStrata(
+      targetIds,
+      groupKeys.map((groupKey) => candidateMatrix[groupKey]![horizon.id]!),
+    );
+    baselineByHorizon[horizon.id] = averageStrata(
+      targetIds,
+      groupKeys.map((groupKey) => baselineMatrix[groupKey]![horizon.id]!),
+    );
+    coverageByHorizon[horizon.id] = {
+      forecastHorizonHours: horizon.hours,
+      rowCount: groupKeys.reduce(
+        (total, groupKey) =>
+          total + coverageMatrix[groupKey]![horizon.id]!.rowCount,
+        0,
+      ),
+      trajectoryCount: trajectoryGroups.size,
+      groupCount: groupKeys.length,
+    };
+  }
+
+  return {
+    coverage: {
+      rowCount: args.rows.length,
+      trajectoryCount: trajectoryGroups.size,
+      groupCount: groupKeys.length,
+      byGroup: coverageByGroup,
+      byHorizon: coverageByHorizon,
+      byGroupHorizon: coverageMatrix,
+    },
+    candidate: {
+      overall: averageStrata(
+        targetIds,
+        groupKeys.map((groupKey) => candidateByGroup[groupKey]!),
+      ),
+      byGroup: candidateByGroup,
+      byHorizon: candidateByHorizon,
+      byGroupHorizon: candidateMatrix,
+    },
+    baseline: {
+      overall: averageStrata(
+        targetIds,
+        groupKeys.map((groupKey) => baselineByGroup[groupKey]!),
+      ),
+      byGroup: baselineByGroup,
+      byHorizon: baselineByHorizon,
+      byGroupHorizon: baselineMatrix,
+    },
+  };
+}
+
 
 /**
  * Validates coverage, balanced aggregate consistency, paired counts and strict
@@ -830,6 +1157,165 @@ function checkExactKeys(
     });
   }
 }
+
+
+function validateTransitionHorizons(
+  horizons: readonly TransitionSeriesEvaluationHorizon[],
+): readonly TransitionSeriesEvaluationHorizon[] {
+  validateHorizons(horizons);
+  for (const horizon of horizons) {
+    if (!Number.isSafeInteger(horizon.ticks) || horizon.ticks <= 0) {
+      throw new RangeError(
+        "transition-series forecast horizon ticks must be positive safe integers",
+      );
+    }
+    if (horizon.hours <= 0) {
+      throw new RangeError(
+        "transition-series forecast horizon hours must advance biological time",
+      );
+    }
+  }
+  return horizons;
+}
+
+function validateTransitionDatasetIdentity(
+  identity: TransitionSeriesEvaluationDatasetIdentity,
+): TransitionSeriesEvaluationDatasetIdentity {
+  requireNonEmpty("datasetVersion", identity.datasetVersion);
+  requireNonEmpty("normalizationProfileId", identity.normalizationProfileId);
+  mechanisticDatasetSchemaKey(identity.datasetSchema);
+  if (identity.heldOutSplit !== "validation" && identity.heldOutSplit !== "test") {
+    throw new RangeError(
+      "transition-series evaluation requires validation or test held-out split",
+    );
+  }
+  return identity;
+}
+
+function assertTransitionRowDatasetIdentity(
+  row: TransitionSeriesRegressionEvaluationRow,
+  expected: TransitionSeriesEvaluationDatasetIdentity,
+  rowIndex: number,
+): void {
+  requireNonEmpty(`row ${rowIndex} datasetVersion`, row.datasetVersion);
+  requireNonEmpty(
+    `row ${rowIndex} normalizationProfileId`,
+    row.normalizationProfileId,
+  );
+  const actualSchema = mechanisticDatasetSchemaKey(row.datasetSchema);
+  const expectedSchema = mechanisticDatasetSchemaKey(expected.datasetSchema);
+  if (
+    row.datasetVersion !== expected.datasetVersion ||
+    row.normalizationProfileId !== expected.normalizationProfileId ||
+    actualSchema !== expectedSchema ||
+    row.heldOutSplit !== expected.heldOutSplit
+  ) {
+    throw new RangeError(
+      `transition-series evaluation row ${rowIndex} dataset/schema/split identity drift`,
+    );
+  }
+}
+
+function assertTransitionPosition(
+  row: TransitionSeriesRegressionEvaluationRow,
+  horizon: TransitionSeriesEvaluationHorizon,
+  rowIndex: number,
+): void {
+  for (const [label, value] of [
+    ["sourceSnapshotIndex", row.sourceSnapshotIndex],
+    ["targetSnapshotIndex", row.targetSnapshotIndex],
+    ["sourceTick", row.sourceTick],
+    ["targetTick", row.targetTick],
+  ] as const) {
+    if (!Number.isSafeInteger(value) || value < 0) {
+      throw new RangeError(
+        `transition row ${rowIndex} ${label} must be a non-negative safe integer`,
+      );
+    }
+  }
+  if (row.targetSnapshotIndex <= row.sourceSnapshotIndex) {
+    throw new RangeError(
+      `transition row ${rowIndex} target snapshot must follow its source snapshot`,
+    );
+  }
+  if (
+    row.targetTick - row.sourceTick !== horizon.ticks ||
+    row.targetTick <= row.sourceTick
+  ) {
+    throw new RangeError(
+      `transition row ${rowIndex} tick positions do not match declared horizon ${horizon.id}`,
+    );
+  }
+  if (
+    !Number.isFinite(row.sourceSimulationTimeHours) ||
+    row.sourceSimulationTimeHours < 0 ||
+    !Number.isFinite(row.targetSimulationTimeHours) ||
+    row.targetSimulationTimeHours <= row.sourceSimulationTimeHours
+  ) {
+    throw new RangeError(
+      `transition row ${rowIndex} biological times must be finite, non-negative, and advancing`,
+    );
+  }
+  if (
+    !Number.isFinite(row.forecastHorizonHours) ||
+    row.forecastHorizonHours <= 0 ||
+    !approximatelyEqual(row.forecastHorizonHours, horizon.hours) ||
+    !approximatelyEqual(
+      row.targetSimulationTimeHours - row.sourceSimulationTimeHours,
+      horizon.hours,
+    )
+  ) {
+    throw new RangeError(
+      `transition row ${rowIndex} biological times do not match declared horizon ${horizon.id}`,
+    );
+  }
+}
+
+function compareTransitionRows(
+  left: TransitionSeriesRegressionEvaluationRow,
+  right: TransitionSeriesRegressionEvaluationRow,
+): number {
+  return (
+    left.sourceSnapshotIndex - right.sourceSnapshotIndex ||
+    left.sourceTick - right.sourceTick ||
+    left.targetSnapshotIndex - right.targetSnapshotIndex ||
+    left.targetTick - right.targetTick
+  );
+}
+
+function validateCompleteTransitionSourceSequence(
+  trajectoryKey: string,
+  horizonId: string,
+  rows: readonly TransitionSeriesRegressionEvaluationRow[],
+): void {
+  if (rows[0]?.sourceSnapshotIndex !== 0) {
+    throw new RangeError(
+      `trajectory ${trajectoryKey} horizon ${horizonId} must begin at source snapshot 0`,
+    );
+  }
+  for (let index = 0; index < rows.length; index += 1) {
+    const row = rows[index]!;
+    if (row.sourceSnapshotIndex !== index) {
+      throw new RangeError(
+        `trajectory ${trajectoryKey} horizon ${horizonId} has a missing source snapshot position before ${row.sourceSnapshotIndex}`,
+      );
+    }
+    if (index === 0) continue;
+    const previous = rows[index - 1]!;
+    if (
+      row.sourceTick <= previous.sourceTick ||
+      row.sourceSimulationTimeHours <= previous.sourceSimulationTimeHours ||
+      row.targetSnapshotIndex <= previous.targetSnapshotIndex ||
+      row.targetTick <= previous.targetTick ||
+      row.targetSimulationTimeHours <= previous.targetSimulationTimeHours
+    ) {
+      throw new RangeError(
+        `trajectory ${trajectoryKey} horizon ${horizonId} has regressing transition source/target positions`,
+      );
+    }
+  }
+}
+
 
 function validateHorizons(
   horizons: readonly EvaluationHorizon[],

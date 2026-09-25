@@ -10,15 +10,28 @@ export interface DishRenderPayloadEstimate {
   readonly eventCount: number;
   readonly acceptedInterventionFootprintCount: number;
   /** Exact logical bytes of the Uint8 dish-mask view. */
-  readonly dishMaskBytes: number;
+  readonly dishMaskViewBytes: number;
   /** Exact logical bytes of the aggregate Float32 biomass view. */
-  readonly biomassBytes: number;
-  /** Exact logical bytes across renderer field-value Float32 views. */
-  readonly fieldValueBytes: number;
-  /** Exact logical bytes across per-lineage density Float32 views. */
-  readonly lineageDensityBytes: number;
-  /** Exact sum of the typed scientific/presentation channel view byte lengths. */
-  readonly typedArrayBytes: number;
+  readonly biomassViewBytes: number;
+  /** Exact logical bytes across renderer field-value Float32 references. */
+  readonly fieldValueReferenceBytes: number;
+  /** Exact logical bytes across per-lineage density Float32 references. */
+  readonly lineageDensityReferenceBytes: number;
+  /**
+   * Exact sum of typed-array view byte lengths at every snapshot property.
+   * If the same view is referenced twice (for example aggregate biomass is
+   * also exposed as a biomass overlay field), this intentionally counts both
+   * logical channel references.
+   */
+  readonly typedArrayReferenceBytes: number;
+  /** Exact logical bytes across distinct typed-array view objects. */
+  readonly uniqueTypedArrayViewBytes: number;
+  /**
+   * Exact byteLength sum across distinct backing buffers reachable from the
+   * typed-array views. This captures aliasing and subarray backing capacity,
+   * but still is not browser structured-clone framing or transfer cost.
+   */
+  readonly uniqueBackingBufferBytes: number;
   /**
    * Reproducible UTF-8 byte size of the non-typed-array metadata projected to
    * JSON. This is a metadata-size proxy, not browser structured-clone framing
@@ -26,9 +39,9 @@ export interface DishRenderPayloadEstimate {
    */
   readonly metadataJsonUtf8Bytes: number;
   /**
-   * typedArrayBytes + metadataJsonUtf8Bytes. Use only as an application-payload
-   * sizing estimate; it is not measured Worker transport bytes, bandwidth, or
-   * receiver deserialization cost.
+   * uniqueBackingBufferBytes + metadataJsonUtf8Bytes. Use only as an
+   * application-payload sizing estimate; it is not measured Worker transport
+   * bytes, bandwidth, receiver deserialization cost, or GPU memory.
    */
   readonly estimatedApplicationPayloadBytes: number;
 }
@@ -42,18 +55,37 @@ export interface DishRenderPayloadEstimate {
 export function estimateDishRenderSnapshotPayload(
   snapshot: DishRenderSnapshot,
 ): DishRenderPayloadEstimate {
-  const dishMaskBytes = snapshot.dishMask.byteLength;
-  const biomassBytes = snapshot.biomass.byteLength;
-  const fieldValueBytes = snapshot.fields.reduce(
+  const views = collectTypedArrayViews(snapshot);
+  const dishMaskViewBytes = snapshot.dishMask.byteLength;
+  const biomassViewBytes = snapshot.biomass.byteLength;
+  const fieldValueReferenceBytes = snapshot.fields.reduce(
     (total, field) => total + field.values.byteLength,
     0,
   );
-  const lineageDensityBytes = snapshot.lineages.reduce(
+  const lineageDensityReferenceBytes = snapshot.lineages.reduce(
     (total, lineage) => total + lineage.density.byteLength,
     0,
   );
-  const typedArrayBytes =
-    dishMaskBytes + biomassBytes + fieldValueBytes + lineageDensityBytes;
+  const typedArrayReferenceBytes =
+    dishMaskViewBytes +
+    biomassViewBytes +
+    fieldValueReferenceBytes +
+    lineageDensityReferenceBytes;
+
+  const uniqueViews = new Set<ArrayBufferView>();
+  const uniqueBuffers = new Set<ArrayBufferLike>();
+  let uniqueTypedArrayViewBytes = 0;
+  let uniqueBackingBufferBytes = 0;
+  for (const view of views) {
+    if (!uniqueViews.has(view)) {
+      uniqueViews.add(view);
+      uniqueTypedArrayViewBytes += view.byteLength;
+    }
+    if (!uniqueBuffers.has(view.buffer)) {
+      uniqueBuffers.add(view.buffer);
+      uniqueBackingBufferBytes += view.buffer.byteLength;
+    }
+  }
 
   const metadataJsonUtf8Bytes = utf8ByteLength(
     JSON.stringify({
@@ -93,15 +125,28 @@ export function estimateDishRenderSnapshotPayload(
     eventCount: snapshot.events.length,
     acceptedInterventionFootprintCount:
       snapshot.acceptedInterventionFootprints?.length ?? 0,
-    dishMaskBytes,
-    biomassBytes,
-    fieldValueBytes,
-    lineageDensityBytes,
-    typedArrayBytes,
+    dishMaskViewBytes,
+    biomassViewBytes,
+    fieldValueReferenceBytes,
+    lineageDensityReferenceBytes,
+    typedArrayReferenceBytes,
+    uniqueTypedArrayViewBytes,
+    uniqueBackingBufferBytes,
     metadataJsonUtf8Bytes,
     estimatedApplicationPayloadBytes:
-      typedArrayBytes + metadataJsonUtf8Bytes,
+      uniqueBackingBufferBytes + metadataJsonUtf8Bytes,
   });
+}
+
+function collectTypedArrayViews(
+  snapshot: DishRenderSnapshot,
+): readonly ArrayBufferView[] {
+  return [
+    snapshot.dishMask,
+    snapshot.biomass,
+    ...snapshot.fields.map((field) => field.values),
+    ...snapshot.lineages.map((lineage) => lineage.density),
+  ];
 }
 
 function utf8ByteLength(value: string): number {

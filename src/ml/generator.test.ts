@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createMechanisticExecutionSchedule } from "./executionSchedule";
 
 import {
+  MECHANISTIC_DATASET_ARTIFACT_SCHEMA_VERSION,
   buildMechanisticDatasetArtifact,
   iterateMechanisticDatasetJsonl,
   serializeMechanisticDatasetJsonl,
@@ -101,7 +102,7 @@ describe("mechanistic ML dataset generator", () => {
 
     expect(reversed).toEqual(first);
     expect(first.summary).toMatchObject({
-      schemaVersion: "petra-ml-dataset-artifact-v4",
+      schemaVersion: MECHANISTIC_DATASET_ARTIFACT_SCHEMA_VERSION,
       planVersion: plan.planVersion,
       datasetVersion: plan.datasetVersion,
       engineVersion: plan.engineVersion,
@@ -109,6 +110,8 @@ describe("mechanistic ML dataset generator", () => {
       scenarioVersion: plan.scenarioVersion,
       normalizationProfileId: plan.normalizationProfileId,
       datasetSchema: plan.datasetSchema,
+      executionSchedule: plan.executionSchedule,
+      executionScheduleIdentity: plan.executionScheduleIdentity,
       splitPolicyVersion: plan.splitPolicy.version,
       splitCoveragePolicyVersion: plan.splitCoveragePolicy.version,
       groupCount: plan.groupCount,

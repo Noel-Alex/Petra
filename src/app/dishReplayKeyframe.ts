@@ -8,11 +8,38 @@ import {
   type AuthoritativeDishReplayKeyframe,
 } from "../render/replayIdentity";
 import type { SimulationSnapshot } from "../sim/protocol";
+import type { ExperimentRuntimeState } from "./experimentRuntime";
 
 export interface CreateAuthoritativeDishReplayKeyframeArgs {
   readonly runBranchIdentity: string;
   readonly simulationSnapshot: SimulationSnapshot;
   readonly dishSnapshot: DishRenderSnapshot;
+}
+
+export interface CreateRuntimeDishReplayKeyframeArgs {
+  readonly runtimeState: ExperimentRuntimeState;
+  readonly dishSnapshot: DishRenderSnapshot;
+}
+
+/**
+ * Bind a dish projection to the exact snapshot + history generation currently
+ * owned by ExperimentRuntime. Callers cannot substitute a parallel branch id.
+ */
+export function createRuntimeDishReplayKeyframe(
+  args: CreateRuntimeDishReplayKeyframeArgs,
+): AuthoritativeDishReplayKeyframe {
+  const simulationSnapshot = args.runtimeState.snapshot;
+  if (simulationSnapshot === null) {
+    throw new Error(
+      "runtime dish replay keyframe requires an authoritative runtime snapshot",
+    );
+  }
+
+  return createAuthoritativeDishReplayKeyframe({
+    runBranchIdentity: args.runtimeState.runBranchIdentity,
+    simulationSnapshot,
+    dishSnapshot: args.dishSnapshot,
+  });
 }
 
 /**

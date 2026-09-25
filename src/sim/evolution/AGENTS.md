@@ -43,6 +43,12 @@
 - Runtime founder lineage IDs come only from registry creation order (`L1`, `L2`, ...), with genesis time `0`, no parent, no mutation class, and no single origin cell. The returned binding preserves the exact founder-definition → runtime-lineage mapping for composed initialization.
 - Restoring the returned checkpoint must preserve allocator continuity so later mutation children continue at the next deterministic registry ID. Duplicate/non-canonical founder definition identity and sparse founder arrays fail closed.
 
+## Composed dynamic-lineage authority seam
+- `composedLineageAuthority.ts` owns the replay-critical identity/parameter alignment that the composed checkpoint migration will embed: ordered runtime lineage IDs, ordered genotype IDs, persisted baseline non-drug loss values, and the exact `LineageRegistryCheckpoint`.
+- Configured founder definitions are validated as the registry genesis prefix produced by `founderLineageRegistry.ts`; later runtime records must be parented children. Extra runtime roots, founder-prefix drift, channel/registry cardinality drift, or registry-order drift fail closed.
+- Runtime-child persisted baseline loss must equal the selected `baselineLossPolicy.ts` authority exactly. Missing policy/genotype authority or persisted hazard drift refuses; no parent inheritance, fitness conversion, MIC inference, or default is allowed.
+- `appendMaterializedMutationLineagesToAuthority(...)` accepts only an already-reviewed `materializeMutationLineages.ts` result whose registry checkpoint preserves all prior records/events as an exact prefix. It extends detached lineage identity/parameter authority only; biomass reassignment, population-authority expansion, RNG publication, and composed-state publication remain the higher-level atomic transaction.
+
 ## Lineage authority
 - Lineage creation/extinction is simulation authority. React, Pixi, renderer samples, animation callbacks, story beats, and UI events may display authoritative lineage events but cannot create or delete biological lineages.
 - Parent lineage identity, genotype, origin time/location, mutation class, and extinction time are authoritative lineage metadata.

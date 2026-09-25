@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "recordKind": "physical-environment-evidence",
+  "authorityStatus": "calibration-input-only",
+  "id": "ecoli-k12-mg1655-mops-glucose-37c-v1",
+  "version": "1.0.0",
+  "organism": {
+    "taxon": "Escherichia coli",
+    "strain": "K-12 MG1655"
+  },
+  "intendedScenarioContext": {
+    "purpose": "candidate drug-free environment bridge for the Greulich chloramphenicol glucose-family authority",
+    "sourceKey": "greulich_2015_mg1655_chloramphenicol_glucose",
+    "doi": "10.15252/MSB.20145949",
+    "temperatureCelsius": 37,
+    "medium": {
+      "description": "modified Neidhardt supplemented MOPS-defined medium",
+      "supplierRecord": "Teknova M2101"
+    },
+    "carbonSource": {
+      "id": "D-glucose",
+      "concentration": 0.2,
+      "concentrationUnit": "% w/v"
+    },
+    "cultureContext": "MG1655 pre-cultures adapted in the appropriate drug-free medium; antibiotic study used aerated liquid culture.",
+    "requiredDrugFreeQuantity": {
+      "id": "lambda0",
+      "unit": "1/h",
+      "meaning": "drug-free exponential growth rate supplied to the Greulich response model"
+    }
+  },
+  "wellMixedGrowthResponseEvidence": {
+    "classification": "measured-plus-fitted",
+    "sourceKey": "knapp_2025_mops_glucose_growth",
+    "doi": "10.1038/s41564-024-01841-4",
+    "datasetPersistentId": "doi:10.7910/DVN/SC2KXZ",
+    "temperatureCelsius": 37,
+    "mediumDescription": "MOPS minimal medium",
+    "substrate": {
+      "id": "D-glucose",
+      "concentrationUnit": "mM",
+      "measuredRange": {
+        "minimum": 0.17,
+        "maximum": 11
+      }
+    },
+    "replicatesPerConcentration": 3,
+    "response": {
+      "id": "maximum-growth-rate",
+      "unit": "1/h",
+      "extraction": "maximum growth rate from liquid-culture growth curves",
+      "fitModel": "Monod/Michaelis-Menten",
+      "fitMethod": "weighted nonlinear fit"
+    },
+    "parameterExtraction": {
+      "status": "local-source-extraction-and-calibration-required",
+      "calibrationIssue": 938
+    },
+    "compatibilityWithIntendedScenario": {
+      "classification": "transferred-near-context",
+      "status": "not-yet-validated-as-identical-medium",
+      "reason": "Knapp reports MOPS minimal medium, while Greulich reports a modified Neidhardt supplemented MOPS-defined medium (Teknova M2101). The common MG1655 / D-glucose / 37 C background supports a calibration hypothesis, not silent equivalence."
+    }
+  },
+  "consumptionAndYieldEvidence": {
+    "classification": "measured-near-context",
+    "sourceKey": "baumler_2011_mg1655_mops_glucose_batch",
+    "doi": "10.1186/1752-0509-5-182",
+    "sourceArtifact": "12918_2011_783_MOESM6_ESM.XLS",
+    "temperatureCelsius": 37,
+    "mediumDescription": "MOPS minimal medium with 0.2% glucose as sole carbon and energy source",
+    "oxygenContext": "aerobic batch culture; source reports continuous sparging",
+    "observables": [
+      {
+        "id": "biomass-time-course",
+        "unit": "gDW/L",
+        "status": "measured"
+      },
+      {
+        "id": "extracellular-glucose-time-course",
+        "unit": "g/L",
+        "status": "measured"
+      },
+      {
+        "id": "strain-specific-glucose-uptake-rate",
+        "unit": "mmol glucose/gDW/h",
+        "status": "measured-but-value-not-transcribed-in-this-record"
+      },
+      {
+        "id": "growth-yield",
+        "unit": "gDW cells/g glucose",
+        "status": "measured-but-value-not-transcribed-in-this-record"
+      }
+    ],
+    "parameterExtraction": {
+      "status": "local-source-extraction-required",
+      "calibrationIssue": 938
+    },
+    "compatibilityWithIntendedScenario": {
+      "classification": "transferred-near-context",
+      "status": "requires-medium-and-aeration-compatibility-review"
+    }
+  },
+  "spatialTransport": {
+    "status": "unbound",
+    "requiredBeforePhysicalSpatialPromotion": true,
+    "reason": "The Knapp and Baumler authorities are liquid-culture measurements and do not identify Petra dish/agar glucose diffusion, agar concentration/thickness, boundary conditions, oxygen coupling, or mass-transfer geometry."
+  },
+  "calibrationContract": {
+    "frameworkIssue": 657,
+    "calibrationIssue": 938,
+    "eligibleFirstStage": [
+      "well-mixed MG1655 glucose-concentration to drug-free growth-rate fit against the Knapp source data",
+      "0.2% glucose biomass/glucose time-course consistency check against the Baumler source data",
+      "explicit comparison of the candidate 0.2% glucose lambda0 with the exact Greulich glucose-family environment"
+    ],
+    "holdOutRequirement": "Reserve source concentration/replicate observations or an independent compatible target before promotion; do not validate on the fitted points alone.",
+    "promotionGate": "A well-mixed fit does not authorize a spatial glucose field. Physical spatial promotion additionally requires a named matrix/geometry plus source-compatible transport and unit mapping.",
+    "forbidden": [
+      "relabeling flagship model-resource as glucose",
+      "copying a physical gDW/g-glucose yield into the current dimensionless biomassYield",
+      "inferring agar diffusion from liquid growth curves",
+      "selecting the Greulich glucose family from an unlabeled model-resource value",
+      "fitting hidden spatial parameters solely to reproduce a chloramphenicol response curve"
+    ]
+  },
+  "provenance": {
+    "classification": "measured-source-envelope-plus-explicit-transfer-boundary",
+    "limitation": "This record prepares calibration inputs. It is not a finished simulation parameter pack and does not enable a physical spatial MOPS-glucose Science Mode scenario."
+  }
+}

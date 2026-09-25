@@ -548,6 +548,29 @@
         983
       ],
       "timeout_seconds": 30
+    },
+    {
+      "id": "mops-glucose-resource-calibration",
+      "description": "PREPARED; BLOCKED on #938: primary liquid MG1655/MOPS/glucose evidence and the well-mixed calibration contract are repository-owned, but exact source-table extraction/context validation and a separately supported physical spatial transport bridge are required before activation.",
+      "command": [
+        "python",
+        "experiments/blocked.py",
+        "--experiment-id",
+        "mops-glucose-resource-calibration",
+        "--blocked-on",
+        "938",
+        "--reason",
+        "Issue #938 has identified source-backed MG1655/MOPS/glucose well-mixed calibration targets, but the real calibration helper must not run until exact source-table extraction preserves uncertainty and the Greulich-vs-Knapp/Baumler MOPS context seam is reviewed. Physical spatial promotion additionally requires independent named matrix/geometry/transport authority; current model-resource remains dimensionless."
+      ],
+      "issues": [
+        227,
+        542,
+        657,
+        874,
+        928,
+        938
+      ],
+      "timeout_seconds": 30
     }
   ]
 }

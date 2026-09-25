@@ -220,3 +220,75 @@ Authenticated recovery contributor/session: Noel-Alex
 **UI/local-agent rule:** consume merged authority aggressively, but show unavailable/neutral states for anything whose exact data prerequisite above has not landed. Do not manufacture scientific rates, cell counts, event centers, morphology, or intervention geometry to make the reference look complete.
 
 Authenticated coordination contributor/session: Noel-Alex
+
+## 2026-09-25 — current authoritative render/UI contract after protocol-v8 and heterogeneous-scene integration
+
+This supersedes older same-day handoffs where they describe protocol-v6-era state or still-pending colony-island work.
+
+### What the live dish may treat as authoritative now
+
+- The biological source remains the accepted **composed Worker transaction**, not Pixi/React state. Current composed authority is protocol v8 with replay-critical RNG/checkpoint continuation and the integrated mutation transaction. Same seed + exact config + ordered commands remains the determinism boundary.
+- `composedDishProjection.ts` remains the only app-layer whole-dish projection from accepted composed snapshots into detached immutable render data. Scientific consumers must continue reading simulator metrics/inspection/analysis contracts rather than reconstructing biology from render buffers.
+- The live render transaction can carry exact dish mask; aligned per-lineage and aggregate `model-biomass`; authoritative `model-resource`; exact antimicrobial fields/units that the active scenario actually owns; accepted intervention footprints; accepted step-local net-growth presentation; exact taxon/presentation companions; and replay-bound lineage-origin point events where source coordinates exist.
+- `DishSceneTransaction@v1` is the heterogeneous source boundary. It admits either one accepted composed-runtime dish transaction or one standalone fungal source-validation front. Equal biological time is **not** a join key. Do not manufacture a mixed bacteria+fungus live scene by combining unrelated authorities.
+- Renderer events/overlays remain presentation projections of source-owned state/events. They are not inspector, metric, replay, or checkpoint authority.
+
+### Bacterial colony mass / approved-reference direction
+
+The renderer-neutral pieces for the requested “transparent when absent, stronger mass with density, only a few merged organic accents” behavior are already on main:
+
+1. `ColonyMassAlphaField` is the continuous colony body derived from authoritative comparable lineage density. Exact zero/off-mask density remains exact zero alpha.
+2. `extractColonyMassAccentIslands(...)` provides only a **hard-bounded** set of eight-neighbour high-alpha presentation summaries. Adjacent supported regions may read as one visual mass; this is not biological fusion/anastomosis and never changes source density.
+3. Do not return to one Pixi blob/object per occupied cell. The continuous texture is complete presentation; rods/cells are bounded representative morphology, not population count.
+4. An island accent must be clipped/modulated by the existing alpha support + dish mask. Do not fill an island bounding box/ellipse opaquely, because that can bridge a true zero-density gap.
+5. #1015 has landed the renderer-neutral stable density-scale authority (`source-owned-fixed` vs explicit `snapshot-extrema`). #1006 currently owns the remaining live composed binding from exact `growth.localCapacity`/configuration identity into Pixi preparation. Do not create a competing scale or reintroduce per-lineage/per-frame self-normalization.
+6. Morphology comes only from exact taxon/content presentation evidence. No `if speciesName === ...` renderer biology.
+
+This is the central-dish implementation direction for local UI work. The surrounding shell may evolve independently, but these authority boundaries must remain intact.
+
+### Performance: measure the actual reported failure mode before architecture migration
+
+- #869/#899 established scientific-frame/camera dirty-layer caching so camera-only redraws should reuse prepared density/field/glyph data instead of rescanning authoritative grids.
+- #876 now has live runtime→projection→React publication instrumentation plus payload accounting, and continuous 1×/4×/16× publication evidence prepared through the existing browser experiment.
+- #630 owns real Worker execution/transport/payload evidence; #642/#850 own renderer draw/frame/heap/jank evidence. Both remain evidence gates before transferables, Worker-side projection, downsampling, OffscreenCanvas, WASM, WebGPU, extra workers, or backend compute.
+- #1054 is the active measurement slice for the maintainer-reported failure mode: advance the real authoritative run, pause at a fixed later accepted frontier, then run the same renderer-owned pan/zoom redraw workload and compare it with the initial state. Until a source-owned load diagnostic is captured in that workload, label this **post-growth/later-run**, not “dense/high-biomass.”
+- The source already owns exact aggregate `metrics.totalBiomass` and `metrics.occupiedCells` on composed checkpoints. A profiler may transport those exact diagnostics if it can do so observationally and without creating a second scientific measurement path; do not infer occupancy from visible pixels/glyphs.
+- Human/local entrypoints stay consolidated:
+  - `python run_local_experiments.py --only expo-browser-acceptance --push`
+  - `python run_local_experiments.py --only worker-transport-profile --push`
+  - `python run_local_experiments.py --only render-projection-parity --push`
+
+No FPS threshold, cadence policy, or architecture migration is authorized merely by source review. Record measured bottlenecks first.
+
+### Multiple bacteria, fungi, nutrients, antimicrobials
+
+- The named E. coli MG1655 + `Bacillus subtilis 168 trp+ sigE-` shared-resource composition is on main with exact taxon identity and model-unit shared-resource/local-capacity competition. It is **not** a claim of physical glucose/gCDW mapping or a measured pairwise competition coefficient. Product promotion remains gated by #907 evidence and #999.
+- Exact taxon→presentation binding is the only morphology join. Bacillus ciprofloxacin response/evolution, sporulation, direct antagonism/cooperation, and unsupported cross-species mechanisms remain fail-closed.
+- Ciprofloxacin has authoritative typed replayable concentration-field interventions and product guardrails for the supported flagship source domain. Do not convert UI preview geometry into biology before command acceptance.
+- Model-resource editing exists as a strict model-unit mechanism boundary, but product controls must remain unavailable unless the scenario owns explicit compatible control metadata. Never relabel current `model-resource` as glucose/nutrients/media.
+- External organism introduction is being built deliberately rather than as a UI shortcut. #1002 supplies the pure exact payload/placement boundary; #980 owns admission + eventual atomic append/command; new #1057 owns the required explicit replay-critical lineage-origin migration (`configured-founder | mutation-child | external-inoculation`). Until that lands, do not encode an inoculum as a fake mutation child or silently add an untyped runtime root.
+- The first fungal subset remains the source-constrained *Aspergillus niger* no. 10 physical surface-front authority. Its standalone render projection is a physical front only: no density/biomass field, resource depletion, branch graph, drug response, or bacteria↔fungus interaction is implied.
+- #1016 has landed a **dormant** fungal runtime-authority identity carrier, but executable mixed-live fungal stepping remains blocked by the source-backed resource question in #974 and the shared-runtime work in #1005. Pixi must not bridge that gap.
+- #974 remains RESEARCH_NEEDED: ON for the exact compatible fungal glucose-consumption/resource law. The 2008 C28eco3-13 lawn-culture data are not a direct no.10 donor; the primary 1998 strain/context identity must be resolved before any uptake/yield/diffusion constant is promoted.
+
+### Local UI agent do / do not
+
+**Do**
+- consume accepted `DishSceneTransaction` / `DishRenderSnapshot` authority and exact presentation companions;
+- keep zero authoritative density visually empty;
+- use the continuous colony texture plus bounded clipped accents;
+- reuse prepared scientific-frame caches for camera-only interaction;
+- show exact source units/maturity/limitations;
+- render unavailable mechanisms as unavailable rather than cosmetically simulating them;
+- compare the central dish against `docs/design/ui-reference/01-simulation-overview.png` through the existing local browser acceptance path.
+
+**Do not**
+- run a second biological simulator in the renderer;
+- infer cell counts, CFU, gCDW, physical colony radius, fungal biomass, nutrient depletion, drug efficacy, or interaction coefficients from pixels;
+- join standalone fungal validation to a bacterial run because timestamps match;
+- create unbounded blob/glyph/display-object counts as occupancy grows;
+- lower the scientific grid/fidelity for FPS without a separately reviewed meaning-preserving contract;
+- choose WASM/backend/GPU/OffscreenCanvas/transferables before the registered measurements identify the actual bottleneck.
+
+Authenticated coordination contributor/session: Noel-Alex via the connected GitHub account.
+

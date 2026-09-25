@@ -1,0 +1,176 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "ecoli-bsubtilis-shared-resource",
+  "version": "1.0.0-experimental",
+  "title": "E. coli MG1655 + B. subtilis 168 sigE- shared-resource competition",
+  "status": "experimental",
+  "warning": "Named two-bacterium mechanistic scenario in dimensionless Petra model-resource/model-biomass units. Source growth rates are used only as a cross-study relative calibration target; physical glucose, gCDW, Monod half-saturation, carrying capacity, spread, direct antagonism, Bacillus drug response, and Bacillus evolution remain unbound or unsupported.",
+  "environment": {
+    "geometry": "2d_circular_dish",
+    "boundary": "no_flux",
+    "resourceModel": "monod_single_limiting_resource",
+    "engineeringDefaults": {
+      "gridSize": 160,
+      "dishRadiusCells": 76,
+      "cellSize": 1,
+      "cellSizeUnit": "model-grid-cell",
+      "note": "Geometry/resolution are engineering values reused for stable Petra model-unit execution, not physical plate measurements."
+    },
+    "resourceContext": {
+      "version": "two-bacterium-unbound-model-resource-v1",
+      "bindingStatus": "unbound",
+      "representation": "dimensionless_model_resource",
+      "concentrationUnit": "model-resource",
+      "limitingSubstrate": null,
+      "medium": null,
+      "referenceTemperatureC": 37,
+      "boundary": "no_flux",
+      "initialCondition": "Caller-supplied uniform model-resource level; no physical glucose concentration is claimed.",
+      "biomassMapping": "No gCDW, CFU, or cell-count mapping is claimed for model-biomass.",
+      "provenance": {
+        "classification": "engineering",
+        "context": "First named E. coli MG1655 + B. subtilis 168 trp+ sigE- shared-resource scenario while the physical resource/unit bridge remains unbound.",
+        "limitation": "The resource field is dimensionless model-resource. Tannler 2008 and LaCroix 2015 glucose/yield measurements are calibration/validation targets only and are not substituted into Petra's model-unit yield or Monod constants."
+      }
+    }
+  },
+  "executionProfile": {
+    "schemaVersion": 1,
+    "id": "ecoli-bsubtilis-shared-resource-engineering",
+    "version": "1.0.0",
+    "scenarioId": "ecoli-bsubtilis-shared-resource",
+    "scenarioVersion": "1.0.0-experimental",
+    "resourceContextVersion": "two-bacterium-unbound-model-resource-v1",
+    "classification": "engineering",
+    "units": {
+      "time": "hour",
+      "resource": "model-resource",
+      "biomass": "model-biomass"
+    },
+    "hoursPerTick": 0.02,
+    "growth": {
+      "maxDivisionRate": 0.8,
+      "halfSaturation": 1,
+      "biomassYield": 1,
+      "localCapacity": 32,
+      "spreadRate": 0.05
+    },
+    "behaviorTargets": [
+      "positive-early-growth",
+      "resource-depletion",
+      "zero-resource-no-growth",
+      "capacity-bound",
+      "conservative-neighbour-spread"
+    ],
+    "provenance": {
+      "classification": "engineering",
+      "context": "Generic stable Petra ecology execution values reused for the first named two-bacterium model-unit scenario.",
+      "calibrationNote": "Species differentiation is applied separately through the provenance-bound relative isolated-growth calibration in composedParameterSet; these run-wide yield/Monod/capacity/spread values are not fitted physical culture parameters.",
+      "limitation": "No physical substrate, concentration, dry-weight, CFU, Monod K, carrying capacity, colony-speed, or measured co-culture interaction claim is attached."
+    }
+  },
+  "taxa": [
+    {
+      "schemaVersion": 2,
+      "id": "ecoli-k12-mg1655",
+      "contentVersion": "lacroix-2015-growth-context-v1",
+      "scientificName": "Escherichia coli",
+      "background": "K-12 MG1655 for curated resistance phenotypes",
+      "microbialGroup": "bacterium",
+      "provenance": {
+        "sourceKeys": [
+          "doi:10.1128/AEM.02246-14"
+        ],
+        "context": "Wild-type K-12 MG1655 glucose-minimal growth reference at 37 C used only for the isolated growth-rate calibration target.",
+        "limitation": "This taxon identity does not import ciprofloxacin response, physical Monod parameters, or a co-culture interaction coefficient."
+      }
+    },
+    {
+      "schemaVersion": 2,
+      "id": "bsubtilis-168-trp-plus-sige-minus",
+      "contentVersion": "tannler-2008-growth-context-v1",
+      "scientificName": "Bacillus subtilis",
+      "background": "168 trp+ sigE-",
+      "microbialGroup": "bacterium",
+      "provenance": {
+        "sourceKeys": [
+          "doi:10.1186/1475-2859-7-19"
+        ],
+        "context": "B. subtilis 168 trp+ sigE- M9 glucose, aerobic 37 C physiology; sigE- is used to avoid silently modeling unsupported later sporulation.",
+        "limitation": "This taxon identity does not authorize sporulation, ciprofloxacin response, mutation/evolution, direct antagonism, physical Monod parameters, or a co-culture interaction coefficient."
+      }
+    }
+  ],
+  "genotypes": [
+    {
+      "id": "ecoli-wt",
+      "relativeFitness": 1,
+      "provenance": {
+        "classification": "identity-only",
+        "limitation": "No mutation edges are enabled in this two-species scenario."
+      }
+    },
+    {
+      "id": "bsubtilis-static",
+      "relativeFitness": 1,
+      "provenance": {
+        "classification": "identity-only",
+        "limitation": "Static Bacillus genotype identity only; no Bacillus evolution graph is authorized."
+      }
+    }
+  ],
+  "mutationTransitions": [],
+  "composedParameterSet": {
+    "schemaVersion": 1,
+    "id": "ecoli-bsubtilis-shared-resource-composed",
+    "version": "1.0.0",
+    "scenarioId": "ecoli-bsubtilis-shared-resource",
+    "scenarioVersion": "1.0.0-experimental",
+    "executionProfileId": "ecoli-bsubtilis-shared-resource-engineering",
+    "executionProfileVersion": "1.0.0",
+    "resourceContextVersion": "two-bacterium-unbound-model-resource-v1",
+    "geometrySource": "environment.engineeringDefaults",
+    "growthCalibration": {
+      "schemaVersion": 1,
+      "method": "relative-isolated-growth-rate-ratio-v1",
+      "referenceLineageId": "ecoli-founder",
+      "unit": "1/hour",
+      "targets": [
+        {
+          "lineageId": "ecoli-founder",
+          "value": 0.69,
+          "citation": "doi:10.1128/AEM.02246-14",
+          "context": "Wild-type E. coli K-12 MG1655, glucose minimal medium, 37 C; separate-study isolated growth target."
+        },
+        {
+          "lineageId": "bsubtilis-founder",
+          "value": 0.67,
+          "citation": "doi:10.1186/1475-2859-7-19",
+          "context": "B. subtilis 168 trp+ sigE-, M9 glucose, aerobic, 37 C; separate-study isolated growth target."
+        }
+      ],
+      "limitation": "The ratio is a calibrated dimensionless cross-study transfer for relative model-unit growth only. It is not a measured co-culture fitness coefficient and does not bind physical yield, Monod K, resource concentration, or direct interaction."
+    },
+    "lineages": [
+      {
+        "id": "ecoli-founder",
+        "genotypeId": "ecoli-wt",
+        "taxonId": "ecoli-k12-mg1655",
+        "taxonContentVersion": "lacroix-2015-growth-context-v1",
+        "deathHazardPerHour": 0
+      },
+      {
+        "id": "bsubtilis-founder",
+        "genotypeId": "bsubtilis-static",
+        "taxonId": "bsubtilis-168-trp-plus-sige-minus",
+        "taxonContentVersion": "tannler-2008-growth-context-v1",
+        "deathHazardPerHour": 0
+      }
+    ],
+    "provenance": {
+      "classification": "calibrated-engineering",
+      "context": "First executable named two-bacterium shared-resource parameter set. Competition arises only from shared model-resource and local capacity.",
+      "limitation": "The scenario is experimental and not Science-Mode physical calibration. Zero baseline loss is engineering authority, not measured mortality; no direct E. coli-Bacillus interaction, Bacillus drug response/evolution, sporulation, or physical resource/yield mapping is enabled."
+    }
+  }
+}

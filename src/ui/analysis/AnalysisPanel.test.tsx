@@ -344,4 +344,38 @@ describe("AnalysisPanel", () => {
     expect(html).toContain("Not supplied");
   });
 
+  it("exposes controlled lineage selection in both SVG and semantic ancestry data", () => {
+    const html = renderToStaticMarkup(
+      <AnalysisPanel
+        charts={[chart]}
+        lineageTree={tree}
+        motion="off"
+        selectedLineageId="L2"
+        onLineageSelect={() => undefined}
+      />,
+    );
+
+    expect(html).toContain('data-lineage-id="L2"');
+    expect(html).toContain('data-selected="true"');
+    expect(html).toContain('role="button"');
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).toContain(">Selected<");
+    expect(html).toContain(">Select<");
+  });
+
+  it("fails closed to no selected lineage when the controlled id is absent", () => {
+    const html = renderToStaticMarkup(
+      <AnalysisPanel
+        charts={[chart]}
+        lineageTree={tree}
+        motion="off"
+        selectedLineageId="foreign-lineage"
+        onLineageSelect={() => undefined}
+      />,
+    );
+
+    expect(html).not.toContain('data-selected="true"');
+    expect(html).not.toContain(">Selected<");
+  });
+
 });

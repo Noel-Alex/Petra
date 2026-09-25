@@ -365,4 +365,18 @@ describe("incremental mechanistic ML dataset collector", () => {
       verifyMechanisticDatasetFinalization(mutated, finalization),
     ).toThrow(/digest mismatch/);
   });
+  it("refuses resume when only execution schedule changes", () => {
+    const plan = planMechanisticSweep(definition());
+    const staging = new MemoryStagingStore();
+    const collector = new IncrementalMechanisticDatasetCollector<FixtureInput, FixtureTarget>(plan, staging);
+    collector.stageTrajectory(trajectoryResult(plan.tasks[0]!));
+
+    const changedPlan = planMechanisticSweep({
+      ...definition(),
+      executionSchedule: createMechanisticExecutionSchedule({ totalTicks: 6, snapshotEveryTicks: 2 }),
+    });
+
+    expect(() => new IncrementalMechanisticDatasetCollector<FixtureInput, FixtureTarget>(changedPlan, staging)).toThrow(/different sweep plan/);
+  });
+
 });

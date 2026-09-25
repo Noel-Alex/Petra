@@ -69,11 +69,42 @@ export interface MechanisticTaskExecutor<TInput, TTarget> {
 export interface ComposedMechanisticTaskDefinition<TInput, TTarget> {
   readonly executionDefinition: MechanisticExecutionDefinition;
   readonly config: ComposedSimulationConfig;
-  readonly project: (
+  /**
+   * Point-observation projection. Existing packages use one accepted snapshot
+   * as both input/target observation authority.
+   *
+   * Exactly one of project / projectTransition must be supplied.
+   */
+  readonly project?: (
     snapshot: ComposedSimulationSnapshot,
     context: {
       readonly task: MechanisticSweepTask;
       readonly snapshotIndex: number;
+      readonly final: boolean;
+    },
+  ) => {
+    readonly input: TInput;
+    readonly target: TTarget;
+  };
+  /**
+   * Transition projection for supervised future-dynamics rows.
+   *
+   * The source is the exact accepted snapshot before one runner advance
+   * command; target is the exact accepted snapshot returned by that command.
+   * This lets a package bind source-state -> future-target semantics without
+   * inventing an initial zero target or reverse-pairing post-state with the
+   * flux that produced it.
+   *
+   * Exactly one of project / projectTransition must be supplied.
+   */
+  readonly projectTransition?: (
+    sourceSnapshot: ComposedSimulationSnapshot,
+    targetSnapshot: ComposedSimulationSnapshot,
+    context: {
+      readonly task: MechanisticSweepTask;
+      readonly snapshotIndex: number;
+      readonly sourceSnapshotIndex: number;
+      readonly targetSnapshotIndex: number;
       readonly final: boolean;
     },
   ) => {
@@ -119,8 +150,14 @@ export function createComposedMechanisticTaskExecutor<TInput, TTarget>(
       let advancedTicks = 0;
       let snapshot = engine.snapshot();
 
-      const append = (final: boolean) => {
-        const projected = definition.project(snapshot, {
+      const appendPoint = (final: boolean) => {
+        const project = definition.project;
+        if (project === undefined) {
+          throw new TypeError(
+            "composed point projection is unavailable for this task definition",
+          );
+        }
+        const projected = project(snapshot, {
           task,
           snapshotIndex,
           final,
@@ -144,10 +181,94 @@ export function createComposedMechanisticTaskExecutor<TInput, TTarget>(
         snapshotIndex += 1;
       };
 
-      if (task.executionSchedule.totalTicks === 0) {
-        append(true);
+      const appendTransition = (
+        sourceSnapshot: ComposedSimulationSnapshot,
+        targetSnapshot: ComposedSimulationSnapshot,
+        sourceSnapshotIndex: number,
+        targetSnapshotIndex: number,
+        final: boolean,
+      ) => {
+        const projectTransition = definition.projectTransition;
+        if (projectTransition === undefined) {
+          throw new TypeError(
+            "composed transition projection is unavailable for this task definition",
+          );
+        }
+        if (
+          targetSnapshot.checkpoint.tick <= sourceSnapshot.checkpoint.tick ||
+          targetSnapshot.checkpoint.simulationTimeHours <=
+            sourceSnapshot.checkpoint.simulationTimeHours
+        ) {
+          throw new RangeError(
+            "composed transition projection requires a strictly future accepted target snapshot",
+          );
+        }
+        const projected = projectTransition(
+          sourceSnapshot,
+          targetSnapshot,
+          {
+            task,
+            snapshotIndex,
+            sourceSnapshotIndex,
+            targetSnapshotIndex,
+            final,
+          },
+        );
+        samples.push({
+          datasetVersion: task.datasetVersion,
+          trajectory: structuredClone(task.trajectory),
+          snapshotIndex,
+          // Transition rows are finalized by the accepted target snapshot.
+          // Source/target time identity belongs in the package's versioned
+          // input/target schema; this top-level time remains the accepted row
+          // completion time for existing dataset integrity/finalization code.
+          simulationTimeHours:
+            targetSnapshot.checkpoint.simulationTimeHours,
+          normalizationProfileId: task.normalizationProfileId,
+          datasetSchema: structuredClone(task.datasetSchema),
+          input: structuredClone(projected.input),
+          target: structuredClone(projected.target),
+          ...(final
+            ? {
+                terminationReason:
+                  definition.terminationReason ?? "completed-horizon",
+              }
+            : {}),
+        });
+        snapshotIndex += 1;
+      };
+
+      if (definition.projectTransition !== undefined) {
+        let commandIndex = 0;
+        let sourceSnapshotIndex = 0;
+        while (advancedTicks < task.executionSchedule.totalTicks) {
+          const ticks = Math.min(
+            task.executionSchedule.snapshotEveryTicks,
+            task.executionSchedule.totalTicks - advancedTicks,
+          );
+          const sourceSnapshot = snapshot;
+          const targetSnapshot = engine.execute({
+            id: runnerCommandId(task.taskId, commandIndex),
+            type: "advance",
+            ticks,
+          });
+          advancedTicks += ticks;
+          commandIndex += 1;
+          const targetSnapshotIndex = sourceSnapshotIndex + 1;
+          appendTransition(
+            sourceSnapshot,
+            targetSnapshot,
+            sourceSnapshotIndex,
+            targetSnapshotIndex,
+            advancedTicks === task.executionSchedule.totalTicks,
+          );
+          snapshot = targetSnapshot;
+          sourceSnapshotIndex = targetSnapshotIndex;
+        }
+      } else if (task.executionSchedule.totalTicks === 0) {
+        appendPoint(true);
       } else {
-        append(false);
+        appendPoint(false);
         let commandIndex = 0;
         while (advancedTicks < task.executionSchedule.totalTicks) {
           const ticks = Math.min(
@@ -161,7 +282,7 @@ export function createComposedMechanisticTaskExecutor<TInput, TTarget>(
           });
           advancedTicks += ticks;
           commandIndex += 1;
-          append(advancedTicks === task.executionSchedule.totalTicks);
+          appendPoint(advancedTicks === task.executionSchedule.totalTicks);
         }
       }
 
@@ -314,6 +435,22 @@ function validateComposedTaskDefinition<TInput, TTarget>(
     definition.executionDefinition,
     definition.config,
   );
+  const hasPointProjection = typeof definition.project === "function";
+  const hasTransitionProjection =
+    typeof definition.projectTransition === "function";
+  if (hasPointProjection === hasTransitionProjection) {
+    throw new TypeError(
+      "composed mechanistic task definition must supply exactly one of project or projectTransition",
+    );
+  }
+  if (
+    hasTransitionProjection &&
+    task.executionSchedule.totalTicks === 0
+  ) {
+    throw new RangeError(
+      "composed transition projection requires a positive execution horizon",
+    );
+  }
   if (
     definition.terminationReason !== undefined &&
     definition.terminationReason.trim().length === 0

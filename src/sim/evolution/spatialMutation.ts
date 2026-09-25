@@ -203,7 +203,7 @@ export function sampleSpatialDivisionMutations(args: {
 }
 
 function buildLineagePlans(
-  population: DiscretePopulationAdvanceResult,
+  population: DiscreteDivisionOpportunityResult,
   genotypeIds: readonly string[],
   graph: CuratedMutationGraph,
 ): readonly LineageMutationPlan[] {
@@ -227,7 +227,7 @@ function buildLineagePlans(
 }
 
 function validatePopulationOpportunityResult(
-  population: DiscretePopulationAdvanceResult,
+  population: DiscreteDivisionOpportunityResult,
   genotypeIds: readonly string[],
 ): void {
   const state = population.state
@@ -270,10 +270,6 @@ function validatePopulationOpportunityResult(
   nonNegativeSafeInteger(
     'reported total division opportunities',
     population.totalDivisionOpportunities,
-  )
-  nonNegativeSafeInteger(
-    'reported total standing hosts',
-    population.totalStandingHosts,
   )
 
   let computedDivisionTotal = 0

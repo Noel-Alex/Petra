@@ -35,8 +35,8 @@ requires:
 This includes every field already participating in
 `composedConfigurationFingerprint(...)`, including replay-critical numerical
 execution policy and any explicitly enabled discrete population calibration /
-policy identity. Protocol v8 / composed-state v5 checkpoint the corresponding
-standing-host and standing/division residual state. Bundle v2 needs no separate
+policy identity. Protocol v9 / composed-state v5 checkpoint the corresponding
+standing-host and standing/division residual state. Bundle v3 needs no separate
 schema bump for this because it already carries the exact config/checkpoint
 payload and exact runtime identity; older protocol artifacts remain
 exact-match-incompatible and no migration is implied. The bundle must not
@@ -44,10 +44,11 @@ reconstruct configuration from friendly labels.
 
 ## Replay history
 
-Only accepted mutating commands belong in v2 replay history:
+Only accepted mutating commands belong in v3 replay history:
 
 - `advance`;
 - `apply-ciprofloxacin` for composed authority, preserving exact schema version, `mg/L`, blend mode, and global/radial/stripe/paint geometry;
+- `apply-model-resource` for composed authority, preserving exact schema version, exact `model-resource` units, `set|add` semantics, and global/radial/stripe/paint geometry;
 - `synthetic-pulse` for synthetic infrastructure authority only.
 
 `restore` and `snapshot` are not post-origin biological history and are
@@ -62,7 +63,7 @@ historical stream.
 
 ## Deliberate exclusions
 
-Version 2 explicitly excludes:
+Version 3 explicitly excludes:
 
 - renderer/Pixi state or interpolation;
 - raw ML datasets or large trace artifacts;
@@ -70,11 +71,11 @@ Version 2 explicitly excludes:
 
 Counterfactual ancestry remains disabled until #438 provides independently
 verifiable parent snapshot trace identity. A caller cannot add ancestry metadata
-to v2 and have Petra ignore it; validation refuses the bundle.
+to v3 and have Petra ignore it; validation refuses the bundle.
 
 Unknown top-level, replay, evidence, capability and command fields are also
 rejected. New required semantics must use a new schema version rather than
-silently extending v2.
+silently extending v3.
 
 ## Evidence
 
@@ -91,6 +92,8 @@ Accepted `ciprofloxacin-applied` events may carry the exact validated
 intervention payload that produced the mutable checkpoint concentration state.
 That event is audit/timeline evidence; replay authority still comes from the
 ordered `apply-ciprofloxacin` command itself. Synthetic bundles cannot carry
+ciprofloxacin events. Accepted `model-resource-applied` events analogously carry a separate exact `resourceIntervention` payload; they never relabel model-resource as a physical nutrient or concentration, and replay authority comes from the ordered `apply-model-resource` command. Synthetic bundles cannot carry model-resource events.
+
 that event or command.
 
 Provenance source IDs are compact references only. The bundle does not embed

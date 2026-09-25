@@ -6,7 +6,10 @@ import {
 } from "./lineageOrganismPresentation";
 import { projectLineageOriginRenderEvents } from "./lineageRenderEvents";
 import { projectRuntimeEcologyRateFields } from "./runtimeEcologyRenderField";
-import { projectAcceptedInterventionFootprint } from "../render/acceptedInterventionFootprint";
+import {
+  resolveComposedInterventionFootprints,
+  type RuntimeInterventionFootprintFrame,
+} from "./runtimeInterventionFootprints";
 import {
   assertLineageDensityWithinPresentationScale,
   validateLineageDensityPresentationScale,
@@ -42,6 +45,7 @@ export function projectComposedDishSnapshot(
   ecologyObservation: RuntimeEcologyObservation | null = null,
   organismPresentationAuthority: ComposedDishOrganismPresentationAuthority | null = null,
   lineageDensityPresentationScale: SourceOwnedFixedLineageDensityPresentationScale | null = null,
+  interventionFootprintFrame: RuntimeInterventionFootprintFrame | null = null,
 ): DishRenderSnapshot | null {
   if (snapshot?.checkpoint.authority !== "composed") return null;
   return projectAuthoritativeComposedDishSnapshot(
@@ -50,6 +54,7 @@ export function projectComposedDishSnapshot(
     ecologyObservation,
     organismPresentationAuthority,
     lineageDensityPresentationScale,
+    interventionFootprintFrame,
   );
 }
 
@@ -59,6 +64,7 @@ export function projectAuthoritativeComposedDishSnapshot(
   ecologyObservation: RuntimeEcologyObservation | null = null,
   organismPresentationAuthority: ComposedDishOrganismPresentationAuthority | null = null,
   lineageDensityPresentationScale: SourceOwnedFixedLineageDensityPresentationScale | null = null,
+  interventionFootprintFrame: RuntimeInterventionFootprintFrame | null = null,
 ): DishRenderSnapshot {
   if (lineageDensityPresentationScale !== null) {
     validateLineageDensityPresentationScale(lineageDensityPresentationScale);
@@ -307,10 +313,12 @@ export function projectAuthoritativeComposedDishSnapshot(
   );
   fields.push(...ecologyRateFields);
 
-  const acceptedInterventionFootprints = snapshot.events.flatMap((event) => {
-    const footprint = projectAcceptedInterventionFootprint(event);
-    return footprint === null ? [] : [footprint];
-  });
+  const acceptedInterventionFootprints =
+    resolveComposedInterventionFootprints(
+      snapshot,
+      runBranchIdentity,
+      interventionFootprintFrame,
+    );
   const lineageOriginEvents = projectLineageOriginRenderEvents({
     lineageRegistry: state.lineageRegistry,
     activeLineageIds: state.lineageIds,

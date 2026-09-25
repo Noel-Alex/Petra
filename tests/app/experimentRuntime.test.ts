@@ -182,6 +182,16 @@ describe("experiment runtime", () => {
       composedConfig,
     );
 
+    const initialDensityScale = runtime.lineageDensityPresentationScale;
+    expect(initialDensityScale).toMatchObject({
+      mode: "source-owned-fixed",
+      unit: "model-biomass",
+      maximum: composedConfig.growth.localCapacity,
+    });
+    expect(initialDensityScale?.sourceIdentity).toContain(
+      runtime.state.runBranchIdentity,
+    );
+
     expect(runtime.start()).toBe(true);
     expect(port.posted[0]).toMatchObject({
       type: "initialize",
@@ -205,6 +215,16 @@ describe("experiment runtime", () => {
       accepted: true,
       reason: null,
     });
+    const resetDensityScale = runtime.lineageDensityPresentationScale;
+    expect(resetDensityScale?.maximum).toBe(
+      initialDensityScale?.maximum,
+    );
+    expect(resetDensityScale?.sourceIdentity).not.toBe(
+      initialDensityScale?.sourceIdentity,
+    );
+    expect(resetDensityScale?.sourceIdentity).toContain(
+      runtime.state.runBranchIdentity,
+    );
     expect(port.posted.at(-1)).toMatchObject({
       type: "initialize",
       composedConfig,

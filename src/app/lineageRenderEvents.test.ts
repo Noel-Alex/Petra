@@ -36,11 +36,12 @@ function checkpointWithSpatialChildren() {
 }
 
 describe("authoritative lineage-origin render events", () => {
-  it("projects child origin cells through shared cell-center geometry in registry event order", () => {
+  it("projects child origins in registry order while keeping extinct historical markers unlinked from active lineages", () => {
     const { checkpoint, first, second } = checkpointWithSpatialChildren();
 
     const events = projectLineageOriginRenderEvents({
       lineageRegistry: checkpoint,
+      activeLineageIds: [second.lineageId],
       gridWidth: 3,
       gridHeight: 2,
       dishMask: [1, 1, 1, 1, 1, 1],
@@ -54,7 +55,6 @@ describe("authoritative lineage-origin render events", () => {
         simulationTimeHours: 0.5,
         x: 0.5,
         y: 0.75,
-        lineageId: first.lineageId,
         label: `Lineage ${first.lineageId} originated: target-site`,
       },
       {
@@ -70,9 +70,10 @@ describe("authoritative lineage-origin render events", () => {
   });
 
   it("omits founders and extinction events because neither has an authoritative origin point to add", () => {
-    const { checkpoint } = checkpointWithSpatialChildren();
+    const { checkpoint, first, second } = checkpointWithSpatialChildren();
     const events = projectLineageOriginRenderEvents({
       lineageRegistry: checkpoint,
+      activeLineageIds: [second.lineageId],
       gridWidth: 3,
       gridHeight: 2,
       dishMask: [1, 1, 1, 1, 1, 1],
@@ -81,6 +82,9 @@ describe("authoritative lineage-origin render events", () => {
 
     expect(events).toHaveLength(2);
     expect(events.every((event) => event.kind === "lineage-created")).toBe(true);
+    expect(events[0]).not.toHaveProperty("lineageId");
+    expect(events[0]?.id).toBe(`lineage-origin:${first.lineageId}`);
+    expect(events[1]?.lineageId).toBe(second.lineageId);
   });
 
   it("fails closed when an authoritative origin cell lies outside the current grid", () => {
@@ -103,6 +107,7 @@ describe("authoritative lineage-origin render events", () => {
     expect(() =>
       projectLineageOriginRenderEvents({
         lineageRegistry: registry.checkpoint(),
+        activeLineageIds: registry.list().map((record) => record.lineageId),
         gridWidth: 3,
         gridHeight: 2,
         dishMask: [1, 1, 1, 1, 1, 1],
@@ -131,6 +136,7 @@ describe("authoritative lineage-origin render events", () => {
     expect(() =>
       projectLineageOriginRenderEvents({
         lineageRegistry: registry.checkpoint(),
+        activeLineageIds: registry.list().map((record) => record.lineageId),
         gridWidth: 2,
         gridHeight: 2,
         dishMask: [1, 0, 1, 1],
@@ -140,10 +146,11 @@ describe("authoritative lineage-origin render events", () => {
   });
 
   it("rejects lineage creation after the enclosing snapshot time", () => {
-    const { checkpoint } = checkpointWithSpatialChildren();
+    const { checkpoint, second } = checkpointWithSpatialChildren();
     expect(() =>
       projectLineageOriginRenderEvents({
         lineageRegistry: checkpoint,
+        activeLineageIds: [second.lineageId],
         gridWidth: 3,
         gridHeight: 2,
         dishMask: [1, 1, 1, 1, 1, 1],

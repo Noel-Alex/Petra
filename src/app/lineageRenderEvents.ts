@@ -7,6 +7,7 @@ import {
 
 export interface LineageOriginRenderEventProjectionInput {
   readonly lineageRegistry: LineageRegistryCheckpoint;
+  readonly activeLineageIds: readonly string[];
   readonly gridWidth: number;
   readonly gridHeight: number;
   readonly dishMask: readonly number[] | Uint8Array;
@@ -53,6 +54,29 @@ export function projectLineageOriginRenderEvents(
   const records = new Map(
     registry.list().map((record) => [record.lineageId, record] as const),
   );
+  const activeLineageIds = new Set<string>();
+  for (const lineageId of input.activeLineageIds) {
+    if (
+      typeof lineageId !== "string" ||
+      lineageId.length === 0 ||
+      lineageId !== lineageId.trim()
+    ) {
+      throw new TypeError(
+        "lineage origin render projection active lineage ids must be canonical non-empty text",
+      );
+    }
+    if (activeLineageIds.has(lineageId)) {
+      throw new RangeError(
+        `lineage origin render projection has duplicate active lineage id: ${lineageId}`,
+      );
+    }
+    if (!records.has(lineageId)) {
+      throw new RangeError(
+        `lineage origin render projection active lineage is absent from the authoritative registry: ${lineageId}`,
+      );
+    }
+    activeLineageIds.add(lineageId);
+  }
 
   const projected: RenderEvent[] = [];
   for (const event of registry.eventLog()) {
@@ -101,7 +125,9 @@ export function projectLineageOriginRenderEvents(
         simulationTimeHours: event.timeHours,
         x: center.x,
         y: center.y,
-        lineageId: record.lineageId,
+        ...(activeLineageIds.has(record.lineageId)
+          ? { lineageId: record.lineageId }
+          : {}),
         label:
           record.mutationClass === null
             ? `Lineage ${record.lineageId} originated`

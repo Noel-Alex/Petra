@@ -22,6 +22,7 @@ const INTERVENTION_ICONS = {
 export interface InterventionPaletteProps {
   readonly motion: MotionPreference;
   readonly runtimeStatus: RuntimeUiStatus;
+  readonly ciprofloxacinMetadata?: unknown;
   readonly placement?: InterventionPlacementState;
   readonly onBeginPlacement?: (tool: InterventionTool) => void;
   readonly onPlacementPointChange?: (point: NormalizedDishPoint) => void;
@@ -31,6 +32,7 @@ export interface InterventionPaletteProps {
 export function InterventionPalette({
   motion,
   runtimeStatus,
+  ciprofloxacinMetadata = null,
   placement,
   onBeginPlacement,
   onPlacementPointChange,
@@ -38,7 +40,10 @@ export function InterventionPalette({
 }: InterventionPaletteProps) {
   const reasonId = useId();
   const placementNoteId = useId();
-  const view = projectInterventionCapability(runtimeStatus);
+  const view = projectInterventionCapability(
+    runtimeStatus,
+    ciprofloxacinMetadata,
+  );
   const activeTool =
     placement?.phase === "placing" ? placement.tool : null;
   const activeToolLabel =

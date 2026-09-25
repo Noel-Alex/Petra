@@ -202,6 +202,7 @@ function renderField(
     width,
     height,
     values,
+    rangeMode: "snapshot-extrema",
     minimum,
     maximum,
   };

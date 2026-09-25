@@ -139,9 +139,13 @@ describe('flagship composed run planning', () => {
 
   it('makes exact taxon authority part of the composed mechanism fingerprint', () => {
     const plan = buildFlagshipComposedRunPlan(baseline)
+    const {
+      taxonRegistry: omittedTaxonRegistry,
+      ...configWithoutTaxonRegistry
+    } = plan.config
+    void omittedTaxonRegistry
     const legacyCompatibleConfig = {
-      ...plan.config,
-      taxonRegistry: undefined,
+      ...configWithoutTaxonRegistry,
       lineages: plan.config.lineages.map((lineage) => ({
         id: lineage.id,
         genotypeId: lineage.genotypeId,

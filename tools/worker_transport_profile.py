@@ -177,6 +177,40 @@ def profile_expression(advance_ticks: list[int]) -> str:
       bytes: estimate(channel),
     }));
 
+    // Lower-bound candidate for renderer-facing channel transport only.
+    // This deliberately estimates the dominant typed scientific arrays without
+    // claiming a complete DishRenderSnapshot wire format or moving projection
+    // authority into the Worker.
+    const candidateDishMask = Uint8Array.from(state.mask);
+    const candidateResource = Float32Array.from(state.resource);
+    const candidateCiprofloxacin = Float32Array.from(
+      state.ciprofloxacinConcentrationMgPerL,
+    );
+    const candidateLineageBiomass = state.lineageBiomass.map((channel) =>
+      Float32Array.from(channel),
+    );
+    const candidateAggregateBiomass = new Float32Array(
+      state.width * state.height,
+    );
+    for (const channel of candidateLineageBiomass) {
+      for (let cell = 0; cell < candidateAggregateBiomass.length; cell += 1) {
+        candidateAggregateBiomass[cell] = Math.fround(
+          candidateAggregateBiomass[cell] + channel[cell],
+        );
+      }
+    }
+    const candidateDishTypedChannels = {
+      mask: candidateDishMask,
+      biomass: candidateAggregateBiomass,
+      resource: candidateResource,
+      ciprofloxacin: candidateCiprofloxacin,
+      lineageBiomass: candidateLineageBiomass,
+    };
+    const fullSnapshotBytes = estimate(finalSnapshot);
+    const candidateDishTypedChannelBytes = estimate(
+      candidateDishTypedChannels,
+    );
+
     return {
       browser: {
         userAgent: navigator.userAgent,
@@ -220,8 +254,29 @@ def profile_expression(advance_ticks: list[int]) -> str:
         evolutionGraph: estimate(plan.config.evolutionGraph),
         ciprofloxacin: estimate(plan.config.ciprofloxacin),
       },
+      candidateDishTypedChannelPayloadEstimateBytes: {
+        classification: "hypothetical-renderer-channel-lower-bound",
+        totalTypedChannels: candidateDishTypedChannelBytes,
+        ratioToFullAuthoritativeSnapshot:
+          fullSnapshotBytes === 0
+            ? null
+            : candidateDishTypedChannelBytes / fullSnapshotBytes,
+        mask: estimate(candidateDishMask),
+        aggregateBiomass: estimate(candidateAggregateBiomass),
+        resource: estimate(candidateResource),
+        ciprofloxacin: estimate(candidateCiprofloxacin),
+        lineageBiomassTotal: candidateLineageBiomass.reduce(
+          (sum, channel) => sum + estimate(channel),
+          0,
+        ),
+        lineageChannels: candidateLineageBiomass.map((channel, index) => ({
+          lineageId: state.lineageIds[index],
+          genotypeId: state.genotypeIds[index],
+          bytes: estimate(channel),
+        })),
+      },
       finalSnapshotPayloadBreakdownBytes: {
-        fullSnapshot: estimate(finalSnapshot),
+        fullSnapshot: fullSnapshotBytes,
         checkpoint: estimate(checkpoint),
         identity: estimate(checkpoint.identity),
         composedState: estimate(state),
@@ -392,7 +447,11 @@ def main() -> int:
                 "mainThreadSnapshotCloneMs measures only WorkerSession's local accepted-snapshot "
                 "copy. nonWorkerRoundTripMs is a broader request-window remainder that also "
                 "contains browser scheduling, response transport/deserialization, validation, "
-                "and main-thread handling. None of these values is link bandwidth or direct VRAM. "
+                "and main-thread handling. candidateDishTypedChannelPayloadEstimateBytes is "
+                "an arrays-only lower-bound estimate for renderer-facing mask/biomass/resource/drug/"
+                "lineage channels projected into Uint8/Float32 storage; it is not a currently transferred "
+                "payload, a complete DishRenderSnapshot wire contract, or evidence that Worker-side "
+                "projection/downsampling is beneficial. None of these values is link bandwidth or direct VRAM. "
                 "Headless local-browser measurements are architecture evidence, not a release-tier "
                 "performance guarantee; any transport optimization still requires measured "
                 "before/after comparison with deterministic authority unchanged."

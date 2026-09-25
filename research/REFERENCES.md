@@ -44,6 +44,9 @@
 
 ## Collateral sensitivity
 - Imamovic, L., Sommer, M.O.A. (2013). Use of Collateral Sensitivity Networks to Design Drug Cycling Protocols That Avoid Resistance Development. DOI `10.1126/scitranslmed.3006609`.
+- Allen, R.C., Pfrunder-Cardozo, K.R., Hall, A.R. (2021). Collateral Sensitivity Interactions between Antibiotics Depend on Local Abiotic Conditions. DOI `10.1128/mSystems.01055-21`. Raw MG1655 genotype/phenotype data: Dryad DOI `10.5061/dryad.6m905qg16`.
+- Sørum, V. et al. (2022). Evolutionary Instability of Collateral Susceptibility Networks in Ciprofloxacin-Resistant Clinical Escherichia coli Strains. DOI `10.1128/mbio.00441-22`.
+- Chauhan, V. et al. (2026). Evolutionary trajectories determine feasibility of collateral sensitivity-based antibiotic treatment strategies in critical bacterial pathogens. DOI `10.1038/s42003-025-09303-1`.
 
 ## ML/surrogates
 - Bridging the gap between mechanistic biological models and machine learning surrogates (2023). DOI `10.1371/journal.pcbi.1010988`.

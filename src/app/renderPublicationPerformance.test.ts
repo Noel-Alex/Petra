@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { DishRenderSnapshot } from "../render/model";
 import type { ComposedSimulationSnapshot } from "../sim/protocol";
 import {
+  isRenderPublicationPerformanceEnabled,
   measureDishProjectionPublication,
   observeDishReactCommit,
   observeRuntimeSnapshotPublication,
@@ -67,6 +68,15 @@ function dish(): DishRenderSnapshot {
 }
 
 describe("render publication performance diagnostics", () => {
+  it("stays disabled until the local experiment probe is explicitly installed", () => {
+    expect(isRenderPublicationPerformanceEnabled()).toBe(false);
+    globalThis.__petraRenderPublicationPerformanceProbe = {
+      version: 1,
+      observe: () => {},
+    };
+    expect(isRenderPublicationPerformanceEnabled()).toBe(true);
+  });
+
   it("is a zero-observation pass-through when the local probe is absent", () => {
     const expected = dish();
     let calls = 0;

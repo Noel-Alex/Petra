@@ -13,9 +13,11 @@ import { pathToFileURL } from "node:url";
 
 import {
   createMechanisticExecutionDefinition,
+  createMechanisticRunConditionExecutionDefinition,
   createNoInterventionExecutionDefinition,
   createNoInterventionSweepFamily,
   createSweepParameterPointForBinding,
+  createSweepRunConditionForConfig,
 } from "../src/ml/executionDefinition";
 import {
   createMechanisticExecutionSchedule,
@@ -190,14 +192,24 @@ async function main(): Promise<void> {
     initialResourceLevel: ENGINEERING_INITIALIZATION.initialResourceLevel,
     inocula: ENGINEERING_INITIALIZATION.inocula,
   });
+  const runCondition =
+    createMechanisticRunConditionExecutionDefinition(
+      "flagship-established-engineering-initialization-v1",
+      flagship.config,
+    );
+  const sweepRunCondition = createSweepRunConditionForConfig(
+    runCondition.conditionId,
+    flagship.config,
+  );
   const intervention =
     createNoInterventionExecutionDefinition("no-intervention");
   const executionDefinition = createMechanisticExecutionDefinition({
     parameterSetBinding: flagship.parameterSetBinding,
+    runCondition,
     intervention,
   });
   const parameterPoint = createSweepParameterPointForBinding(
-    "flagship-established-engineering-initialization-v1",
+    "flagship-established-engineering-parameters-v1",
     flagship.parameterSetBinding,
     flagship.config,
   );
@@ -218,6 +230,7 @@ async function main(): Promise<void> {
       targetSchemaVersion: "node-authoritative-profile-target-v1",
     },
     parameterPoints: [parameterPoint],
+    runConditions: [sweepRunCondition],
     interventionFamilies: [interventionFamily],
     seeds: DEFAULT_SEEDS,
     maxTrajectories: DEFAULT_SEEDS.length,
@@ -411,6 +424,8 @@ async function main(): Promise<void> {
       parameter_set_version: flagship.identity.parameterSetVersion,
       configuration_fingerprint:
         flagship.parameterSetBinding.configurationFingerprint,
+      run_condition_id: runCondition.conditionId,
+      run_condition_fingerprint: runCondition.fingerprint,
       seeds: DEFAULT_SEEDS,
       execution_schedule_identity: scheduleIdentity,
       total_ticks: totalTicks,

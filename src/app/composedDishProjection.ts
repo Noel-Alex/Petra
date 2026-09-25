@@ -6,7 +6,10 @@ import {
 } from "./lineageOrganismPresentation";
 import { projectLineageOriginRenderEvents } from "./lineageRenderEvents";
 import { projectRuntimeEcologyRateFields } from "./runtimeEcologyRenderField";
-import { projectAcceptedInterventionFootprint } from "../render/acceptedInterventionFootprint";
+import {
+  resolveComposedInterventionFootprints,
+  type RuntimeInterventionFootprintFrame,
+} from "./runtimeInterventionFootprints";
 import {
   validateRenderSnapshot,
   type DishRenderSnapshot,
@@ -36,6 +39,7 @@ export function projectComposedDishSnapshot(
   runBranchIdentity: string,
   ecologyObservation: RuntimeEcologyObservation | null = null,
   organismPresentationAuthority: ComposedDishOrganismPresentationAuthority | null = null,
+  interventionFootprintFrame: RuntimeInterventionFootprintFrame | null = null,
 ): DishRenderSnapshot | null {
   if (snapshot?.checkpoint.authority !== "composed") return null;
   return projectAuthoritativeComposedDishSnapshot(
@@ -43,6 +47,7 @@ export function projectComposedDishSnapshot(
     runBranchIdentity,
     ecologyObservation,
     organismPresentationAuthority,
+    interventionFootprintFrame,
   );
 }
 
@@ -51,6 +56,7 @@ export function projectAuthoritativeComposedDishSnapshot(
   runBranchIdentity: string,
   ecologyObservation: RuntimeEcologyObservation | null = null,
   organismPresentationAuthority: ComposedDishOrganismPresentationAuthority | null = null,
+  interventionFootprintFrame: RuntimeInterventionFootprintFrame | null = null,
 ): DishRenderSnapshot {
   const state = snapshot.checkpoint.composedState;
   const cells = state.width * state.height;
@@ -281,10 +287,12 @@ export function projectAuthoritativeComposedDishSnapshot(
   );
   fields.push(...ecologyRateFields);
 
-  const acceptedInterventionFootprints = snapshot.events.flatMap((event) => {
-    const footprint = projectAcceptedInterventionFootprint(event);
-    return footprint === null ? [] : [footprint];
-  });
+  const acceptedInterventionFootprints =
+    resolveComposedInterventionFootprints(
+      snapshot,
+      runBranchIdentity,
+      interventionFootprintFrame,
+    );
   const lineageOriginEvents = projectLineageOriginRenderEvents({
     lineageRegistry: state.lineageRegistry,
     activeLineageIds: state.lineageIds,

@@ -5,6 +5,11 @@ export default defineConfig({
     environment: 'node',
     include: ['experiments/flagship_long_soak.experiment.ts'],
     pool: 'forks',
+    poolOptions: {
+      forks: {
+        execArgv: ['--expose-gc'],
+      },
+    },
     fileParallelism: false,
     minWorkers: 1,
     maxWorkers: 1,

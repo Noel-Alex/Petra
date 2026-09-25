@@ -587,7 +587,9 @@ function cloneAndValidateStartupReplay(
   };
 }
 
-function isReplayableCommand(command: SimulationCommand): boolean {
+function isReplayableCommand(
+  command: SimulationCommand,
+): command is ExperimentRuntimeReplayCommand {
   return command.type !== "snapshot" && command.type !== "restore";
 }
 

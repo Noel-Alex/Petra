@@ -104,8 +104,10 @@ describe("runtime historical keyframe transaction", () => {
     });
 
     const capturedResource =
-      transaction.scientific.snapshot.checkpoint.composedState.resource[0];
-    snapshot.checkpoint.composedState.resource[0] = capturedResource + 123;
+      transaction.scientific.snapshot.checkpoint.composedState.resource[0]!;
+    const callerOwnedResource = snapshot.checkpoint.composedState
+      .resource as unknown as number[];
+    callerOwnedResource[0] = capturedResource + 123;
 
     expect(
       transaction.scientific.snapshot.checkpoint.composedState.resource[0],
@@ -113,7 +115,9 @@ describe("runtime historical keyframe transaction", () => {
     const resourceField = transaction.dish.snapshot.fields.find(
       (field) => field.kind === "resource",
     );
-    expect(resourceField?.values[0]).toBeCloseTo(capturedResource ?? 0);
+    expect(resourceField?.values[0]).toBeCloseTo(
+      Math.fround(capturedResource),
+    );
   });
 
   it("fails closed when no composed runtime snapshot is current", () => {

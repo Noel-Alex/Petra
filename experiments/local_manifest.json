@@ -53,7 +53,7 @@
     },
     {
       "id": "render-projection-parity",
-      "description": "Authoritative composed-to-dish projection integrity: exact grid/mask/time/lineage/unit parity plus explicit Float32 presentation quantization evidence through the real product projector.",
+      "description": "Authoritative composed-to-dish projection integrity plus fail-closed v1 dish-scene authority separation: exact runtime identity, channel/unit parity, Float32 quantization, zero-copy scene wrapping, and standalone fungal-source non-admission into composed runtime.",
       "command": [
         "npm",
         "exec",
@@ -72,7 +72,10 @@
         524,
         542,
         630,
-        833
+        833,
+        950,
+        978,
+        1044
       ],
       "timeout_seconds": 300
     },

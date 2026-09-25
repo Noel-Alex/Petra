@@ -285,76 +285,30 @@ def render_publication_probe_snapshot(cdp: CDP) -> dict[str, Any] | None:
     return result if isinstance(result, dict) else None
 
 
-def run_control_state(cdp: CDP) -> dict[str, Any]:
-    result = cdp.eval(
-        """(() => {
-          const controls = document.querySelector('.experiment-run-controls');
-          const identity = controls?.querySelector('.experiment-run-controls__identity');
-          const step = controls
-            ? [...controls.querySelectorAll('button')].find(
-                (button) => button.textContent?.trim() === 'Step'
-              )
-            : null;
-          const text = identity?.textContent ?? '';
-          const match = text.match(/Replay history\\s+(\\d+)\\s+accepted/);
-          return {
-            status: controls?.dataset.runControlsStatus ?? null,
-            acceptedCommandCount: match ? Number(match[1]) : null,
-            stepPresent: step instanceof HTMLButtonElement,
-            stepDisabled: step instanceof HTMLButtonElement ? step.disabled : null
-          };
-        })()"""
-    )
-    return result if isinstance(result, dict) else {
-        "status": None,
-        "acceptedCommandCount": None,
-        "stepPresent": False,
-        "stepDisabled": None,
-    }
-
-
-def wait_run_controls_ready(
+def wait_accepted_command_count(
     cdp: CDP,
-    *,
-    minimum_accepted_commands: int | None = None,
+    minimum_accepted_commands: int,
     timeout: float = 10.0,
 ) -> dict[str, Any]:
     deadline = time.monotonic() + timeout
     latest = run_control_state(cdp)
     while time.monotonic() < deadline:
         latest = run_control_state(cdp)
-        count = latest.get("acceptedCommandCount")
-        count_ready = (
-            minimum_accepted_commands is None
-            or (isinstance(count, int) and count >= minimum_accepted_commands)
-        )
+        count = latest.get("acceptedCommandCount") if latest else None
         if (
-            latest.get("status") == "ready"
-            and latest.get("stepPresent") is True
-            and latest.get("stepDisabled") is False
-            and count_ready
+            latest
+            and latest.get("status") == "ready"
+            and isinstance(count, (int, float))
+            and int(count) >= minimum_accepted_commands
         ):
             return latest
+        if latest and latest.get("status") == "error":
+            raise RuntimeError(
+                f"Authoritative runtime failed during render-publication workload: {latest}"
+            )
         time.sleep(0.02)
-    raise RuntimeError(f"Timed out waiting for authoritative Step readiness: {latest}")
-
-
-def click_step(cdp: CDP) -> bool:
-    return (
-        cdp.eval(
-            """(() => {
-              const controls = document.querySelector('.experiment-run-controls');
-              const step = controls
-                ? [...controls.querySelectorAll('button')].find(
-                    (button) => button.textContent?.trim() === 'Step'
-                  )
-                : null;
-              if (!(step instanceof HTMLButtonElement) || step.disabled) return false;
-              step.click();
-              return true;
-            })()"""
-        )
-        is True
+    raise RuntimeError(
+        f"Timed out waiting for accepted command {minimum_accepted_commands}: {latest}"
     )
 
 
@@ -463,7 +417,15 @@ def summarize_render_publication_samples(
 
 
 def render_publication_pass(cdp: CDP, steps: int = 6) -> list[dict[str, Any]]:
-    before = wait_run_controls_ready(cdp)
+    before = wait_run_status(cdp, "ready")
+    if before is None or before.get("status") != "ready":
+        raise RuntimeError(f"Authoritative runtime is not ready: {before}")
+    if before.get("playing") is True:
+        pause = click_run_control(cdp, "Pause")
+        before = wait_run_status(cdp, "ready")
+        if pause.get("clicked") is not True or before is None:
+            raise RuntimeError(f"Could not pause authoritative runtime: {pause}, {before}")
+
     install_render_publication_probe(cdp)
     reset_ok = reset_render_publication_probe(cdp)
     accepted = before.get("acceptedCommandCount")
@@ -471,10 +433,13 @@ def render_publication_pass(cdp: CDP, steps: int = 6) -> list[dict[str, Any]]:
         raise RuntimeError(f"Could not resolve accepted command count: {before}")
 
     for _ in range(steps):
-        if not click_step(cdp):
-            raise RuntimeError(f"Authoritative Step was unavailable: {run_control_state(cdp)}")
+        step = click_run_control(cdp, "Step")
+        if step.get("clicked") is not True:
+            raise RuntimeError(
+                f"Authoritative Step was unavailable: {step}, {run_control_state(cdp)}"
+            )
         accepted += 1
-        wait_run_controls_ready(cdp, minimum_accepted_commands=accepted)
+        wait_accepted_command_count(cdp, accepted)
 
     # DOM readiness can become visible just before React passive effects publish
     # the commit observation. Poll briefly for the complete three-phase sample

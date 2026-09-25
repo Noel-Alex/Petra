@@ -191,3 +191,14 @@ Authenticated contributor/session: Noel-Alex
 
 Authenticated recovery contributor/session: Noel-Alex
 
+
+## 2026-09-25 — flagship ciprofloxacin product-control authority
+
+- #795 binds the product-facing ciprofloxacin control envelope to scenario authority instead of React/demo literals: 0–2 mg/L, neutral default 0 mg/L, 3-decimal presentation precision, `set` semantics, and the existing global/radial/stripe/paint model-field geometries.
+- The range is the Regoes CAB1/LB/37 °C tested concentration domain already used by the transferred reference PD curve. Marcusson genotype MICs, including the 32 mg/L ACB value, do not widen that source-domain guardrail.
+- The scenario identity advances to `ecoli-ciprofloxacin-spatial@1.5.0-research`; the execution-profile and composed-parameter-set scenario bindings advance with it. Protocol remains v6 and `ecoli-ciprofloxacin-baseline-composed@1.1.0` remains the same mechanism parameter-set version because no equation/PD/MIC/checkpoint semantics changed.
+- `flagshipInterventionControl.ts` validates and projects the scenario metadata; `flagshipRunPreset.ts` routes it through the existing `CiprofloxacinToolAuthority` parser and returns provenance alongside the composed run plan. Missing/malformed/widened metadata fails closed.
+- This is a model concentration-field control contract, not physical drug delivery, diffusion/clearance calibration, clinical dosing, or an efficacy recommendation. UI consumers must use the returned authority and must not infer bounds/defaults from genotype MICs, renderer state, or demo values.
+- Deterministic regression tests were authored for exact projection, scenario identity, provenance disclosure, and malformed/widened refusal. This connector session cannot resolve a local GitHub checkout, so TypeScript/Vitest/browser execution is not claimed; hosted CI remains forbidden.
+
+Authenticated recovery contributor/session: Noel-Alex

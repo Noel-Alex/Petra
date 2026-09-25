@@ -6,6 +6,7 @@ import { ComposedSimulationEngine } from './composedEngine'
 import { SimulationEngine } from './engine'
 import {
   AUTHORITATIVE_METRIC_SCHEMA_VERSION,
+  shouldSampleAuthoritativeMetrics,
   validateMetricSamplingPolicy,
   type AuthoritativeMetricSample,
   type MetricSamplingPolicy,
@@ -885,6 +886,8 @@ function validateMetrics(
 ): void {
   let previousTick = -1
   let previousTime = -1
+  let expectedSamplingPolicy: MetricSamplingPolicy | null = null
+
   for (let index = 0; index < metrics.length; index += 1) {
     if (!(index in metrics)) {
       throw new ExperimentBundleError(
@@ -911,6 +914,8 @@ function validateMetrics(
         'Experiment metric sample schema version is unsupported.',
       )
     }
+
+    const samplingPolicy = metric.samplingPolicy as MetricSamplingPolicy
     try {
       const samplingPolicyRecord = requireRecord(
         metric.samplingPolicy,
@@ -929,9 +934,7 @@ function validateMetrics(
         'evidence-invalid',
       )
       validateRunIdentityWireShape(metricIdentityRecord)
-      validateMetricSamplingPolicy(
-        metric.samplingPolicy as MetricSamplingPolicy,
-      )
+      validateMetricSamplingPolicy(samplingPolicy)
       assertReplayCompatibility({
         artifactIdentity: metric.identity,
         targetIdentity: identity,
@@ -950,16 +953,37 @@ function validateMetrics(
     if (
       !Number.isSafeInteger(metric.tick) ||
       metric.tick < 0 ||
-      metric.tick < previousTick ||
+      metric.tick <= previousTick ||
       !Number.isFinite(metric.simulationTimeHours) ||
       metric.simulationTimeHours < 0 ||
-      metric.simulationTimeHours < previousTime
+      metric.simulationTimeHours <= previousTime
     ) {
       throw new ExperimentBundleError(
         'evidence-invalid',
-        'Experiment metric tick/time must be monotonic and non-negative.',
+        'Experiment metric tick/time must be strictly increasing and non-negative.',
       )
     }
+
+    if (!shouldSampleAuthoritativeMetrics(metric.tick, samplingPolicy)) {
+      throw new ExperimentBundleError(
+        'evidence-invalid',
+        `Experiment metric sample ${index} tick is off the declared sampling cadence.`,
+      )
+    }
+
+    if (expectedSamplingPolicy === null) {
+      expectedSamplingPolicy = { ...samplingPolicy }
+    } else if (
+      samplingPolicy.version !== expectedSamplingPolicy.version ||
+      samplingPolicy.everyTicks !== expectedSamplingPolicy.everyTicks ||
+      samplingPolicy.offsetTicks !== expectedSamplingPolicy.offsetTicks
+    ) {
+      throw new ExperimentBundleError(
+        'evidence-invalid',
+        'Experiment metric history must use one exact sampling policy.',
+      )
+    }
+
     finiteNonNegativeMetric(metric.totalBiomass, 'totalBiomass')
     finiteNonNegativeMetric(metric.totalResource, 'totalResource')
     finiteNonNegativeMetric(

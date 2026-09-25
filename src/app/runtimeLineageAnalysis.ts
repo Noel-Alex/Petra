@@ -76,10 +76,11 @@ export function projectRuntimeLineageAnalysis(
     );
   }
 
-  assertExactGenotypeEvidenceCoverage(
+  assertGenotypeEvidenceCoverage(
     checkpoint.composedState.lineageRegistry.records.map(
       (record) => record.genotypeId,
     ),
+    authority.evolutionGraph.genotypes.map((genotype) => genotype.id),
     authority.genotypeEvidence,
   );
 
@@ -111,8 +112,9 @@ export function projectRuntimeLineageAnalysis(
   });
 }
 
-function assertExactGenotypeEvidenceCoverage(
+function assertGenotypeEvidenceCoverage(
   registryGenotypeIds: readonly string[],
+  graphGenotypeIds: readonly string[],
   evidence: readonly GenotypeAnalysisEvidence[],
 ): void {
   const required = new Set<string>();
@@ -123,6 +125,19 @@ function assertExactGenotypeEvidenceCoverage(
       genotypeId,
     );
     required.add(genotypeId);
+  }
+
+  const graph = new Set<string>();
+  for (let index = 0; index < graphGenotypeIds.length; index += 1) {
+    const genotypeId = graphGenotypeIds[index]!;
+    assertCanonicalText(
+      `evolution graph genotype id at index ${index}`,
+      genotypeId,
+    );
+    if (graph.has(genotypeId)) {
+      throw new Error(`duplicate evolution graph genotype id: ${genotypeId}`);
+    }
+    graph.add(genotypeId);
   }
 
   const supplied = new Set<string>();
@@ -140,16 +155,20 @@ function assertExactGenotypeEvidenceCoverage(
         `duplicate runtime genotype analysis evidence: ${genotypeId}`,
       );
     }
+    if (!graph.has(genotypeId)) {
+      throw new Error(
+        `runtime genotype analysis evidence references genotype outside the evolution graph: ${genotypeId}`,
+      );
+    }
     supplied.add(genotypeId);
   }
 
   const missing = [...required].filter((genotypeId) => !supplied.has(genotypeId));
-  const extra = [...supplied].filter((genotypeId) => !required.has(genotypeId));
-  if (missing.length > 0 || extra.length > 0) {
+  if (missing.length > 0) {
     throw new Error(
-      `runtime genotype analysis evidence must exactly cover registry genotypes; missing=[${missing.join(
+      `runtime genotype analysis evidence must cover every registry genotype; missing=[${missing.join(
         ",",
-      )}] extra=[${extra.join(",")}]`,
+      )}]`,
     );
   }
 }

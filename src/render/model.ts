@@ -58,6 +58,11 @@ export function validateRenderSnapshot(snapshot: DishRenderSnapshot): void {
     assertLength(`field ${field.id}`, field.values.length, cells); assertFiniteArray(`field ${field.id}`, field.values);
     if (!Number.isFinite(field.minimum) || !Number.isFinite(field.maximum)) throw new TypeError(`field ${field.id} bounds must be finite`);
     if (field.maximum < field.minimum) throw new RangeError(`field ${field.id} maximum must be >= minimum`);
+    for (const value of field.values) {
+      if (value < field.minimum || value > field.maximum) {
+        throw new RangeError(`field ${field.id} contains a value outside its declared bounds`);
+      }
+    }
   }
   const lineageIds = new Set<string>();
   for (const lineage of snapshot.lineages) {
@@ -67,11 +72,32 @@ export function validateRenderSnapshot(snapshot: DishRenderSnapshot): void {
     if (lineageIds.has(lineage.id)) throw new RangeError(`duplicate lineage id: ${lineage.id}`); lineageIds.add(lineage.id);
     assertLength(`lineage ${lineage.id}`, lineage.density.length, cells); assertFiniteNonNegativeArray(`lineage ${lineage.id}`, lineage.density);
   }
+  const eventIds = new Set<string>();
+  for (const event of snapshot.events) {
+    if (!event.id || !event.kind || !event.label) {
+      throw new TypeError("render events require id, kind and label metadata");
+    }
+    if (eventIds.has(event.id)) throw new RangeError(`duplicate render event id: ${event.id}`);
+    eventIds.add(event.id);
+    assertFiniteNonNegative(`event ${event.id} simulationTimeHours`, event.simulationTimeHours);
+    if (event.simulationTimeHours > snapshot.simulationTimeHours) {
+      throw new RangeError(`event ${event.id} cannot occur after the snapshot simulation time`);
+    }
+    assertNormalizedCoordinate(`event ${event.id} x`, event.x);
+    assertNormalizedCoordinate(`event ${event.id} y`, event.y);
+    if (event.lineageId !== undefined) {
+      if (!event.lineageId) throw new TypeError(`event ${event.id} lineageId must be non-empty when provided`);
+      if (!lineageIds.has(event.lineageId)) {
+        throw new RangeError(`event ${event.id} references unknown lineage: ${event.lineageId}`);
+      }
+    }
+  }
   for (const mask of snapshot.dishMask) if (mask !== 0 && mask !== 1) throw new RangeError("dishMask values must be 0 or 1");
 }
 function assertPositiveInteger(name: string, value: number): void { if (!Number.isInteger(value) || value <= 0) throw new RangeError(`${name} must be a positive integer`); }
 function assertFinitePositive(name: string, value: number): void { if (!Number.isFinite(value) || value <= 0) throw new RangeError(`${name} must be finite and > 0`); }
 function assertFiniteNonNegative(name: string, value: number): void { if (!Number.isFinite(value) || value < 0) throw new RangeError(`${name} must be finite and >= 0`); }
+function assertNormalizedCoordinate(name: string, value: number): void { if (!Number.isFinite(value) || value < 0 || value > 1) throw new RangeError(`${name} must be finite and within [0, 1]`); }
 function assertLength(name: string, actual: number, expected: number): void { if (actual !== expected) throw new RangeError(`${name} length ${actual} does not match grid cell count ${expected}`); }
 function assertFiniteArray(name: string, values: Float32Array): void { for (const value of values) if (!Number.isFinite(value)) throw new RangeError(`${name} contains a non-finite value`); }
 function assertFiniteNonNegativeArray(name: string, values: Float32Array): void { for (const value of values) if (!Number.isFinite(value) || value < 0) throw new RangeError(`${name} contains a non-finite or negative value`); }

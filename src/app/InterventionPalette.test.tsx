@@ -79,6 +79,28 @@ describe("InterventionPalette", () => {
     expect(html).not.toContain("visual cursor, not a predicted biological footprint");
   });
 
+  it("keeps whole-dish authority visible but Apply disabled while the Worker is pending", () => {
+    const authority = buildDefaultFlagshipRun().ciprofloxacinToolAuthority;
+    const placement = beginInterventionPlacement(
+      createInterventionPlacementState(),
+      "antibiotic",
+    );
+    const html = renderToStaticMarkup(
+      <InterventionPalette
+        motion="off"
+        runtimeStatus="pending"
+        placement={placement}
+        ciprofloxacinMetadata={authority}
+        onApplyCiprofloxacinGlobal={() => true}
+      />,
+    );
+
+    expect(html).toContain("Ciprofloxacin · whole dish");
+    expect(html).toContain("Apply to whole dish");
+    expect(html).toContain("An authoritative simulation request is in flight");
+    expect(html).not.toContain("Horizontal dish target position");
+  });
+
   it("shows keyboard-equivalent coordinates and a disabled Apply gate while placing", () => {
     const placement = beginInterventionPlacement(
       createInterventionPlacementState(),

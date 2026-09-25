@@ -13,6 +13,11 @@
 - Shao, X. et al. (2017). Growth of bacteria in 3-d colonies. DOI `10.1371/journal.pcbi.1005679`.
 - Modeling Competitive Mixtures With the Lotka-Volterra Framework for More Complex Fitness Assessment Between Strains (2020). DOI `10.3389/FMICB.2020.572487`.
 
+## Fungal surface growth / cross-kingdom ecology
+- Larralde-Corona, C.P., López-Isunza, F., Viniegra-González, G. (1997). Morphometric evaluation of the specific growth rate of *Aspergillus niger* grown in agar plates at high glucose levels. DOI `10.1002/(SICI)1097-0290(19971105)56:3<287::AID-BIT6>3.0.CO;2-F`.
+- Favela-Torres, E., Córdova, J., García-Rivero, M., Gutiérrez-Rojas, M. (1998). Kinetics of growth of *Aspergillus niger* during submerged, agar surface and solid state fermentations. DOI `10.1016/S0032-9592(97)00032-0`.
+- Rosenzweig, W.D., Stotzky, G. (1980). Influence of Environmental Factors on Antagonism of Fungi by Bacteria in Soil: Nutrient Levels. DOI `10.1128/aem.39.2.354-360.1980`.
+
 ## Antibiotic pharmacodynamics/evolution
 - Luria, S.E., Delbrück, M. (1943). Mutations of Bacteria from Virus Sensitivity to Virus Resistance. DOI `10.1093/genetics/28.6.491`.
 - Regoes, R.R. et al. (2004). Pharmacodynamic Functions. DOI `10.1128/AAC.48.10.3670-3676.2004`.

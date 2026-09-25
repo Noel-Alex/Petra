@@ -6,7 +6,11 @@ import {
   PROTOCOL_VERSION,
   type SimulationSnapshot,
 } from "../sim/protocol";
-import { createAuthoritativeDishReplayKeyframe } from "./dishReplayKeyframe";
+import type { ExperimentRuntimeState } from "./experimentRuntime";
+import {
+  createAuthoritativeDishReplayKeyframe,
+  createRuntimeDishReplayKeyframe,
+} from "./dishReplayKeyframe";
 
 function simulationSnapshot(
   simulationTimeHours: number,
@@ -32,6 +36,32 @@ function simulationSnapshot(
     },
     events: [],
     traceHash: `trace-${commandCount}`,
+  };
+}
+
+function experimentRuntimeState(
+  snapshot: SimulationSnapshot,
+  runBranchIdentity: string,
+): ExperimentRuntimeState {
+  return {
+    controls: {
+      identity: structuredClone(snapshot.checkpoint.identity),
+      playing: false,
+      speed: 1,
+      acceptedCommands: [],
+    },
+    runBranchIdentity,
+    worker: {
+      phase: "ready",
+      latestSnapshot: snapshot,
+      pendingCommandId: null,
+      queuedRequests: 0,
+      error: null,
+      errorCode: null,
+    },
+    snapshot,
+    timeline: [],
+    integrationError: null,
   };
 }
 
@@ -139,4 +169,31 @@ describe("authoritative dish replay keyframe bridge", () => {
       }),
     ).toThrow(/acceptedCommandCount/);
   });
+  it("binds equal command positions to distinct runtime-owned history generations", () => {
+    const snapshot = simulationSnapshot(1, 9);
+    const dish = {
+      ...createRendererDemoSnapshot(8),
+      snapshotId: "runtime-bound",
+      samplingIdentity: "authoritative-run",
+      simulationTimeHours: 1,
+    };
+
+    const first = createRuntimeDishReplayKeyframe({
+      runtimeState: experimentRuntimeState(snapshot, "run-1/generation-1"),
+      dishSnapshot: dish,
+    });
+    const restored = createRuntimeDishReplayKeyframe({
+      runtimeState: experimentRuntimeState(snapshot, "run-1/generation-2"),
+      dishSnapshot: { ...dish, snapshotId: "runtime-bound-restored" },
+    });
+
+    expect(first.order.acceptedCommandCount).toBe(9);
+    expect(restored.order.acceptedCommandCount).toBe(9);
+    expect(first.order.runBranchIdentity).toBe("run-1/generation-1");
+    expect(restored.order.runBranchIdentity).toBe("run-1/generation-2");
+    expect(restored.order.runBranchIdentity).not.toBe(
+      first.order.runBranchIdentity,
+    );
+  });
+
 });

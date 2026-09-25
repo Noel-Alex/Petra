@@ -33,6 +33,11 @@ describe('dormant fungal runtime authority', () => {
       treatmentId:
         `${ASPERGILLUS_NO10_SOURCE_PACK_ID}:central-point:glucose-70-g-per-l`,
       glucoseGPerL: 70,
+      biologicalTimeUnit: 'h',
+      colonyRadiusUnit: 'um',
+      plateDiameterUnit: 'cm',
+      glucoseTreatmentUnit: 'g/L',
+      glucoseSemantics: 'fixed-source-treatment-identity',
     })
     expect(() => validateFungalRuntimeAuthority(authority)).not.toThrow()
     expect(() =>
@@ -79,6 +84,13 @@ describe('dormant fungal runtime authority', () => {
     expect(() =>
       validateFungalRuntimeAuthority({
         ...valid,
+        colonyRadiusUnit: 'px',
+      } as never),
+    ).toThrow(/unit\/meaning contract mismatch/)
+
+    expect(() =>
+      validateFungalRuntimeAuthority({
+        ...valid,
         extra: true,
       } as typeof valid),
     ).toThrow(/keys must be exactly/)
@@ -115,10 +127,18 @@ describe('dormant fungal runtime authority', () => {
     expect(fungalRuntimeAuthorityCanonicalIdentity(cloned)).toBe(
       fungalRuntimeAuthorityCanonicalIdentity(authority),
     )
+    const identity = fungalRuntimeAuthorityCanonicalIdentity(authority)
+    expect(JSON.stringify(JSON.parse(identity))).not.toContain('model-resource')
+    expect(JSON.stringify(JSON.parse(identity))).not.toContain('model-biomass')
+    expect(
+      fungalRuntimeAuthorityCanonicalIdentity(
+        createDormantAspergillusNo10RuntimeAuthority(120),
+      ),
+    ).not.toBe(identity)
     expect(
       fungalRuntimeAuthorityCanonicalIdentity(
         createDisabledFungalRuntimeAuthority(),
       ),
-    ).not.toBe(fungalRuntimeAuthorityCanonicalIdentity(authority))
+    ).not.toBe(identity)
   })
 })

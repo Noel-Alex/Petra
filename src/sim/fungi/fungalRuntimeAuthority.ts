@@ -26,6 +26,11 @@ export interface DormantAspergillusNo10RuntimeAuthority {
   readonly taxonContentVersion: typeof ASPERGILLUS_NO10_TAXON_CONTENT_VERSION
   readonly treatmentId: string
   readonly glucoseGPerL: AspergillusNo10SupportedGlucoseGPerL
+  readonly biologicalTimeUnit: 'h'
+  readonly colonyRadiusUnit: 'um'
+  readonly plateDiameterUnit: 'cm'
+  readonly glucoseTreatmentUnit: 'g/L'
+  readonly glucoseSemantics: 'fixed-source-treatment-identity'
 }
 
 export type FungalRuntimeAuthority =
@@ -93,6 +98,11 @@ export function createDormantAspergillusNo10RuntimeAuthority(
     taxonContentVersion: ASPERGILLUS_NO10_TAXON_CONTENT_VERSION,
     treatmentId: treatment.treatmentId,
     glucoseGPerL: treatment.glucoseGPerL,
+    biologicalTimeUnit: 'h',
+    colonyRadiusUnit: 'um',
+    plateDiameterUnit: 'cm',
+    glucoseTreatmentUnit: 'g/L',
+    glucoseSemantics: 'fixed-source-treatment-identity',
   })
 }
 
@@ -132,6 +142,11 @@ export function validateFungalRuntimeAuthority(
       'taxonContentVersion',
       'treatmentId',
       'glucoseGPerL',
+      'biologicalTimeUnit',
+      'colonyRadiusUnit',
+      'plateDiameterUnit',
+      'glucoseTreatmentUnit',
+      'glucoseSemantics',
     ],
   )
 
@@ -144,6 +159,16 @@ export function validateFungalRuntimeAuthority(
     throw new Error(
       'dormant fungal runtime authority biological/source identity mismatch',
     )
+  }
+
+  if (
+    record.biologicalTimeUnit !== 'h' ||
+    record.colonyRadiusUnit !== 'um' ||
+    record.plateDiameterUnit !== 'cm' ||
+    record.glucoseTreatmentUnit !== 'g/L' ||
+    record.glucoseSemantics !== 'fixed-source-treatment-identity'
+  ) {
+    throw new Error('dormant fungal runtime unit/meaning contract mismatch')
   }
 
   if (typeof record.glucoseGPerL !== 'number') {
@@ -187,6 +212,11 @@ export function fungalRuntimeAuthorityCanonicalIdentity(
     taxonContentVersion: authority.taxonContentVersion,
     treatmentId: authority.treatmentId,
     glucoseGPerL: authority.glucoseGPerL,
+    biologicalTimeUnit: authority.biologicalTimeUnit,
+    colonyRadiusUnit: authority.colonyRadiusUnit,
+    plateDiameterUnit: authority.plateDiameterUnit,
+    glucoseTreatmentUnit: authority.glucoseTreatmentUnit,
+    glucoseSemantics: authority.glucoseSemantics,
   })
 }
 

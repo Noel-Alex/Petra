@@ -44,3 +44,13 @@ Do not use the dormant carrier to infer glucose transport/depletion, fungal biom
 - Fungal checkpoints are immutable scientific authority. Validation rejects identity, source-treatment, geometry, time, or radius drift rather than repairing it.
 - Renderer/UI consumers may project physical front/radius state and separately approved presentation identity, but presentation strokes, contours, merged blobs, opacity, camera/LOD state, or renderer caches never feed back into fungal biology.
 - A future mature network model is a new/versioned mechanism. Do not silently reinterpret the current surface-front checkpoint as a literal hyphal graph.
+
+
+## Runtime integration envelope
+
+- `fungalRuntimeAuthority.ts` is the preparatory #1005 Phase-A replay/configuration boundary. Schema v1 is explicitly `disabled` or `dormant-source-validation` for the exact existing *A. niger* no. 10 source pack; it is not a generic fungus plugin and it is not executable fungal runtime state.
+- Dormant authority identity binds the exact mechanism revision, source pack, taxon/content revision, fixed source treatment, and explicit physical unit/meaning strings. Changing any of those changes canonical identity before later composed fingerprint integration.
+- `FungalRuntimeStateEnvelope` v1 must keep both `acceptedComposedPosition` and `mechanismState` exactly null. A standalone #615 surface checkpoint is not promoted into shared Worker/checkpoint authority merely because it is scientifically valid or has matching biological time.
+- Unknown serialized fields, stale biological identity, treatment drift, unit drift, fake accepted-runtime position, or fake mechanism state fail closed. Disabled/dormant authority consumes no fungal RNG and cannot alter bacterial state.
+- A later schema/version may carry mechanism state only when it is atomically owned by the same accepted composed transaction and all required science is supported. That later integration must bind `fungalRuntimeAuthorityCanonicalIdentity(...)` into composed replay/configuration identity rather than externally stamping runtime identity onto standalone state.
+- Physical glucose/resource stepping remains blocked on #974. Do not relabel E. coli `model-resource`, guess uptake/yield/diffusion, or enable bacteria↔fungus competition to make this carrier executable.

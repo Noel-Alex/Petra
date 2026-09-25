@@ -199,6 +199,8 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 
 - `sandboxScenarios.ts` is the framework-neutral Sandbox selection authority. It consumes shared scenario discovery/#650 maturity, registers only the real bundled flagship runtime, and can only plan a `fresh-run` selection with an explicit canonical seed. Starting Sandbox goes through `buildFlagshipComposedRunPlan()` with explicit resource/founder initialization; no hidden demo biology or in-place scenario mutation is allowed.
 - Active Sandbox labels (mode, scenario/version, seed, engine/protocol, parameter-set/config fingerprint, Science Mode maturity) are projected only after the returned provenance-bound run identity/config match the selection. React may render this record but must not reconstruct scientific identity from card labels.
+- `contentDiscovery.ts` is the framework-neutral product-library projection over the exact #879 supported-content matrix plus bundled scenario discovery. It exposes enabled scenario cards with exact organisms/environment/interventions/limitations and blocked expansion records with owning issues/reasons; React must not infer availability from names, tags, morphology, or separate literature records.
+- Product-library support, grounded Science-Mode admission, and executable Sandbox registration are distinct authorities. `contentDiscovery.ts` must fail closed on support/admission drift and must not add `runtimeId`/run capability; executable selection remains `sandboxScenarios.ts`, so a Bacillus/fungal/antimicrobial queue entry cannot become runnable merely by appearing in discovery.
 
 
 ## Experiment bundle save/load handoff

@@ -29,6 +29,7 @@ Until separately sourced, reviewed, versioned, and admitted:
 
 ## Replay and rendering
 
+- `runtimeAuthority.ts` owns the Phase-A dormant runtime/replay envelope for supported fungal mechanisms. Its current variant may name only the exact *Aspergillus* no. 10 source-validation front + exact fixed source treatment, and its canonical identity is suitable for later composed-configuration binding. The wrapper preserves the mechanism-owned physical checkpoint/observation without introducing bacterial `model-resource`, `model-biomass`, lineage-density, renderer, or interaction semantics. It deliberately does not step the mechanism or claim a shared accepted Worker transaction yet; the later composed-runtime integration must bind any observation to the exact accepted run/branch/checkpoint position and must not activate resource-aware stepping before the reviewed resource gate lands.
 - Fungal checkpoints are immutable scientific authority. Validation rejects identity, source-treatment, geometry, time, or radius drift rather than repairing it.
 - Renderer/UI consumers may project physical front/radius state and separately approved presentation identity, but presentation strokes, contours, merged blobs, opacity, camera/LOD state, or renderer caches never feed back into fungal biology.
 - A future mature network model is a new/versioned mechanism. Do not silently reinterpret the current surface-front checkpoint as a literal hyphal graph.

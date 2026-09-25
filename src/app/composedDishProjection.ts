@@ -287,6 +287,7 @@ export function projectAuthoritativeComposedDishSnapshot(
   });
   const lineageOriginEvents = projectLineageOriginRenderEvents({
     lineageRegistry: state.lineageRegistry,
+    activeLineageIds: state.lineageIds,
     gridWidth: state.width,
     gridHeight: state.height,
     dishMask: state.mask,

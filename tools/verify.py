@@ -1008,6 +1008,7 @@ def content_support_contracts() -> int:
     defs = schema.get("$defs", {})
     supported_def = defs.get("supportedScenario", {})
     organism_def = defs.get("organism", {})
+    taxon_def = defs.get("taxonReference", {})
     environment_def = defs.get("environment", {})
     intervention_def = defs.get("intervention", {})
     queue_def = defs.get("queueEntry", {})
@@ -1117,6 +1118,25 @@ def content_support_contracts() -> int:
                 if organism_identity in seen_organisms:
                     errors.append(f"{organism_path} duplicates an organism identity")
                 seen_organisms.add(organism_identity)
+
+            taxon_ref = organism.get("taxon")
+            if taxon_ref is None:
+                if availability == "enabled-science":
+                    errors.append(
+                        f"{organism_path}: enabled-science requires exact taxon id + contentVersion authority"
+                    )
+            elif exact_shape(taxon_ref, taxon_def, f"{organism_path}.taxon"):
+                taxon_id = taxon_ref.get("id")
+                taxon_content_version = taxon_ref.get("contentVersion")
+                if (
+                    not _nonempty_string(taxon_id)
+                    or taxon_id != taxon_id.strip()
+                    or not _nonempty_string(taxon_content_version)
+                    or taxon_content_version != taxon_content_version.strip()
+                ):
+                    errors.append(
+                        f"{organism_path}.taxon requires canonical id/contentVersion"
+                    )
 
             presentation_id = organism.get("presentationIdentityId")
             if presentation_id is not None:

@@ -142,7 +142,7 @@ describe('composed ecology observation envelope', () => {
         ...observation,
         width: position.width + 1,
       }),
-    ).toThrow(/dimensions do not match/i)
+    ).toThrow(/grid dimensions/i)
 
     expect(() =>
       createComposedEcologyObservationEnvelope(position, {

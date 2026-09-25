@@ -422,18 +422,16 @@
     },
     {
       "id": "fungal-spatial-growth-validation",
-      "description": "PREPARED; BLOCKED on #556/#615: named fungal evidence pack and authoritative fungal spatial state are required before replay/growth validation can run.",
+      "description": "PREPARED; BLOCKED on #615: the named fungal pack and first source-validation state are merged, but the broader validation still requires a source-backed resource/zero-resource mechanism before it can run.",
       "command": [
         "python",
         "experiments/blocked.py",
         "--experiment-id",
         "fungal-spatial-growth-validation",
         "--blocked-on",
-        "556",
-        "--blocked-on",
         "615",
         "--reason",
-        "Issue #556 must approve one named fungal pack with exact transferable parameters/validation targets and #615 must provide authoritative fungal state, checkpoint/replay, events, and metrics. Running a generic or synthetic fungus before those gates would create invalid scientific evidence."
+        "Issues #556/#885 resolved the exact Aspergillus niger no. 10 evidence subset and #615/#940 landed the first source-validation taxon/front state. The broader experiment remains scientifically blocked because #615 still lacks the source-backed resource-consumption and zero-resource mechanism required by this registration's controls; activating it now would overstate the model."
       ],
       "issues": [
         530,
@@ -441,6 +439,7 @@
         556,
         586,
         615,
+        885,
         895
       ],
       "timeout_seconds": 30

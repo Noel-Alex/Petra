@@ -325,8 +325,15 @@ function assertCheckpointMetricsMatchSpatialState(
   }
 }
 
-function assertCanonicalSourceIdentity(name: string, value: string): void {
-  if (value.length === 0 || value !== value.trim()) {
+function assertCanonicalSourceIdentity(
+  name: string,
+  value: unknown,
+): asserts value is string {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value !== value.trim()
+  ) {
     throw new Error(
       `composed dish projection ${name} must be canonical non-empty text`,
     );

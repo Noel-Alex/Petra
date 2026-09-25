@@ -166,3 +166,16 @@ Contributor/session: Noel-Alex
 - The remaining #456 critical path is still the central dish: authoritative composed snapshot projection, organism geometry/LOD, evidence-gated causal motion, and browser/expo visual acceptance against the approved references.
 
 Authenticated recovery contributor/session: sting-raider
+
+## 2026-09-25 — authoritative composed snapshot → live dish projection recovery
+
+- Recovered the useful two-commit `Noel-Alex/457-composed-dish-projection` donor after it became stale/no-PR and 19 commits behind `main`; the donor remains reference-only rather than being merged wholesale.
+- The app now has one framework-neutral `composedDishProjection.ts` boundary from composed Worker authority to `DishRenderSnapshot`. It copies the exact dish mask, aligned per-lineage model-biomass fields, aggregate model biomass, model-resource field, and current ciprofloxacin concentration in `mg/L` into renderer-owned typed arrays.
+- Render snapshot identity follows the authoritative trace hash. Stable representative-glyph sampling is scoped to the runtime-owned `runBranchIdentity`, so reset/replay/checkpoint-fork generations cannot silently share presentation sampling identity even when biological state repeats.
+- Current protocol events do not carry authoritative dish coordinates, so the live render projection intentionally publishes no positioned render events. It also does not infer organism kind, resistance/phenotype, physical resource concentration, or per-cell biology from lineage IDs or renderer state.
+- `App.tsx` now feeds this projection into the existing `DishViewport`, so the same accepted runtime snapshot transaction can populate the dish while inspector/timeline continue consuming their own authoritative projections. Synthetic/missing authority remains the honest waiting state; demo data is not a fallback.
+- Focused deterministic tests cover exact spatial channels/units, neutral lineage identity, same-branch vs new-branch sampling identity, accepted ciprofloxacin intervention projection, synthetic/missing refusal, and malformed/off-mask refusal. A source-level integration regression guards the App→DishViewport binding.
+- Verification boundary in this connector session: source/diff/contract review only. A local checkout attempt failed because `github.com` could not resolve, so Vitest/typecheck/browser execution is **not** claimed. Hosted CI remains forbidden.
+
+Authenticated recovery contributor/session: Noel-Alex
+

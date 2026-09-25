@@ -121,6 +121,88 @@ describe('worker append-only event delta transport', () => {
     ).toEqual(sameHistory)
   })
 
+  it('refuses a foreign prefix even when it reuses the exact retained terminal event object', () => {
+    const engine = new SimulationEngine(identity)
+    engine.execute({
+      id: 'advance-one',
+      type: 'advance',
+      ticks: 1,
+    })
+    const previous = engine.snapshot()
+    const next = engine.execute({
+      id: 'advance-two',
+      type: 'advance',
+      ticks: 1,
+    })
+
+    const forgedPrevious = Object.freeze([
+      Object.freeze({
+        ...previous.events[0]!,
+        tick: 99,
+        simulationTimeHours: 99 / 60,
+      }),
+      previous.events[1]!,
+    ])
+
+    const response = createWorkerSnapshotTransportResponse({
+      commandId: 'advance-two',
+      previousEvents: forgedPrevious,
+      snapshot: next,
+    })
+
+    expect(response.type).toBe('snapshot')
+  })
+
+  it('preserves exact sequence order for same-time mutating events', () => {
+    const engine = new SimulationEngine(identity)
+    engine.execute({
+      id: 'pulse-one',
+      type: 'synthetic-pulse',
+      magnitude: 1,
+    })
+    const previous = engine.snapshot()
+    const next = engine.execute({
+      id: 'pulse-two',
+      type: 'synthetic-pulse',
+      magnitude: 2,
+    })
+
+    const response = createWorkerSnapshotTransportResponse({
+      commandId: 'pulse-two',
+      previousEvents: previous.events,
+      snapshot: next,
+    })
+    expect(response.type).toBe('snapshot-delta')
+    if (response.type !== 'snapshot-delta') {
+      throw new Error('expected same-time mutation delta')
+    }
+
+    expect(response.previousTerminalEvent).toMatchObject({
+      sequence: 1,
+      simulationTimeHours: 0,
+      commandId: 'pulse-one',
+    })
+    expect(response.appendedEvents).toEqual([
+      expect.objectContaining({
+        sequence: 2,
+        simulationTimeHours: 0,
+        commandId: 'pulse-two',
+      }),
+    ])
+
+    const materialized = materializeWorkerSnapshotDelta(previous, response)
+    expect(
+      materialized.events.slice(-2).map((event) => [
+        event.sequence,
+        event.commandId,
+        event.simulationTimeHours,
+      ]),
+    ).toEqual([
+      [1, 'pulse-one', 0],
+      [2, 'pulse-two', 0],
+    ])
+  })
+
   it('falls back to a full protocol snapshot when restore replaces history', () => {
     const engine = new SimulationEngine(identity)
     const origin = engine.snapshot()

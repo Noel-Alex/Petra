@@ -108,13 +108,13 @@ describe('authoritative region inspector', () => {
     expect(inspection.totalBiomass).toBe(21)
     expect(inspection.lineageBiomass).toEqual([
       {
-        lineageId: 'ancestor',
+        lineageId: 'L1',
         genotypeId: 'WT',
         biomass: 6,
         fractionOfRegionBiomass: 6 / 21,
       },
       {
-        lineageId: 'variant',
+        lineageId: 'L2',
         genotypeId: 'VAR',
         biomass: 15,
         fractionOfRegionBiomass: 15 / 21,
@@ -199,13 +199,13 @@ describe('authoritative region inspector', () => {
     expect(inspection.totalBiomass).toBe(0)
     expect(inspection.lineageBiomass).toEqual([
       {
-        lineageId: 'ancestor',
+        lineageId: 'L1',
         genotypeId: 'WT',
         biomass: 0,
         fractionOfRegionBiomass: 0,
       },
       {
-        lineageId: 'variant',
+        lineageId: 'L2',
         genotypeId: 'VAR',
         biomass: 0,
         fractionOfRegionBiomass: 0,

@@ -1,5 +1,6 @@
 import {
   LineageRegistry,
+  type LineageEvent,
   type LineageRecord,
   type LineageRegistryCheckpoint,
 } from "./lineage";
@@ -74,13 +75,12 @@ export interface AppendLineageOriginV2Result {
 }
 
 /**
- * Deterministically upgrade a legacy founder + mutation-only registry into the
- * explicit-origin target schema.
+ * Upgrade an unambiguous legacy founder + mutation history into the explicit
+ * origin target schema.
  *
- * V1 has no bit capable of distinguishing a configured founder from a later
- * parentless external introduction. Therefore this migration accepts an exact
- * configured-founder prefix and requires every later record to be a mutation
- * child. A parentless runtime record is refused rather than guessed.
+ * V1 cannot distinguish a later parentless external introduction from another
+ * root. The caller must therefore supply the exact configured-founder prefix,
+ * and every later v1 record must already be a parented mutation child.
  */
 export function migrateLineageRegistryCheckpointV1ToOriginV2(args: {
   readonly checkpoint: LineageRegistryCheckpoint;
@@ -99,19 +99,33 @@ export function migrateLineageRegistryCheckpointV1ToOriginV2(args: {
   }
 
   const records = legacy.records.map((record, index) => {
-    if (index < args.configuredFounderCount) {
-      assertLegacyConfiguredFounder(record, index);
-      return freezeRecord({
-        ...record,
-        originKind: "configured-founder",
-      });
+    const originKind: LineageOriginKind =
+      index < args.configuredFounderCount
+        ? "configured-founder"
+        : "mutation-child";
+
+    if (originKind === "configured-founder") {
+      if (
+        record.parentLineageId !== null ||
+        record.createdAtHours !== 0 ||
+        record.originCellIndex !== null ||
+        record.mutationClass !== null
+      ) {
+        throw new Error(
+          `legacy lineage record ${index} does not match configured-founder semantics`,
+        );
+      }
+    } else if (
+      record.parentLineageId === null ||
+      record.originCellIndex === null ||
+      record.mutationClass === null
+    ) {
+      throw new Error(
+        `legacy lineage record ${index} cannot be classified as a mutation child; explicit origin authority is required`,
+      );
     }
 
-    assertLegacyMutationChild(record, index);
-    return freezeRecord({
-      ...record,
-      originKind: "mutation-child",
-    });
+    return freezeRecord({ ...record, originKind });
   });
 
   const recordById = new Map(
@@ -137,7 +151,6 @@ export function migrateLineageRegistryCheckpointV1ToOriginV2(args: {
         mutationClass: record.mutationClass,
       });
     }
-
     return freezeEvent({
       kind: "lineage-extinct",
       lineageId: event.lineageId,
@@ -155,15 +168,18 @@ export function migrateLineageRegistryCheckpointV1ToOriginV2(args: {
 }
 
 /**
- * Pure allocator for the v2 target schema. This is lineage/replay authority
- * only; callers still own any composed biomass/taxon/parameter transaction.
+ * Pure allocator for the v2 target schema.
+ *
+ * This changes lineage/replay authority only. It does not authorize an external
+ * organism, move biomass, append taxon/growth/loss/population channels, or emit
+ * a protocol command; those belong to the later atomic composed transaction.
  */
 export function appendLineageOriginV2(
   checkpoint: LineageOriginCheckpointV2,
   origin: LineageOriginV2,
 ): AppendLineageOriginV2Result {
   const current = validateLineageOriginCheckpointV2(checkpoint);
-  validateOrigin(origin);
+  validateOriginFields(origin);
 
   const previousEvent = current.events.at(-1);
   if (
@@ -176,7 +192,11 @@ export function appendLineageOriginV2(
   }
 
   if (origin.originKind === "configured-founder") {
-    if (current.records.some((record) => record.originKind !== "configured-founder")) {
+    if (
+      current.records.some(
+        (record) => record.originKind !== "configured-founder",
+      )
+    ) {
       throw new Error(
         "configured founders must remain the lineage registry genesis prefix",
       );
@@ -186,9 +206,7 @@ export function appendLineageOriginV2(
       (record) => record.lineageId === origin.parentLineageId,
     );
     if (parent === undefined) {
-      throw new Error(
-        "mutation child requires an existing parent lineage",
-      );
+      throw new Error("mutation child requires an existing parent lineage");
     }
     if (origin.createdAtHours < parent.createdAtHours) {
       throw new Error("mutation child cannot be created before its parent");
@@ -219,7 +237,6 @@ export function appendLineageOriginV2(
     originCellIndex: origin.originCellIndex,
     mutationClass: origin.mutationClass,
   });
-
   const next = validateLineageOriginCheckpointV2({
     version: LINEAGE_ORIGIN_CHECKPOINT_VERSION,
     nextId: current.nextId + 1,
@@ -236,9 +253,9 @@ export function appendLineageOriginV2(
 /**
  * Strict promotion boundary for the future replay/wire schema.
  *
- * This function deliberately rejects legacy v1 values. The eventual protocol
- * migration must call the explicit v1 migration with configured-founder
- * authority; it must never reinterpret an old checkpoint implicitly.
+ * V1 is intentionally rejected. The protocol migration must call the explicit
+ * migration above with configured-founder authority rather than reinterpret an
+ * old checkpoint implicitly.
  */
 export function validateLineageOriginCheckpointV2(
   value: unknown,
@@ -254,11 +271,7 @@ export function validateLineageOriginCheckpointV2(
   if (value.version !== LINEAGE_ORIGIN_CHECKPOINT_VERSION) {
     throw new Error("unsupported lineage origin checkpoint version");
   }
-  if (!Number.isSafeInteger(value.nextId) || (value.nextId as number) < 1) {
-    throw new Error(
-      "lineage origin checkpoint nextId must be a positive safe integer",
-    );
-  }
+  positiveSafeInteger("lineage origin checkpoint nextId", value.nextId);
   if (!Array.isArray(value.records) || !Array.isArray(value.events)) {
     throw new Error(
       "lineage origin checkpoint records and events must be arrays",
@@ -267,25 +280,34 @@ export function validateLineageOriginCheckpointV2(
   assertDenseArray(value.records, "lineage origin checkpoint records");
   assertDenseArray(value.events, "lineage origin checkpoint events");
 
-  const records: LineageOriginRecordV2[] = [];
-  const byId = new Map<string, LineageOriginRecordV2>();
+  const records = value.records.map((record, index) =>
+    decodeRecord(record, index),
+  );
+  const events = value.events.map((event, index) =>
+    decodeEvent(event, index),
+  );
+
+  // Reuse the live registry's canonical allocator/ancestry/lifetime/event
+  // validation instead of creating a second replay engine for v2.
+  const legacyProjection: LineageRegistryCheckpoint = {
+    version: 1,
+    nextId: value.nextId as number,
+    records: records.map(stripOriginKind),
+    events: events.map(projectLegacyEvent),
+  };
+  const canonical = LineageRegistry.restore(legacyProjection).checkpoint();
+
   let runtimeOriginSeen = false;
-
-  value.records.forEach((rawRecord, index) => {
-    const record = decodeRecord(rawRecord, index);
-    const expectedLineageId = `L${index + 1}`;
-    if (record.lineageId !== expectedLineageId) {
+  for (let index = 0; index < records.length; index += 1) {
+    const record = records[index]!;
+    const canonicalRecord = canonical.records[index]!;
+    if (!sameLegacyRecord(record, canonicalRecord)) {
       throw new Error(
-        `lineage origin records must preserve allocator order; expected ${expectedLineageId}`,
+        `lineage origin record ${index} failed canonical replay validation`,
       );
     }
-    if (byId.has(record.lineageId)) {
-      throw new Error(
-        `duplicate lineage id in origin checkpoint: ${record.lineageId}`,
-      );
-    }
+    validateOriginFields(record);
 
-    validateRecordOrigin(record);
     if (record.originKind === "configured-founder") {
       if (runtimeOriginSeen) {
         throw new Error(
@@ -295,78 +317,20 @@ export function validateLineageOriginCheckpointV2(
     } else {
       runtimeOriginSeen = true;
     }
-
-    if (record.originKind === "mutation-child") {
-      if (record.parentLineageId === null) {
-        throw new Error("mutation child requires a parent lineage");
-      }
-      const parent = byId.get(record.parentLineageId);
-      if (parent === undefined) {
-        throw new Error(
-          "mutation child parent must precede the child record",
-        );
-      }
-      if (record.createdAtHours < parent.createdAtHours) {
-        throw new Error(
-          "mutation child cannot be created before its parent",
-        );
-      }
-      if (
-        parent.extinctAtHours !== null &&
-        record.createdAtHours > parent.extinctAtHours
-      ) {
-        throw new Error(
-          "mutation child cannot be created after its parent extinction",
-        );
-      }
-    }
-
-    if (
-      record.extinctAtHours !== null &&
-      (!Number.isFinite(record.extinctAtHours) ||
-        record.extinctAtHours < record.createdAtHours)
-    ) {
-      throw new Error(
-        `lineage ${record.lineageId} has invalid extinction time`,
-      );
-    }
-
-    const cloned = freezeRecord(record);
-    records.push(cloned);
-    byId.set(cloned.lineageId, cloned);
-  });
-
-  const expectedNextId = records.length + 1;
-  if (value.nextId !== expectedNextId) {
-    throw new Error(
-      `lineage origin checkpoint nextId must be ${expectedNextId}`,
-    );
   }
 
-  const created = new Set<string>();
-  const extinct = new Set<string>();
-  const events: LineageEventV2[] = [];
-  let previousEventTime = -Infinity;
+  const recordById = new Map(
+    records.map((record) => [record.lineageId, record] as const),
+  );
   let nextCreationIndex = 0;
-
-  value.events.forEach((rawEvent, index) => {
-    const event = decodeEvent(rawEvent, index);
-    const record = byId.get(event.lineageId);
+  for (let index = 0; index < events.length; index += 1) {
+    const event = events[index]!;
+    const record = recordById.get(event.lineageId);
     if (record === undefined) {
       throw new Error(
         `lineage origin event references unknown lineage: ${event.lineageId}`,
       );
     }
-    if (!Number.isFinite(event.timeHours) || event.timeHours < 0) {
-      throw new Error(`lineage origin event ${index} has invalid time`);
-    }
-    if (event.timeHours < previousEventTime) {
-      throw new Error(
-        `lineage origin event ${index} backdates authoritative event order`,
-      );
-    }
-    previousEventTime = event.timeHours;
-
     if (event.originKind !== record.originKind) {
       throw new Error(
         `lineage event origin kind does not match record: ${event.lineageId}`,
@@ -374,11 +338,6 @@ export function validateLineageOriginCheckpointV2(
     }
 
     if (event.kind === "lineage-created") {
-      if (created.has(event.lineageId)) {
-        throw new Error(
-          `duplicate lineage-created event: ${event.lineageId}`,
-        );
-      }
       if (records[nextCreationIndex]?.lineageId !== event.lineageId) {
         throw new Error(
           "lineage-created events must preserve allocator creation order",
@@ -386,125 +345,229 @@ export function validateLineageOriginCheckpointV2(
       }
       nextCreationIndex += 1;
       if (
-        event.timeHours !== record.createdAtHours ||
         event.parentLineageId !== record.parentLineageId ||
         event.genotypeId !== record.genotypeId ||
         event.originCellIndex !== record.originCellIndex ||
         event.mutationClass !== record.mutationClass
       ) {
         throw new Error(
-          `lineage-created event does not match record: ${event.lineageId}`,
+          `lineage-created event origin metadata does not match record: ${event.lineageId}`,
         );
       }
-      if (record.originKind === "mutation-child") {
-        if (record.parentLineageId === null) {
-          throw new Error("mutation child requires a parent lineage");
-        }
-        if (!created.has(record.parentLineageId)) {
-          throw new Error(
-            `parent creation event must precede mutation child: ${record.parentLineageId}`,
-          );
-        }
-      }
-      created.add(event.lineageId);
-      events.push(freezeEvent(event));
-      return;
-    }
-
-    if (!created.has(event.lineageId)) {
-      throw new Error(
-        `lineage-extinct event precedes creation: ${event.lineageId}`,
-      );
-    }
-    if (extinct.has(event.lineageId)) {
-      throw new Error(
-        `duplicate lineage-extinct event: ${event.lineageId}`,
-      );
-    }
-    if (
-      record.extinctAtHours === null ||
-      event.timeHours !== record.extinctAtHours
-    ) {
-      throw new Error(
-        `lineage-extinct event does not match record: ${event.lineageId}`,
-      );
-    }
-    extinct.add(event.lineageId);
-    events.push(freezeEvent(event));
-  });
-
-  for (const record of records) {
-    if (!created.has(record.lineageId)) {
-      throw new Error(
-        `lineage origin checkpoint is missing creation event: ${record.lineageId}`,
-      );
-    }
-    if (
-      record.extinctAtHours !== null &&
-      !extinct.has(record.lineageId)
-    ) {
-      throw new Error(
-        `lineage origin checkpoint is missing extinction event: ${record.lineageId}`,
-      );
-    }
-    if (record.extinctAtHours === null && extinct.has(record.lineageId)) {
-      throw new Error(
-        `live lineage has an extinction event: ${record.lineageId}`,
-      );
     }
   }
 
   return Object.freeze({
     version: LINEAGE_ORIGIN_CHECKPOINT_VERSION,
-    nextId: value.nextId as number,
-    records: Object.freeze(records),
-    events: Object.freeze(events),
+    nextId: canonical.nextId,
+    records: Object.freeze(records.map(freezeRecord)),
+    events: Object.freeze(events.map(freezeEvent)),
   });
 }
 
-function assertLegacyConfiguredFounder(
-  record: LineageRecord,
+function decodeRecord(
+  value: unknown,
   index: number,
-): void {
+): LineageOriginRecordV2 {
+  if (!isRecord(value)) {
+    throw new Error(`lineage origin record ${index} must be an object`);
+  }
+  assertExactKeys(
+    value,
+    [
+      "lineageId",
+      "originKind",
+      "parentLineageId",
+      "genotypeId",
+      "createdAtHours",
+      "originCellIndex",
+      "mutationClass",
+      "extinctAtHours",
+    ],
+    `lineage origin record ${index}`,
+  );
+
+  canonicalIdentity(`lineage id at index ${index}`, value.lineageId);
+  const originKind = decodeOriginKind(value.originKind, `record ${index}`);
   if (
-    record.parentLineageId !== null ||
-    record.createdAtHours !== 0 ||
-    record.originCellIndex !== null ||
-    record.mutationClass !== null
+    value.parentLineageId !== null &&
+    typeof value.parentLineageId !== "string"
   ) {
     throw new Error(
-      `legacy lineage record ${index} does not match configured-founder semantics`,
+      `lineage origin record ${index} has invalid parentLineageId`,
     );
   }
-}
-
-function assertLegacyMutationChild(
-  record: LineageRecord,
-  index: number,
-): void {
+  if (typeof value.parentLineageId === "string") {
+    canonicalIdentity(
+      `lineage parent id at index ${index}`,
+      value.parentLineageId,
+    );
+  }
+  canonicalIdentity(
+    `lineage genotype id at index ${index}`,
+    value.genotypeId,
+  );
+  finiteNonNegative(
+    `lineage creation time at index ${index}`,
+    value.createdAtHours,
+  );
   if (
-    record.parentLineageId === null ||
-    record.originCellIndex === null ||
-    record.mutationClass === null
+    value.originCellIndex !== null &&
+    typeof value.originCellIndex !== "number"
   ) {
     throw new Error(
-      `legacy lineage record ${index} cannot be classified as a mutation child; explicit origin authority is required`,
+      `lineage origin record ${index} has invalid originCellIndex`,
     );
   }
+  if (
+    value.mutationClass !== null &&
+    typeof value.mutationClass !== "string"
+  ) {
+    throw new Error(
+      `lineage origin record ${index} has invalid mutationClass`,
+    );
+  }
+  if (typeof value.mutationClass === "string") {
+    canonicalIdentity(
+      `lineage mutation class at index ${index}`,
+      value.mutationClass,
+    );
+  }
+  if (
+    value.extinctAtHours !== null &&
+    typeof value.extinctAtHours !== "number"
+  ) {
+    throw new Error(
+      `lineage origin record ${index} has invalid extinctAtHours`,
+    );
+  }
+
+  return {
+    lineageId: value.lineageId as string,
+    originKind,
+    parentLineageId: value.parentLineageId as string | null,
+    genotypeId: value.genotypeId as string,
+    createdAtHours: value.createdAtHours as number,
+    originCellIndex: value.originCellIndex as number | null,
+    mutationClass: value.mutationClass as string | null,
+    extinctAtHours: value.extinctAtHours as number | null,
+  };
 }
 
-function validateRecordOrigin(record: LineageOriginRecordV2): void {
-  validateOrigin({
-    originKind: record.originKind,
-    parentLineageId: record.parentLineageId,
-    genotypeId: record.genotypeId,
-    createdAtHours: record.createdAtHours,
-    originCellIndex: record.originCellIndex,
-    mutationClass: record.mutationClass,
-  } as LineageOriginV2);
+function decodeEvent(value: unknown, index: number): LineageEventV2 {
+  if (!isRecord(value)) {
+    throw new Error(`lineage origin event ${index} must be an object`);
+  }
+
+  if (value.kind === "lineage-created") {
+    assertExactKeys(
+      value,
+      [
+        "kind",
+        "lineageId",
+        "timeHours",
+        "originKind",
+        "parentLineageId",
+        "genotypeId",
+        "originCellIndex",
+        "mutationClass",
+      ],
+      `lineage-created event ${index}`,
+    );
+    const originKind = decodeEventIdentity(value, index);
+    if (
+      value.parentLineageId !== null &&
+      typeof value.parentLineageId !== "string"
+    ) {
+      throw new Error(
+        `lineage-created event ${index} has invalid parentLineageId`,
+      );
+    }
+    if (typeof value.parentLineageId === "string") {
+      canonicalIdentity(
+        `lineage-created parent id at index ${index}`,
+        value.parentLineageId,
+      );
+    }
+    canonicalIdentity(
+      `lineage-created genotype id at index ${index}`,
+      value.genotypeId,
+    );
+    if (
+      value.originCellIndex !== null &&
+      typeof value.originCellIndex !== "number"
+    ) {
+      throw new Error(
+        `lineage-created event ${index} has invalid originCellIndex`,
+      );
+    }
+    if (
+      value.mutationClass !== null &&
+      typeof value.mutationClass !== "string"
+    ) {
+      throw new Error(
+        `lineage-created event ${index} has invalid mutationClass`,
+      );
+    }
+    if (typeof value.mutationClass === "string") {
+      canonicalIdentity(
+        `lineage-created mutation class at index ${index}`,
+        value.mutationClass,
+      );
+    }
+
+    return {
+      kind: "lineage-created",
+      lineageId: value.lineageId as string,
+      timeHours: value.timeHours as number,
+      originKind,
+      parentLineageId: value.parentLineageId as string | null,
+      genotypeId: value.genotypeId as string,
+      originCellIndex: value.originCellIndex as number | null,
+      mutationClass: value.mutationClass as string | null,
+    };
+  }
+
+  if (value.kind === "lineage-extinct") {
+    assertExactKeys(
+      value,
+      ["kind", "lineageId", "timeHours", "originKind"],
+      `lineage-extinct event ${index}`,
+    );
+    return {
+      kind: "lineage-extinct",
+      lineageId: value.lineageId as string,
+      timeHours: value.timeHours as number,
+      originKind: decodeEventIdentity(value, index),
+    };
+  }
+
+  throw new Error(`lineage origin event ${index} has invalid kind`);
 }
 
-function validateOrigin(origin: LineageOriginV2): void {
+function decodeEventIdentity(
+  value: Record<string, unknown>,
+  index: number,
+): LineageOriginKind {
+  canonicalIdentity(`lineage event id at index ${index}`, value.lineageId);
+  finiteNonNegative(
+    `lineage event time at index ${index}`,
+    value.timeHours,
+  );
+  return decodeOriginKind(value.originKind, `event ${index}`);
+}
+
+function validateOriginFields(
+  origin: Pick<
+    LineageOriginRecordV2,
+    | "originKind"
+    | "parentLineageId"
+    | "genotypeId"
+    | "createdAtHours"
+    | "originCellIndex"
+    | "mutationClass"
+  >,
+): void {
   canonicalIdentity("lineage genotype id", origin.genotypeId);
   finiteNonNegative("lineage creation time", origin.createdAtHours);
 
@@ -523,7 +586,10 @@ function validateOrigin(origin: LineageOriginV2): void {
   }
 
   if (origin.originKind === "mutation-child") {
-    canonicalIdentity("mutation-child parent lineage id", origin.parentLineageId);
+    canonicalIdentity(
+      "mutation-child parent lineage id",
+      origin.parentLineageId,
+    );
     nonNegativeSafeInteger(
       "mutation-child origin cell index",
       origin.originCellIndex,
@@ -532,174 +598,61 @@ function validateOrigin(origin: LineageOriginV2): void {
     return;
   }
 
-  if (origin.originKind === "external-inoculation") {
-    if (origin.parentLineageId !== null || origin.mutationClass !== null) {
-      throw new Error(
-        "external-inoculation origin requires no parent and no mutation class",
-      );
-    }
-    nonNegativeSafeInteger(
-      "external-inoculation origin cell index",
-      origin.originCellIndex,
+  if (origin.parentLineageId !== null || origin.mutationClass !== null) {
+    throw new Error(
+      "external-inoculation origin requires no parent and no mutation class",
     );
-    return;
   }
-
-  throw new Error("unsupported lineage origin kind");
-}
-
-function decodeRecord(value: unknown, index: number): LineageOriginRecordV2 {
-  if (!isRecord(value)) {
-    throw new Error(`lineage origin record ${index} must be an object`);
-  }
-  assertExactKeys(
-    value,
-    [
-      "lineageId",
-      "originKind",
-      "parentLineageId",
-      "genotypeId",
-      "createdAtHours",
-      "originCellIndex",
-      "mutationClass",
-      "extinctAtHours",
-    ],
-    `lineage origin record ${index}`,
+  nonNegativeSafeInteger(
+    "external-inoculation origin cell index",
+    origin.originCellIndex,
   );
-  canonicalIdentity(`lineage id at index ${index}`, value.lineageId);
-  if (
-    value.originKind !== "configured-founder" &&
-    value.originKind !== "mutation-child" &&
-    value.originKind !== "external-inoculation"
-  ) {
-    throw new Error(`lineage origin record ${index} has invalid originKind`);
-  }
-  if (
-    value.parentLineageId !== null &&
-    typeof value.parentLineageId !== "string"
-  ) {
-    throw new Error(
-      `lineage origin record ${index} has invalid parentLineageId`,
-    );
-  }
-  if (typeof value.genotypeId !== "string") {
-    throw new Error(
-      `lineage origin record ${index} has invalid genotypeId`,
-    );
-  }
-  if (typeof value.createdAtHours !== "number") {
-    throw new Error(
-      `lineage origin record ${index} has invalid createdAtHours`,
-    );
-  }
-  if (
-    value.originCellIndex !== null &&
-    typeof value.originCellIndex !== "number"
-  ) {
-    throw new Error(
-      `lineage origin record ${index} has invalid originCellIndex`,
-    );
-  }
-  if (
-    value.mutationClass !== null &&
-    typeof value.mutationClass !== "string"
-  ) {
-    throw new Error(
-      `lineage origin record ${index} has invalid mutationClass`,
-    );
-  }
-  if (
-    value.extinctAtHours !== null &&
-    typeof value.extinctAtHours !== "number"
-  ) {
-    throw new Error(
-      `lineage origin record ${index} has invalid extinctAtHours`,
-    );
-  }
-
-  return value as unknown as LineageOriginRecordV2;
 }
 
-function decodeEvent(value: unknown, index: number): LineageEventV2 {
-  if (!isRecord(value)) {
-    throw new Error(`lineage origin event ${index} must be an object`);
-  }
-  if (value.kind === "lineage-created") {
-    assertExactKeys(
-      value,
-      [
-        "kind",
-        "lineageId",
-        "timeHours",
-        "originKind",
-        "parentLineageId",
-        "genotypeId",
-        "originCellIndex",
-        "mutationClass",
-      ],
-      `lineage-created event ${index}`,
-    );
-    decodeEventIdentity(value, index);
-    if (
-      value.parentLineageId !== null &&
-      typeof value.parentLineageId !== "string"
-    ) {
-      throw new Error(
-        `lineage-created event ${index} has invalid parentLineageId`,
-      );
-    }
-    if (typeof value.genotypeId !== "string") {
-      throw new Error(
-        `lineage-created event ${index} has invalid genotypeId`,
-      );
-    }
-    if (
-      value.originCellIndex !== null &&
-      typeof value.originCellIndex !== "number"
-    ) {
-      throw new Error(
-        `lineage-created event ${index} has invalid originCellIndex`,
-      );
-    }
-    if (
-      value.mutationClass !== null &&
-      typeof value.mutationClass !== "string"
-    ) {
-      throw new Error(
-        `lineage-created event ${index} has invalid mutationClass`,
-      );
-    }
-    return value as unknown as LineageCreatedEventV2;
-  }
-
-  if (value.kind === "lineage-extinct") {
-    assertExactKeys(
-      value,
-      ["kind", "lineageId", "timeHours", "originKind"],
-      `lineage-extinct event ${index}`,
-    );
-    decodeEventIdentity(value, index);
-    return value as unknown as LineageExtinctEventV2;
-  }
-
-  throw new Error(`lineage origin event ${index} has invalid kind`);
+function stripOriginKind(record: LineageOriginRecordV2): LineageRecord {
+  return {
+    lineageId: record.lineageId,
+    parentLineageId: record.parentLineageId,
+    genotypeId: record.genotypeId,
+    createdAtHours: record.createdAtHours,
+    originCellIndex: record.originCellIndex,
+    mutationClass: record.mutationClass,
+    extinctAtHours: record.extinctAtHours,
+  };
 }
 
-function decodeEventIdentity(
-  value: Record<string, unknown>,
-  index: number,
-): void {
-  canonicalIdentity(`lineage event id at index ${index}`, value.lineageId);
-  if (typeof value.timeHours !== "number") {
-    throw new Error(`lineage origin event ${index} has invalid time`);
+function projectLegacyEvent(event: LineageEventV2): LineageEvent {
+  if (event.kind === "lineage-extinct") {
+    return {
+      kind: "lineage-extinct",
+      lineageId: event.lineageId,
+      timeHours: event.timeHours,
+    };
   }
-  if (
-    value.originKind !== "configured-founder" &&
-    value.originKind !== "mutation-child" &&
-    value.originKind !== "external-inoculation"
-  ) {
-    throw new Error(`lineage origin event ${index} has invalid originKind`);
-  }
+  return {
+    kind: "lineage-created",
+    lineageId: event.lineageId,
+    timeHours: event.timeHours,
+    ...(event.parentLineageId === null
+      ? {}
+      : { parentLineageId: event.parentLineageId }),
+    genotypeId: event.genotypeId,
+  };
+}
+
+function sameLegacyRecord(
+  record: LineageOriginRecordV2,
+  canonical: LineageRecord,
+): boolean {
+  return (
+    record.lineageId === canonical.lineageId &&
+    record.parentLineageId === canonical.parentLineageId &&
+    record.genotypeId === canonical.genotypeId &&
+    record.createdAtHours === canonical.createdAtHours &&
+    record.originCellIndex === canonical.originCellIndex &&
+    record.mutationClass === canonical.mutationClass &&
+    record.extinctAtHours === canonical.extinctAtHours
+  );
 }
 
 function freezeRecord(
@@ -718,24 +671,37 @@ function freezeRecord(
 }
 
 function freezeEvent(event: LineageEventV2): LineageEventV2 {
-  if (event.kind === "lineage-created") {
-    return Object.freeze({
-      kind: "lineage-created",
-      lineageId: event.lineageId,
-      timeHours: event.timeHours,
-      originKind: event.originKind,
-      parentLineageId: event.parentLineageId,
-      genotypeId: event.genotypeId,
-      originCellIndex: event.originCellIndex,
-      mutationClass: event.mutationClass,
-    });
+  return event.kind === "lineage-created"
+    ? Object.freeze({
+        kind: "lineage-created",
+        lineageId: event.lineageId,
+        timeHours: event.timeHours,
+        originKind: event.originKind,
+        parentLineageId: event.parentLineageId,
+        genotypeId: event.genotypeId,
+        originCellIndex: event.originCellIndex,
+        mutationClass: event.mutationClass,
+      })
+    : Object.freeze({
+        kind: "lineage-extinct",
+        lineageId: event.lineageId,
+        timeHours: event.timeHours,
+        originKind: event.originKind,
+      });
+}
+
+function decodeOriginKind(
+  value: unknown,
+  name: string,
+): LineageOriginKind {
+  if (
+    value !== "configured-founder" &&
+    value !== "mutation-child" &&
+    value !== "external-inoculation"
+  ) {
+    throw new Error(`lineage origin ${name} has invalid originKind`);
   }
-  return Object.freeze({
-    kind: "lineage-extinct",
-    lineageId: event.lineageId,
-    timeHours: event.timeHours,
-    originKind: event.originKind,
-  });
+  return value;
 }
 
 function assertDenseArray(values: readonly unknown[], name: string): void {
@@ -752,10 +718,10 @@ function assertExactKeys(
   name: string,
 ): void {
   const actual = Object.keys(value).sort();
-  const canonicalExpected = [...expected].sort();
+  const wanted = [...expected].sort();
   if (
-    actual.length !== canonicalExpected.length ||
-    actual.some((key, index) => key !== canonicalExpected[index])
+    actual.length !== wanted.length ||
+    actual.some((key, index) => key !== wanted[index])
   ) {
     throw new Error(`${name} has unsupported or missing fields`);
   }
@@ -780,6 +746,19 @@ function finiteNonNegative(
 ): asserts value is number {
   if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
     throw new RangeError(`${name} must be finite and non-negative`);
+  }
+}
+
+function positiveSafeInteger(
+  name: string,
+  value: unknown,
+): asserts value is number {
+  if (
+    typeof value !== "number" ||
+    !Number.isSafeInteger(value) ||
+    value < 1
+  ) {
+    throw new RangeError(`${name} must be a positive safe integer`);
   }
 }
 

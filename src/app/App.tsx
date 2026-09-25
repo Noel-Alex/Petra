@@ -205,6 +205,7 @@ export function App({
     }
 
     let history = historicalHistoryRef.current;
+    let createdForBranch = false;
     if (
       history === null ||
       history.runBranchIdentity !== runBranchIdentity
@@ -212,12 +213,22 @@ export function App({
       history = new RuntimeHistoricalPresentationHistory(runBranchIdentity);
       historicalHistoryRef.current = history;
       setHistoricalCommandPosition(null);
+      createdForBranch = true;
     }
 
-    if (history.append(runtimeSnapshot)) {
+    // Continuous playback can publish accepted snapshots at presentation
+    // cadence. Retaining every one would duplicate large composed grids at
+    // frame-like frequency without a measured retention budget. Keep the branch
+    // origin plus accepted states observed while playback is paused/manual.
+    // Missing accepted-command positions are already represented truthfully by
+    // the presentation-only historical cursor contract.
+    if (
+      (createdForBranch || !experiment.view.playing) &&
+      history.append(runtimeSnapshot)
+    ) {
       setHistoricalHistoryVersion((version) => version + 1);
     }
-  }, [runBranchIdentity, runtimeSnapshot]);
+  }, [experiment.view.playing, runBranchIdentity, runtimeSnapshot]);
 
   const historicalHistory = useMemo(() => {
     void historicalHistoryVersion;

@@ -222,6 +222,299 @@ def check(name: str, passed: bool, detail: Any = None, status: str | None = None
     return {"name": name, "status": status or ("pass" if passed else "fail"), "detail": detail}
 
 
+def install_render_publication_probe(cdp: CDP) -> None:
+    """Install the opt-in app render-publication probe for a controlled workload."""
+    cdp.eval(
+        r"""(() => {
+          const state = {
+            samples: [],
+            dropped: 0,
+            maxSamples: 128
+          };
+          Object.defineProperty(globalThis, '__petraRenderPublicationPerformanceState', {
+            configurable: true,
+            enumerable: false,
+            value: state
+          });
+          Object.defineProperty(globalThis, '__petraRenderPublicationPerformanceProbe', {
+            configurable: true,
+            enumerable: false,
+            value: {
+              version: 1,
+              observe(sample) {
+                if (state.samples.length >= state.maxSamples) {
+                  state.dropped += 1;
+                  return;
+                }
+                state.samples.push(sample);
+              }
+            }
+          });
+          return true;
+        })()"""
+    )
+
+
+def reset_render_publication_probe(cdp: CDP) -> bool:
+    return (
+        cdp.eval(
+            """(() => {
+              const state = globalThis.__petraRenderPublicationPerformanceState;
+              if (!state) return false;
+              state.samples = [];
+              state.dropped = 0;
+              return true;
+            })()"""
+        )
+        is True
+    )
+
+
+def render_publication_probe_snapshot(cdp: CDP) -> dict[str, Any] | None:
+    result = cdp.eval(
+        """(() => {
+          const state = globalThis.__petraRenderPublicationPerformanceState;
+          if (!state) return null;
+          return {
+            samples: [...state.samples],
+            dropped: state.dropped,
+            maxSamples: state.maxSamples
+          };
+        })()"""
+    )
+    return result if isinstance(result, dict) else None
+
+
+def run_control_state(cdp: CDP) -> dict[str, Any]:
+    result = cdp.eval(
+        """(() => {
+          const controls = document.querySelector('.experiment-run-controls');
+          const identity = controls?.querySelector('.experiment-run-controls__identity');
+          const step = controls
+            ? [...controls.querySelectorAll('button')].find(
+                (button) => button.textContent?.trim() === 'Step'
+              )
+            : null;
+          const text = identity?.textContent ?? '';
+          const match = text.match(/Replay history\\s+(\\d+)\\s+accepted/);
+          return {
+            status: controls?.dataset.runControlsStatus ?? null,
+            acceptedCommandCount: match ? Number(match[1]) : null,
+            stepPresent: step instanceof HTMLButtonElement,
+            stepDisabled: step instanceof HTMLButtonElement ? step.disabled : null
+          };
+        })()"""
+    )
+    return result if isinstance(result, dict) else {
+        "status": None,
+        "acceptedCommandCount": None,
+        "stepPresent": False,
+        "stepDisabled": None,
+    }
+
+
+def wait_run_controls_ready(
+    cdp: CDP,
+    *,
+    minimum_accepted_commands: int | None = None,
+    timeout: float = 10.0,
+) -> dict[str, Any]:
+    deadline = time.monotonic() + timeout
+    latest = run_control_state(cdp)
+    while time.monotonic() < deadline:
+        latest = run_control_state(cdp)
+        count = latest.get("acceptedCommandCount")
+        count_ready = (
+            minimum_accepted_commands is None
+            or (isinstance(count, int) and count >= minimum_accepted_commands)
+        )
+        if (
+            latest.get("status") == "ready"
+            and latest.get("stepPresent") is True
+            and latest.get("stepDisabled") is False
+            and count_ready
+        ):
+            return latest
+        time.sleep(0.02)
+    raise RuntimeError(f"Timed out waiting for authoritative Step readiness: {latest}")
+
+
+def click_step(cdp: CDP) -> bool:
+    return (
+        cdp.eval(
+            """(() => {
+              const controls = document.querySelector('.experiment-run-controls');
+              const step = controls
+                ? [...controls.querySelectorAll('button')].find(
+                    (button) => button.textContent?.trim() === 'Step'
+                  )
+                : null;
+              if (!(step instanceof HTMLButtonElement) || step.disabled) return false;
+              step.click();
+              return true;
+            })()"""
+        )
+        is True
+    )
+
+
+def numeric_summary(values: list[float]) -> dict[str, float | int | None]:
+    if not values:
+        return {"count": 0, "average": None, "maximum": None}
+    return {
+        "count": len(values),
+        "average": round(sum(values) / len(values), 3),
+        "maximum": round(max(values), 3),
+    }
+
+
+def summarize_render_publication_samples(
+    samples: list[dict[str, Any]],
+) -> dict[str, Any]:
+    phase_counts: dict[str, int] = {}
+    transactions: dict[tuple[Any, ...], dict[str, list[dict[str, Any]]]] = {}
+    for sample in samples:
+        phase = sample.get("phase")
+        if not isinstance(phase, str):
+            continue
+        phase_counts[phase] = phase_counts.get(phase, 0) + 1
+        identity = (
+            sample.get("runBranchIdentity"),
+            sample.get("traceHash"),
+            sample.get("tick"),
+            sample.get("commandCount"),
+            sample.get("simulationTimeHours"),
+        )
+        transactions.setdefault(identity, {}).setdefault(phase, []).append(sample)
+
+    complete = []
+    malformed = 0
+    for identity, phases in transactions.items():
+        runtime = phases.get("runtime-snapshot-published", [])
+        projection = phases.get("dish-projection", [])
+        react = phases.get("react-dish-committed", [])
+        if len(runtime) == len(projection) == len(react) == 1:
+            complete.append((identity, runtime[0], projection[0], react[0]))
+        else:
+            malformed += 1
+
+    projection_ms: list[float] = []
+    estimate_ms: list[float] = []
+    runtime_to_projection_ms: list[float] = []
+    projection_to_commit_ms: list[float] = []
+    runtime_to_commit_ms: list[float] = []
+    payload_bytes: list[int] = []
+    backing_bytes: list[int] = []
+    net_growth_count = 0
+
+    for _, runtime, projection, react in complete:
+        projection_duration = projection.get("projectionDurationMs")
+        estimate_duration = projection.get("payloadEstimateDurationMs")
+        runtime_at = runtime.get("observedAtMs")
+        projection_started = projection.get("projectionStartedAtMs")
+        projection_completed = projection.get("projectionCompletedAtMs")
+        react_at = react.get("observedAtMs")
+        payload = projection.get("payloadEstimate")
+
+        if isinstance(projection_duration, (int, float)):
+            projection_ms.append(float(projection_duration))
+        if isinstance(estimate_duration, (int, float)):
+            estimate_ms.append(float(estimate_duration))
+        if isinstance(runtime_at, (int, float)) and isinstance(projection_started, (int, float)):
+            runtime_to_projection_ms.append(float(projection_started - runtime_at))
+        if isinstance(projection_completed, (int, float)) and isinstance(react_at, (int, float)):
+            projection_to_commit_ms.append(float(react_at - projection_completed))
+        if isinstance(runtime_at, (int, float)) and isinstance(react_at, (int, float)):
+            runtime_to_commit_ms.append(float(react_at - runtime_at))
+        if isinstance(payload, dict):
+            estimated = payload.get("estimatedApplicationPayloadBytes")
+            backing = payload.get("uniqueBackingBufferBytes")
+            if isinstance(estimated, int):
+                payload_bytes.append(estimated)
+            if isinstance(backing, int):
+                backing_bytes.append(backing)
+        if projection.get("hasNetGrowthField") is True:
+            net_growth_count += 1
+
+    return {
+        "sampleCount": len(samples),
+        "phaseCounts": phase_counts,
+        "transactionCount": len(transactions),
+        "completeTransactionCount": len(complete),
+        "malformedTransactionCount": malformed,
+        "netGrowthProjectionCount": net_growth_count,
+        "projectionDurationMs": numeric_summary(projection_ms),
+        "payloadEstimateDurationMs": numeric_summary(estimate_ms),
+        "runtimeToProjectionStartMs": numeric_summary(runtime_to_projection_ms),
+        "projectionToReactCommitMs": numeric_summary(projection_to_commit_ms),
+        "runtimeToReactCommitMs": numeric_summary(runtime_to_commit_ms),
+        "estimatedApplicationPayloadBytes": numeric_summary(
+            [float(value) for value in payload_bytes]
+        ),
+        "uniqueBackingBufferBytes": numeric_summary(
+            [float(value) for value in backing_bytes]
+        ),
+        "limitation": (
+            "Advance-only browser observations. Projection timing excludes the payload-estimator "
+            "duration; payload bytes are renderer-facing application estimates, not Worker framing, "
+            "bandwidth, heap, GPU memory, or proof that coalescing/transferables are beneficial."
+        ),
+    }
+
+
+def render_publication_pass(cdp: CDP, steps: int = 6) -> list[dict[str, Any]]:
+    before = wait_run_controls_ready(cdp)
+    install_render_publication_probe(cdp)
+    reset_ok = reset_render_publication_probe(cdp)
+    accepted = before.get("acceptedCommandCount")
+    if not isinstance(accepted, int):
+        raise RuntimeError(f"Could not resolve accepted command count: {before}")
+
+    for _ in range(steps):
+        if not click_step(cdp):
+            raise RuntimeError(f"Authoritative Step was unavailable: {run_control_state(cdp)}")
+        accepted += 1
+        wait_run_controls_ready(cdp, minimum_accepted_commands=accepted)
+
+    probe = render_publication_probe_snapshot(cdp)
+    samples = probe.get("samples", []) if probe else []
+    typed_samples = [sample for sample in samples if isinstance(sample, dict)]
+    summary = summarize_render_publication_samples(typed_samples)
+    dropped = probe.get("dropped") if probe else None
+    phase_counts = summary["phaseCounts"]
+    complete = summary["completeTransactionCount"]
+    net_growth = summary["netGrowthProjectionCount"]
+
+    return [
+        check(
+            "render publication: advance-only transaction phases captured",
+            reset_ok
+            and dropped == 0
+            and complete == steps
+            and phase_counts.get("runtime-snapshot-published") == steps
+            and phase_counts.get("dish-projection") == steps
+            and phase_counts.get("react-dish-committed") == steps,
+            {
+                **summary,
+                "requestedAdvanceTransactions": steps,
+                "droppedSamples": dropped,
+            },
+        ),
+        check(
+            "render publication: live advance projections carry fresh net-growth",
+            complete == steps and net_growth == steps,
+            {
+                "completeAdvanceTransactions": complete,
+                "netGrowthProjectionCount": net_growth,
+                "meaning": (
+                    "Projection-integrity evidence only: each accepted advance exposed its "
+                    "step-local authoritative net-growth companion to the live dish transaction."
+                ),
+            },
+        ),
+    ]
+
+
 def install_browser_performance_probes(cdp: CDP) -> None:
     """Install local-only renderer/jank probes before Petra page scripts execute."""
     source = r"""
@@ -1651,6 +1944,7 @@ def main() -> int:
         checks += accessibility_pass(cdp)
         checks += touch_pass(cdp)
         checks += performance_pass(cdp)
+        checks += render_publication_pass(cdp)
 
         checks.append(check("causal cues preserve camera ownership", False, "Requires an authoritative event trigger fixture.", "blocked"))
         # Whole-dish and zoomed presentation captures are produced by performance_pass.
@@ -1684,7 +1978,9 @@ def main() -> int:
             "Headless browser evidence checks layout, accessibility plumbing, motion modes, "
             "input event ownership/cancellation, pointer continuity, screenshots, representative renderer frame/redraw time, WebGL draw-call "
             "counts from a separate profiled redraw workload, Chromium heap/DOM trends, and "
-            "long-task/GC symptoms where exposed. The GPU "
+            "long-task/GC symptoms where exposed. A separate advance-only workload measures "
+            "accepted-runtime-snapshot to dish-projection to React-commit publication timing and "
+            "renderer-facing payload estimates without choosing an optimization policy. The GPU "
             "record is explicitly a canvas/capability proxy, not measured VRAM. Human visible-browser "
             "review remains required for final aesthetic judgment; this run does not validate "
             "scientific correctness or simulator throughput."

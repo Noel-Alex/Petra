@@ -73,12 +73,12 @@
     {
       "id": "first-post-ciprofloxacin-antibiotic",
       "kind": "antimicrobial",
-      "availability": "blocked-research",
+      "availability": "blocked-implementation",
       "issues": [
-        874,
-        573
+        926,
+        928
       ],
-      "reason": "Requires a named drug/background pack with its own source-backed susceptibility and pharmacodynamic authority; ciprofloxacin equations are not a universal antibiotic template."
+      "reason": "Chloramphenicol/MG1655 candidate and wild-type Greulich growth-inhibition authority are selected under completed #874. Product support remains blocked on #926 numerical/authority implementation and #928 a source-compatible MOPS growth/environment binding; the current dimensionless model-resource flagship cannot choose the glucose or glycerol fit."
     },
     {
       "id": "named-microbial-interactions",

@@ -107,6 +107,19 @@ describe('authoritative metrics', () => {
     expect(sample.identity).not.toBe(checkpoint.identity)
   })
 
+  it('refuses global metric promotion from an off-cadence authoritative checkpoint', () => {
+    const engine = new ComposedSimulationEngine(identity, config)
+    engine.execute({ id: 'advance-global-metric', type: 'advance', ticks: 1 })
+
+    expect(() =>
+      extractAuthoritativeMetricSample({
+        checkpoint: engine.snapshot().checkpoint,
+        samplingPolicy: policy,
+        resistantGenotypeIds: ['R'],
+      }),
+    ).toThrow(/off the declared metric sampling cadence/)
+  })
+
   it('does not infer resistance from genotype names', () => {
     const checkpoint = new ComposedSimulationEngine(identity, config).snapshot().checkpoint
     const sample = extractAuthoritativeMetricSample({

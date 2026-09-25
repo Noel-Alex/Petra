@@ -1,5 +1,9 @@
 import { resolveLineageVisualIdentity } from "../design/lineageIdentity";
 import type { RuntimeEcologyObservation } from "./experimentRuntime";
+import {
+  projectLineageOrganismPresentations,
+  type OrganismPresentationTaxonCatalog,
+} from "./lineageOrganismPresentation";
 import { projectRuntimeEcologyNetGrowthField } from "./runtimeEcologyRenderField";
 import { projectAcceptedInterventionFootprint } from "../render/acceptedInterventionFootprint";
 import {
@@ -12,21 +16,29 @@ import type {
   ComposedSimulationSnapshot,
   SimulationSnapshot,
 } from "../sim/protocol";
+import type { AuthoritativeTaxonRegistry } from "../sim/taxonIdentity";
 
 const BIOMASS_UNIT = "model-biomass";
 const RESOURCE_UNIT = "model-resource";
 const CIPROFLOXACIN_UNIT = "mg/L";
 
+export interface ComposedDishOrganismPresentationAuthority {
+  readonly taxonRegistry: AuthoritativeTaxonRegistry;
+  readonly presentationCatalog: OrganismPresentationTaxonCatalog;
+}
+
 export function projectComposedDishSnapshot(
   snapshot: SimulationSnapshot | null,
   runBranchIdentity: string,
   ecologyObservation: RuntimeEcologyObservation | null = null,
+  organismPresentationAuthority: ComposedDishOrganismPresentationAuthority | null = null,
 ): DishRenderSnapshot | null {
   if (snapshot?.checkpoint.authority !== "composed") return null;
   return projectAuthoritativeComposedDishSnapshot(
     snapshot,
     runBranchIdentity,
     ecologyObservation,
+    organismPresentationAuthority,
   );
 }
 
@@ -34,6 +46,7 @@ export function projectAuthoritativeComposedDishSnapshot(
   snapshot: ComposedSimulationSnapshot,
   runBranchIdentity: string,
   ecologyObservation: RuntimeEcologyObservation | null = null,
+  organismPresentationAuthority: ComposedDishOrganismPresentationAuthority | null = null,
 ): DishRenderSnapshot {
   const state = snapshot.checkpoint.composedState;
   const cells = state.width * state.height;
@@ -82,6 +95,14 @@ export function projectAuthoritativeComposedDishSnapshot(
   const metrics = snapshot.checkpoint.metrics;
   assertMetricLineageIdentity(state.lineageIds, metrics.lineageBiomass);
   const dishMask = Uint8Array.from(state.mask);
+  const lineageOrganismPresentations =
+    organismPresentationAuthority === null
+      ? null
+      : projectComposedLineageOrganismPresentations(
+          state.lineageIds,
+          state.lineageTaxonMap,
+          organismPresentationAuthority,
+        );
 
   // Keep authoritative-number consistency checks in the same traversal that
   // creates detached presentation buffers. Float32 narrowing happens only after
@@ -143,11 +164,24 @@ export function projectAuthoritativeComposedDishSnapshot(
       );
 
       const identity = resolveLineageVisualIdentity(lineageId);
+      const organismPresentation =
+        lineageOrganismPresentations?.lineages[lineageIndex];
+      if (
+        lineageOrganismPresentations !== null &&
+        organismPresentation?.lineageId !== lineageId
+      ) {
+        throw new Error(
+          "composed dish organism presentation must match authoritative lineage order",
+        );
+      }
       return {
         id: lineageId,
         label: lineageId,
         appearanceToken: identity.appearanceToken,
         patternToken: identity.patternToken,
+        ...(lineageOrganismPresentations === null
+          ? {}
+          : { organismPresentation: organismPresentation!.presentation }),
         density,
       };
     },
@@ -267,6 +301,24 @@ export function projectAuthoritativeComposedDishSnapshot(
 
   validateRenderSnapshot(projected);
   return projected;
+}
+
+function projectComposedLineageOrganismPresentations(
+  lineageIds: readonly string[],
+  lineageTaxonMap: import("../sim/taxonIdentity").RuntimeLineageTaxonMap | undefined,
+  authority: ComposedDishOrganismPresentationAuthority,
+) {
+  if (lineageTaxonMap === undefined) {
+    throw new Error(
+      "composed dish organism presentation requires authoritative lineage taxon mapping",
+    );
+  }
+  return projectLineageOrganismPresentations({
+    taxonRegistry: authority.taxonRegistry,
+    lineageTaxonMap,
+    presentationCatalog: authority.presentationCatalog,
+    expectedRuntimeLineageIds: lineageIds,
+  });
 }
 
 function renderField(

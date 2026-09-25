@@ -284,6 +284,12 @@
   font-size: var(--petra-type-caption);
 }
 
+.analysis-lineage__node-hidden {
+  fill: var(--analysis-muted);
+  font-size: var(--petra-type-caption);
+  font-weight: 700;
+}
+
 .analysis-lineage__legend {
   display: flex;
   flex-wrap: wrap;

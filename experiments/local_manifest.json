@@ -75,6 +75,31 @@
       "timeout_seconds": 300
     },
     {
+      "id": "fungal-render-projection-parity",
+      "description": "Authoritative Aspergillus no. 10 source-validation checkpoint-to-render front integrity: exact identity/time/physical radius/normalized geometry plus explicit unsupported-semantics refusal.",
+      "command": [
+        "npm",
+        "exec",
+        "--offline",
+        "--",
+        "vitest",
+        "run",
+        "--config",
+        "experiments/vitest.fungal_render_projection_parity.config.ts"
+      ],
+      "issues": [
+        6,
+        542,
+        556,
+        615,
+        876,
+        885,
+        947,
+        950
+      ],
+      "timeout_seconds": 300
+    },
+    {
       "id": "population-scale-calibration",
       "description": "Effective mutation-supply population-scale calibration: zero-ciprofloxacin flagship ecology plus 4e8/4e9/4e10 terminal cell-equivalent sensitivity through exact fractional-carry population authority; calibrated/non-physical and non-promotable until evidence review.",
       "command": [

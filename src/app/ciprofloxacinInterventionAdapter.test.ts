@@ -33,7 +33,7 @@ function intent(
   }
 }
 
-describe('protocol-v5 ciprofloxacin intent adapter', () => {
+describe('protocol-v6 ciprofloxacin intent adapter', () => {
   it('preserves authoritative concentration and radial geometry in one typed command', () => {
     expect(planCiprofloxacinInterventionCommand(intent(), authority)).toEqual({
       id: 'dose-1',

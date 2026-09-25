@@ -20,7 +20,7 @@ describe("Pixi dish visual continuity integration", () => {
     );
   });
 
-  it("does not restart state interpolation for overlay-only presentation updates", () => {
+  it("short-circuits only when snapshot and sampling identities are unchanged", () => {
     const updateStart = rendererSource.indexOf(
       "const applySnapshotOverlayUpdate = (",
     );
@@ -34,9 +34,15 @@ describe("Pixi dish visual continuity integration", () => {
       "const previousSnapshotId = snapshot?.snapshotId ?? null;",
     );
     expect(updateSource).toContain(
-      "if (previousSnapshotId === next.snapshot.snapshotId)",
+      "const previousSamplingIdentity = snapshot?.samplingIdentity ?? null;",
     );
-    expect(updateSource.indexOf("previousSnapshotId")).toBeLessThan(
+    expect(updateSource).toContain(
+      "previousSnapshotId === next.snapshot.snapshotId &&",
+    );
+    expect(updateSource).toContain(
+      "previousSamplingIdentity === next.snapshot.samplingIdentity",
+    );
+    expect(updateSource.indexOf("previousSamplingIdentity")).toBeLessThan(
       updateSource.indexOf("planDishVisualTransition("),
     );
   });

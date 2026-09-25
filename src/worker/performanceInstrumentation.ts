@@ -1,7 +1,4 @@
-import type {
-  WorkerRequest,
-  WorkerResponse,
-} from "../sim/protocol";
+import type { WorkerRequest } from "../sim/protocol";
 import {
   parseWorkerSnapshotDeltaResponse,
   type WorkerSnapshotDeltaResponse,
@@ -9,9 +6,12 @@ import {
 } from "./eventDeltaTransport";
 import {
   parseWorkerRequest,
-  parseWorkerResponse,
   type ProtocolParseResult,
 } from "../sim/protocolRuntime";
+import {
+  parseWorkerTransportResponse,
+  type WorkerTransportResponse,
+} from "./snapshotDeltaTransport";
 
 export const WORKER_PERFORMANCE_DIAGNOSTICS_VERSION = 1 as const;
 

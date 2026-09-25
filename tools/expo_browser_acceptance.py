@@ -13,6 +13,7 @@ import argparse
 import base64
 import hashlib
 import json
+import math
 import os
 import re
 import shutil
@@ -317,6 +318,7 @@ def authoritative_load_at_command(
         if (
             not isinstance(total_biomass, (int, float))
             or isinstance(total_biomass, bool)
+            or not math.isfinite(float(total_biomass))
             or total_biomass < 0
             or not isinstance(occupied_cells, int)
             or isinstance(occupied_cells, bool)

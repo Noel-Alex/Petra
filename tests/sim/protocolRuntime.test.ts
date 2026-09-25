@@ -81,6 +81,8 @@ const composedConfig: ComposedSimulationConfig = {
   },
   ciprofloxacin: null,
   samplingExecutionPolicy: null,
+  dynamicLineageLossPolicy: null,
+  populationAuthority: null,
   hoursPerTick: 0.01,
 }
 
@@ -104,7 +106,7 @@ const composedSnapshot = new ComposedSimulationEngine(
   composedConfig,
 ).snapshot()
 
-describe('worker protocol-v5 runtime validation', () => {
+describe('worker protocol runtime validation', () => {
   it('accepts valid synthetic protocol requests and responses', () => {
     expect(
       parseWorkerRequest({
@@ -217,6 +219,30 @@ describe('worker protocol-v5 runtime validation', () => {
     expect(parsed.value.snapshot.checkpoint.authority).toBe('composed')
   })
 
+  it('rejects composed lineage registry/channel drift before authority promotion', () => {
+    const malformed = structuredClone(composedSnapshot) as unknown as {
+      checkpoint: {
+        composedState: {
+          lineageRegistry: {
+            records: Array<{ genotypeId: string }>
+          }
+        }
+      }
+    }
+    malformed.checkpoint.composedState.lineageRegistry.records[0]!.genotypeId =
+      'VAR'
+
+    const parsed = parseWorkerResponse({
+      protocolVersion: PROTOCOL_VERSION,
+      type: 'ready',
+      snapshot: malformed,
+    })
+    expect(parsed).toMatchObject({ ok: false })
+    if (!parsed.ok) {
+      expect(parsed.error).toMatch(/lineageRegistry|lineage identity/i)
+    }
+  })
+
   it('rejects composed checkpoint state that omits mutable ciprofloxacin authority', () => {
     const malformed = structuredClone(composedSnapshot) as unknown as {
       checkpoint: {
@@ -313,7 +339,7 @@ describe('worker protocol-v5 runtime validation', () => {
       }),
     ).toEqual({
       ok: false,
-      error: 'Worker protocol mismatch: expected 4, received 99',
+      error: `Worker protocol mismatch: expected ${PROTOCOL_VERSION}, received 99`,
       commandId: null,
     })
   })

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "recordKind": "antimicrobial-pharmacodynamics-authority",
+  "id": "ecoli-k12-mg1655-chloramphenicol-greulich-2015",
+  "version": "1.0.0",
+  "drug": {
+    "id": "chloramphenicol",
+    "concentrationUnit": "uM"
+  },
+  "organism": {
+    "taxon": "Escherichia coli",
+    "strain": "K-12 MG1655"
+  },
+  "model": {
+    "id": "greulich-ribosome-cubic-v1",
+    "effectKind": "growth-inhibition",
+    "equationReference": "Greulich et al. 2015 equation 7",
+    "fits": [
+      {
+        "id": "mops-glycerol",
+        "carbonSource": "glycerol",
+        "lambda0StarPerHour": 1.83,
+        "lambda0StarStandardDeviationPerHour": 0.06,
+        "ic50StarMicromolar": 2.49,
+        "ic50StarStandardDeviationMicromolar": 0.05,
+        "measuredDrugFreeGrowthRatesPerHour": [
+          0.4,
+          0.85,
+          1.35
+        ]
+      },
+      {
+        "id": "mops-glucose",
+        "carbonSource": "glucose",
+        "lambda0StarPerHour": 1.28,
+        "lambda0StarStandardDeviationPerHour": 0.02,
+        "ic50StarMicromolar": 4.5,
+        "ic50StarStandardDeviationMicromolar": 0.05,
+        "measuredDrugFreeGrowthRatesPerHour": [
+          0.64,
+          1.09,
+          1.68
+        ]
+      }
+    ]
+  },
+  "provenance": {
+    "classification": "derived",
+    "sourceKey": "greulich_2015",
+    "doi": "10.15252/MSB.20145949",
+    "context": "Escherichia coli K-12 MG1655, modified Neidhardt potassium-MOPS defined media, 37 C; carbon-source families use 0.2% v/v glycerol or 0.2% w/v glucose with richer variants described by Greulich et al. 2015.",
+    "limitation": "The fitted parameters and equation are source-context growth-inhibition authority. They are not a chloramphenicol killing hazard, not a resistant-genotype response, and not authority to relabel Petra's current dimensionless model-resource field as glucose or glycerol."
+  },
+  "limitations": [
+    "Fit selection must be explicit from a compatible environment record; no default carbon source is authorized.",
+    "Drug-free growth rates outside the measured carbon-family envelope are out of domain for this v1 authority.",
+    "Concentration is micromolar and must not be silently aliased to the ciprofloxacin mg/L field.",
+    "No CAT resistance curve, mutation rate, multi-drug interaction, physical transport, or clinical dosing semantics are authorized by this record."
+  ]
+}

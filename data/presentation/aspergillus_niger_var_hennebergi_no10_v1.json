@@ -1,0 +1,22 @@
+{
+  "kind": "petra-organism-presentation-identity",
+  "schemaVersion": 1,
+  "id": "aspergillus-niger-var-hennebergi-no10-representative-morphology-v1",
+  "scientificName": "Aspergillus niger",
+  "background": "var. hennebergi no. 10; ORSTOM fungal collection",
+  "organismKind": "fungus",
+  "morphology": "filamentous-hyphal",
+  "provenance": {
+    "classification": "measured",
+    "sources": [
+      {
+        "key": "larralde_corona_1997_surface_morphometry",
+        "doi": "10.1002/(SICI)1097-0290(19971105)56:3<287::AID-BIT6>3.0.CO;2-F",
+        "context": "Aspergillus niger var. hennebergi no. 10 on agar surfaces; direct germ-tube, hyphal-diameter, distal-hypha and colony-radial measurements support a coarse filamentous/hyphal presentation."
+      }
+    ],
+    "context": "Coarse representative morphology for the exact ORSTOM no. 10 agar-surface evidence pack selected for Petra's first fungal source-validation mode.",
+    "transferNote": "The source evidence is used only to authorize the coarse filamentous-hyphal presentation class for this exact named pack. Renderer detail is not promoted into biological state.",
+    "limitation": "Authorizes only a representative filamentous/hyphal presentation. It does not authorize physical hyphal diameter in renderer units, branch probability or angle, anastomosis, literal segment identity or count, biomass-to-hyphal-length conversion, orientation dynamics, resource uptake, growth kinetics, or any bacteria-fungus interaction."
+  }
+}

@@ -41,6 +41,7 @@ RESULT_JSON = Path(
 )
 DEFAULT_ADVANCE_TICKS = (1, 4, 16, 64, 64, 64, 64, 64)
 PROFILE_SEED = 0x00630630
+HISTORY_AGE_FRONTIERS = (1, 64, 256, 625)
 
 
 def parse_advance_ticks(raw: str | None) -> list[int]:
@@ -84,12 +85,14 @@ def profile_expression(advance_ticks: list[int]) -> str:
     protocolModule,
     instrumentationModule,
     summaryModule,
+    traceModule,
   ] = await Promise.all([
     import("/src/app/workerSession.ts"),
     import("/src/sim/flagshipComposition.ts"),
     import("/src/sim/protocol.ts"),
     import("/src/worker/performanceInstrumentation.ts"),
     import("/src/app/workerPerformanceSummary.ts"),
+    import("/src/sim/snapshotTrace.ts"),
   ]);
 
   const samples = [];
@@ -110,14 +113,14 @@ def profile_expression(advance_ticks: list[int]) -> str:
     observe: (sample) => samples.push(structuredClone(sample)),
   });
 
-  const waitForReady = (label) =>
+  const waitForReady = (targetSession, label) =>
     new Promise((resolve, reject) => {
       let unsubscribe = () => {};
       const timer = window.setTimeout(() => {
         unsubscribe();
         reject(new Error("Timed out waiting for " + label));
       }, 30000);
-      unsubscribe = session.subscribe((state) => {
+      unsubscribe = targetSession.subscribe((state) => {
         if (state.phase === "ready") {
           window.clearTimeout(timer);
           unsubscribe();
@@ -132,6 +135,200 @@ def profile_expression(advance_ticks: list[int]) -> str:
       });
     });
 
+  const historyAgeFrontiers = __HISTORY_AGE_FRONTIERS__;
+
+  const runHistoryAgeProfile = async () => {
+    const probeIds = new Set(
+      historyAgeFrontiers.map((frontier) => "history-probe-" + String(frontier)),
+    );
+    const probeSamples = new Map();
+    const warmup = {
+      sampleCount: 0,
+      totalResponsePayloadBytes: 0,
+      maxResponsePayloadBytes: 0,
+      totalWorkerExecutionMs: 0,
+      maxWorkerExecutionMs: 0,
+      totalRoundTripMs: 0,
+      maxRoundTripMs: 0,
+    };
+    const historySession = workerModule.createSimulationWorkerSession({
+      observe: (sample) => {
+        if (sample.commandId !== null && probeIds.has(sample.commandId)) {
+          probeSamples.set(sample.commandId, structuredClone(sample));
+          return;
+        }
+        if (
+          sample.commandId !== null &&
+          sample.commandId.startsWith("history-warmup-")
+        ) {
+          warmup.sampleCount += 1;
+          const responseBytes = sample.responsePayloadBytes ?? 0;
+          warmup.totalResponsePayloadBytes += responseBytes;
+          warmup.maxResponsePayloadBytes = Math.max(
+            warmup.maxResponsePayloadBytes,
+            responseBytes,
+          );
+          const workerMs = sample.workerExecutionMs ?? 0;
+          warmup.totalWorkerExecutionMs += workerMs;
+          warmup.maxWorkerExecutionMs = Math.max(
+            warmup.maxWorkerExecutionMs,
+            workerMs,
+          );
+          warmup.totalRoundTripMs += sample.roundTripMs;
+          warmup.maxRoundTripMs = Math.max(
+            warmup.maxRoundTripMs,
+            sample.roundTripMs,
+          );
+        }
+      },
+    });
+
+    const command = async (payload, label) => {
+      historySession.enqueue([
+        {
+          protocolVersion: protocolModule.PROTOCOL_VERSION,
+          type: "command",
+          command: payload,
+        },
+      ]);
+      await waitForReady(historySession, label);
+    };
+
+    const biologyCanonical = (checkpoint) => {
+      const biological = structuredClone(checkpoint);
+      delete biological.commandCount;
+      return traceModule.stableSnapshotStringify(biological);
+    };
+
+    try {
+      historySession.enqueue([
+        {
+          protocolVersion: protocolModule.PROTOCOL_VERSION,
+          type: "initialize",
+          identity: plan.identity,
+          composedConfig: plan.config,
+        },
+      ]);
+      await waitForReady(historySession, "history-age initialization");
+
+      const probes = [];
+      let baselineBiology = null;
+
+      for (const frontier of historyAgeFrontiers) {
+        while (
+          historySession.state.latestSnapshot !== null &&
+          historySession.state.latestSnapshot.events.length < frontier
+        ) {
+          const nextEventCount =
+            historySession.state.latestSnapshot.events.length + 1;
+          await command(
+            {
+              id: "history-warmup-" + String(nextEventCount),
+              type: "advance",
+              ticks: 0,
+            },
+            "history warmup " + String(nextEventCount),
+          );
+        }
+
+        const beforeProbe = historySession.state.latestSnapshot;
+        if (
+          beforeProbe === null ||
+          beforeProbe.checkpoint.authority !== "composed" ||
+          beforeProbe.events.length !== frontier
+        ) {
+          throw new Error(
+            "history-age workload failed to reach exact event frontier " +
+              String(frontier),
+          );
+        }
+
+        const commandId = "history-probe-" + String(frontier);
+        await command(
+          { id: commandId, type: "snapshot" },
+          "history probe " + String(frontier),
+        );
+
+        const snapshot = historySession.state.latestSnapshot;
+        if (
+          snapshot === null ||
+          snapshot.checkpoint.authority !== "composed"
+        ) {
+          throw new Error(
+            "history-age probe requires a composed authoritative snapshot",
+          );
+        }
+        if (snapshot.events.length !== frontier) {
+          throw new Error(
+            "snapshot-only history probe changed authoritative event count",
+          );
+        }
+
+        const canonical = biologyCanonical(snapshot.checkpoint);
+        if (baselineBiology === null) {
+          baselineBiology = canonical;
+        } else if (canonical !== baselineBiology) {
+          throw new Error(
+            "history-age probe biological checkpoint changed while only zero-tick history growth was allowed",
+          );
+        }
+
+        const sample = probeSamples.get(commandId);
+        if (sample === undefined) {
+          throw new Error(
+            "history-age probe is missing WorkerSession performance evidence",
+          );
+        }
+
+        probes.push({
+          eventCount: snapshot.events.length,
+          eventPayloadBytes: instrumentationModule.estimateStructuredClonePayloadBytes(
+            snapshot.events,
+          ),
+          reconstructedFullSnapshotBytes:
+            instrumentationModule.estimateStructuredClonePayloadBytes(snapshot),
+          checkpoint: {
+            tick: snapshot.checkpoint.tick,
+            simulationTimeHours: snapshot.checkpoint.simulationTimeHours,
+            commandCount: snapshot.checkpoint.commandCount,
+          },
+          performance: {
+            responsePayloadBytes: sample.responsePayloadBytes,
+            senderPostMessageCallMs: sample.senderPostMessageCallMs,
+            mainThreadSnapshotCloneMs: sample.mainThreadSnapshotCloneMs,
+            roundTripMs: sample.roundTripMs,
+            workerExecutionMs: sample.workerExecutionMs,
+            nonWorkerRoundTripMs: sample.nonWorkerRoundTripMs,
+            authoritativeEventArrayLength:
+              sample.authoritativeEventArrayLength,
+          },
+        });
+      }
+
+      return {
+        classification: "matched-biological-state-history-age",
+        frontiers: historyAgeFrontiers,
+        biologicalStateExactMatch: true,
+        biologicalEqualityExcludes: [
+          "checkpoint.commandCount",
+          "snapshot.events",
+          "snapshot.traceHash",
+        ],
+        probeCommand: "snapshot",
+        historyGrowthCommand: {
+          type: "advance",
+          ticks: 0,
+          biologicalMeaning:
+            "accepted command/event history growth with no biological tick/time/state advance",
+        },
+        warmup,
+        probes,
+      };
+    } finally {
+      historySession.dispose();
+    }
+  };
+
   try {
     session.enqueue([
       {
@@ -141,7 +338,7 @@ def profile_expression(advance_ticks: list[int]) -> str:
         composedConfig: plan.config,
       },
     ]);
-    await waitForReady("composed worker initialization");
+    await waitForReady(session, "composed worker initialization");
 
     const advanceTicks = __ADVANCE_TICKS__;
     for (let index = 0; index < advanceTicks.length; index += 1) {
@@ -157,8 +354,10 @@ def profile_expression(advance_ticks: list[int]) -> str:
           },
         },
       ]);
-      await waitForReady("advance " + String(index));
+      await waitForReady(session, "advance " + String(index));
     }
+
+    const historyAgeProfile = await runHistoryAgeProfile();
 
     const finalSnapshot = session.state.latestSnapshot;
     if (
@@ -238,6 +437,7 @@ def profile_expression(advance_ticks: list[int]) -> str:
       },
       summary: summaryModule.summarizeWorkerPerformance(samples),
       samples,
+      historyAgeProfile,
       initializeConfigPayloadBreakdownBytes: {
         fullConfig: estimate(plan.config),
         mask: estimate(plan.config.mask),
@@ -307,6 +507,7 @@ def profile_expression(advance_ticks: list[int]) -> str:
     return (
         source.replace("__ADVANCE_TICKS__", json.dumps(advance_ticks))
         .replace("__PROFILE_SEED__", str(PROFILE_SEED))
+        .replace("__HISTORY_AGE_FRONTIERS__", json.dumps(HISTORY_AGE_FRONTIERS))
     )
 
 
@@ -421,8 +622,24 @@ def main() -> int:
         if any(item.get("outcome") != "success" for item in samples):
             raise RuntimeError("one or more Worker transport samples were not successful")
 
+        history_age = profile.get("historyAgeProfile")
+        if not isinstance(history_age, dict):
+            raise RuntimeError("browser transport profile did not return history-age evidence")
+        if history_age.get("biologicalStateExactMatch") is not True:
+            raise RuntimeError("history-age workload did not preserve exact biological state")
+        probes = history_age.get("probes")
+        if not isinstance(probes, list) or len(probes) != len(HISTORY_AGE_FRONTIERS):
+            raise RuntimeError("history-age workload returned an incomplete probe set")
+        observed_frontiers = [item.get("eventCount") for item in probes if isinstance(item, dict)]
+        if observed_frontiers != list(HISTORY_AGE_FRONTIERS):
+            raise RuntimeError(
+                "history-age workload frontiers do not match the registered workload: {}".format(
+                    observed_frontiers
+                )
+            )
+
         result = {
-            "schema_version": 1,
+            "schema_version": 2,
             "kind": "petra-worker-transport-profile",
             "status": "passed",
             "target_url": TARGET_URL,
@@ -444,8 +661,12 @@ def main() -> int:
                 "through WorkerSession. request/response payload bytes are application-data "
                 "estimates, not exact browser framing. senderPostMessageCallMs measures only "
                 "the synchronous sender-side postMessage handoff visible on the main thread; "
-                "mainThreadSnapshotCloneMs measures only WorkerSession's local accepted-snapshot "
-                "copy. nonWorkerRoundTripMs is a broader request-window remainder that also "
+                "mainThreadSnapshotCloneMs retains its legacy name and measures WorkerSession's local "
+                "accepted-snapshot ownership/materialization work. The matched-biological-state historyAgeProfile "
+                "grows only accepted command/event history using zero-tick advances, then uses snapshot-only "
+                "probes at fixed event frontiers; it requires exact checkpoint biology/RNG/state/metrics equality "
+                "after excluding commandCount, events, and traceHash by design. nonWorkerRoundTripMs is a broader "
+                "request-window remainder that also "
                 "contains browser scheduling, response transport/deserialization, validation, "
                 "and main-thread handling. candidateDishTypedChannelPayloadEstimateBytes is "
                 "an arrays-only lower-bound estimate for renderer-facing mask/biomass/resource/drug/"
@@ -467,6 +688,7 @@ def main() -> int:
                     "response_payload_bytes": profile.get("summary", {}).get(
                         "totalResponsePayloadBytes"
                     ),
+                    "history_age_frontiers": list(HISTORY_AGE_FRONTIERS),
                 },
                 sort_keys=True,
             )

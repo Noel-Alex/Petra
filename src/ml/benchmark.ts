@@ -18,13 +18,18 @@ import {
 
 export {
   GROUP_HORIZON_BALANCED_EVALUATION_POLICY_VERSION,
+  TRANSITION_SERIES_BALANCED_EVALUATION_POLICY_VERSION,
   computeStratifiedRegressionBenchmark,
+  computeTransitionSeriesRegressionBenchmark,
 } from "./evaluation";
 export type {
   BenchmarkEvaluationCoverage,
   EvaluationHorizon,
   RegressionEvaluationRow,
   StratifiedRegressionMetrics,
+  TransitionSeriesEvaluationDatasetIdentity,
+  TransitionSeriesEvaluationHorizon,
+  TransitionSeriesRegressionEvaluationRow,
 } from "./evaluation";
 
 export interface RegressionTargetMetrics {

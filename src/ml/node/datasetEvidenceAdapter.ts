@@ -4,7 +4,6 @@ import {
   buildMechanisticDatasetGenerationEvidence,
   type MechanisticDatasetGenerationEvidence,
 } from "../datasetEvidence";
-import type { MechanisticDatasetFinalization } from "../incrementalGenerator";
 import type { MechanisticSweepPlan } from "../sweep";
 import {
   readFilesystemDatasetLines,
@@ -76,9 +75,7 @@ export function buildNodeMechanisticDatasetGenerationEvidence(
     args.result.dataset.finalizationRelativePath,
     "finalizationRelativePath",
   );
-  const finalization = readFilesystemFinalization(
-    finalizationPath,
-  ) as MechanisticDatasetFinalization;
+  const finalization = readFilesystemFinalization(finalizationPath);
 
   if (finalization.datasetDigest !== args.result.dataset.datasetDigest) {
     throw new TypeError(

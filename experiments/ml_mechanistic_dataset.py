@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import argparse
 import json
 import os
 import subprocess
@@ -37,13 +36,6 @@ def repository_file(raw: str, label: str) -> Path:
     if not candidate.is_file():
         raise ValueError(f"{label} does not exist: {candidate.relative_to(ROOT)}")
     return candidate
-
-
-def positive_integer(raw: str) -> int:
-    value = int(raw)
-    if value < 1:
-        raise argparse.ArgumentTypeError("worker count must be positive")
-    return value
 
 
 def write_failure(result_path: Path, stage: str, return_code: int | None, message: str) -> None:
@@ -91,41 +83,26 @@ def run_command(stage: str, command: list[str], env: dict[str, str], result_path
         raise SystemExit(completed.returncode)
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(
-        description=(
-            "Build and execute one repository-owned Petra mechanistic dataset "
-            "package through the generic durable Node worker runtime."
+def required_env(name: str) -> str:
+    value = os.environ.get(name, "").strip()
+    if not value:
+        raise RuntimeError(
+            f"{name} must be configured by experiments/local_manifest.json"
         )
-    )
-    parser.add_argument(
-        "--package-entry",
-        required=True,
-        help="repository-relative TypeScript module exporting createNodeMechanisticDatasetPackage()",
-    )
-    parser.add_argument(
-        "--worker-entry",
-        required=True,
-        help="repository-relative worker module exporting executeMechanisticTask(task, data)",
-    )
-    parser.add_argument(
-        "--workers",
-        type=positive_integer,
-        help="maximum local worker_threads count (defaults to the runtime CPU-aware policy)",
-    )
-    args = parser.parse_args()
+    return value
 
+
+def main() -> int:
     artifact_dir = required_path("PETRA_LOCAL_ARTIFACT_DIR")
     result_path = required_path("PETRA_LOCAL_RESULT_JSON")
-    package_entry = repository_file(args.package_entry, "--package-entry")
-    worker_entry = repository_file(args.worker_entry, "--worker-entry")
+    package_entry = repository_file(
+        required_env("PETRA_ML_DATASET_PACKAGE_ENTRY"),
+        "PETRA_ML_DATASET_PACKAGE_ENTRY",
+    )
     artifact_dir.mkdir(parents=True, exist_ok=True)
 
     env = os.environ.copy()
     env["PETRA_ML_DATASET_PACKAGE_ENTRY"] = str(package_entry.relative_to(ROOT))
-    env["PETRA_ML_DATASET_WORKER_ENTRY"] = str(worker_entry.relative_to(ROOT))
-    if args.workers is not None:
-        env["PETRA_ML_DATASET_WORKERS"] = str(args.workers)
 
     run_command(
         "bundle",
@@ -150,7 +127,7 @@ def main() -> int:
     for path, label in (
         (runner, "runner bundle"),
         (package_module, "package bundle"),
-        (worker_module, "worker bundle"),
+        (worker_module, "fixed composed worker bundle"),
     ):
         if not path.is_file():
             write_failure(result_path, "bundle", None, f"{label} was not produced")

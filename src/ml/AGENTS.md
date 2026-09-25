@@ -1,4 +1,4 @@
-# ML / surrogate DOX contract
+- `src/ml/node/datasetEvidenceAdapter.ts` is the Node/local-artifact bridge into `datasetEvidence.ts`: finalized output paths must remain beneath the runner-provided artifact root, final JSONL is read through a re-openable bounded-chunk iterator, and only the existing generation-evidence contract may label artifact integrity complete. Runtime RSS before/after samples must not be relabeled as peak RSS.\n# ML / surrogate DOX contract
 
 ## Purpose
 

@@ -48,6 +48,17 @@ describe("overlay presentation registry", () => {
     expect(neutral.patternToken).toBe("neutral-grid");
   });
 
+  it("keeps division and death rate overlays sequential and sign-neutral", () => {
+    const division = resolveOverlayPresentation("division-rate");
+    const death = resolveOverlayPresentation("death-rate");
+
+    expect(division.transfer).toBe("sequential");
+    expect(death.transfer).toBe("sequential");
+    expect(division.legendSemantics).toMatch(/division biomass rate/i);
+    expect(death.legendSemantics).toMatch(/death biomass rate/i);
+    expect(division.positivePatternToken).not.toBe(death.positivePatternToken);
+  });
+
   it("keeps pattern modulation deterministic and bounded", () => {
     const first = overlayPatternMultiplier("speckle", 7, 11);
     expect(first).toBe(overlayPatternMultiplier("speckle", 7, 11));

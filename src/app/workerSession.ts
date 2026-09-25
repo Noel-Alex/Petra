@@ -41,7 +41,7 @@ export type WorkerPerformanceOutcome =
   | "transport-error"
   | "protocol-error";
 
-export const WORKER_SESSION_PERFORMANCE_SAMPLE_VERSION = 2 as const;
+export const WORKER_SESSION_PERFORMANCE_SAMPLE_VERSION = 3 as const;
 
 export interface WorkerSessionPerformanceSample {
   readonly version: typeof WORKER_SESSION_PERFORMANCE_SAMPLE_VERSION;
@@ -69,6 +69,11 @@ export interface WorkerSessionPerformanceSample {
   readonly workerExecutionMsPerTick: number | null;
   readonly nonWorkerRoundTripMs: number | null;
   readonly authoritativeEventArrayLength: number | null;
+  /**
+   * Exact count of active replay-critical lineage channels on an accepted
+   * composed checkpoint. Synthetic/error samples remain null.
+   */
+  readonly authoritativeActiveLineageCount: number | null;
   readonly outcome: WorkerPerformanceOutcome;
 }
 
@@ -376,6 +381,11 @@ export class WorkerSession {
       response?.type === "ready" || response?.type === "snapshot"
         ? response.snapshot.events.length
         : null;
+    const authoritativeActiveLineageCount =
+      (response?.type === "ready" || response?.type === "snapshot") &&
+      response.snapshot.checkpoint.authority === "composed"
+        ? response.snapshot.checkpoint.composedState.lineageIds.length
+        : null;
     const sample: WorkerSessionPerformanceSample = {
       version: WORKER_SESSION_PERFORMANCE_SAMPLE_VERSION,
       completedAtMs,
@@ -405,6 +415,7 @@ export class WorkerSession {
           ? null
           : Math.max(0, roundTripMs - workerExecutionMs),
       authoritativeEventArrayLength,
+      authoritativeActiveLineageCount,
       outcome,
     };
 

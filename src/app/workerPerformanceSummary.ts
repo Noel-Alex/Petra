@@ -1,7 +1,7 @@
 import type { WorkerSessionPerformanceSample } from "./workerSession";
 
 export interface WorkerPerformanceSummary {
-  readonly version: 2;
+  readonly version: 3;
   readonly sampleCount: number;
   readonly successfulSampleCount: number;
   readonly advanceSampleCount: number;
@@ -21,6 +21,8 @@ export interface WorkerPerformanceSummary {
   readonly totalNonWorkerRoundTripMs: number;
   readonly maxQueuedRequestsBehindAtDispatch: number;
   readonly maxAuthoritativeEventArrayLength: number;
+  readonly measuredAuthoritativeActiveLineageSampleCount: number;
+  readonly maxAuthoritativeActiveLineageCount: number | null;
   readonly observationWindowMs: number;
   readonly observedPayloadBytesPerSecond: number | null;
 }
@@ -52,6 +54,8 @@ export function summarizeWorkerPerformance(
   let totalNonWorkerRoundTripMs = 0;
   let maxQueuedRequestsBehindAtDispatch = 0;
   let maxAuthoritativeEventArrayLength = 0;
+  let measuredAuthoritativeActiveLineageSampleCount = 0;
+  let maxAuthoritativeActiveLineageCount = 0;
   let firstDispatchAtMs = Number.POSITIVE_INFINITY;
   let lastCompletionAtMs = Number.NEGATIVE_INFINITY;
 
@@ -104,6 +108,13 @@ export function summarizeWorkerPerformance(
       maxAuthoritativeEventArrayLength,
       sample.authoritativeEventArrayLength ?? 0,
     );
+    if (sample.authoritativeActiveLineageCount !== null) {
+      measuredAuthoritativeActiveLineageSampleCount += 1;
+      maxAuthoritativeActiveLineageCount = Math.max(
+        maxAuthoritativeActiveLineageCount,
+        sample.authoritativeActiveLineageCount,
+      );
+    }
     firstDispatchAtMs = Math.min(
       firstDispatchAtMs,
       sample.completedAtMs - sample.roundTripMs,
@@ -119,7 +130,7 @@ export function summarizeWorkerPerformance(
     totalRequestPayloadBytes + totalResponsePayloadBytes;
 
   return {
-    version: 2,
+    version: 3,
     sampleCount: samples.length,
     successfulSampleCount,
     advanceSampleCount,
@@ -142,6 +153,11 @@ export function summarizeWorkerPerformance(
     totalNonWorkerRoundTripMs,
     maxQueuedRequestsBehindAtDispatch,
     maxAuthoritativeEventArrayLength,
+    measuredAuthoritativeActiveLineageSampleCount,
+    maxAuthoritativeActiveLineageCount:
+      measuredAuthoritativeActiveLineageSampleCount === 0
+        ? null
+        : maxAuthoritativeActiveLineageCount,
     observationWindowMs,
     observedPayloadBytesPerSecond:
       observationWindowMs <= 0

@@ -66,11 +66,11 @@ describe("projectInterventionCapability", () => {
     }
   });
 
-  it("reports the actual ready-state blocker instead of claiming protocol v5 lacks commands", () => {
+  it("reports the actual ready-state blocker without hard-coding a stale protocol version", () => {
     const view = projectInterventionCapability("ready");
 
     expect(view.reason).toBe("authoritative-metadata-unavailable");
-    expect(view.message).toMatch(/protocol v5 supports authoritative ciprofloxacin/i);
+    expect(view.message).toMatch(/active protocol supports authoritative ciprofloxacin/i);
     expect(view.message).toMatch(/has not supplied exact intervention bounds, default/i);
     expect(view.message).toMatch(/will not infer dose controls from mic values or test fixtures/i);
     expect(view.message).not.toMatch(/protocol does not expose/i);
@@ -112,5 +112,6 @@ describe("projectInterventionCapability", () => {
     expect(view.available).toBe(false);
     expect(view.reason).toBe("runtime-pending");
     expect(view.tools.every((tool) => tool.available === false)).toBe(true);
+    expect(view.ciprofloxacinAuthority).toEqual(metadata);
   });
 });

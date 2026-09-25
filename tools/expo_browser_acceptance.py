@@ -1431,7 +1431,11 @@ def run_control_state(cdp: CDP) -> dict[str, Any] | None:
             selectedSpeed,
             playing,
             dishFocus:
-              document.querySelector('.petra-app')?.dataset.dishFocus ?? null
+              document.querySelector('.petra-app')?.dataset.dishFocus ?? null,
+            renderSource:
+              document.querySelector('.dish-renderer-shell')?.dataset.renderSource ?? null,
+            rendererStatus:
+              document.querySelector('.dish-renderer-canvas')?.dataset.renderStatus ?? null
           };
         })()"""
     )
@@ -1693,6 +1697,8 @@ def profile_authoritative_playback(
 
     reset = click_run_control(cdp, "Reset")
     reset_state = wait_run_status(cdp, "ready")
+    camera_reset = click_overview_reset(cdp)
+    time.sleep(0.05)
     selected = click_run_control(cdp, speed_label)
     time.sleep(0.05)
     before = run_control_state(cdp)
@@ -1732,6 +1738,7 @@ def profile_authoritative_playback(
         "requestedSpeedLabel": speed_label,
         "diagnosticWindowRequestedMs": duration_ms,
         "resetAction": reset,
+        "cameraResetAction": camera_reset,
         "speedAction": selected,
         "playAction": play,
         "pauseAction": pause,
@@ -1818,6 +1825,25 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
     zoom_runtime_after = chromium_runtime_metrics(cdp)
     zoom_probe = browser_performance_probe_snapshot(cdp)
     zoom_profile = frame_metrics(zoom_profile_samples, "colony-camera-zoom-profiled")
+
+    playback_profiles: list[dict[str, Any]] = []
+    for speed in (1, 4, 16):
+        try:
+            playback_profiles.append(
+                profile_authoritative_playback(cdp, speed)
+            )
+        except Exception as exc:
+            playback_profiles.append(
+                {
+                    "speed": speed,
+                    "error": repr(exc),
+                    "frame": {
+                        "sampleCount": 0,
+                        "rendererActiveFrames": 0,
+                        "frameTimingEvidenceValid": False,
+                    },
+                }
+            )
 
     whole_p95 = whole.get("p95FrameMs")
     zoom_p95 = zoomed.get("p95FrameMs")
@@ -1963,6 +1989,112 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
             ),
         ]
     )
+
+    for profile in playback_profiles:
+        speed = profile.get("speed")
+        frame = profile.get("frame") if isinstance(profile.get("frame"), dict) else {}
+        geometry = profile.get("geometry") if isinstance(profile.get("geometry"), dict) else {}
+        before = profile.get("before") if isinstance(profile.get("before"), dict) else {}
+        running = profile.get("running") if isinstance(profile.get("running"), dict) else {}
+        after = profile.get("after") if isinstance(profile.get("after"), dict) else {}
+        render_source = running.get("renderSource")
+        renderer_status = running.get("rendererStatus")
+        setup_ok = (
+            profile.get("error") is None
+            and profile.get("resetAction", {}).get("clicked") is True
+            and profile.get("cameraResetAction") is True
+            and profile.get("speedAction", {}).get("clicked") is True
+            and profile.get("playAction", {}).get("clicked") is True
+            and profile.get("pauseAction", {}).get("clicked") is True
+            and before.get("selectedSpeed") == f"{speed}×"
+            and running.get("playing") is True
+            and after.get("playing") is False
+        )
+        checks.append(
+            check(
+                f"authoritative playback {speed}x: real controls exercised",
+                setup_ok,
+                profile,
+            )
+        )
+
+        biological_delta = profile.get("biologicalTimeAdvanceHours")
+        command_delta = profile.get("acceptedCommandAdvance")
+        authoritative_progress = (
+            isinstance(biological_delta, (int, float))
+            and biological_delta > 0
+            and isinstance(command_delta, int)
+            and command_delta > 0
+            and render_source == "authoritative"
+            and renderer_status == "ready"
+        )
+        checks.append(
+            check(
+                f"authoritative playback {speed}x: biological state advanced",
+                authoritative_progress,
+                {
+                    "biologicalTimeAdvanceHours": biological_delta,
+                    "acceptedCommandAdvance": command_delta,
+                    "renderSource": render_source,
+                    "rendererStatus": renderer_status,
+                    "before": before,
+                    "after": after,
+                },
+            )
+        )
+
+        frame_valid = frame.get("frameTimingEvidenceValid") is True
+        checks.append(
+            check(
+                f"authoritative playback {speed}x: renderer-active frame evidence",
+                frame_valid,
+                {
+                    **frame,
+                    "limitation": (
+                        "Playback frame timing is published only when the "
+                        "same diagnostic window contains actual WebGL draw "
+                        "activity. Zero renderer-active frames is unavailable "
+                        "evidence, not proof of smooth rendering."
+                    ),
+                },
+                "blocked" if not frame_valid else None,
+            )
+        )
+
+        focus_values = geometry.get("dishFocusValues")
+        checks.append(
+            check(
+                f"authoritative playback {speed}x: focus-mode identity stable",
+                focus_values == ["focused"],
+                {
+                    **geometry,
+                    "interpretation": (
+                        "Rect deltas are measured diagnostics with no invented "
+                        "pass/fail pixel budget; focus identity itself must not "
+                        "churn during continuous playback."
+                    ),
+                },
+            )
+        )
+
+        runtime_after = profile.get("runtimeAfter")
+        checks.append(
+            check(
+                f"authoritative playback {speed}x: browser jank metrics captured",
+                isinstance(runtime_after, dict)
+                and isinstance(runtime_after.get("JSHeapUsedSize"), (int, float)),
+                {
+                    "runtimeBefore": profile.get("runtimeBefore"),
+                    "runtimeAfter": runtime_after,
+                    "runtimeDelta": profile.get("runtimeDelta"),
+                    "browserProbe": profile.get("browserProbe"),
+                    "workerSessionPerformance": profile.get(
+                        "workerSessionPerformance"
+                    ),
+                },
+            )
+        )
+
     return checks
 
 

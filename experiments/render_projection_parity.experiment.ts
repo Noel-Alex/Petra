@@ -5,15 +5,20 @@ import { dirname } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { projectAuthoritativeComposedDishSnapshot } from '../src/app/composedDishProjection'
+import type { RuntimeEcologyObservation } from '../src/app/experimentRuntime'
+import { projectRuntimeEcologyNetGrowthField } from '../src/app/runtimeEcologyRenderField'
+import { ECOLOGY_NET_GROWTH_RENDER_FIELD_ID } from '../src/render/ecologyFluxField'
 import type { DishRenderSnapshot, RenderField } from '../src/render/model'
 import {
   CIPROFLOXACIN_INTERVENTION_SCHEMA_VERSION,
 } from '../src/sim/ciprofloxacinIntervention'
 import { ComposedSimulationEngine } from '../src/sim/composedEngine'
 import { buildFlagshipComposedRunPlan } from '../src/sim/flagshipComposition'
+import type { ComposedSimulationSnapshot } from '../src/sim/protocol'
 import {
   renderProjectionAuthorityFromComposedSnapshot,
   verifyRenderProjectionParity,
+  verifyRuntimeEcologyNetGrowthParity,
   type RenderProjectionParityContract,
 } from './render_projection_parity'
 
@@ -57,7 +62,8 @@ function writeCompactResult(result: unknown): void {
 
 function buildProductProjection(): {
   readonly plan: ReturnType<typeof buildFlagshipComposedRunPlan>
-  readonly snapshot: ReturnType<ComposedSimulationEngine['snapshot']>
+  readonly snapshot: ComposedSimulationSnapshot
+  readonly runtimeObservation: RuntimeEcologyObservation
   readonly projected: DishRenderSnapshot
 } {
   const plan = buildFlagshipComposedRunPlan(INITIALIZATION)
@@ -72,14 +78,36 @@ function buildProductProjection(): {
   )
 
   engine.execute({
-    id: 'render-parity-ciprofloxacin',
+    id: 'render-parity-ciprofloxacin-radial-set',
     type: 'apply-ciprofloxacin',
     intervention: {
       schemaVersion: CIPROFLOXACIN_INTERVENTION_SCHEMA_VERSION,
       concentrationMgPerL: wtMic,
       concentrationUnit: 'mg/L',
       blendMode: 'set',
-      geometry: { kind: 'global' },
+      geometry: {
+        kind: 'radial',
+        center: { x: 0.45, y: 0.5 },
+        radiusFraction: 0.22,
+      },
+    },
+  })
+  engine.execute({
+    id: 'render-parity-ciprofloxacin-paint-add',
+    type: 'apply-ciprofloxacin',
+    intervention: {
+      schemaVersion: CIPROFLOXACIN_INTERVENTION_SCHEMA_VERSION,
+      concentrationMgPerL: 0,
+      concentrationUnit: 'mg/L',
+      blendMode: 'add',
+      geometry: {
+        kind: 'paint',
+        samples: [
+          { x: 0.25, y: 0.3 },
+          { x: 0.72, y: 0.68 },
+        ],
+        brushRadiusFraction: 0.04,
+      },
     },
   })
 
@@ -88,12 +116,21 @@ function buildProductProjection(): {
     type: 'advance',
     ticks: 1,
   })
+  assert.ok(
+    snapshot.ecologyObservation !== undefined,
+    'accepted ecology advance must expose its exact step-local observation',
+  )
+  const runtimeObservation: RuntimeEcologyObservation = {
+    runBranchIdentity: RUN_BRANCH_IDENTITY,
+    envelope: snapshot.ecologyObservation,
+  }
   const projected = projectAuthoritativeComposedDishSnapshot(
     snapshot,
     RUN_BRANCH_IDENTITY,
+    runtimeObservation,
   )
 
-  return { plan, snapshot, projected }
+  return { plan, snapshot, runtimeObservation, projected }
 }
 
 function cloneProjection(
@@ -111,6 +148,10 @@ function cloneProjection(
       ...lineage,
       density: Float32Array.from(lineage.density),
     })),
+    acceptedInterventionFootprints:
+      snapshot.acceptedInterventionFootprints?.map((footprint) =>
+        structuredClone(footprint),
+      ),
     events: snapshot.events.map((event) => ({ ...event })),
   }
 }
@@ -130,7 +171,7 @@ function replaceField(
 
 function parity(
   projected: DishRenderSnapshot,
-  snapshot: ReturnType<ComposedSimulationEngine['snapshot']>,
+  snapshot: ComposedSimulationSnapshot,
 ) {
   return verifyRenderProjectionParity(
     renderProjectionAuthorityFromComposedSnapshot(snapshot),
@@ -158,6 +199,11 @@ describe('authoritative composed-to-dish render projection parity', () => {
       lineageOrder: true,
       projectedFloat32Channels: true,
       aggregateFloat32Policy: true,
+      acceptedInterventionFootprints: true,
+    })
+    expect(evidence.acceptedInterventionFootprints).toEqual({
+      count: 2,
+      exact: true,
     })
     expect(evidence.units).toEqual({
       resource: 'model-resource',
@@ -173,6 +219,24 @@ describe('authoritative composed-to-dish render projection parity', () => {
     expect(evidence.samplingIdentity).toBe(
       `runtime-branch:${RUN_BRANCH_IDENTITY}`,
     )
+
+    const netGrowthField = projected.fields.find(
+      (field) => field.id === ECOLOGY_NET_GROWTH_RENDER_FIELD_ID,
+    )
+    assert.ok(
+      netGrowthField !== undefined,
+      'combined product projection must include the runtime-bound net-growth field',
+    )
+    assert.ok(
+      snapshot.ecologyObservation !== undefined,
+      'net-growth parity requires the accepted ecology observation',
+    )
+    const netGrowthEvidence = verifyRuntimeEcologyNetGrowthParity(
+      snapshot.ecologyObservation.observation,
+      netGrowthField,
+    )
+    expect(netGrowthEvidence.unit).toBe('model-biomass/hour')
+    expect(netGrowthEvidence.rangeMode).toBe('snapshot-extrema')
 
     writeCompactResult({
       experimentId: EXPERIMENT_ID,
@@ -190,6 +254,7 @@ describe('authoritative composed-to-dish render projection parity', () => {
       },
       renderBranchIdentity: RUN_BRANCH_IDENTITY,
       evidence,
+      netGrowthEvidence,
       negativeCases: [
         'one-cell-resource-channel-drift',
         'lineage-identity-drift',
@@ -198,12 +263,17 @@ describe('authoritative composed-to-dish render projection parity', () => {
         'biological-time-drift',
         'runtime-sampling-identity-drift',
         'snapshot-identity-drift',
+        'accepted-intervention-command-drift',
+        'accepted-intervention-geometry-drift',
+        'runtime-ecology-cross-branch-drift',
+        'net-growth-one-cell-drift',
       ],
       limitations: [
         'This establishes product render-projection integrity for the tested authoritative keyframe, not biological validation or physical calibration.',
         'Renderer Float32 quantization is explicit evidence and is not fed back into simulation authority.',
         'Render transfer-domain semantics remain owned by the renderer range contract and are not redefined here.',
-        'Spatial intervention footprint semantics remain owned by the accepted-event footprint contract and are not redefined here.',
+        'Accepted intervention footprint parity proves exact event-to-render geometry transport; it does not prove biological efficacy beyond the authoritative simulator state.',
+        'Runtime net-growth parity proves the product adapter preserves the accepted step-local rate field; it does not prove that the current Pixi/UI selection visibly displays that overlay.',
         'Browser/GPU visual correctness and performance remain separate local acceptance gates.',
       ],
     })
@@ -285,5 +355,86 @@ describe('authoritative composed-to-dish render projection parity', () => {
         snapshot,
       ),
     ).toThrow(/snapshotId/i)
+
+    const firstFootprint = projected.acceptedInterventionFootprints?.[0]
+    assert.ok(
+      firstFootprint !== undefined,
+      'parity fixture must include an accepted intervention footprint',
+    )
+    expect(() =>
+      parity(
+        {
+          ...cloneProjection(projected),
+          acceptedInterventionFootprints: [
+            { ...structuredClone(firstFootprint), commandId: 'wrong-command' },
+            ...(projected.acceptedInterventionFootprints?.slice(1).map(
+              (footprint) => structuredClone(footprint),
+            ) ?? []),
+          ],
+        },
+        snapshot,
+      ),
+    ).toThrow(/footprint commandId/i)
+
+    assert.equal(firstFootprint.intervention.geometry.kind, 'radial')
+    if (firstFootprint.intervention.geometry.kind !== 'radial') {
+      throw new Error('first parity intervention must be radial')
+    }
+    expect(() =>
+      parity(
+        {
+          ...cloneProjection(projected),
+          acceptedInterventionFootprints: [
+            {
+              ...structuredClone(firstFootprint),
+              intervention: {
+                ...structuredClone(firstFootprint.intervention),
+                geometry: {
+                  ...firstFootprint.intervention.geometry,
+                  radiusFraction:
+                    firstFootprint.intervention.geometry.radiusFraction + 0.01,
+                },
+              },
+            },
+            ...(projected.acceptedInterventionFootprints?.slice(1).map(
+              (footprint) => structuredClone(footprint),
+            ) ?? []),
+          ],
+        },
+        snapshot,
+      ),
+    ).toThrow(/footprint intervention differs/i)
+
+    const { runtimeObservation } = buildProductProjection()
+    expect(() =>
+      projectRuntimeEcologyNetGrowthField(
+        snapshot,
+        'render-projection-parity:wrong-generation',
+        runtimeObservation,
+      ),
+    ).toThrow(/different runtime history generation/i)
+
+    assert.ok(
+      snapshot.ecologyObservation !== undefined,
+      'net-growth drift test requires ecology observation authority',
+    )
+    const netGrowth = projected.fields.find(
+      (field) => field.id === ECOLOGY_NET_GROWTH_RENDER_FIELD_ID,
+    )
+    assert.ok(netGrowth !== undefined, 'net-growth field must exist')
+    const driftedValues = Float32Array.from(netGrowth.values)
+    const inMaskCell = snapshot.ecologyObservation.observation.mask.findIndex(
+      (value) => value === 1,
+    )
+    assert.ok(inMaskCell >= 0, 'net-growth source mask must contain cells')
+    driftedValues[inMaskCell] = Math.fround(
+      driftedValues[inMaskCell]! + 0.001,
+    )
+    expect(() =>
+      verifyRuntimeEcologyNetGrowthParity(
+        snapshot.ecologyObservation!.observation,
+        { ...netGrowth, values: driftedValues },
+      ),
+    ).toThrow(/net-growth rate differs/i)
   })
 })

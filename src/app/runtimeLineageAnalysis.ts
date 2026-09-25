@@ -41,7 +41,7 @@ export interface RuntimeLineageAnalysisFrame {
  * currently accepted composed runtime transaction.
  *
  * This adapter owns no lineage science. It refuses synthetic authority,
- * foreign run/config evidence, and incomplete/extra genotype evidence rather
+ * foreign run/config evidence, and incomplete/foreign genotype evidence rather
  * than asking React to infer scientific detail from ids, labels, or visuals.
  */
 export function projectRuntimeLineageAnalysis(

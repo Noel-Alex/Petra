@@ -42,6 +42,28 @@ Crucially, Regoes `psi_max` is the baseline of the **source PD curve**. Petra's 
 
 Applying this PD-derived loss under zero resource is a declared composition policy and sensitivity target, **not** a quantitatively calibrated stationary-phase claim.
 
+## Chloramphenicol growth-inhibition authority
+
+`chloramphenicol.ts` implements Greulich et al. (2015), DOI `10.15252/MSB.20145949`, equation 7 for *E. coli* K-12 MG1655. Unlike the ciprofloxacin flagship policy, this authority is a **growth/division suppression** response and does not create an incremental killing hazard.
+
+Biological fit values remain data-owned in `data/antimicrobials/chloramphenicol_mg1655_greulich_v1.json`. `chloramphenicolAuthority.ts` parses that record strictly and requires explicit fit selection:
+
+- `mops-glycerol`: `lambda0* = 1.83 ± 0.06 h^-1`, `IC50* = 2.49 ± 0.05 µM`, measured drug-free growth strata `0.40 / 0.85 / 1.35 h^-1`;
+- `mops-glucose`: `lambda0* = 1.28 ± 0.02 h^-1`, `IC50* = 4.50 ± 0.05 µM`, measured drug-free growth strata `0.64 / 1.09 / 1.68 h^-1`.
+
+The equation evaluator refuses drug-free growth rates outside the selected carbon-family envelope. It also checks the cubic discriminant and refuses a multiple-real-root regime instead of choosing a branch by numerical accident. Zero chloramphenicol is the exact no-op response `divisionMultiplier = 1`.
+
+The current flagship `model-resource` context does **not** identify either MOPS family. Therefore this numerical authority is reusable engine capability, not permission to expose a grounded chloramphenicol product control. Scenario composition must later bind a compatible environment and preserve the source `µM` concentration unit.
+
+## Cross-drug effect semantics
+
+`effect.ts` separates two mechanism inputs:
+
+- `divisionMultiplier` in `[0,1]` for source-backed growth suppression;
+- `incrementalLossHazardPerHour >= 0` for source-backed drug-associated loss.
+
+Chloramphenicol v1 uses the first axis and leaves the second at zero. The existing ciprofloxacin/Regoes composition remains a distinct incremental-loss authority. A zero value on either axis means that mechanism is **not supplied by that evidence pack**; it is not a universal biological claim about the drug.
+
 ## Authority boundary
 
 - scenario/preset data owns biological parameter values, policy version, classification, and citations;

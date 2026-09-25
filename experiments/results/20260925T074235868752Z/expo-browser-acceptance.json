@@ -1,0 +1,1004 @@
+{
+  "command": [
+    "python",
+    "tools/expo_browser_acceptance.py"
+  ],
+  "compact_result": {
+    "browser_executable": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "checks": [
+      {
+        "detail": {
+          "bodyClientWidth": 1440,
+          "bodyScrollHeight": 900,
+          "bodyScrollWidth": 1440,
+          "dish": true,
+          "dishRect": {
+            "bottom": 735.828125,
+            "height": 647.03125,
+            "left": 367.984375,
+            "right": 1072,
+            "top": 88.796875,
+            "width": 704.015625,
+            "x": 367.984375,
+            "y": 88.796875
+          },
+          "root": true,
+          "title": "Petra \u2014 Living Laboratory",
+          "viewportHeight": 900
+        },
+        "name": "desktop: app root present",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "bottom": 735.828125,
+          "height": 647.03125,
+          "left": 367.984375,
+          "right": 1072,
+          "top": 88.796875,
+          "width": 704.015625,
+          "x": 367.984375,
+          "y": 88.796875
+        },
+        "name": "desktop: dish present",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "canvas": true,
+          "fallback": false,
+          "source": "authoritative-snapshot",
+          "status": "ready"
+        },
+        "name": "desktop: Pixi renderer ready with canvas",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "bodyClientWidth": 1440,
+          "bodyScrollHeight": 900,
+          "bodyScrollWidth": 1440,
+          "dish": true,
+          "dishRect": {
+            "bottom": 735.828125,
+            "height": 647.03125,
+            "left": 367.984375,
+            "right": 1072,
+            "top": 88.796875,
+            "width": 704.015625,
+            "x": 367.984375,
+            "y": 88.796875
+          },
+          "root": true,
+          "title": "Petra \u2014 Living Laboratory",
+          "viewportHeight": 900
+        },
+        "name": "desktop: no horizontal clipping",
+        "status": "pass"
+      },
+      {
+        "detail": "C:\\Users\\noela\\.codex\\worktrees\\petra-laptop-mainline-acceptance\\Petra\\.petra_local\\runs\\20260925T074235868752Z\\expo-browser-acceptance\\artifacts\\desktop-1440x900.png",
+        "name": "desktop: screenshot captured",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "bodyClientWidth": 753,
+          "bodyScrollHeight": 2471,
+          "bodyScrollWidth": 753,
+          "dish": true,
+          "dishRect": {
+            "bottom": 1059.546875,
+            "height": 863.25,
+            "left": 14.390625,
+            "right": 738.609375,
+            "top": 196.296875,
+            "width": 724.21875,
+            "x": 14.390625,
+            "y": 196.296875
+          },
+          "root": true,
+          "title": "Petra \u2014 Living Laboratory",
+          "viewportHeight": 900
+        },
+        "name": "narrow: app root present",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "bottom": 1059.546875,
+          "height": 863.25,
+          "left": 14.390625,
+          "right": 738.609375,
+          "top": 196.296875,
+          "width": 724.21875,
+          "x": 14.390625,
+          "y": 196.296875
+        },
+        "name": "narrow: dish present",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "canvas": true,
+          "fallback": false,
+          "source": "authoritative-snapshot",
+          "status": "ready"
+        },
+        "name": "narrow: Pixi renderer ready with canvas",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "bodyClientWidth": 753,
+          "bodyScrollHeight": 2471,
+          "bodyScrollWidth": 753,
+          "dish": true,
+          "dishRect": {
+            "bottom": 1059.546875,
+            "height": 863.25,
+            "left": 14.390625,
+            "right": 738.609375,
+            "top": 196.296875,
+            "width": 724.21875,
+            "x": 14.390625,
+            "y": 196.296875
+          },
+          "root": true,
+          "title": "Petra \u2014 Living Laboratory",
+          "viewportHeight": 900
+        },
+        "name": "narrow: no horizontal clipping",
+        "status": "pass"
+      },
+      {
+        "detail": "C:\\Users\\noela\\.codex\\worktrees\\petra-laptop-mainline-acceptance\\Petra\\.petra_local\\runs\\20260925T074235868752Z\\expo-browser-acceptance\\artifacts\\narrow-768x900.png",
+        "name": "narrow: screenshot captured",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "motion": "full",
+          "selected": "full",
+          "stored": "full",
+          "transition": "0.22s, 0.22s"
+        },
+        "name": "motion full: control available",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "motion": "full",
+          "selected": "full",
+          "stored": "full",
+          "transition": "0.22s, 0.22s"
+        },
+        "name": "motion full: resolved mode",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "state": {
+            "motion": "full",
+            "selected": "full",
+            "stored": "full",
+            "transition": "0.22s, 0.22s"
+          },
+          "storageKey": "petra.motion-setting.v1"
+        },
+        "name": "motion full: canonical preference persisted",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "motion": "reduced",
+          "selected": "reduced",
+          "stored": "reduced",
+          "transition": "0s, 0s"
+        },
+        "name": "motion reduced: control available",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "motion": "reduced",
+          "selected": "reduced",
+          "stored": "reduced",
+          "transition": "0s, 0s"
+        },
+        "name": "motion reduced: resolved mode",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "state": {
+            "motion": "reduced",
+            "selected": "reduced",
+            "stored": "reduced",
+            "transition": "0s, 0s"
+          },
+          "storageKey": "petra.motion-setting.v1"
+        },
+        "name": "motion reduced: canonical preference persisted",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "motion": "off",
+          "selected": "off",
+          "stored": "off",
+          "transition": "0s"
+        },
+        "name": "motion off: control available",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "motion": "off",
+          "selected": "off",
+          "stored": "off",
+          "transition": "0s"
+        },
+        "name": "motion off: resolved mode",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "state": {
+            "motion": "off",
+            "selected": "off",
+            "stored": "off",
+            "transition": "0s"
+          },
+          "storageKey": "petra.motion-setting.v1"
+        },
+        "name": "motion off: canonical preference persisted",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "motion": "off",
+          "selected": "off",
+          "stored": "off",
+          "transition": "0s"
+        },
+        "name": "motion off: CSS transitions disabled",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "afterReload": {
+            "motion": "reduced",
+            "selected": "reduced",
+            "stored": "reduced",
+            "transition": "0s, 0s"
+          },
+          "beforeReload": {
+            "motion": "reduced",
+            "selected": "reduced",
+            "stored": "reduced",
+            "transition": "0s, 0s"
+          },
+          "storageKey": "petra.motion-setting.v1"
+        },
+        "name": "motion reduced: preference survives page reload",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "state": {
+            "motion": "reduced",
+            "selected": "system",
+            "stored": "system",
+            "transition": "0s, 0s"
+          },
+          "storageKey": "petra.motion-setting.v1"
+        },
+        "name": "system + OS reduced resolves to reduced",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "state": {
+            "motion": "full",
+            "selected": "full",
+            "stored": "full",
+            "transition": "0.22s, 0.22s"
+          },
+          "storageKey": "petra.motion-setting.v1"
+        },
+        "name": "explicit full overrides OS reduced motion",
+        "status": "pass"
+      },
+      {
+        "detail": [
+          "A:Explore",
+          "A:Simulate",
+          "BUTTON:Learn",
+          "BUTTON:Library",
+          "BUTTON:Search scientific sources and assumptions",
+          "SUMMARY:Display preferences",
+          "BUTTON:Add populationBacteria and other microbe",
+          "BUTTON:Add fungiYeasts and filamentous fungi\u203a",
+          "BUTTON:Add medicineAntibiotics and antifungals\u203a",
+          "BUTTON:Add nutrientChange the environment\u203a",
+          "DIV:Interactive Petra Petri dish from authoritative simulation state",
+          "BUTTON:Return Petri dish camera to whole-dish overview"
+        ],
+        "name": "keyboard: tab reaches interactive controls",
+        "status": "pass"
+      },
+      {
+        "detail": [
+          "A:Explore",
+          "A:Simulate",
+          "BUTTON:Learn",
+          "BUTTON:Library",
+          "BUTTON:Search scientific sources and assumptions",
+          "SUMMARY:Display preferences",
+          "BUTTON:Add populationBacteria and other microbe",
+          "BUTTON:Add fungiYeasts and filamentous fungi\u203a",
+          "BUTTON:Add medicineAntibiotics and antifungals\u203a",
+          "BUTTON:Add nutrientChange the environment\u203a",
+          "DIV:Interactive Petra Petri dish from authoritative simulation state",
+          "BUTTON:Return Petri dish camera to whole-dish overview"
+        ],
+        "name": "keyboard: motion control reachable",
+        "status": "fail"
+      },
+      {
+        "detail": [
+          "A:Explore",
+          "A:Simulate",
+          "BUTTON:Learn",
+          "BUTTON:Library",
+          "BUTTON:Search scientific sources and assumptions",
+          "SUMMARY:Display preferences",
+          "BUTTON:Add populationBacteria and other microbe",
+          "BUTTON:Add fungiYeasts and filamentous fungi\u203a",
+          "BUTTON:Add medicineAntibiotics and antifungals\u203a",
+          "BUTTON:Add nutrientChange the environment\u203a",
+          "DIV:Interactive Petra Petri dish from authoritative simulation state",
+          "BUTTON:Return Petri dish camera to whole-dish overview"
+        ],
+        "name": "keyboard: timeline controls reachable",
+        "status": "fail"
+      },
+      {
+        "detail": [
+          {
+            "activeElement": true,
+            "canceled": true,
+            "defaultPrevented": true,
+            "dispatched": true,
+            "label": "ArrowRight"
+          },
+          {
+            "activeElement": true,
+            "canceled": true,
+            "defaultPrevented": true,
+            "dispatched": true,
+            "label": "Home"
+          },
+          {
+            "activeElement": true,
+            "canceled": true,
+            "defaultPrevented": true,
+            "dispatched": true,
+            "label": "0"
+          },
+          {
+            "activeElement": true,
+            "canceled": true,
+            "defaultPrevented": true,
+            "dispatched": true,
+            "label": "+"
+          },
+          {
+            "activeElement": true,
+            "canceled": true,
+            "defaultPrevented": true,
+            "dispatched": true,
+            "label": "-"
+          }
+        ],
+        "name": "keyboard: plain camera keys are Petra-owned",
+        "status": "pass"
+      },
+      {
+        "detail": [
+          {
+            "activeElement": true,
+            "canceled": false,
+            "defaultPrevented": false,
+            "dispatched": true,
+            "label": "Ctrl++"
+          },
+          {
+            "activeElement": true,
+            "canceled": false,
+            "defaultPrevented": false,
+            "dispatched": true,
+            "label": "Ctrl+-"
+          },
+          {
+            "activeElement": true,
+            "canceled": false,
+            "defaultPrevented": false,
+            "dispatched": true,
+            "label": "Ctrl+0"
+          },
+          {
+            "activeElement": true,
+            "canceled": false,
+            "defaultPrevented": false,
+            "dispatched": true,
+            "label": "Meta++"
+          },
+          {
+            "activeElement": true,
+            "canceled": false,
+            "defaultPrevented": false,
+            "dispatched": true,
+            "label": "Meta+-"
+          },
+          {
+            "activeElement": true,
+            "canceled": false,
+            "defaultPrevented": false,
+            "dispatched": true,
+            "label": "Meta+0"
+          },
+          {
+            "activeElement": true,
+            "canceled": false,
+            "defaultPrevented": false,
+            "dispatched": true,
+            "label": "Ctrl+ArrowRight"
+          },
+          {
+            "activeElement": true,
+            "canceled": false,
+            "defaultPrevented": false,
+            "dispatched": true,
+            "label": "Alt+Home"
+          },
+          {
+            "activeElement": true,
+            "canceled": false,
+            "defaultPrevented": false,
+            "dispatched": true,
+            "label": "Meta+ArrowLeft"
+          }
+        ],
+        "name": "keyboard: browser and OS modified shortcuts stay unowned",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "rect": {
+            "centerX": 719.984375,
+            "centerY": 412.3125,
+            "height": 601,
+            "width": 601,
+            "x": 419.484375,
+            "y": 111.8125
+          },
+          "renderer": {
+            "canvas": true,
+            "fallback": false,
+            "source": "authoritative-snapshot",
+            "status": "ready"
+          }
+        },
+        "name": "wheel ownership: renderer target ready",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "afterSha256": "06f2acea59776534b7a4bb2eb4d9739f9e9b922fee79a4e793250347d8d3c86f",
+          "beforeSha256": "06f2acea59776534b7a4bb2eb4d9739f9e9b922fee79a4e793250347d8d3c86f",
+          "probe": {
+            "canceled": false,
+            "clientX": 719.984375,
+            "clientY": 412.3125,
+            "defaultPrevented": false,
+            "dispatched": true
+          }
+        },
+        "name": "wheel ownership: overview zoom-out chains to page",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "afterSha256": "06f2acea59776534b7a4bb2eb4d9739f9e9b922fee79a4e793250347d8d3c86f",
+          "beforeSha256": "06f2acea59776534b7a4bb2eb4d9739f9e9b922fee79a4e793250347d8d3c86f",
+          "probe": {
+            "canceled": false,
+            "clientX": 421.484375,
+            "clientY": 113.8125,
+            "defaultPrevented": false,
+            "dispatched": true
+          }
+        },
+        "name": "wheel ownership: outside circular aperture stays unowned",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "afterSha256": "562f8dd36733be1dd73eb43f9c76da03e603ff93fb06f4219b3d59c45e68d07b",
+          "beforeSha256": "06f2acea59776534b7a4bb2eb4d9739f9e9b922fee79a4e793250347d8d3c86f",
+          "probe": {
+            "canceled": true,
+            "clientX": 719.984375,
+            "clientY": 412.3125,
+            "defaultPrevented": true,
+            "dispatched": true
+          }
+        },
+        "name": "wheel ownership: center zoom-in is owned and changes presentation",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "attempts": 7,
+          "probes": [
+            {
+              "canceled": true,
+              "clientX": 719.984375,
+              "clientY": 412.3125,
+              "defaultPrevented": true,
+              "dispatched": true
+            },
+            {
+              "canceled": true,
+              "clientX": 719.984375,
+              "clientY": 412.3125,
+              "defaultPrevented": true,
+              "dispatched": true
+            },
+            {
+              "canceled": true,
+              "clientX": 719.984375,
+              "clientY": 412.3125,
+              "defaultPrevented": true,
+              "dispatched": true
+            },
+            {
+              "canceled": true,
+              "clientX": 719.984375,
+              "clientY": 412.3125,
+              "defaultPrevented": true,
+              "dispatched": true
+            },
+            {
+              "canceled": true,
+              "clientX": 719.984375,
+              "clientY": 412.3125,
+              "defaultPrevented": true,
+              "dispatched": true
+            },
+            {
+              "canceled": true,
+              "clientX": 719.984375,
+              "clientY": 412.3125,
+              "defaultPrevented": true,
+              "dispatched": true
+            },
+            {
+              "canceled": false,
+              "clientX": 719.984375,
+              "clientY": 412.3125,
+              "defaultPrevented": false,
+              "dispatched": true
+            }
+          ]
+        },
+        "name": "wheel ownership: saturated zoom-in releases scroll chaining",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "canceled": true,
+          "clientX": 719.984375,
+          "clientY": 412.3125,
+          "defaultPrevented": true,
+          "dispatched": true
+        },
+        "name": "wheel ownership: reverse direction at max zoom is owned",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "rect": {
+            "centerX": 719.984375,
+            "centerY": 412.3125,
+            "height": 601,
+            "width": 601,
+            "x": 419.484375,
+            "y": 111.8125
+          },
+          "renderer": {
+            "canvas": true,
+            "fallback": false,
+            "source": "authoritative-snapshot",
+            "status": "ready"
+          }
+        },
+        "name": "pointer continuity: renderer target ready",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "afterSha256": "05433fd61d518caf0b30c7b9acab488429c13e38da6ca28bd3a17c93798d8f52",
+          "beforeSha256": "562f8dd36733be1dd73eb43f9c76da03e603ff93fb06f4219b3d59c45e68d07b",
+          "captureEvents": [
+            {
+              "pointerId": 1,
+              "type": "got"
+            },
+            {
+              "pointerId": 1,
+              "type": "lost"
+            }
+          ],
+          "outsideX": 1068.484375,
+          "returnPoint": {
+            "x": 828.164375,
+            "y": 460.3125
+          },
+          "zoomProbe": {
+            "canceled": true,
+            "clientX": 719.984375,
+            "clientY": 412.3125,
+            "defaultPrevented": true,
+            "dispatched": true
+          }
+        },
+        "name": "pointer continuity: captured drag survives leaving and re-entering dish host",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "missing": [
+            "Inspector",
+            "Motion preference"
+          ]
+        },
+        "name": "accessibility: landmark/control names exposed",
+        "status": "fail"
+      },
+      {
+        "detail": {
+          "nodeCount": 303
+        },
+        "name": "accessibility: semantic tree non-empty",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "rect": {
+            "centerX": 719.984375,
+            "centerY": 412.3125,
+            "height": 601,
+            "width": 601,
+            "x": 419.484375,
+            "y": 111.8125
+          },
+          "renderer": {
+            "canvas": true,
+            "fallback": false,
+            "source": "authoritative-snapshot",
+            "status": "ready"
+          }
+        },
+        "name": "touch: renderer target ready",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "afterArtifact": "C:\\Users\\noela\\.codex\\worktrees\\petra-laptop-mainline-acceptance\\Petra\\.petra_local\\runs\\20260925T074235868752Z\\expo-browser-acceptance\\artifacts\\pinch-after.png",
+          "afterSha256": "a16bbfd36ec881c157fbacf026fd4a85728965e2622c594f06a68a106b42ed27",
+          "beforeArtifact": "C:\\Users\\noela\\.codex\\worktrees\\petra-laptop-mainline-acceptance\\Petra\\.petra_local\\runs\\20260925T074235868752Z\\expo-browser-acceptance\\artifacts\\pinch-before.png",
+          "beforeSha256": "06f2acea59776534b7a4bb2eb4d9739f9e9b922fee79a4e793250347d8d3c86f"
+        },
+        "name": "touch: two-pointer pinch changes rendered presentation",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "canvas": true,
+          "fallback": false,
+          "source": "authoritative-snapshot",
+          "status": "ready"
+        },
+        "name": "performance: renderer ready",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "artifact": "C:\\Users\\noela\\.codex\\worktrees\\petra-laptop-mainline-acceptance\\Petra\\.petra_local\\runs\\20260925T074235868752Z\\expo-browser-acceptance\\artifacts\\performance-whole-dish.png",
+          "averageFrameMs": 4.167,
+          "averageSynchronousRedrawMs": 0.037,
+          "fixtureSource": "authoritative-snapshot",
+          "framesOver33ms": 0,
+          "p95FrameMs": 4.3,
+          "p95SynchronousRedrawMs": 0.1,
+          "rendererOwnedRedraws": 0,
+          "sampleCount": 175,
+          "totalRendererOwnedRedraws": 0,
+          "view": "whole-dish",
+          "workload": "alternating -32/+32 px center-wheel redraws, Motion Off"
+        },
+        "name": "performance whole-dish: representative redraw samples captured",
+        "status": "fail"
+      },
+      {
+        "detail": {
+          "averageFrameMs": 4.167,
+          "averageSynchronousRedrawMs": 0.037,
+          "framesOver33ms": 0,
+          "p95FrameMs": 4.3,
+          "p95SynchronousRedrawMs": 0.1,
+          "rendererOwnedRedraws": 0,
+          "sampleCount": 175,
+          "totalRendererOwnedRedraws": 0,
+          "view": "whole-dish"
+        },
+        "name": "performance whole-dish: p95 under 33.4ms",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "drawCalls": 905,
+          "drawCallsByMethod": {
+            "drawElements": 905
+          },
+          "drawCallsPerOwnedRedraw": null,
+          "ownedRedraws": 0,
+          "postWarmupSampleCount": 175,
+          "profileResetApplied": true,
+          "wrappedMethods": [
+            "drawArrays",
+            "drawArrays",
+            "drawElements",
+            "drawElements",
+            "drawArraysInstanced",
+            "drawElementsInstanced"
+          ]
+        },
+        "name": "performance whole-dish: WebGL draw calls observed",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "gcEventCount": 0,
+          "gcSupported": false,
+          "gcTotalMs": 0,
+          "longTaskCount": 0,
+          "longTaskMaxMs": 0,
+          "longTaskSupported": true,
+          "longTaskTotalMs": 0,
+          "runtimeAfter": {
+            "JSHeapTotalSize": 65417216,
+            "JSHeapUsedSize": 45056216,
+            "LayoutCount": 0,
+            "Nodes": 980,
+            "RecalcStyleCount": 1,
+            "ScriptDuration": 0.037244,
+            "TaskDuration": 0.130826,
+            "Timestamp": 246927.212131,
+            "domCounters": {
+              "documents": 2,
+              "jsEventListeners": 492,
+              "nodes": 980
+            }
+          },
+          "runtimeBefore": {
+            "JSHeapTotalSize": 65417216,
+            "JSHeapUsedSize": 44646024,
+            "LayoutCount": 0,
+            "Nodes": 980,
+            "RecalcStyleCount": 1,
+            "ScriptDuration": 0.008254,
+            "TaskDuration": 0.021,
+            "Timestamp": 246926.458685,
+            "domCounters": {
+              "documents": 2,
+              "jsEventListeners": 492,
+              "nodes": 980
+            }
+          },
+          "runtimeDelta": {
+            "JSHeapTotalSize": 0,
+            "JSHeapUsedSize": 410192,
+            "LayoutCount": 0,
+            "Nodes": 0,
+            "RecalcStyleCount": 0,
+            "ScriptDuration": 0.028990000000000002,
+            "TaskDuration": 0.109826
+          }
+        },
+        "name": "performance whole-dish: heap and jank metrics captured",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "artifact": "C:\\Users\\noela\\.codex\\worktrees\\petra-laptop-mainline-acceptance\\Petra\\.petra_local\\runs\\20260925T074235868752Z\\expo-browser-acceptance\\artifacts\\performance-colony-zoom.png",
+          "wheelDeltaY": -650,
+          "wholeSha256": "06f2acea59776534b7a4bb2eb4d9739f9e9b922fee79a4e793250347d8d3c86f",
+          "zoomedSha256": "562f8dd36733be1dd73eb43f9c76da03e603ff93fb06f4219b3d59c45e68d07b"
+        },
+        "name": "performance colony zoom: presentation zoom applied",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "artifact": "C:\\Users\\noela\\.codex\\worktrees\\petra-laptop-mainline-acceptance\\Petra\\.petra_local\\runs\\20260925T074235868752Z\\expo-browser-acceptance\\artifacts\\performance-colony-zoom.png",
+          "averageFrameMs": 4.166,
+          "averageSynchronousRedrawMs": 0.035,
+          "fixtureSource": "authoritative-snapshot",
+          "framesOver33ms": 0,
+          "p95FrameMs": 4.3,
+          "p95SynchronousRedrawMs": 0.1,
+          "rendererOwnedRedraws": 0,
+          "sampleCount": 175,
+          "totalRendererOwnedRedraws": 0,
+          "view": "colony-camera-zoom",
+          "workload": "alternating -32/+32 px center-wheel redraws, Motion Off"
+        },
+        "name": "performance colony zoom: representative redraw samples captured",
+        "status": "fail"
+      },
+      {
+        "detail": {
+          "averageFrameMs": 4.166,
+          "averageSynchronousRedrawMs": 0.035,
+          "framesOver33ms": 0,
+          "p95FrameMs": 4.3,
+          "p95SynchronousRedrawMs": 0.1,
+          "rendererOwnedRedraws": 0,
+          "sampleCount": 175,
+          "totalRendererOwnedRedraws": 0,
+          "view": "colony-camera-zoom"
+        },
+        "name": "performance colony zoom: p95 under 33.4ms",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "drawCalls": 910,
+          "drawCallsByMethod": {
+            "drawElements": 910
+          },
+          "drawCallsPerOwnedRedraw": null,
+          "ownedRedraws": 0,
+          "postWarmupSampleCount": 175,
+          "profileZoomApplied": true,
+          "wrappedMethods": [
+            "drawArrays",
+            "drawArrays",
+            "drawElements",
+            "drawElements",
+            "drawArraysInstanced",
+            "drawElementsInstanced"
+          ]
+        },
+        "name": "performance colony zoom: WebGL draw calls observed",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "gcEventCount": 0,
+          "gcSupported": false,
+          "gcTotalMs": 0,
+          "longTaskCount": 0,
+          "longTaskMaxMs": 0,
+          "longTaskSupported": true,
+          "longTaskTotalMs": 0,
+          "runtimeAfter": {
+            "JSHeapTotalSize": 66203648,
+            "JSHeapUsedSize": 46187916,
+            "LayoutCount": 0,
+            "Nodes": 980,
+            "RecalcStyleCount": 2,
+            "ScriptDuration": 0.071344,
+            "TaskDuration": 0.265811,
+            "Timestamp": 246928.074567,
+            "domCounters": {
+              "documents": 2,
+              "jsEventListeners": 492,
+              "nodes": 980
+            }
+          },
+          "runtimeBefore": {
+            "JSHeapTotalSize": 65941504,
+            "JSHeapUsedSize": 45837676,
+            "LayoutCount": 0,
+            "Nodes": 980,
+            "RecalcStyleCount": 2,
+            "ScriptDuration": 0.040869,
+            "TaskDuration": 0.14699,
+            "Timestamp": 246927.318225,
+            "domCounters": {
+              "documents": 2,
+              "jsEventListeners": 492,
+              "nodes": 980
+            }
+          },
+          "runtimeDelta": {
+            "JSHeapTotalSize": 262144,
+            "JSHeapUsedSize": 350240,
+            "LayoutCount": 0,
+            "Nodes": 0,
+            "RecalcStyleCount": 0,
+            "ScriptDuration": 0.030475000000000002,
+            "TaskDuration": 0.11882100000000001
+          }
+        },
+        "name": "performance colony zoom: heap and jank metrics captured",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "limitation": "singleRgba8ColorBufferBytes is one canvas-backing RGBA8 buffer size; it is a workload/capability proxy, not measured VRAM and excludes swapchain multiplicity, textures, geometry, driver allocations, and caches.",
+          "proxy": {
+            "canvasBackingHeight": 601,
+            "canvasBackingWidth": 601,
+            "canvasCssHeight": 601,
+            "canvasCssWidth": 601,
+            "contextKind": "webgl2",
+            "devicePixelRatio": 1,
+            "maxCombinedTextureImageUnits": 32,
+            "maxRenderbufferSize": 16384,
+            "maxTextureImageUnits": 16,
+            "maxTextureSize": 16384,
+            "renderer": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A788) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+            "singleRgba8ColorBufferBytes": 1444804,
+            "vendor": "Google Inc. (Intel)"
+          }
+        },
+        "name": "performance: GPU capability/framebuffer proxy captured",
+        "status": "pass"
+      },
+      {
+        "detail": "Requires an authoritative event trigger fixture.",
+        "name": "causal cues preserve camera ownership",
+        "status": "blocked"
+      },
+      {
+        "detail": "Requires authoritative lineage render fixture.",
+        "name": "critical lineage identity has non-color cue",
+        "status": "blocked"
+      }
+    ],
+    "evidence_boundary": "Headless browser evidence checks layout, accessibility plumbing, motion modes, input event ownership/cancellation, pointer continuity, screenshots, representative renderer frame/redraw time, WebGL draw-call counts from a separate profiled redraw workload, Chromium heap/DOM trends, and long-task/GC symptoms where exposed. The GPU record is explicitly a canvas/capability proxy, not measured VRAM. Human visible-browser review remains required for final aesthetic judgment; this run does not validate scientific correctness or simulator throughput.",
+    "kind": "petra-expo-browser-acceptance",
+    "schema_version": 1,
+    "summary": {
+      "blocked": 2,
+      "fail": 5,
+      "pass": 46
+    },
+    "target_url": "http://127.0.0.1:4173/"
+  },
+  "cwd": ".",
+  "description": "Headless Chrome/Chromium expo QA for layout, motion modes, keyboard/touch smoke, accessibility, screenshots, and frame timing.",
+  "duration_seconds": 13.084484,
+  "error": null,
+  "id": "expo-browser-acceptance",
+  "issues": [
+    6,
+    10,
+    59,
+    468,
+    500,
+    577,
+    642
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T074235868752Z\\expo-browser-acceptance\\artifacts",
+  "log_tail": "{\"blocked\": 2, \"fail\": 5, \"pass\": 46}\r\n",
+  "return_code": 1,
+  "status": "failed",
+  "timeout_seconds": 300
+}

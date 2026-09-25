@@ -1,0 +1,29 @@
+{
+  "command": [
+    "python",
+    "experiments/blocked.py",
+    "--experiment-id",
+    "phage-mechanism-statistics",
+    "--blocked-on",
+    "283",
+    "--reason",
+    "Issue #491 has landed the infection multiplicity policy; issue #283 must still land discrete burst/lysis bookkeeping before statistical controls are meaningful."
+  ],
+  "compact_result": null,
+  "cwd": ".",
+  "description": "BLOCKED on #283: adsorption/infection/lysis statistical controls after Phase 10 integration.",
+  "duration_seconds": 0.085891,
+  "error": null,
+  "id": "phage-mechanism-statistics",
+  "issues": [
+    12,
+    283,
+    491,
+    542
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T072827685772Z\\phage-mechanism-statistics\\artifacts",
+  "log_tail": "Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases.\r\n",
+  "return_code": 9009,
+  "status": "failed",
+  "timeout_seconds": 30
+}

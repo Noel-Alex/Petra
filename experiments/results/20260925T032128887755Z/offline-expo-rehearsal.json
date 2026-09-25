@@ -1,0 +1,25 @@
+{
+  "command": [
+    "python",
+    "tools/offline_expo_acceptance.py"
+  ],
+  "compact_result": null,
+  "cwd": ".",
+  "description": "Current-build offline/no-external-network preflight; final frozen 90-second/3-minute rehearsal remains #580.",
+  "duration_seconds": 0.118686,
+  "error": null,
+  "id": "offline-expo-rehearsal",
+  "issues": [
+    11,
+    37,
+    532,
+    542,
+    557,
+    580
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T032128887755Z\\offline-expo-rehearsal\\artifacts",
+  "log_tail": "Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases.\r\n",
+  "return_code": 9009,
+  "status": "failed",
+  "timeout_seconds": 600
+}

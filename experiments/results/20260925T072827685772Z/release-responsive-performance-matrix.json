@@ -1,0 +1,28 @@
+{
+  "command": [
+    "python",
+    "experiments/blocked.py",
+    "--experiment-id",
+    "release-responsive-performance-matrix",
+    "--blocked-on",
+    "532",
+    "--reason",
+    "Issue #532 must establish the release candidate/build target before the final responsive performance matrix can measure the deliverable."
+  ],
+  "compact_result": null,
+  "cwd": ".",
+  "description": "BLOCKED on #532: target/narrow viewports, motion modes, and representative redraw performance.",
+  "duration_seconds": 0.096515,
+  "error": null,
+  "id": "release-responsive-performance-matrix",
+  "issues": [
+    59,
+    532,
+    542
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T072827685772Z\\release-responsive-performance-matrix\\artifacts",
+  "log_tail": "Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases.\r\n",
+  "return_code": 9009,
+  "status": "failed",
+  "timeout_seconds": 30
+}

@@ -1,0 +1,28 @@
+{
+  "command": [
+    "python",
+    "experiments/ml_node_authoritative_profile.py"
+  ],
+  "compact_result": null,
+  "cwd": ".",
+  "description": "Authoritative composed Node worker_threads profile: direct parity, distinct-worker concurrency, durable resume/finalization, and CPU/RSS evidence; infrastructure-only and non-promotable.",
+  "duration_seconds": 0.090808,
+  "error": null,
+  "id": "ml-node-authoritative-profile",
+  "issues": [
+    13,
+    37,
+    531,
+    542,
+    543,
+    544,
+    594,
+    682,
+    685
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T072827685772Z\\ml-node-authoritative-profile\\artifacts",
+  "log_tail": "Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases.\r\n",
+  "return_code": 9009,
+  "status": "failed",
+  "timeout_seconds": 1800
+}

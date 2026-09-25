@@ -1,0 +1,248 @@
+{
+  "command": [
+    "npm",
+    "exec",
+    "--offline",
+    "--",
+    "vitest",
+    "run",
+    "--config",
+    "experiments/vitest.ecology_calibration_sweep.config.ts"
+  ],
+  "compact_result": {
+    "acceptance": {
+      "all_grid_candidates_satisfy_qualitative_contract": true,
+      "qualitative_targets_non_identifying": true,
+      "quantitative_self_reference_detects_sensitivity": true,
+      "source_profile_present_in_grid": true,
+      "source_profile_validation_loss_zero": true
+    },
+    "baseline_reference": {
+      "candidate_index": 121,
+      "validation_loss": 0
+    },
+    "classification": "engineering qualitative-identifiability + self-reference sensitivity",
+    "completed_at_utc": "2026-09-25T07:29:21.220Z",
+    "experiment_id": "ecology-calibration-sweep",
+    "limitations": [
+      "Candidate factors are a versioned analysis grid around the existing engineering profile, not proposed biological parameter values.",
+      "Quantitative validation observations are generated from the current engineering profile itself and therefore provide sensitivity/regression evidence only.",
+      "The experiment deliberately cannot promote a fitted parameter set or close the physical/source-compatible resource binding tracked in #227.",
+      "The flagship resource and biomass channels remain model-resource and model-biomass, not glucose, CFU, dry mass, or physical concentration.",
+      "A future promotable calibration requires independent versioned targets with compatible units/context and a separately reviewed objective."
+    ],
+    "local_run_id": "20260925T072827685772Z",
+    "objective": {
+      "acceptable_candidate_count": 243,
+      "acceptable_ranges": [
+        {
+          "distinctValues": 3,
+          "maximum": 1.6,
+          "minimum": 0.4,
+          "parameter": "maxDivisionRate"
+        },
+        {
+          "distinctValues": 3,
+          "maximum": 2,
+          "minimum": 0.5,
+          "parameter": "halfSaturation"
+        },
+        {
+          "distinctValues": 3,
+          "maximum": 2,
+          "minimum": 0.5,
+          "parameter": "biomassYield"
+        },
+        {
+          "distinctValues": 3,
+          "maximum": 64,
+          "minimum": 16,
+          "parameter": "localCapacity"
+        },
+        {
+          "distinctValues": 3,
+          "maximum": 0.1,
+          "minimum": 0.025,
+          "parameter": "spreadRate"
+        }
+      ],
+      "candidate_count": 243,
+      "dataset_identity": "engineering:self-reference-ecology-behavior-contract-v1",
+      "factor_grid": [
+        0.5,
+        1,
+        2
+      ],
+      "id": "ecoli-ciprofloxacin-engineering-qualitative-identifiability",
+      "identifiability_status": "multiple-acceptable-candidates",
+      "identity": "{\"schemaVersion\":1,\"id\":\"ecoli-ciprofloxacin-engineering-qualitative-identifiability\",\"version\":\"1.0.0\",\"datasetIdentity\":\"engineering:self-reference-ecology-behavior-contract-v1\",\"sourceProfileIdentity\":\"{\\\"schemaVersion\\\":1,\\\"id\\\":\\\"ecoli-ciprofloxacin-ecology-engineering\\\",\\\"version\\\":\\\"1.1.0\\\",\\\"scenarioId\\\":\\\"ecoli-ciprofloxacin-spatial\\\",\\\"scenarioVersion\\\":\\\"1.4.0-research\\\",\\\"resourceContextVersion\\\":\\\"unbound-model-resource-v1\\\",\\\"classification\\\":\\\"engineering\\\",\\\"units\\\":{\\\"time\\\":\\\"hour\\\",\\\"resource\\\":\\\"model-resource\\\",\\\"biomass\\\":\\\"model-biomass\\\"},\\\"hoursPerTick\\\":0.02,\\\"growth\\\":{\\\"maxDivisionRate\\\":0.8,\\\"halfSaturation\\\":1,\\\"biomassYield\\\":1,\\\"localCapacity\\\":32,\\\"spreadRate\\\":0.05},\\\"behaviorTargets\\\":[\\\"positive-early-growth\\\",\\\"resource-depletion\\\",\\\"zero-resource-no-growth\\\",\\\"capacity-bound\\\",\\\"conservative-neighbour-spread\\\"],\\\"provenance\\\":{\\\"classification\\\":\\\"engineering\\\",\\\"context\\\":\\\"Research-stage flagship execution in dimensionless model-resource/model-biomass units under unbound-model-resource-v1.\\\",\\\"calibrationNote\\\":\\\"Engineering-normalized values are chosen to keep explicit ecology stepping stable and to exercise growth, depletion, capacity, and spread invariants; they are not fitted to a source culture.\\\",\\\"limitation\\\":\\\"No physical substrate, concentration, CFU, dry-weight, colony-speed, or measured MG1655 Monod claim is attached. Science-Mode physical growth parameters remain UNBOUND.\\\"}}\",\"lossPolicy\":\"weighted-squared-scaled-error-v1\",\"candidateBudget\":243,\"acceptableTrainingLoss\":0,\"parameterGrids\":[{\"parameter\":\"maxDivisionRate\",\"minimum\":0.4,\"maximum\":1.6,\"candidates\":[0.4,0.8,1.6]},{\"parameter\":\"halfSaturation\",\"minimum\":0.5,\"maximum\":2,\"candidates\":[0.5,1,2]},{\"parameter\":\"biomassYield\",\"minimum\":0.5,\"maximum\":2,\"candidates\":[0.5,1,2]},{\"parameter\":\"localCapacity\",\"minimum\":16,\"maximum\":64,\"candidates\":[16,32,64]},{\"parameter\":\"spreadRate\",\"minimum\":0.025,\"maximum\":0.1,\"candidates\":[0.025,0.05,0.1]}],\"targets\":[{\"id\":\"capacity-bound\",\"behaviorTarget\":\"capacity-bound\",\"metric\":\"capacity-bound-violation\",\"role\":\"fit\",\"observed\":0,\"scale\":1,\"weight\":1,\"unit\":\"dimensionless\",\"context\":\"Declared engineering behavior: a cell initialized at local capacity must not create additional division biomass.\"},{\"id\":\"conservative-neighbour-spread\",\"behaviorTarget\":\"conservative-neighbour-spread\",\"metric\":\"spread-conservation-violation\",\"role\":\"fit\",\"observed\":0,\"scale\":1,\"weight\":1,\"unit\":\"dimensionless\",\"context\":\"Declared engineering behavior: one explicit neighbour-spread step conserves model biomass within the existing Float32 regression tolerance.\"},{\"id\":\"neighbour-spread-occurs\",\"behaviorTarget\":\"conservative-neighbour-spread\",\"metric\":\"neighbour-spread-violation\",\"role\":\"fit\",\"observed\":0,\"scale\":1,\"weight\":1,\"unit\":\"dimensionless\",\"context\":\"Declared engineering behavior: positive configured spread moves positive model biomass into an available neighbour.\"},{\"id\":\"positive-early-growth\",\"behaviorTarget\":\"positive-early-growth\",\"metric\":\"positive-growth-violation\",\"role\":\"fit\",\"observed\":0,\"scale\":1,\"weight\":1,\"unit\":\"dimensionless\",\"context\":\"Declared engineering behavior: positive resource and biomass produce positive early growth under the model-unit ecology profile.\"},{\"id\":\"resource-depletion\",\"behaviorTarget\":\"resource-depletion\",\"metric\":\"resource-depletion-violation\",\"role\":\"fit\",\"observed\":0,\"scale\":1,\"weight\":1,\"unit\":\"dimensionless\",\"context\":\"Declared engineering behavior: positive early growth consumes positive model-resource.\"},{\"id\":\"self-reference-early-biomass\",\"behaviorTarget\":\"positive-early-growth\",\"metric\":\"early-biomass\",\"role\":\"validation\",\"observed\":1.422044038772583,\"scale\":1.422044038772583,\"weight\":1,\"unit\":\"model-biomass\",\"context\":\"Engineering sensitivity reference only: current execution-profile output after the fixed probe horizon. This is not independent biological evidence.\"},{\"id\":\"self-reference-neighbour-biomass\",\"behaviorTarget\":\"conservative-neighbour-spread\",\"metric\":\"neighbour-biomass\",\"role\":\"validation\",\"observed\":0.0010000000474974513,\"scale\":0.0010000000474974513,\"weight\":1,\"unit\":\"model-biomass\",\"context\":\"Engineering sensitivity reference only: current execution-profile one-step neighbour biomass. This is not an observed colony-spread measurement.\"},{\"id\":\"self-reference-resource-remaining\",\"behaviorTarget\":\"resource-depletion\",\"metric\":\"resource-remaining\",\"role\":\"validation\",\"observed\":7.577956676483154,\"scale\":7.577956676483154,\"weight\":1,\"unit\":\"model-resource\",\"context\":\"Engineering sensitivity reference only: current execution-profile resource after the fixed probe horizon. This is not a physical substrate concentration.\"},{\"id\":\"zero-resource-no-growth\",\"behaviorTarget\":\"zero-resource-no-growth\",\"metric\":\"zero-resource-no-growth-violation\",\"role\":\"fit\",\"observed\":0,\"scale\":1,\"weight\":1,\"unit\":\"dimensionless\",\"context\":\"Declared engineering behavior: zero model-resource produces exactly zero division biomass.\"}],\"limitation\":\"Qualitative engineering behavior plus self-reference sensitivity cannot establish physical or uniquely calibrated MG1655 parameters. Multiple acceptable candidates are expected and no fitted value from this experiment is promotable.\"}",
+      "loss_policy": "weighted-squared-scaled-error-v1",
+      "version": "1.0.0"
+    },
+    "parameter_validation_sensitivity": [
+      {
+        "parameter": "maxDivisionRate",
+        "values": [
+          {
+            "candidateCount": 81,
+            "maxValidationLoss": 0.34423373050603495,
+            "meanValidationLoss": 0.14805935716875082,
+            "minValidationLoss": 0.007698659163137781,
+            "value": 0.4
+          },
+          {
+            "candidateCount": 81,
+            "maxValidationLoss": 0.33481542298013184,
+            "meanValidationLoss": 0.13949463353812466,
+            "minValidationLoss": 0,
+            "value": 0.8
+          },
+          {
+            "candidateCount": 81,
+            "maxValidationLoss": 0.42416080920424276,
+            "meanValidationLoss": 0.19853074792397607,
+            "minValidationLoss": 0.03391176694370499,
+            "value": 1.6
+          }
+        ]
+      },
+      {
+        "parameter": "halfSaturation",
+        "values": [
+          {
+            "candidateCount": 81,
+            "maxValidationLoss": 0.42416080920424276,
+            "meanValidationLoss": 0.1687832894842182,
+            "minValidationLoss": 0.00015534572755426858,
+            "value": 0.5
+          },
+          {
+            "candidateCount": 81,
+            "maxValidationLoss": 0.40219536582946996,
+            "meanValidationLoss": 0.16252473558488706,
+            "minValidationLoss": 0,
+            "value": 1
+          },
+          {
+            "candidateCount": 81,
+            "maxValidationLoss": 0.3742052835157745,
+            "meanValidationLoss": 0.15477671356174635,
+            "minValidationLoss": 0.00041965590364094913,
+            "value": 2
+          }
+        ]
+      },
+      {
+        "parameter": "biomassYield",
+        "values": [
+          {
+            "candidateCount": 81,
+            "maxValidationLoss": 0.42416080920424276,
+            "meanValidationLoss": 0.1645282936015172,
+            "minValidationLoss": 0.0010202164565773944,
+            "value": 0.5
+          },
+          {
+            "candidateCount": 81,
+            "maxValidationLoss": 0.4104140352297702,
+            "meanValidationLoss": 0.16086493400082819,
+            "minValidationLoss": 0,
+            "value": 1
+          },
+          {
+            "candidateCount": 81,
+            "maxValidationLoss": 0.4085341544496472,
+            "meanValidationLoss": 0.1606915110285062,
+            "minValidationLoss": 0.0002577148175955148,
+            "value": 2
+          }
+        ]
+      },
+      {
+        "parameter": "localCapacity",
+        "values": [
+          {
+            "candidateCount": 81,
+            "maxValidationLoss": 0.42416080920424276,
+            "meanValidationLoss": 0.16202824621028386,
+            "minValidationLoss": 0,
+            "value": 16
+          },
+          {
+            "candidateCount": 81,
+            "maxValidationLoss": 0.42416080920424276,
+            "meanValidationLoss": 0.16202824621028386,
+            "minValidationLoss": 0,
+            "value": 32
+          },
+          {
+            "candidateCount": 81,
+            "maxValidationLoss": 0.42416080920424276,
+            "meanValidationLoss": 0.16202824621028386,
+            "minValidationLoss": 0,
+            "value": 64
+          }
+        ]
+      },
+      {
+        "parameter": "spreadRate",
+        "values": [
+          {
+            "candidateCount": 81,
+            "maxValidationLoss": 0.17416080920424273,
+            "meanValidationLoss": 0.10647269065472838,
+            "minValidationLoss": 0.08333333333333333,
+            "value": 0.025
+          },
+          {
+            "candidateCount": 81,
+            "maxValidationLoss": 0.0908274758709094,
+            "meanValidationLoss": 0.023139357321394993,
+            "minValidationLoss": 0,
+            "value": 0.05
+          },
+          {
+            "candidateCount": 81,
+            "maxValidationLoss": 0.42416080920424276,
+            "meanValidationLoss": 0.3564726906547284,
+            "minValidationLoss": 0.3333333333333333,
+            "value": 0.1
+          }
+        ]
+      }
+    ],
+    "promotable_parameter_fit": false,
+    "promotion_reason": "The fit targets are qualitative engineering invariants and admit multiple solutions; quantitative holdouts are self-references to the existing engineering profile rather than independent biological observations.",
+    "schema_version": 1,
+    "source_profile": {
+      "classification": "engineering",
+      "id": "ecoli-ciprofloxacin-ecology-engineering",
+      "identity": "{\"schemaVersion\":1,\"id\":\"ecoli-ciprofloxacin-ecology-engineering\",\"version\":\"1.1.0\",\"scenarioId\":\"ecoli-ciprofloxacin-spatial\",\"scenarioVersion\":\"1.4.0-research\",\"resourceContextVersion\":\"unbound-model-resource-v1\",\"classification\":\"engineering\",\"units\":{\"time\":\"hour\",\"resource\":\"model-resource\",\"biomass\":\"model-biomass\"},\"hoursPerTick\":0.02,\"growth\":{\"maxDivisionRate\":0.8,\"halfSaturation\":1,\"biomassYield\":1,\"localCapacity\":32,\"spreadRate\":0.05},\"behaviorTargets\":[\"positive-early-growth\",\"resource-depletion\",\"zero-resource-no-growth\",\"capacity-bound\",\"conservative-neighbour-spread\"],\"provenance\":{\"classification\":\"engineering\",\"context\":\"Research-stage flagship execution in dimensionless model-resource/model-biomass units under unbound-model-resource-v1.\",\"calibrationNote\":\"Engineering-normalized values are chosen to keep explicit ecology stepping stable and to exercise growth, depletion, capacity, and spread invariants; they are not fitted to a source culture.\",\"limitation\":\"No physical substrate, concentration, CFU, dry-weight, colony-speed, or measured MG1655 Monod claim is attached. Science-Mode physical growth parameters remain UNBOUND.\"}}",
+      "units": {
+        "biomass": "model-biomass",
+        "resource": "model-resource",
+        "time": "hour"
+      },
+      "version": "1.1.0"
+    },
+    "started_at_utc": "2026-09-25T07:29:21.183Z",
+    "status": "passed"
+  },
+  "cwd": ".",
+  "description": "Engineering-profile qualitative-identifiability and self-reference sensitivity sweep; explicitly non-promotable without independent targets.",
+  "duration_seconds": 1.774651,
+  "error": null,
+  "id": "ecology-calibration-sweep",
+  "issues": [
+    3,
+    227,
+    494,
+    542,
+    657
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T072827685772Z\\ecology-calibration-sweep\\artifacts",
+  "log_tail": "\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv3.2.7 \u001b[39m\u001b[90mN:/projects/Petra\u001b[39m\n\n \u001b[32m\u2713\u001b[39m experiments/ecology_calibration_sweep.experiment.ts \u001b[2m(\u001b[22m\u001b[2m1 test\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 42\u001b[2mms\u001b[22m\u001b[39m\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m1 passed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m1 passed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m   Start at \u001b[22m 12:59:20\n\u001b[2m   Duration \u001b[22m 360ms\u001b[2m (transform 75ms, setup 0ms, collect 98ms, tests 42ms, environment 0ms, prepare 75ms)\u001b[22m\n\n",
+  "return_code": 0,
+  "status": "passed",
+  "timeout_seconds": 1800
+}

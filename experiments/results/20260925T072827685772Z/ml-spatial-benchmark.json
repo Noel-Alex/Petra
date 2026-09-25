@@ -1,0 +1,28 @@
+{
+  "command": [
+    "python",
+    "experiments/blocked.py",
+    "--experiment-id",
+    "ml-spatial-benchmark",
+    "--blocked-on",
+    "531",
+    "--reason",
+    "Issue #531 must first establish sufficient authoritative dataset scale and promotion gates; spatial modeling is intentionally not started earlier."
+  ],
+  "compact_result": null,
+  "cwd": ".",
+  "description": "BLOCKED on #531: spatial surrogate benchmark only after authoritative dataset scale is established.",
+  "duration_seconds": 0.088364,
+  "error": null,
+  "id": "ml-spatial-benchmark",
+  "issues": [
+    13,
+    531,
+    542
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T072827685772Z\\ml-spatial-benchmark\\artifacts",
+  "log_tail": "Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases.\r\n",
+  "return_code": 9009,
+  "status": "failed",
+  "timeout_seconds": 30
+}

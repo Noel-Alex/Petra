@@ -1,0 +1,26 @@
+{
+  "command": [
+    "python",
+    "tools/expo_browser_acceptance.py"
+  ],
+  "compact_result": null,
+  "cwd": ".",
+  "description": "Headless Chrome/Chromium expo QA for layout, motion modes, keyboard/touch smoke, accessibility, screenshots, and frame timing.",
+  "duration_seconds": 0.137333,
+  "error": null,
+  "id": "expo-browser-acceptance",
+  "issues": [
+    6,
+    10,
+    59,
+    468,
+    500,
+    577,
+    642
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T032128887755Z\\expo-browser-acceptance\\artifacts",
+  "log_tail": "Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases.\r\n",
+  "return_code": 9009,
+  "status": "failed",
+  "timeout_seconds": 300
+}

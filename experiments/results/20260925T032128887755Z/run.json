@@ -1,0 +1,221 @@
+{
+  "environment": {
+    "logical_cpu_count": 32,
+    "machine": "AMD64",
+    "node": "v24.14.0",
+    "npm": "11.12.0",
+    "nvidia_gpu": "NVIDIA GeForce RTX 4080 Laptop GPU, 610.74, 12282 MiB",
+    "os": "Windows-11-10.0.22631-SP0",
+    "processor": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "python": "3.14.0 (tags/v3.14.0:ebf955d, Oct  7 2025, 10:15:03) [MSC v.1944 64 bit (AMD64)]",
+    "recorded_at_utc": "2026-09-25T03:21:28.948331+00:00",
+    "release": "11",
+    "system": "Windows"
+  },
+  "experiment_count": 16,
+  "failed": 12,
+  "manifest_version": 1,
+  "passed": 4,
+  "results": [
+    {
+      "duration_seconds": 0.137333,
+      "id": "expo-browser-acceptance",
+      "issues": [
+        6,
+        10,
+        59,
+        468,
+        500,
+        577,
+        642
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 0.083259,
+      "id": "cross-browser-release-acceptance",
+      "issues": [
+        59,
+        532,
+        643
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 0.091822,
+      "id": "worker-transport-profile",
+      "issues": [
+        519,
+        577,
+        630,
+        642
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 2.480155,
+      "id": "flagship-runtime-smoke",
+      "issues": [
+        37,
+        42,
+        542,
+        626,
+        717
+      ],
+      "status": "passed"
+    },
+    {
+      "duration_seconds": 40.039614,
+      "id": "flagship-long-soak",
+      "issues": [
+        3,
+        5,
+        37,
+        542,
+        558
+      ],
+      "status": "passed"
+    },
+    {
+      "duration_seconds": 9.512751,
+      "id": "seed-replay-matrix",
+      "issues": [
+        5,
+        37,
+        542
+      ],
+      "status": "passed"
+    },
+    {
+      "duration_seconds": 1.700306,
+      "id": "ecology-calibration-sweep",
+      "issues": [
+        3,
+        227,
+        494,
+        542,
+        657
+      ],
+      "status": "passed"
+    },
+    {
+      "duration_seconds": 0.147046,
+      "id": "evolution-replicate-statistics",
+      "issues": [
+        5,
+        37,
+        562,
+        542
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 0.10565,
+      "id": "phage-mechanism-statistics",
+      "issues": [
+        12,
+        283,
+        491,
+        542
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 0.1047,
+      "id": "ml-node-authoritative-profile",
+      "issues": [
+        13,
+        37,
+        531,
+        542,
+        543,
+        544,
+        594,
+        682,
+        685
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 0.116854,
+      "id": "ml-mechanistic-dataset",
+      "issues": [
+        13,
+        442,
+        531,
+        542,
+        544,
+        594,
+        682,
+        685
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 0.113264,
+      "id": "ml-aggregate-benchmark",
+      "issues": [
+        13,
+        531,
+        544,
+        545,
+        542
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 0.106993,
+      "id": "ml-spatial-benchmark",
+      "issues": [
+        13,
+        531,
+        542
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 0.118686,
+      "id": "offline-expo-rehearsal",
+      "issues": [
+        11,
+        37,
+        532,
+        542,
+        557,
+        580
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 0.114506,
+      "id": "final-expo-rehearsal",
+      "issues": [
+        11,
+        30,
+        37,
+        42,
+        59,
+        159,
+        532,
+        542,
+        557,
+        561,
+        580,
+        626
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 0.10536,
+      "id": "release-responsive-performance-matrix",
+      "issues": [
+        59,
+        532,
+        542
+      ],
+      "status": "failed"
+    }
+  ],
+  "run_id": "20260925T032128887755Z",
+  "schema_version": 1
+}

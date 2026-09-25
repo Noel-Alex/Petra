@@ -1,0 +1,23 @@
+{
+  "command": [
+    "python",
+    "tools/worker_transport_profile.py"
+  ],
+  "compact_result": null,
+  "cwd": ".",
+  "description": "Real composed browser Worker transport profile: payload-size breakdown, sender postMessage handoff, request-window/worker time, and accepted-snapshot clone cost.",
+  "duration_seconds": 0.082486,
+  "error": null,
+  "id": "worker-transport-profile",
+  "issues": [
+    519,
+    577,
+    630,
+    642
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T072827685772Z\\worker-transport-profile\\artifacts",
+  "log_tail": "Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases.\r\n",
+  "return_code": 9009,
+  "status": "failed",
+  "timeout_seconds": 300
+}

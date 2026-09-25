@@ -1,0 +1,30 @@
+{
+  "command": [
+    "python",
+    "experiments/blocked.py",
+    "--experiment-id",
+    "ml-aggregate-benchmark",
+    "--blocked-on",
+    "544",
+    "--reason",
+    "Issue #544 must publish the first authoritative group-split mechanistic dataset evidence before #545 can run reproducible held-out aggregate model benchmarking."
+  ],
+  "compact_result": null,
+  "cwd": ".",
+  "description": "BLOCKED on #544: aggregate baseline/candidate training and held-out evaluation after the first authoritative dataset exists.",
+  "duration_seconds": 0.113264,
+  "error": null,
+  "id": "ml-aggregate-benchmark",
+  "issues": [
+    13,
+    531,
+    544,
+    545,
+    542
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T032128887755Z\\ml-aggregate-benchmark\\artifacts",
+  "log_tail": "Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases.\r\n",
+  "return_code": 9009,
+  "status": "failed",
+  "timeout_seconds": 30
+}

@@ -97,6 +97,29 @@ similar values make them useful calibration/consistency targets, but they are
 **not** a directly measured co-culture competition experiment and must not be
 converted into a measured pairwise interaction coefficient.
 
+
+## Presentation-only morphology evidence
+
+Petra may use a **coarse rod-shaped representative silhouette** for the exact
+selected `B. subtilis` 168 `trp+ sigE-` pack, but this is a transferred
+presentation claim rather than a simulator parameter.
+
+Juillot et al. 2021 (DOI `10.1128/mSystems.01017-21`) directly studies the
+parental strain-168 background during exponential growth and treats/observes
+wild-type `B. subtilis` as a rod-shaped model using microscopy. Tännler,
+Decasper & Sauer 2008 (DOI `10.1186/1475-2859-7-19`) supplies the exact
+selected `168 trp+ sigE-` physiology identity and reports `sigE-` as
+phenotypically silent under its unrestricted glucose-growth condition while
+blocking later sporulation. Together these records support transferring only
+the **coarse `bacterium + rod` silhouette class** to the selected pack.
+
+The transfer does **not** authorize physical cell length/width/aspect ratio,
+chain length, orientation or division dynamics, one-glyph-per-cell identity or
+counts, motility, colony shape, sporulation morphology, or any simulation
+parameter. Exact runtime use must still resolve through the presentation
+catalog's biological `taxonId + contentVersion` join; taxon names or
+`microbialGroup` alone are never morphology authority.
+
 ## Petra mechanism mapping
 
 ### Authorized first interaction

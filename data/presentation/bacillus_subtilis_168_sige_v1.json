@@ -1,0 +1,27 @@
+{
+  "kind": "petra-organism-presentation-identity",
+  "schemaVersion": 1,
+  "id": "bacillus-subtilis-168-trpplus-sige-representative-morphology-v1",
+  "scientificName": "Bacillus subtilis",
+  "background": "168 trp+ sigE-; sporulation-deficient laboratory derivative",
+  "organismKind": "bacterium",
+  "morphology": "rod",
+  "provenance": {
+    "classification": "transferred",
+    "sources": [
+      {
+        "key": "juillot_2021_bsubtilis_cell_width",
+        "doi": "10.1128/mSystems.01017-21",
+        "context": "Wild-type Bacillus subtilis parental strain 168 during exponential growth; microscopy and morphogenesis analysis explicitly support the coarse rod-shaped presentation class."
+      },
+      {
+        "key": "tannler_decasper_sauer_2008_bsubtilis_sige",
+        "doi": "10.1186/1475-2859-7-19",
+        "context": "Exact selected Bacillus subtilis 168 trp+ sigE- physiology background in aerobic M9 glucose growth at 37 C; supports the derivative identity and the bounded transfer away from sporulation-state morphology."
+      }
+    ],
+    "context": "Coarse representative morphology for Petra's selected Bacillus subtilis 168 trp+ sigE- shared-resource competitor pack.",
+    "transferNote": "Rod morphology is transferred from direct microscopy/morphogenesis evidence for the parental 168 background to the exact selected trp+ sigE- derivative only as a coarse exponential-growth representative silhouette. The selected physiology source reports the sigE mutation as phenotypically silent under its unrestricted glucose-growth condition while blocking later sporulation; no exact-derivative cell-shape measurement is claimed.",
+    "limitation": "Authorizes only a rod-shaped representative glyph for the named Bacillus pack. It does not authorize physical cell length, width, aspect ratio, chain length, orientation or division dynamics, one-glyph-per-cell identity, literal cell counts, sporulation morphology, motility, colony shape, or any simulation parameter."
+  }
+}

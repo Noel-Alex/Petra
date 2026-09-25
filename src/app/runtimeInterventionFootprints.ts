@@ -61,6 +61,22 @@ export class RuntimeInterventionFootprintAccumulator {
   ): RuntimeInterventionFootprintFrame {
     const { snapshot, runBranchIdentity } =
       validateRuntimeFootprintAuthority(runtimeState);
+    return this.projectSnapshot(snapshot, runBranchIdentity);
+  }
+
+  /**
+   * Hot-path variant for callers that already obtained the snapshot and branch
+   * atomically from ExperimentRuntime state. This deliberately avoids depending
+   * on unrelated worker/presentation state so React can memoize O(grid) dish
+   * projection by authoritative snapshot identity.
+   */
+  projectSnapshot(
+    snapshot: ComposedSimulationSnapshot,
+    runBranchIdentity: string,
+  ): RuntimeInterventionFootprintFrame {
+    assertCanonicalIdentity("runBranchIdentity", runBranchIdentity);
+    assertCheckpointFrontier(snapshot);
+
     const identityKey = runIdentityKey(snapshot.checkpoint.identity);
     const cache = this.cache;
 

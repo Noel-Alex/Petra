@@ -10,7 +10,7 @@ import { projectAcceptedInterventionFootprint } from "../render/acceptedInterven
 import {
   assertLineageDensityWithinPresentationScale,
   validateLineageDensityPresentationScale,
-  type SourceOwnedLineageDensityPresentationScale,
+  type SourceOwnedFixedLineageDensityPresentationScale,
 } from "../render/lineageDensityScale";
 import {
   validateRenderSnapshot,
@@ -41,7 +41,7 @@ export function projectComposedDishSnapshot(
   runBranchIdentity: string,
   ecologyObservation: RuntimeEcologyObservation | null = null,
   organismPresentationAuthority: ComposedDishOrganismPresentationAuthority | null = null,
-  lineageDensityPresentationScale: SourceOwnedLineageDensityPresentationScale | null = null,
+  lineageDensityPresentationScale: SourceOwnedFixedLineageDensityPresentationScale | null = null,
 ): DishRenderSnapshot | null {
   if (snapshot?.checkpoint.authority !== "composed") return null;
   return projectAuthoritativeComposedDishSnapshot(
@@ -58,7 +58,7 @@ export function projectAuthoritativeComposedDishSnapshot(
   runBranchIdentity: string,
   ecologyObservation: RuntimeEcologyObservation | null = null,
   organismPresentationAuthority: ComposedDishOrganismPresentationAuthority | null = null,
-  lineageDensityPresentationScale: SourceOwnedLineageDensityPresentationScale | null = null,
+  lineageDensityPresentationScale: SourceOwnedFixedLineageDensityPresentationScale | null = null,
 ): DishRenderSnapshot {
   if (lineageDensityPresentationScale !== null) {
     validateLineageDensityPresentationScale(lineageDensityPresentationScale);

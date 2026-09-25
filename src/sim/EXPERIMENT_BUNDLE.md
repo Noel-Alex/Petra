@@ -79,8 +79,13 @@ silently extending v2.
 ## Evidence
 
 Optional authoritative metric samples must belong to the exact bundle identity
-and use the current metric sampling contract. Synthetic infrastructure bundles
-cannot claim composed biological metric samples.
+and use the current metric sampling contract. One bundle metric history uses one
+exact sampling policy; every sample tick must lie on that policy's declared
+cadence, and tick plus biological time must advance strictly between samples.
+This keeps exported/imported evidence at least as strict as live analysis
+consumers and rejects duplicate, regressing, off-cadence, or mixed-policy
+histories before they can be treated as scientific evidence. Synthetic
+infrastructure bundles cannot claim composed biological metric samples.
 
 Accepted `ciprofloxacin-applied` events may carry the exact validated
 intervention payload that produced the mutable checkpoint concentration state.

@@ -13,9 +13,11 @@ import { pathToFileURL } from "node:url";
 
 import {
   createMechanisticExecutionDefinition,
+  createMechanisticRunConditionExecutionDefinition,
   createNoInterventionExecutionDefinition,
   createNoInterventionSweepFamily,
   createSweepParameterPointForBinding,
+  createSweepRunConditionForConfig,
 } from "../src/ml/executionDefinition";
 import {
   createMechanisticExecutionSchedule,
@@ -192,13 +194,25 @@ async function main(): Promise<void> {
   });
   const intervention =
     createNoInterventionExecutionDefinition("no-intervention");
+  const runConditionId =
+    "flagship-established-engineering-initialization-v1";
+  const runCondition =
+    createMechanisticRunConditionExecutionDefinition(
+      runConditionId,
+      flagship.config,
+    );
   const executionDefinition = createMechanisticExecutionDefinition({
     parameterSetBinding: flagship.parameterSetBinding,
+    runCondition,
     intervention,
   });
   const parameterPoint = createSweepParameterPointForBinding(
-    "flagship-established-engineering-initialization-v1",
+    "flagship-mechanism-v1",
     flagship.parameterSetBinding,
+    flagship.config,
+  );
+  const sweepRunCondition = createSweepRunConditionForConfig(
+    runConditionId,
     flagship.config,
   );
   const interventionFamily =
@@ -218,6 +232,7 @@ async function main(): Promise<void> {
       targetSchemaVersion: "node-authoritative-profile-target-v1",
     },
     parameterPoints: [parameterPoint],
+    runConditions: [sweepRunCondition],
     interventionFamilies: [interventionFamily],
     seeds: DEFAULT_SEEDS,
     maxTrajectories: DEFAULT_SEEDS.length,

@@ -225,6 +225,31 @@ describe("Reference-led inspector shell", () => {
   });
 });
 
+describe("steady laptop layout while playback updates", () => {
+  it("keeps the desktop workspace geometry fixed when a run starts", () => {
+    expect(appCss).not.toContain('.petra-app[data-dish-focus="focused"]');
+    expect(appCss).not.toContain("grid-template-columns var(--panel-motion-ms)");
+  });
+
+  it("allocates a dedicated desktop row for runtime recovery instead of shifting the shell", () => {
+    expect(appCss).toContain(".petra-app:has(> .petra-runtime-recovery) {");
+    expect(appCss).toContain("grid-template-rows: auto auto minmax(0, 1fr) auto;");
+  });
+
+  it("sizes inspector sections to their content and scrolls the rail instead of overlapping", () => {
+    const shell = ruleBody(".inspector-shell", visualThemeCss);
+    const activity = ruleBody(".inspector-activity", visualThemeCss);
+    const analysis = ruleBody(".inspector-shell > .analysis-surface", visualThemeCss);
+
+    expect(shell).toContain("grid-template-rows: max-content max-content max-content;");
+    expect(shell).toContain("align-content: start;");
+    expect(shell).toContain("overflow-y: auto;");
+    expect(activity).toContain("justify-content: flex-start;");
+    expect(activity).toContain("margin-top: 0;");
+    expect(analysis).toContain("margin-top: 0;");
+  });
+});
+
 
 describe("App shell shared visual-theme ownership", () => {
   const cssWithoutComments = appCss.replace(/\/\*[\s\S]*?\*\//g, "");

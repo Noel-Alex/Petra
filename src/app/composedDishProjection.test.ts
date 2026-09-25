@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import { resolveLineageVisualIdentity } from "../design/lineageIdentity";
+import { FLAGSHIP_ECOLI_ORGANISM_PRESENTATION } from "../render/organismPresentationIdentity";
 import type { ComposedSimulationConfig } from "../sim/authoritative";
 import { ComposedSimulationEngine } from "../sim/composedEngine";
 import type { CuratedMutationGraph } from "../sim/evolution/graph";
 import { createFixtureComposedParameterSetBinding } from "../sim/parameterSetBinding";
+import {
+  AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION,
+  createAuthoritativeTaxonRegistry,
+} from "../sim/taxonIdentity";
 import {
   createRunIdentity,
   type SimulationSnapshot,
@@ -13,6 +18,7 @@ import {
   projectAuthoritativeComposedDishSnapshot,
   projectComposedDishSnapshot,
 } from "./composedDishProjection";
+import { createOrganismPresentationTaxonCatalog } from "./lineageOrganismPresentation";
 
 const graph: CuratedMutationGraph = {
   scenarioId: "dish-projection-fixture",
@@ -23,6 +29,37 @@ const graph: CuratedMutationGraph = {
   ],
   transitions: [],
 };
+
+const presentationTaxonRegistry = createAuthoritativeTaxonRegistry([
+  {
+    schemaVersion: AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION,
+    id: "ecoli-k12-mg1655",
+    contentVersion: "ecoli-k12-mg1655:v1",
+    scientificName: FLAGSHIP_ECOLI_ORGANISM_PRESENTATION.scientificName,
+    background: FLAGSHIP_ECOLI_ORGANISM_PRESENTATION.background,
+    microbialGroup: "bacterium",
+    provenance: {
+      sourceKeys: ["fixture:ecoli-k12-mg1655-taxonomy"],
+      context: "Test fixture for exact composed render taxon binding.",
+      limitation: "Test-only identity; not a new biological parameter pack.",
+    },
+  },
+]);
+const presentationTaxon = presentationTaxonRegistry.taxa[0]!;
+const presentationCatalog = createOrganismPresentationTaxonCatalog({
+  taxonRegistry: presentationTaxonRegistry,
+  bindings: [
+    {
+      taxonId: presentationTaxon.id,
+      taxonContentVersion: presentationTaxon.contentVersion,
+      presentation: FLAGSHIP_ECOLI_ORGANISM_PRESENTATION,
+    },
+  ],
+});
+const organismPresentationAuthority = {
+  taxonRegistry: presentationTaxonRegistry,
+  presentationCatalog,
+} as const;
 
 const config: ComposedSimulationConfig = {
   width: 2,
@@ -71,11 +108,14 @@ const config: ComposedSimulationConfig = {
   hoursPerTick: 0.01,
 };
 
-function composedEngine(seed = 17): ComposedSimulationEngine {
+function composedEngine(
+  seed = 17,
+  composedConfig: ComposedSimulationConfig = config,
+): ComposedSimulationEngine {
   const binding = createFixtureComposedParameterSetBinding(
     "fixture:dish-projection",
     "1",
-    config,
+    composedConfig,
   );
   const identity = createRunIdentity({
     scenarioId: graph.scenarioId,
@@ -85,7 +125,19 @@ function composedEngine(seed = 17): ComposedSimulationEngine {
     parameterSetBinding: binding,
     seed,
   });
-  return new ComposedSimulationEngine(identity, config);
+  return new ComposedSimulationEngine(identity, composedConfig);
+}
+
+function taxonAuthoritativeConfig(): ComposedSimulationConfig {
+  return {
+    ...structuredClone(config),
+    lineages: config.lineages.map((lineage) => ({
+      ...lineage,
+      taxonId: presentationTaxon.id,
+      taxonContentVersion: presentationTaxon.contentVersion,
+    })),
+    taxonRegistry: presentationTaxonRegistry,
+  };
 }
 
 function syntheticSnapshot(): SimulationSnapshot {
@@ -190,6 +242,123 @@ describe("authoritative composed dish projection", () => {
     }
     expect([...dish.lineages[0]!.density]).toEqual([1, 0.5, 0, 0]);
     expect([...dish.lineages[1]!.density]).toEqual([0.5, 0.25, 2, 0]);
+  });
+
+  it("joins exact checkpoint taxon authority to source-backed per-lineage presentation", () => {
+    const simulation = composedEngine(17, taxonAuthoritativeConfig()).snapshot();
+    if (simulation.checkpoint.authority !== "composed") {
+      throw new Error("expected composed snapshot");
+    }
+
+    expect(simulation.checkpoint.composedState.lineageTaxonMap).toMatchObject({
+      lineageIds: ["L1", "L2"],
+      taxonIds: [presentationTaxon.id, presentationTaxon.id],
+      taxonContentVersions: [
+        presentationTaxon.contentVersion,
+        presentationTaxon.contentVersion,
+      ],
+    });
+
+    const neutral = projectAuthoritativeComposedDishSnapshot(
+      simulation,
+      "fixture-branch-0",
+    );
+    expect(
+      neutral.lineages.every(
+        (lineage) => lineage.organismPresentation === undefined,
+      ),
+    ).toBe(true);
+
+    const bound = projectAuthoritativeComposedDishSnapshot(
+      simulation,
+      "fixture-branch-0",
+      null,
+      organismPresentationAuthority,
+    );
+    expect(
+      bound.lineages.map((lineage) => lineage.organismPresentation?.id),
+    ).toEqual([
+      FLAGSHIP_ECOLI_ORGANISM_PRESENTATION.id,
+      FLAGSHIP_ECOLI_ORGANISM_PRESENTATION.id,
+    ]);
+  });
+
+  it("keeps known taxa morphology-neutral when the exact catalog has no binding", () => {
+    const simulation = composedEngine(17, taxonAuthoritativeConfig()).snapshot();
+    if (simulation.checkpoint.authority !== "composed") {
+      throw new Error("expected composed snapshot");
+    }
+    const emptyCatalog = createOrganismPresentationTaxonCatalog({
+      taxonRegistry: presentationTaxonRegistry,
+      bindings: [],
+    });
+
+    const dish = projectAuthoritativeComposedDishSnapshot(
+      simulation,
+      "fixture-branch-0",
+      null,
+      {
+        taxonRegistry: presentationTaxonRegistry,
+        presentationCatalog: emptyCatalog,
+      },
+    );
+    expect(dish.lineages.map((lineage) => lineage.organismPresentation)).toEqual([
+      null,
+      null,
+    ]);
+  });
+
+  it("fails closed when presentation authority is supplied without matching checkpoint taxon authority", () => {
+    const legacySimulation = composedEngine().snapshot();
+    if (legacySimulation.checkpoint.authority !== "composed") {
+      throw new Error("expected composed snapshot");
+    }
+    expect(() =>
+      projectAuthoritativeComposedDishSnapshot(
+        legacySimulation,
+        "fixture-branch-0",
+        null,
+        organismPresentationAuthority,
+      ),
+    ).toThrow(/requires authoritative lineage taxon mapping/);
+
+    const simulation = composedEngine(17, taxonAuthoritativeConfig()).snapshot();
+    if (simulation.checkpoint.authority !== "composed") {
+      throw new Error("expected composed snapshot");
+    }
+    const revisedRegistry = createAuthoritativeTaxonRegistry([
+      {
+        ...presentationTaxon,
+        contentVersion: "ecoli-k12-mg1655:v2",
+        provenance: {
+          ...presentationTaxon.provenance,
+          context: "Test fixture for stale render-authority rejection.",
+        },
+      },
+    ]);
+    const revisedTaxon = revisedRegistry.taxa[0]!;
+    const revisedCatalog = createOrganismPresentationTaxonCatalog({
+      taxonRegistry: revisedRegistry,
+      bindings: [
+        {
+          taxonId: revisedTaxon.id,
+          taxonContentVersion: revisedTaxon.contentVersion,
+          presentation: FLAGSHIP_ECOLI_ORGANISM_PRESENTATION,
+        },
+      ],
+    });
+
+    expect(() =>
+      projectAuthoritativeComposedDishSnapshot(
+        simulation,
+        "fixture-branch-0",
+        null,
+        {
+          taxonRegistry: revisedRegistry,
+          presentationCatalog: revisedCatalog,
+        },
+      ),
+    ).toThrow(/taxon content version mismatch/);
   });
 
   it("keeps sampling stable within one runtime branch and rotates it across history generations", () => {

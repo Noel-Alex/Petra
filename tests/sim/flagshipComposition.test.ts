@@ -43,6 +43,69 @@ describe('flagship composed run planning', () => {
     expect(plan.parameterSetBinding.configurationFingerprint).toBe(
       composedConfigurationFingerprint(plan.config),
     )
+    expect(plan.parameterCompatibilityDecisionIdentity).toMatch(
+      /^parameter-compatibility-v1:/,
+    )
+    const compatibilityDecision = JSON.parse(
+      plan.parameterCompatibilityDecisionIdentity.slice(
+        'parameter-compatibility-v1:'.length,
+      ),
+    ) as {
+      target: {
+        compatibilityGroupId: string
+        context: Record<string, string | number>
+      }
+      records: Array<{
+        recordId: string
+        sourceKey: string
+        context: Record<string, string | number>
+      }>
+      transfers: Array<{
+        recordId: string
+        policyId: string
+        classification: string
+        dimensions: string[]
+        limitation: string
+      }>
+    }
+    expect(compatibilityDecision.target).toMatchObject({
+      compatibilityGroupId:
+        'petra-flagship-mg1655-model-resource-ciprofloxacin-v1',
+      context: {
+        organismBackground:
+          'K-12 MG1655 for curated resistance phenotypes',
+        mediumSubstrate:
+          'UNBOUND physical medium; dimensionless model-resource',
+        temperatureC: 37,
+        modelConvention:
+          'reference_pd_decrement_as_first_order_loss_v1',
+      },
+    })
+    expect(compatibilityDecision.records).toEqual([
+      expect.objectContaining({
+        recordId: 'regoes-cab1-ciprofloxacin-pd',
+        sourceKey: 'regoes_2004',
+        context: expect.objectContaining({
+          organismBackground: 'Escherichia coli CAB1',
+          mediumSubstrate: 'LB',
+          temperatureC: 37,
+        }),
+      }),
+    ])
+    expect(compatibilityDecision.transfers).toEqual([
+      expect.objectContaining({
+        recordId: 'regoes-cab1-ciprofloxacin-pd',
+        policyId: 'reference_pd_decrement_as_first_order_loss_v1',
+        classification: 'transferred',
+        dimensions: [
+          'compatibilityGroupId',
+          'organismBackground',
+          'mediumSubstrate',
+          'assayConvention',
+          'modelConvention',
+        ],
+      }),
+    ])
 
     expect(plan.config.width).toBe(160)
     expect(plan.config.height).toBe(160)
@@ -185,6 +248,9 @@ describe('flagship composed run planning', () => {
       first.config.initialLineageBiomass,
     )
     expect(second.parameterSetBinding).toEqual(first.parameterSetBinding)
+    expect(second.parameterCompatibilityDecisionIdentity).toBe(
+      first.parameterCompatibilityDecisionIdentity,
+    )
   })
 
   it('fails closed on invalid founder/state initialization', () => {

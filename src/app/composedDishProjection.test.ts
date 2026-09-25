@@ -258,13 +258,22 @@ describe("authoritative composed dish projection", () => {
     }
 
     const offMaskResource = structuredClone(simulation);
-    offMaskResource.checkpoint.composedState.resource[3] = 1;
+    offMaskResource.checkpoint.composedState.resource[3] = Number.MIN_VALUE;
     expect(() =>
       projectAuthoritativeComposedDishSnapshot(
         offMaskResource,
         "fixture-branch-0",
       ),
     ).toThrow(/resource must be zero outside the dish mask/);
+
+    const nonBinaryMask = structuredClone(simulation);
+    nonBinaryMask.checkpoint.composedState.mask[0] = 256;
+    expect(() =>
+      projectAuthoritativeComposedDishSnapshot(
+        nonBinaryMask,
+        "fixture-branch-0",
+      ),
+    ).toThrow(/binary dish mask/);
 
     expect(() =>
       projectAuthoritativeComposedDishSnapshot(simulation, " "),

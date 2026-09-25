@@ -46,6 +46,7 @@ export function validateRenderSnapshot(snapshot: DishRenderSnapshot): void {
   assertFiniteNonNegative("simulationTimeHours", snapshot.simulationTimeHours); assertPositiveInteger("gridWidth", snapshot.gridWidth); assertPositiveInteger("gridHeight", snapshot.gridHeight);
   const cells = snapshot.gridWidth * snapshot.gridHeight;
   assertLength("dishMask", snapshot.dishMask.length, cells); assertLength("biomass", snapshot.biomass.length, cells); assertFiniteNonNegativeArray("biomass", snapshot.biomass);
+  for (const mask of snapshot.dishMask) if (mask !== 0 && mask !== 1) throw new RangeError("dishMask values must be 0 or 1");
   const fieldIds = new Set<string>();
   for (const field of snapshot.fields) {
     if (!isOverlayKind(field.kind)) {
@@ -58,9 +59,11 @@ export function validateRenderSnapshot(snapshot: DishRenderSnapshot): void {
     assertLength(`field ${field.id}`, field.values.length, cells); assertFiniteArray(`field ${field.id}`, field.values);
     if (!Number.isFinite(field.minimum) || !Number.isFinite(field.maximum)) throw new TypeError(`field ${field.id} bounds must be finite`);
     if (field.maximum < field.minimum) throw new RangeError(`field ${field.id} maximum must be >= minimum`);
-    for (const value of field.values) {
+    for (let index = 0; index < field.values.length; index += 1) {
+      if (snapshot.dishMask[index] !== 1) continue;
+      const value = field.values[index]!;
       if (value < field.minimum || value > field.maximum) {
-        throw new RangeError(`field ${field.id} contains a value outside its declared bounds`);
+        throw new RangeError(`field ${field.id} contains an in-mask value outside its declared bounds`);
       }
     }
   }
@@ -92,7 +95,6 @@ export function validateRenderSnapshot(snapshot: DishRenderSnapshot): void {
       }
     }
   }
-  for (const mask of snapshot.dishMask) if (mask !== 0 && mask !== 1) throw new RangeError("dishMask values must be 0 or 1");
 }
 function assertPositiveInteger(name: string, value: number): void { if (!Number.isInteger(value) || value <= 0) throw new RangeError(`${name} must be a positive integer`); }
 function assertFinitePositive(name: string, value: number): void { if (!Number.isFinite(value) || value <= 0) throw new RangeError(`${name} must be finite and > 0`); }

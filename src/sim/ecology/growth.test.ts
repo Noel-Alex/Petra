@@ -3,6 +3,8 @@
  * constants and are not the flagship preset. */
 import { describe, expect, it } from 'vitest'
 import {
+  beginEcologyStep,
+  completeEcologyStep,
   monod,
   stepEcology,
   type EcologyState,
@@ -96,6 +98,94 @@ describe('resource-limited ecology step', () => {
     expect(s.lineages[0]![3]).toBeCloseTo(1, 5)
     expect(s.lineages[0]![5]).toBeCloseTo(1, 5)
     expect(s.lineages[0]![7]).toBeCloseTo(1, 5)
+  })
+
+  it('keeps explicit begin/complete execution equivalent to the compatibility wrapper', () => {
+    const wrapper: EcologyState = {
+      width: 2,
+      height: 1,
+      mask: new Uint8Array([1, 1]),
+      resource: new Float32Array([4, 2]),
+      lineages: [
+        new Float32Array([2, 1]),
+        new Float32Array([1, 3]),
+      ],
+    }
+    const phased: EcologyState = {
+      width: wrapper.width,
+      height: wrapper.height,
+      mask: wrapper.mask.slice(),
+      resource: wrapper.resource.slice(),
+      lineages: wrapper.lineages.map((channel) => channel.slice()),
+    }
+    const kinetics: LineageEcologyParameters[] = [
+      { relativeFitness: 1, deathHazardPerTime: 0.1 },
+      { relativeFitness: 0.75, deathHazardPerTime: 0.2 },
+    ]
+    const p = { ...params, localCapacity: 20, spreadRate: 0.1 }
+    const wrapped = stepEcology(wrapper, p, kinetics, 0.5)
+    const interphase = beginEcologyStep(phased, p, kinetics, 0.5)
+    const completed = completeEcologyStep(phased, interphase)
+
+    expect(phased.resource).toEqual(wrapper.resource)
+    expect(phased.lineages).toEqual(wrapper.lineages)
+    expect(completed.metrics).toEqual(wrapped.metrics)
+    expect(completed.fluxes.divisionBiomass).toEqual(
+      wrapped.fluxes.divisionBiomass,
+    )
+    expect(completed.fluxes.deathBiomass).toEqual(
+      wrapped.fluxes.deathBiomass,
+    )
+  })
+
+  it('spreads a conservatively reassigned child cohort only after the interphase', () => {
+    const s: EcologyState = {
+      width: 2,
+      height: 1,
+      mask: new Uint8Array([1, 1]),
+      resource: new Float32Array([0, 0]),
+      lineages: [new Float32Array([4, 0])],
+    }
+    const p = {
+      ...params,
+      maxDivisionRate: 0,
+      localCapacity: 10,
+      spreadRate: 0.25,
+    }
+
+    const interphase = beginEcologyStep(s, p, neutral(1), 1)
+    s.lineages[0]![0] = 3
+    s.lineages.push(new Float32Array([1, 0]))
+    const result = completeEcologyStep(s, interphase)
+
+    expect(result.metrics.totalBiomass).toBe(4)
+    expect(s.lineages[0]).toEqual(new Float32Array([2.25, 0.75]))
+    expect(s.lineages[1]).toEqual(new Float32Array([0.75, 0.25]))
+  })
+
+  it('refuses non-conservative interphase biomass changes before spread', () => {
+    const s: EcologyState = {
+      width: 2,
+      height: 1,
+      mask: new Uint8Array([1, 1]),
+      resource: new Float32Array([0, 0]),
+      lineages: [new Float32Array([4, 0])],
+    }
+    const p = {
+      ...params,
+      maxDivisionRate: 0,
+      localCapacity: 10,
+      spreadRate: 0.25,
+    }
+
+    const interphase = beginEcologyStep(s, p, neutral(1), 1)
+    s.lineages.push(new Float32Array([1, 0]))
+
+    expect(() => completeEcologyStep(s, interphase)).toThrow(
+      /interphase must conserve total biomass at cell 0/,
+    )
+    expect(s.lineages[0]).toEqual(new Float32Array([4, 0]))
+    expect(s.lineages[1]).toEqual(new Float32Array([1, 0]))
   })
 
   it('accepts the exact four-neighbour spread bound and refuses a larger interval atomically', () => {

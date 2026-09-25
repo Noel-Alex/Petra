@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "id": "ecoli-bsubtilis-shared-resource-pack",
+  "version": "1.0.0",
+  "maturity": "experimental",
+  "limitations": [
+    "This inert pack names existing reviewed authority only; its existence does not make the scenario product-selectable, supported by the content-support matrix, or admitted to grounded Science Mode.",
+    "Resource and biomass remain dimensionless Petra model-resource and model-biomass. No physical glucose concentration, gCDW, CFU, cell-count, Monod half-saturation, carrying-capacity, or spread calibration is claimed.",
+    "The Bacillus founder growth scale is the existing dimensionless cross-study isolated-growth target ratio 0.67/0.69 from Tannler 2008 versus LaCroix 2015, not a measured co-culture fitness or interaction coefficient.",
+    "Direct antagonism, cross-feeding, Bacillus ciprofloxacin response, Bacillus evolution, and Bacillus sporulation are unsupported in this pack.",
+    "Environment and genotype-graph reference arrays remain empty because the selected scenario currently exposes those authorities only as nested records without the independent id-plus-version record identity required by the content-pack manifest contract.",
+    "Presentation-record references remain empty because the current organism-presentation records expose stable ids but no independent record version field; morphology stays separate presentation evidence and must be resolved through the exact taxon presentation authority instead of fabricating a manifest version."
+  ],
+  "references": {
+    "organisms": [
+      {
+        "id": "ecoli-k12-mg1655",
+        "version": "lacroix-2015-growth-context-v1"
+      },
+      {
+        "id": "bsubtilis-168-trp-plus-sige-minus",
+        "version": "tannler-2008-growth-context-v1"
+      }
+    ],
+    "antimicrobials": [],
+    "genotypeGraphs": [],
+    "environments": [],
+    "phageHostPairs": [],
+    "scenarios": [
+      {
+        "id": "ecoli-bsubtilis-shared-resource",
+        "version": "1.0.0-experimental"
+      }
+    ],
+    "mechanisms": [
+      {
+        "id": "ecoli-bsubtilis-shared-resource-engineering",
+        "version": "1.0.0"
+      },
+      {
+        "id": "ecoli-bsubtilis-shared-resource-composed",
+        "version": "1.0.0"
+      }
+    ],
+    "presentationRecords": [],
+    "citationKeys": [
+      "lacroix_2015_mg1655_growth",
+      "tannler_decasper_sauer_2008_bsubtilis_sige"
+    ]
+  }
+}

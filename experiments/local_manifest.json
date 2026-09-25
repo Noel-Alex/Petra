@@ -49,6 +49,31 @@
       "timeout_seconds": 300
     },
     {
+      "id": "render-projection-parity",
+      "description": "PREPARED; BLOCKED on #457: deterministic composed-authority to dish-render channel/unit/identity parity with explicit Float32 presentation quantization evidence.",
+      "command": [
+        "python",
+        "experiments/blocked.py",
+        "--experiment-id",
+        "render-projection-parity",
+        "--blocked-on",
+        "457",
+        "--reason",
+        "Issue #833 has prepared the parity verifier, deterministic harness self-test, compact evidence schema, and dedicated Vitest config. The active #457 composed snapshot -> live DishRenderSnapshot projector must land on main with runtime branch/sampling identity before this stable experiment can bind the real product adapter and produce truthful end-to-end projection evidence."
+      ],
+      "issues": [
+        6,
+        37,
+        42,
+        457,
+        524,
+        542,
+        630,
+        833
+      ],
+      "timeout_seconds": 30
+    },
+    {
       "id": "flagship-runtime-smoke",
       "description": "Authoritative composed flagship smoke: init/advance, real ciprofloxacin intervention, checkpoint restore, and exact replay with compact evidence.",
       "command": [

@@ -417,7 +417,17 @@ export class WorkerSession {
       this.performanceOptions !== null && this.activePerformance !== null
         ? this.performanceOptions.now()
         : null;
-    const prepared = this.prepareSnapshot(snapshot);
+    let prepared: PreparedSnapshot;
+    try {
+      prepared = this.prepareSnapshot(snapshot);
+    } catch (error) {
+      this.recordPerformance(response, "protocol-error");
+      this.fail(
+        error instanceof Error ? error.message : String(error),
+        responseCommandId(response),
+      );
+      return;
+    }
     this.recordPerformance(response, "success", {
       completedAtMs,
       mainThreadSnapshotCloneMs: prepared.cloneDurationMs,

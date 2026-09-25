@@ -126,11 +126,11 @@ function isNonNegativeFiniteNumber(value: unknown): value is number {
 }
 
 function isPositiveSafeInteger(value: unknown): value is number {
-  return Number.isSafeInteger(value) && typeof value === 'number' && value > 0
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0
 }
 
 function isNonNegativeSafeInteger(value: unknown): value is number {
-  return Number.isSafeInteger(value) && typeof value === 'number' && value >= 0
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 }
 
 function taxonKey(taxonId: string, contentVersion: string): string {

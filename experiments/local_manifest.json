@@ -157,7 +157,7 @@
     },
     {
       "id": "evolution-replicate-statistics",
-      "description": "BLOCKED on #562: many-seed mutation/emergence distribution checks require the shared discrete mutation-opportunity authority before composed execution is scientifically valid.",
+      "description": "PREPARED; BLOCKED on composed evolution integration (#562/#5/#37): the many-seed sampler harness is ready, but truthful end-to-end emergence requires replay-critical population/opportunity/child-lineage state in composed authority.",
       "command": [
         "python",
         "experiments/blocked.py",
@@ -165,14 +165,19 @@
         "evolution-replicate-statistics",
         "--blocked-on",
         "562",
+        "--blocked-on",
+        "5",
+        "--blocked-on",
+        "37",
         "--reason",
-        "Issue #37 now provides the composed engine path, but issue #562 must land the shared continuous-biomass to discrete mutation-opportunity authority before many-seed composed mutation statistics are scientifically valid."
+        "PR #765 prepared the repository-owned many-seed sampler harness. The #562 discrete-population core is already landed, but its state/opportunity authority still must be integrated into composed checkpoints/runtime; #5 must integrate sampled child-lineage state/materialization; and #37 must expose the resulting authoritative composed evolution path before this stable experiment can run truthful end-to-end emergence statistics."
       ],
       "issues": [
         5,
         37,
+        542,
         562,
-        542
+        740
       ],
       "timeout_seconds": 30
     },
@@ -314,7 +319,7 @@
     },
     {
       "id": "final-expo-rehearsal",
-      "description": "BLOCKED: exact frozen 90-second/3-minute offline expo rehearsal after flagship runtime, intervention, inspector, browser/offline acceptance, reproducibility, and release identity gates land.",
+      "description": "BLOCKED: exact frozen 90-second/3-minute offline expo rehearsal after flagship/default runtime, product intervention binding, browser/offline acceptance, reproducibility, and release-identity gates land.",
       "command": [
         "python",
         "experiments/blocked.py",
@@ -329,15 +334,13 @@
         "--blocked-on",
         "59",
         "--blocked-on",
-        "159",
+        "158",
         "--blocked-on",
         "557",
         "--blocked-on",
         "561",
-        "--blocked-on",
-        "626",
         "--reason",
-        "Final rehearsal is invalid until the reproducible install/build (#30), authoritative flagship/runtime (#37/#42), real typed ciprofloxacin intervention path (#626), authoritative local inspector (#159), browser acceptance (#59), offline-build acceptance (#557), and frozen release scientific identity (#561) are complete. Preserve this stable id and replace the blocked gate with the real rehearsal helper only when those prerequisites are satisfied."
+        "Final rehearsal is invalid until the reproducible install/build (#30), authoritative flagship/default runtime (#37/#42), product-facing authoritative intervention Apply path (#158; protocol-v5 ciprofloxacin command authority from #626 is already landed), browser/device acceptance including the completed inspector implementation (#59; #159 is source-complete), offline-build acceptance (#557), and frozen release scientific identity (#561) are complete."
       ],
       "issues": [
         11,
@@ -345,7 +348,7 @@
         37,
         42,
         59,
-        159,
+        158,
         532,
         542,
         557,

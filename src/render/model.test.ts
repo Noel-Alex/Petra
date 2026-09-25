@@ -154,6 +154,60 @@ describe("validateRenderSnapshot", () => {
       }),
     ).toThrow(/dimensions/i);
   });
+
+  it("rejects in-mask field values below the declared transfer domain", () => {
+    const snapshot = fixture();
+    const field = snapshot.fields[0]!;
+    const values = Float32Array.from(field.values);
+    values[1] = -0.25;
+
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        fields: [{ ...field, values }],
+      }),
+    ).toThrow(/outside its declared domain/i);
+  });
+
+  it("rejects in-mask field values above the declared transfer domain", () => {
+    const snapshot = fixture();
+    const field = snapshot.fields[0]!;
+    const values = Float32Array.from(field.values);
+    values[4] = 1.25;
+
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        fields: [{ ...field, values }],
+      }),
+    ).toThrow(/outside its declared domain/i);
+  });
+
+  it("accepts a broad fixed domain even when observed values do not reach its extrema", () => {
+    const snapshot = fixture();
+    const field = snapshot.fields[0]!;
+
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        fields: [{ ...field, minimum: -2, maximum: 3 }],
+      }),
+    ).not.toThrow();
+  });
+
+  it("excludes off-mask storage from field-domain containment", () => {
+    const snapshot = fixture();
+    const field = snapshot.fields[0]!;
+    const values = Float32Array.from(field.values);
+    values[0] = 99;
+
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        fields: [{ ...field, values }],
+      }),
+    ).not.toThrow();
+  });
 });
 
 describe("sampleRepresentativeGlyphs", () => {

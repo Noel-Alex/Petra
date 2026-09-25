@@ -60,6 +60,21 @@ function deepFreeze<T>(value: T): T {
  * O(number of newly appended events), never O(total retained history). A
  * restore/rebase/foreign array has no ancestry path and returns null.
  */
+/**
+ * Materialize a detached immutable history from a deserialized/full baseline.
+ * Ordinary live deltas should use appendSimulationEventHistory directly; this
+ * full pass is for initialization/rebase boundaries only.
+ */
+export function cloneSimulationEventHistory(
+  events: readonly SimulationEvent[],
+): readonly SimulationEvent[] {
+  let history = EMPTY_SIMULATION_EVENT_HISTORY
+  for (const event of events) {
+    history = appendSimulationEventHistory(history, event)
+  }
+  return history
+}
+
 export function simulationEventHistoryDelta(
   previous: readonly SimulationEvent[],
   current: readonly SimulationEvent[],

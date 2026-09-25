@@ -490,6 +490,7 @@ function scanFinalDataset(
     }
     const rowIdentity: ReadonlyArray<readonly [string, unknown, string]> = [
       ["parameterPointId", row.parameterPointId, task.parameterPointId],
+      ["runConditionId", row.runConditionId, task.runConditionId],
       ["interventionFamilyId", row.interventionFamilyId, task.interventionFamilyId],
       ["splitGroupKey", row.splitGroupKey, task.splitGroupKey],
       ["trajectoryKey", row.trajectoryKey, task.trajectoryKey],

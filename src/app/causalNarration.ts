@@ -51,7 +51,7 @@ export function bindRuntimeCausalEventStream(
   return Object.freeze({
     runIdentity: structuredClone(runtimeState.controls.identity),
     runBranchIdentity: runtimeState.runBranchIdentity,
-    events: structuredClone(events),
+    events: Object.freeze(structuredClone(events)),
   });
 }
 
@@ -164,6 +164,7 @@ export function causalRunIdentityKey(identity: RunIdentity): string {
     identity.scenarioVersion,
     identity.parameterSetId,
     identity.parameterSetVersion,
+    identity.parameterSetBinding ?? null,
     identity.seed,
   ]);
 }

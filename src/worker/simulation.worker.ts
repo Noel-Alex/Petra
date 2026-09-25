@@ -6,9 +6,13 @@ import { SimulationEngine } from '../sim/engine'
 import { PROTOCOL_VERSION } from '../sim/protocol'
 import type {
   SimulationCommand,
+  SimulationEvent,
   SimulationSnapshot,
-  WorkerResponse,
 } from '../sim/protocol'
+import {
+  createWorkerSnapshotTransportResponse,
+  type WorkerTransportResponse,
+} from './eventDeltaTransport'
 import {
   WORKER_PERFORMANCE_DIAGNOSTICS_VERSION,
   parseInstrumentedWorkerRequest,
@@ -21,9 +25,10 @@ interface WorkerSimulationEngine {
 }
 
 let engine: WorkerSimulationEngine | undefined
+let lastPostedEvents: readonly SimulationEvent[] | null = null
 
 function post(
-  response: WorkerResponse,
+  response: WorkerTransportResponse,
   executionDurationMs?: number,
 ): void {
   const payload: InstrumentedWorkerResponse =
@@ -65,6 +70,7 @@ self.onmessage = (event: MessageEvent<unknown>) => {
       // Reinitialization is a run-authority boundary. Never retain a previous
       // run if construction of the requested replacement fails.
       engine = undefined
+      lastPostedEvents = null
       engine =
         request.composedConfig === undefined
           ? new SimulationEngine(request.identity)
@@ -73,14 +79,16 @@ self.onmessage = (event: MessageEvent<unknown>) => {
               request.composedConfig,
             )
 
+      const snapshot = engine.snapshot()
       post(
         {
           protocolVersion: PROTOCOL_VERSION,
           type: 'ready',
-          snapshot: engine.snapshot(),
+          snapshot,
         },
         elapsedSince(startedAtMs),
       )
+      lastPostedEvents = snapshot.events
       return
     }
 
@@ -89,15 +97,13 @@ self.onmessage = (event: MessageEvent<unknown>) => {
     }
 
     const snapshot = engine.execute(request.command)
-    post(
-      {
-        protocolVersion: PROTOCOL_VERSION,
-        type: 'snapshot',
-        commandId: request.command.id,
-        snapshot,
-      },
-      elapsedSince(startedAtMs),
-    )
+    const response = createWorkerSnapshotTransportResponse({
+      commandId: request.command.id,
+      previousEvents: lastPostedEvents,
+      snapshot,
+    })
+    post(response, elapsedSince(startedAtMs))
+    lastPostedEvents = snapshot.events
   } catch (error) {
     post(
       {

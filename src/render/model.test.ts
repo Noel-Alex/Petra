@@ -166,7 +166,22 @@ describe("validateRenderSnapshot", () => {
         ...snapshot,
         fields: [{ ...nutrient, values }],
       }),
-    ).toThrow(/outside its declared bounds/i);
+    ).toThrow(/in-mask value outside its declared bounds/i);
+  });
+
+  it("allows masked storage values outside the displayed scientific field range", () => {
+    const snapshot = fixture();
+    const nutrient = snapshot.fields[0]!;
+    const values = Float32Array.from(nutrient.values);
+    values[0] = 99;
+
+    expect(snapshot.dishMask[0]).toBe(0);
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        fields: [{ ...nutrient, values }],
+      }),
+    ).not.toThrow();
   });
 
   it("accepts coherent spatial event metadata", () => {

@@ -22,6 +22,7 @@ import {
   projectExperimentRuntimeView,
   type ExperimentRuntimeView,
 } from "./runtimeView";
+import { observeRuntimeSnapshotPublication } from "./renderPublicationPerformance";
 
 export const RUNTIME_PRESENTATION_INTERVAL_MS = 50;
 
@@ -75,6 +76,7 @@ export function useExperimentRuntime(
     let runtime: ExperimentRuntime | null = null;
     let unsubscribe: (() => void) | null = null;
     let scheduler: ReturnType<typeof globalThis.setInterval> | null = null;
+    let lastObservedSnapshot: ExperimentRuntimeState["snapshot"] = null;
 
     try {
       runtime = factory();
@@ -105,6 +107,16 @@ export function useExperimentRuntime(
       restartIdentityRef.current = null;
       runtimeRef.current = runtime;
       unsubscribe = runtime.subscribe((nextState) => {
+        if (
+          nextState.snapshot !== null &&
+          nextState.snapshot !== lastObservedSnapshot
+        ) {
+          observeRuntimeSnapshotPublication(
+            nextState.snapshot,
+            nextState.runBranchIdentity,
+          );
+        }
+        lastObservedSnapshot = nextState.snapshot;
         setState(nextState);
       });
 

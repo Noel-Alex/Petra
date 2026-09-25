@@ -5,7 +5,11 @@ import {
   validateMetricSamplingPolicy,
   type MetricSamplingPolicy,
 } from "../sim/metrics";
-import type { RunIdentity } from "../sim/protocol";
+import type { FlagshipComposedRunPlan } from "../sim/flagshipComposition";
+import {
+  assertComposedParameterSetBinding,
+  sameComposedParameterSetBinding,
+} from "../sim/parameterSetBinding";
 import { LiveAnalysisHistory } from "./liveAnalysisHistory";
 
 export const FLAGSHIP_METRIC_AUTHORITY_SCHEMA_VERSION = 1 as const;
@@ -492,25 +496,79 @@ export function parseFlagshipMetricAuthority(
 }
 
 export function resolveFlagshipMetricAuthorityForRun(
-  identity: RunIdentity,
+  plan: FlagshipComposedRunPlan,
 ): FlagshipMetricAuthority {
   const authority = parseFlagshipMetricAuthority(authorityData, flagshipScenario);
   if (
-    identity.scenarioId !== authority.scenarioId ||
-    identity.scenarioVersion !== authority.scenarioVersion
+    plan.identity.scenarioId !== authority.scenarioId ||
+    plan.identity.scenarioVersion !== authority.scenarioVersion
   ) {
     throw new Error(
       "flagship metric authority cannot bind a foreign scenario identity",
     );
   }
   if (
-    identity.parameterSetId !== authority.parameterSetId ||
-    identity.parameterSetVersion !== authority.parameterSetVersion
+    plan.identity.parameterSetId !== authority.parameterSetId ||
+    plan.identity.parameterSetVersion !== authority.parameterSetVersion
   ) {
     throw new Error(
       "flagship metric authority cannot bind a foreign parameter-set identity",
     );
   }
+
+  assertComposedParameterSetBinding(plan.identity, plan.config);
+  if (plan.identity.parameterSetBinding.authority !== "provenance") {
+    throw new Error(
+      "flagship metric authority requires a provenance-owned parameter-set binding",
+    );
+  }
+  if (
+    !sameComposedParameterSetBinding(
+      plan.identity.parameterSetBinding,
+      plan.parameterSetBinding,
+    )
+  ) {
+    throw new Error(
+      "flagship metric authority requires the plan and run to share the exact parameter-set binding",
+    );
+  }
+  if (plan.parameterSetBinding.authority !== "provenance") {
+    throw new Error(
+      "flagship metric authority plan binding must be provenance-owned",
+    );
+  }
+
+  const activeMicAuthority = plan.config.ciprofloxacin;
+  if (
+    activeMicAuthority === null ||
+    activeMicAuthority.concentrationUnit !== "mg/L"
+  ) {
+    throw new Error(
+      "flagship metric authority requires the composed ciprofloxacin MIC authority in mg/L",
+    );
+  }
+  const scenarioRecord = requireRecord("flagship scenario", flagshipScenario);
+  const scenarioGenotypes = parseScenarioGenotypeMics(scenarioRecord);
+  if (
+    activeMicAuthority.genotypeMicMgPerL.length !== scenarioGenotypes.length
+  ) {
+    throw new Error(
+      "flagship metric authority requires exact composed genotype MIC coverage",
+    );
+  }
+  for (let index = 0; index < scenarioGenotypes.length; index += 1) {
+    const expected = scenarioGenotypes[index]!;
+    const actual = activeMicAuthority.genotypeMicMgPerL[index]!;
+    if (
+      actual.genotypeId !== expected.id ||
+      actual.micMgPerL !== expected.micMgPerL
+    ) {
+      throw new Error(
+        `flagship composed genotype MIC authority drifted at source order ${index}`,
+      );
+    }
+  }
+
   return authority;
 }
 
@@ -519,11 +577,11 @@ export function resolveFlagshipMetricAuthorityForRun(
  * a resistance cohort or silently reuse renderer/animation cadence.
  */
 export function createFlagshipLiveAnalysisHistory(
-  identity: RunIdentity,
+  plan: FlagshipComposedRunPlan,
 ): LiveAnalysisHistory {
-  const authority = resolveFlagshipMetricAuthorityForRun(identity);
+  const authority = resolveFlagshipMetricAuthorityForRun(plan);
   return new LiveAnalysisHistory({
-    identity,
+    identity: plan.identity,
     samplingPolicy: authority.samplingPolicy,
     resistantGenotypeIds: authority.resistantCohort.memberGenotypeIds,
     knownGenotypeIds: authority.genotypeUniverseIds,

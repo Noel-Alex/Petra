@@ -81,6 +81,58 @@
       "classification": "transferred_mechanistic_approximation",
       "equation": "h_drug = ln(10) * (psi_max - psi_g(a))",
       "zeroDrugIncrementalLoss": 0,
+      "parameterCompatibility": {
+        "schemaVersion": 1,
+        "target": {
+          "compatibilityGroupId": "petra-flagship-mg1655-model-resource-ciprofloxacin-v1",
+          "context": {
+            "organismBackground": "K-12 MG1655 for curated resistance phenotypes",
+            "mediumSubstrate": "UNBOUND physical medium; dimensionless model-resource",
+            "temperatureC": 37,
+            "assayConvention": "Marcusson 2009 Etest-derived genotype MIC authority",
+            "modelConvention": "reference_pd_decrement_as_first_order_loss_v1"
+          }
+        },
+        "requiredFields": [
+          "organismBackground",
+          "mediumSubstrate",
+          "temperatureC",
+          "assayConvention",
+          "modelConvention"
+        ],
+        "records": [
+          {
+            "recordId": "regoes-cab1-ciprofloxacin-pd",
+            "sourceKey": "regoes_2004",
+            "compatibilityGroupId": "regoes-cab1-lb-37c-ciprofloxacin-pd",
+            "context": {
+              "organismBackground": "Escherichia coli CAB1",
+              "mediumSubstrate": "LB",
+              "temperatureC": 37,
+              "assayConvention": "first-60-minute log10 viable-density slopes fitted to four-parameter pharmacodynamics",
+              "modelConvention": "source net-growth pharmacodynamic curve"
+            }
+          }
+        ],
+        "transfers": [
+          {
+            "recordId": "regoes-cab1-ciprofloxacin-pd",
+            "policyId": "reference_pd_decrement_as_first_order_loss_v1",
+            "policyVersion": "1.0.0",
+            "classification": "transferred",
+            "fromCompatibilityGroupId": "regoes-cab1-lb-37c-ciprofloxacin-pd",
+            "toCompatibilityGroupId": "petra-flagship-mg1655-model-resource-ciprofloxacin-v1",
+            "dimensions": [
+              "compatibilityGroupId",
+              "organismBackground",
+              "mediumSubstrate",
+              "assayConvention",
+              "modelConvention"
+            ],
+            "limitation": "Regoes CAB1/LB pharmacodynamics are transferred into the MG1655 genotype-MIC composition while Petra's physical resource medium remains unbound. This does not establish an MG1655 time-kill curve, a physical culture/resource calibration, stationary-phase killing, or drug transport."
+          }
+        ]
+      },
       "stationaryPhaseCalibration": "not_source_matched",
       "note": "This policy maps the transferred PD decrement to the ecology loss channel; it does not identify Petra's independent Monod mu_max with Regoes psi_max.",
       "provenance": {

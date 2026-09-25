@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "recordKind": "persistence-phenotype-authority",
+  "id": "ecoli-k12-mg1655-hipa7-balaban-2004",
+  "version": "1.0.0",
+  "status": "research-evidence",
+  "organism": {
+    "scientificName": "Escherichia coli",
+    "background": "K-12 MG1655-derived MGYA7",
+    "strainConstruction": "hipA7 from HM22 transduced into MGY, an MG1655-derived constitutive-YFP background; selected clone sequence-verified by Balaban et al.",
+    "phenotype": "high-persistence type-I hipA7"
+  },
+  "sourceContext": {
+    "primarySource": {
+      "key": "balaban_2004",
+      "doi": "10.1126/science.1099390",
+      "citation": "Balaban et al. (2004), Bacterial Persistence as a Phenotypic Switch",
+      "classification": "measured_and_source_model"
+    },
+    "supportingMaterial": "Balaban et al. 2004 Supplementary Online Material",
+    "medium": "LB Lennox (LBL)",
+    "temperatureC": 37,
+    "ampicillinMicrogramsPerMl": 100,
+    "overnightPreparation": {
+      "durationHours": 15,
+      "agitationRpm": 250,
+      "state": "stationary-phase"
+    },
+    "microfluidicGrowth": "Aerated LBL continuously flowed; hipA7 experiments started from overnight cultures.",
+    "batchSurvivalAssay": "Cultures or aliquots were exposed to 100 ug/mL ampicillin and viable survivors were enumerated by plating after treatment."
+  },
+  "stateModel": {
+    "states": [
+      {
+        "id": "N",
+        "label": "normally growing / susceptible",
+        "inheritance": "phenotypic, same genotype as Q"
+      },
+      {
+        "id": "Q",
+        "label": "type-I persister / growth-arrested",
+        "inheritance": "phenotypic, reversible; survivors regrow as antibiotic-sensitive progeny"
+      }
+    ],
+    "normalToPersister": {
+      "duringExponentialGrowthPerHour": 0,
+      "classification": "source_model_approximation",
+      "sourceNotation": "a ≈ 0",
+      "limitation": "Balaban et al. explicitly limit the a≈0 approximation to high-persistence hipA7 experiments after passage through stationary phase, where smaller persister subpopulations could be occluded. This is not a universal zero switching rate.",
+      "stationaryPhaseEntry": {
+        "kind": "triggered",
+        "ratePerHour": null,
+        "status": "unbound",
+        "authority": "Type-I persisters are generated during/after stationary phase, but the source does not provide a portable continuous N→Q rate or a Petra-resource threshold law.",
+        "implementationRule": "Do not synthesize an endogenous stationary-phase switching rate. A scenario must either initialize a source-calibrated Q fraction or add a separately validated trigger law."
+      }
+    },
+    "persisterToNormal": {
+      "freshLblPerHour": 0.07,
+      "classification": "source_derived_from_measured_lag",
+      "sourceObservation": "A long-lag hipA7 subpopulation had an approximately 14 h exit-from-stationary-phase time scale; Balaban et al. identify its inverse as b≈0.07 h^-1.",
+      "limitation": "This recovery rate is specific to the source fresh-LBL exit assay and is not a universal wake-up rate across media or stresses."
+    },
+    "growthBehavior": {
+      "normalAbsoluteGrowthPerHour": null,
+      "persisterAbsoluteGrowthPerHour": 0,
+      "persisterClassification": "source_model_approximation_and_single_cell_observation",
+      "authority": "hipA7 type-I persisters were growth-arrested before ampicillin and modeled with mu_p≈0.",
+      "limitation": "The pack does not bind an absolute normal-cell growth rate for Petra. Normal growth must come from a compatible source-owned ecology context."
+    }
+  },
+  "ampicillinResponse": {
+    "concentrationMicrogramsPerMl": 100,
+    "observedCharacteristicTimes": {
+      "normalKillingMinutes": 25,
+      "persisterKillingHours": 6
+    },
+    "classification": "measured_biphasic_killing_times",
+    "derivedEffectiveExponentialRateScalesPerHour": {
+      "normal": 2.4,
+      "persister": 0.16666666666666666,
+      "derivation": "reciprocal of the reported characteristic time",
+      "classification": "derived",
+      "warning": "These are effective exponential time-scale reciprocals, not independently measured raw mu_n/mu_p parameters. A coupled implementation must reproduce source survival behavior before promoting them as internal hazards."
+    },
+    "limitation": "Authority is for 100 ug/mL ampicillin in the named LBL context. No concentration-response curve, MIC-shift policy, other-antibiotic response, clinical dose, or spatial transport law is supplied."
+  },
+  "survivalValidationTargets": [
+    {
+      "inoculumHistory": "overnight/stationary-phase",
+      "treatmentHours": 5,
+      "survivingFractionMin": 0.01,
+      "survivingFractionMax": 0.05,
+      "classification": "measured_range"
+    },
+    {
+      "inoculumHistory": "overnight/stationary-phase",
+      "treatmentHours": 24,
+      "survivingFractionMin": 0.001,
+      "survivingFractionMax": 0.002,
+      "classification": "measured_range"
+    },
+    {
+      "inoculumHistory": "exponentially-growing",
+      "treatmentHours": 5,
+      "survivingFractionMin": 0.00005,
+      "survivingFractionMax": 0.00007,
+      "classification": "measured_range"
+    },
+    {
+      "inoculumHistory": "exponentially-growing",
+      "treatmentHours": 24,
+      "survivingFractionMin": 4e-7,
+      "survivingFractionMax": 7e-7,
+      "classification": "measured_range"
+    }
+  ],
+  "reversibilityValidation": {
+    "classification": "measured_qualitative",
+    "target": "Progeny recovered from hipA7 persisters become susceptible again on a subsequent ampicillin challenge.",
+    "authority": "Balaban et al. supplementary Fig. S1 / movie observations.",
+    "implementationRule": "Persistence state must not mutate MIC or resistance genotype. Q→N recovery restores the ordinary susceptible phenotype unless an independent genetic mutation event has occurred."
+  },
+  "runtimeAdmission": {
+    "supported": [
+      "two phenotype compartments within one hipA7 genotype",
+      "growth-arrested Q state in the source context",
+      "fresh-LBL Q→N recovery at b≈0.07 h^-1",
+      "100 ug/mL ampicillin biphasic survival validation",
+      "source-history dependence: overnight versus exponential inoculum",
+      "reversible tolerance distinct from genetic resistance"
+    ],
+    "unbound": [
+      "portable stationary-phase N→Q trigger rate",
+      "single exact stationary-phase initial Q fraction",
+      "mapping Petra dimensionless resource to the Balaban stationary-phase trigger",
+      "absolute normal-cell growth rate for Petra",
+      "ampicillin concentration-response outside 100 ug/mL",
+      "ampicillin physical transport or delivery geometry",
+      "ciprofloxacin or other-antibiotic phenotype-specific response",
+      "wild-type MG1655 three-subpopulation parameterization"
+    ],
+    "scienceModeSelectable": false,
+    "blocker": "A source-compatible stationary-phase entry/initialization calibration and an implementation that passes the survival/reversibility targets are required before exposing this as a quantitative selectable scenario."
+  },
+  "provenance": {
+    "classification": "measured_plus_explicit_source_model_and_derived_time_scales",
+    "primaryDoi": "10.1126/science.1099390",
+    "context": "Balaban et al. hipA7 MGYA7, LB Lennox, 37 C, 100 ug/mL ampicillin; type-I persistence after stationary-phase history.",
+    "limitation": "This record deliberately preserves the source's unresolved stationary-phase entry law. It must not be generalized into a universal E. coli persister fraction or switching rate."
+  }
+}

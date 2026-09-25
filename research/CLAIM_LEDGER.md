@@ -74,5 +74,10 @@ This is the compact contract between Petra's interface, simulator, and evidence 
 | Ciprofloxacin may be applied as an antifungal effect to the first *A. niger* pack without separate evidence | **false** | antimicrobial evidence boundary | this pack contains no fungal ciprofloxacin pharmacodynamics; overlap with a bacterial antibiotic field does not imply fungal killing |
 | Visually merging dense neighboring fungal masses proves biological hyphal anastomosis | **false** | render/biology authority boundary | merged density/isoband presentation is allowed for legibility/performance, but fusion requires a separately sourced biological mechanism |
 
+
+| R388 conjugation in isogenic *E. coli* BW27783 on LB agar at 37 °C may use the Rodriguez-Grande source-law parameters `K_on = 90 µm² h^-1` and `tau = 0.33 h` for the exact short surface-mating validation context | measured/model-fitted mechanism | Rodriguez-Grande et al. 2025, DOI 10.1371/journal.pgen.1011560 | 95% CIs are 45–130 µm² h^-1 and 0.25–0.4 h; source context is R388/BW27783, solid LB agar, 37 °C and short mating, not a universal plasmid-transfer law |
+| Petra may bind the R388 density-sweep validation fixture to a 58 cm² (= 5.8e9 µm²) mating surface | measured assay geometry + derived unit conversion | Rodriguez-Grande et al. 2025 methods | applies to the Petri-plate density-sweep assay used for the R388 fit; it is not a universal Petra dish area, renderer geometry, or authority for the separate 2 cm² 24-well assay |
+| Petra may divide the flagship #796 effective mutation-supply `cell-equivalent` by physical area and call the result `cells/µm²` for HGT | **false** | #796 calibration semantics + Rodriguez-Grande dimensional law | #796 is explicitly non-physical; HGT requiring areal cell density must use an exact physical discrete-count authority or fail closed |
+
 ## UI requirement
 Each curated scenario exposes a **Why? / Sources / Assumptions** surface containing active rules, source identifiers, transfers/approximations, and non-claims. Scientific honesty is part of the product.

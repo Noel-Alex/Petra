@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "id": "ecoli-ciprofloxacin-baseline-run",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "engineVersion": "petra-ts-core/0.1.0",
-  "protocolVersion": 7,
+  "protocolVersion": 8,
   "scenarioId": "ecoli-ciprofloxacin-spatial",
   "scenarioVersion": "1.5.0-research",
   "parameterSetId": "ecoli-ciprofloxacin-baseline-composed",

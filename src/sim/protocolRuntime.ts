@@ -56,7 +56,7 @@ const CIPROFLOXACIN_COMMAND_KEYS = new Set(['id', 'type', 'intervention'])
  * Runtime promotion boundary for successfully deserialized Worker requests.
  *
  * The returned object is the original payload after validation rather than a
- * reconstructed subset, so protocol-v7 composed configuration/binding fields
+ * reconstructed subset, so protocol-v8 composed configuration/binding fields
  * cannot be silently stripped by an older parser.
  */
 export function parseWorkerRequest(
@@ -370,6 +370,12 @@ function parseCheckpoint(
     if (identity.value.parameterSetBinding === undefined) {
       return failure(
         '.identity.parameterSetBinding is required for composed authority',
+      )
+    }
+
+    if (!isRngState(record.rngState)) {
+      return failure(
+        '.rngState must be a dense non-zero four-word uint32 array',
       )
     }
 

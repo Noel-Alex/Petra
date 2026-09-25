@@ -104,6 +104,7 @@ const COMPOSED_CHECKPOINT_KEYS = new Set([
   'tick',
   'simulationTimeHours',
   'commandCount',
+  'rngState',
   'composedState',
   'metrics',
 ])

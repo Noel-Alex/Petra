@@ -3,6 +3,7 @@ import {
   ASPERGILLUS_NO10_MORPHOMETRIC_GLUCOSE_G_PER_L,
   ASPERGILLUS_NO10_MORPHOMETRIC_REPRODUCTION_TOLERANCE_PER_HOUR,
   ASPERGILLUS_NO10_PLATE_RADIUS_UM,
+  ASPERGILLUS_NO10_RADIAL_REPRODUCTION_TOLERANCE_UM,
   ASPERGILLUS_NO10_SOURCE_PACK_ID,
   ASPERGILLUS_NO10_SUPPORTED_GLUCOSE_G_PER_L,
   ASPERGILLUS_NO10_TAXON,
@@ -40,6 +41,21 @@ describe('Aspergillus no. 10 source authority', () => {
             .radialExtensionUmPerHour,
       ),
     ).toEqual([346, 556, 614, 580, 430, 381])
+
+    for (const glucoseGPerL of ASPERGILLUS_NO10_SUPPORTED_GLUCOSE_G_PER_L) {
+      const target = aspergillusNo10SurfaceTreatment(glucoseGPerL)
+      const oneHour = advanceAspergillusNo10SurfaceCheckpoint(
+        createAspergillusNo10SurfaceCheckpoint(glucoseGPerL),
+        1,
+      )
+      expect(
+        Math.abs(
+          oneHour.colonyRadiusUm - target.radialExtensionUmPerHour,
+        ),
+      ).toBeLessThanOrEqual(
+        ASPERGILLUS_NO10_RADIAL_REPRODUCTION_TOLERANCE_UM,
+      )
+    }
 
     expect(() => aspergillusNo10SurfaceTreatment(20)).toThrow(
       /supported exact source rows.*not interpolated/,

@@ -64,6 +64,7 @@ Dense asynchronous notes for cross-agent decisions/discoveries. Issues/PRs are t
 
 Contributor: Noel-Alex
 
+
 ## 2026-09-24 — localized intervention preview boundary
 
 - #458 establishes a reusable presentation-only localized placement state: direct dish pointer/touch target + keyboard-equivalent X/Y controls, with circular coordinates tied to the renderer aperture authority.
@@ -121,5 +122,15 @@ Contributor: Noel-Alex
 - Product placement previews remain presentation-only until app/runtime metadata performs a lossless supported preview→command conversion. Point/nutrient/inoculate/fungus/phage/environment tools remain unsupported by this command vocabulary.
 - Once merged, `flagship-runtime-smoke` can replace its #626 blocked registration with a real intervention/replay assertion, which is the next long-lead unlock.
 - Local TypeScript/Vitest/premerge execution is still unavailable in this agent environment because a GitHub checkout cannot resolve the host; hosted CI remains frozen. Verification claims for this slice must therefore stay source/audit-only unless another environment executes the local gates.
+
+Contributor: Noel-Alex
+
+
+## 2026-09-25 — reference-led app-shell checkpoint and renderer boundary
+
+- Draft PR #774 (`Noel/456-ui-shell`, `a3f4be2b`) updates the app shell to the approved navy / cream palette, three-column workspace, dish rim, intervention accents, and compact timeline while keeping the default app honest when no authoritative snapshot is available.
+- Local browser review covered desktop at 1440×900 and mobile at 358×662, including the waiting state, provenance search focus/drawer, and Learn guide open/close. Focused Vitest passed 28 tests across four files. Repository-wide typecheck remains blocked by existing broad typing errors; no hosted CI was run under the freeze policy.
+- Renderer inspection exposed a remaining art-direction gap for #457: the existing explicit demo fixture shows gridded field tiles and soft blobs rather than the rounded, organic organism forms in the reference PNGs. It remains opt-in and was not wired into the default app; no biology was fabricated and no renderer hot paths were changed in this shell slice.
+- This PR is an app-shell checkpoint, not completion of #456. Populated reference scenes, authoritative organism geometry, causal motion, and browser/runtime acceptance remain with the renderer/runtime work and its owners.
 
 Contributor: Noel-Alex

@@ -435,8 +435,13 @@ describe("experiment runtime", () => {
       commandIds(),
       composedConfig,
     );
-    const foreignConfig = structuredClone(composedConfig);
-    foreignConfig.growth.maxDivisionRate = 0.6;
+    const foreignConfig: ComposedSimulationConfig = {
+      ...structuredClone(composedConfig),
+      growth: {
+        ...composedConfig.growth,
+        maxDivisionRate: 0.6,
+      },
+    };
     const foreignIdentity = createRunIdentity({
       scenarioId: composedIdentity.scenarioId,
       scenarioVersion: composedIdentity.scenarioVersion,

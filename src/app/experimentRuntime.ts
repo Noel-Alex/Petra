@@ -55,6 +55,21 @@ export type AuthoritativeInterventionCommand = Extract<
   { readonly type: "apply-ciprofloxacin" }
 >;
 
+export type ExperimentRuntimeReplayCommand = Extract<
+  SimulationCommand,
+  {
+    readonly type:
+      | "advance"
+      | "apply-ciprofloxacin"
+      | "synthetic-pulse";
+  }
+>;
+
+export interface ExperimentRuntimeStartupReplay {
+  readonly originCheckpoint: SimulationCheckpoint;
+  readonly commands: readonly ExperimentRuntimeReplayCommand[];
+}
+
 export type ExperimentRuntimeListener = (state: ExperimentRuntimeState) => void;
 
 interface CheckpointHistoryOrigin {
@@ -72,6 +87,7 @@ export class ExperimentRuntime {
   private readonly pendingAcceptance = new Map<string, SimulationCommand>();
   private readonly unsubscribeWorker: () => void;
   private readonly composedConfig: ComposedSimulationConfig | undefined;
+  private readonly startupReplay: ExperimentRuntimeStartupReplay | null;
   private runBranchGeneration = 0;
   private checkpointHistoryOrigin: CheckpointHistoryOrigin | null = null;
   private current: ExperimentRuntimeState;
@@ -81,9 +97,14 @@ export class ExperimentRuntime {
     identity: RunIdentity,
     private readonly createCommandId: () => string,
     composedConfig?: ComposedSimulationConfig,
+    startupReplay?: ExperimentRuntimeStartupReplay,
   ) {
     this.composedConfig =
       composedConfig === undefined ? undefined : structuredClone(composedConfig);
+    this.startupReplay =
+      startupReplay === undefined
+        ? null
+        : cloneAndValidateStartupReplay(startupReplay);
     this.current = {
       controls: createExperimentControlState(identity),
       runBranchIdentity: createRunBranchIdentity(identity, this.runBranchGeneration),
@@ -93,6 +114,12 @@ export class ExperimentRuntime {
       timeline: [],
       integrationError: null,
     };
+
+    if (this.startupReplay !== null) {
+      this.assertCheckpointHistoryCompatible(
+        this.startupReplay.originCheckpoint,
+      );
+    }
 
     this.unsubscribeWorker = session.subscribe((worker) => {
       this.handleWorkerState(worker);
@@ -119,9 +146,37 @@ export class ExperimentRuntime {
     }
 
     this.pendingAcceptance.clear();
-    this.session.enqueue([
-      this.initializeRequest(this.current.controls.identity),
-    ]);
+    if (this.startupReplay === null) {
+      this.session.enqueue([
+        this.initializeRequest(this.current.controls.identity),
+      ]);
+      return true;
+    }
+
+    this.assertCheckpointHistoryCompatible(
+      this.startupReplay.originCheckpoint,
+    );
+    const restoreCommandId = this.createCommandId();
+    if (
+      this.startupReplay.commands.some(
+        (command) => command.id === restoreCommandId,
+      )
+    ) {
+      throw new Error(
+        "startup replay restore command id collides with an imported replay command",
+      );
+    }
+
+    this.checkpointHistoryOrigin = {
+      checkpoint: structuredClone(this.startupReplay.originCheckpoint),
+      restoreCommandId,
+    };
+    const requests = this.checkpointReplayRequests(
+      this.current.controls.identity,
+      this.startupReplay.commands,
+    );
+    this.stageReplayableCommands(requests);
+    this.session.enqueue(requests);
     return true;
   }
 
@@ -496,7 +551,45 @@ export class ExperimentRuntime {
   }
 }
 
-function isReplayableCommand(command: SimulationCommand): boolean {
+function cloneAndValidateStartupReplay(
+  startupReplay: ExperimentRuntimeStartupReplay,
+): ExperimentRuntimeStartupReplay {
+  const commandIds = new Set<string>();
+  const commands: ExperimentRuntimeReplayCommand[] = [];
+
+  for (const command of startupReplay.commands) {
+    if (!isReplayableCommand(command)) {
+      throw new TypeError(
+        "startup replay may contain only replayable simulation commands",
+      );
+    }
+    if (
+      typeof command.id !== "string" ||
+      command.id.length === 0 ||
+      command.id !== command.id.trim()
+    ) {
+      throw new TypeError(
+        "startup replay command ids must be non-empty canonical strings",
+      );
+    }
+    if (commandIds.has(command.id)) {
+      throw new RangeError(
+        `startup replay command ids must be unique: ${command.id}`,
+      );
+    }
+    commandIds.add(command.id);
+    commands.push(structuredClone(command));
+  }
+
+  return {
+    originCheckpoint: structuredClone(startupReplay.originCheckpoint),
+    commands,
+  };
+}
+
+function isReplayableCommand(
+  command: SimulationCommand,
+): command is ExperimentRuntimeReplayCommand {
   return command.type !== "snapshot" && command.type !== "restore";
 }
 

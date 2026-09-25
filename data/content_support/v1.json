@@ -1,0 +1,93 @@
+{
+  "kind": "petra-supported-content-matrix",
+  "schemaVersion": 1,
+  "version": "1.0.0",
+  "supportedScenarios": [
+    {
+      "id": "flagship-ecoli-ciprofloxacin",
+      "availability": "enabled-research",
+      "scienceModeStatus": "not-admitted",
+      "scenario": {
+        "id": "ecoli-ciprofloxacin-spatial",
+        "version": "1.5.0-research"
+      },
+      "organisms": [
+        {
+          "scientificName": "Escherichia coli",
+          "background": "K-12 MG1655 for curated resistance phenotypes",
+          "microbialGroup": "bacterium",
+          "presentationIdentityId": "ecoli-k12-mg1655-representative-morphology-v1"
+        }
+      ],
+      "environment": {
+        "resourceContextVersion": "unbound-model-resource-v1",
+        "resourceBindingStatus": "unbound",
+        "resourceRepresentation": "dimensionless_model_resource",
+        "medium": null,
+        "referenceTemperatureC": 37
+      },
+      "interventions": [
+        {
+          "id": "ciprofloxacin",
+          "kind": "antibiotic",
+          "protocolCommand": "apply-ciprofloxacin",
+          "concentrationUnit": "mg/L",
+          "supportedGeometries": [
+            "global",
+            "radial",
+            "stripe",
+            "paint"
+          ]
+        }
+      ],
+      "limitations": [
+        "This is a research-stage product scenario, not grounded Science-Mode admission: its limiting-resource context remains explicitly unbound and the ecology execution profile remains engineering-classified.",
+        "The resource channel is model-resource, not a named physical substrate or concentration.",
+        "The ciprofloxacin intervention edits the model concentration field; it does not establish physical delivery, diffusion, decay, clearance, or clinical dosing.",
+        "The E. coli rod presentation identity authorizes only a coarse representative silhouette and is not biological checkpoint, replay, population-count, or physical-dimension authority."
+      ]
+    }
+  ],
+  "expansionQueue": [
+    {
+      "id": "first-shared-resource-bacterial-competitor",
+      "kind": "bacterial-competitor",
+      "availability": "blocked-implementation",
+      "issues": [
+        553,
+        866
+      ],
+      "reason": "Candidate-selection research is complete for Bacillus subtilis 168 trp+ sigE-; authoritative mixed-species implementation/calibration and per-lineage presentation mapping remain blocked on #553 and #866."
+    },
+    {
+      "id": "first-grounded-fungal-competitor",
+      "kind": "fungal-competitor",
+      "availability": "blocked-research",
+      "issues": [
+        556,
+        615,
+        866
+      ],
+      "reason": "Fungal Science Mode remains blocked until the named fungal evidence pack is approved and authoritative fungal spatial state exists."
+    },
+    {
+      "id": "first-post-ciprofloxacin-antibiotic",
+      "kind": "antimicrobial",
+      "availability": "blocked-implementation",
+      "issues": [
+        926,
+        928
+      ],
+      "reason": "Chloramphenicol/MG1655 candidate and wild-type Greulich growth-inhibition authority are selected under completed #874. Product support remains blocked on #926 numerical/authority implementation and #928 a source-compatible MOPS growth/environment binding; the current dimensionless model-resource flagship cannot choose the glucose or glycerol fit."
+    },
+    {
+      "id": "named-microbial-interactions",
+      "kind": "interaction",
+      "availability": "blocked-research",
+      "issues": [
+        647
+      ],
+      "reason": "The exact E. coli K-12 MG1655 to Candida albicans SC5314 fungicidal phenotype is documented, but production, transport, loss, exposure-response, and magnesium-coupling authority remain unbound; generic attack/cooperation coefficients stay disabled under #647."
+    }
+  ]
+}

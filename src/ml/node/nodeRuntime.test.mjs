@@ -18,6 +18,9 @@ import {
 } from "./filesystemStore.mjs";
 import { WorkerThreadMechanisticExecutor } from "./workerThreadExecutor.mjs";
 import {
+  buildNodeMechanisticDatasetGenerationEvidence,
+} from "./datasetEvidenceAdapter.ts";
+import {
   NODE_MECHANISTIC_DATASET_PACKAGE_SCHEMA_VERSION,
   createNodeMechanisticDatasetWorkerEnvelope,
   validateNodeMechanisticDatasetWorkerEnvelope,
@@ -176,6 +179,41 @@ describe("Node mechanistic sweep adapters", () => {
     expect(first.runReport.completedTrajectoryCount).toBe(plan.trajectoryCount);
     expect(first.runReport.resumedTrajectoryCount).toBe(0);
     expect(first.dataset.finalized).toBe(true);
+
+    const evidence = buildNodeMechanisticDatasetGenerationEvidence({
+      artifactDirectory: root,
+      plan,
+      result: first,
+      engineCommit: "0123456789abcdef0123456789abcdef01234567",
+      repositoryDirty: false,
+      logicalCpuCount: 4,
+    });
+    expect(evidence.status).toBe("complete");
+    expect(evidence.artifactIntegrityVerified).toBe(true);
+    expect(evidence.promotionEvidence).toBe(false);
+    expect(evidence.dataset?.datasetDigest).toBe(first.dataset.datasetDigest);
+    expect(evidence.runtime).toMatchObject({
+      logicalCpuCount: 4,
+      workerCount: 2,
+    });
+
+    const unfinalizedEvidence =
+      buildNodeMechanisticDatasetGenerationEvidence({
+        artifactDirectory: root,
+        plan,
+        result: {
+          ...first,
+          status: "incomplete",
+          dataset: { finalized: false },
+        },
+        engineCommit: "0123456789abcdef0123456789abcdef01234567",
+        repositoryDirty: true,
+        logicalCpuCount: 4,
+      });
+    expect(unfinalizedEvidence.status).toBe("incomplete");
+    expect(unfinalizedEvidence.dataset).toBeNull();
+    expect(unfinalizedEvidence.artifactIntegrityVerified).toBe(false);
+    expect(unfinalizedEvidence.source.sourceStateMatchesCommit).toBe(false);
 
     const second = await runNodeMechanisticDatasetPackage(
       datasetPackage,

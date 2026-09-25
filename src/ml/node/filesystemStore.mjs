@@ -312,3 +312,5 @@ function requireNonEmptyString(name, value) {
 function assertWriterActive(finished) {
   if (finished) throw new Error("trajectory stage writer is already finished");
 }
+
+export { readUtf8Lines as readFilesystemDatasetLines };

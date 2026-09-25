@@ -1,0 +1,122 @@
+import { describe, expect, it } from "vitest";
+
+import rawAuthority from "../../data/analysis/flagship_metric_authority_v1.json";
+import flagshipScenario from "../../data/presets/ecoli_ciprofloxacin_v1.json";
+import { buildDefaultFlagshipRun } from "./flagshipRunPreset";
+import {
+  createFlagshipLiveAnalysisHistory,
+  parseFlagshipMetricAuthority,
+  resolveFlagshipMetricAuthorityForRun,
+} from "./flagshipMetricAuthority";
+
+const EXPECTED_ELEVATED_MIC_GENOTYPES = [
+  "A",
+  "B",
+  "D",
+  "E",
+  "AB",
+  "AC",
+  "AD",
+  "AE",
+  "BC",
+  "BD",
+  "ACB",
+] as const;
+
+describe("flagshipMetricAuthority", () => {
+  it("binds the exact elevated-MIC-relative-to-founder cohort", () => {
+    const authority = parseFlagshipMetricAuthority(
+      rawAuthority,
+      flagshipScenario,
+    );
+
+    expect(authority.scenarioId).toBe(flagshipScenario.id);
+    expect(authority.scenarioVersion).toBe(flagshipScenario.version);
+    expect(authority.resistantCohort.founderGenotypeId).toBe("WT");
+    expect(authority.resistantCohort.founderMicMgPerL).toBe(0.016);
+    expect(authority.resistantCohort.memberGenotypeIds).toEqual(
+      EXPECTED_ELEVATED_MIC_GENOTYPES,
+    );
+    expect(authority.resistantCohort.memberGenotypeIds).not.toContain("C");
+    expect(authority.resistantCohort.clinicalBreakpointAuthority).toBe(false);
+    expect(authority.samplingPolicy).toEqual({
+      version: 1,
+      everyTicks: 1,
+      offsetTicks: 0,
+    });
+  });
+
+  it("rejects stale explicit cohort membership instead of treating all mutants as resistant", () => {
+    const stale = structuredClone(rawAuthority);
+    stale.resistantCohort.memberGenotypeIds = [
+      ...stale.resistantCohort.memberGenotypeIds,
+      "C",
+    ];
+
+    expect(() =>
+      parseFlagshipMetricAuthority(stale, flagshipScenario),
+    ).toThrow(/members must exactly equal/);
+  });
+
+  it("rejects MIC drift that changes the cohort boundary", () => {
+    const driftedScenario = structuredClone(flagshipScenario);
+    const genotypeA = driftedScenario.genotypes.find(
+      (genotype) => genotype.id === "A",
+    );
+    expect(genotypeA).toBeDefined();
+    genotypeA!.mic_mg_L = 0.016;
+
+    expect(() =>
+      parseFlagshipMetricAuthority(rawAuthority, driftedScenario),
+    ).toThrow(/members must exactly equal/);
+  });
+
+  it("rejects foreign scenario and parameter-set versions", () => {
+    const foreignScenario = structuredClone(flagshipScenario);
+    foreignScenario.version = "foreign-scenario-version";
+    expect(() =>
+      parseFlagshipMetricAuthority(rawAuthority, foreignScenario),
+    ).toThrow(/exact scenario id\/version/);
+
+    const foreignParameterSet = structuredClone(flagshipScenario);
+    foreignParameterSet.composedParameterSet.version = "foreign-parameter-set";
+    expect(() =>
+      parseFlagshipMetricAuthority(rawAuthority, foreignParameterSet),
+    ).toThrow(/exact composed parameter-set id\/version/);
+  });
+
+  it("rejects invalid metric cadence through the shared sampling validator", () => {
+    const invalid = structuredClone(rawAuthority);
+    invalid.samplingPolicy.everyTicks = 0;
+
+    expect(() =>
+      parseFlagshipMetricAuthority(invalid, flagshipScenario),
+    ).toThrow(/everyTicks must be a positive safe integer/);
+  });
+
+  it("binds the authority to the exact flagship run before constructing history", () => {
+    const { plan } = buildDefaultFlagshipRun();
+    const authority = resolveFlagshipMetricAuthorityForRun(plan.identity);
+    expect(authority.resistantCohort.memberGenotypeIds).toEqual(
+      EXPECTED_ELEVATED_MIC_GENOTYPES,
+    );
+
+    const history = createFlagshipLiveAnalysisHistory(plan.identity);
+    expect(history.snapshot().samplingPolicy).toEqual(authority.samplingPolicy);
+    expect(history.snapshot().samples).toEqual([]);
+
+    expect(() =>
+      resolveFlagshipMetricAuthorityForRun({
+        ...plan.identity,
+        scenarioVersion: "foreign-scenario-version",
+      }),
+    ).toThrow(/foreign scenario identity/);
+
+    expect(() =>
+      resolveFlagshipMetricAuthorityForRun({
+        ...plan.identity,
+        parameterSetVersion: "foreign-parameter-set",
+      }),
+    ).toThrow(/foreign parameter-set identity/);
+  });
+});

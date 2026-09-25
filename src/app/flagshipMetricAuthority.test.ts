@@ -104,14 +104,54 @@ describe("flagshipMetricAuthority", () => {
     ).toThrow(/everyTicks must be a positive safe integer/);
   });
 
+  it("rejects missing, fixture, and drifted provenance bindings", () => {
+    const { plan } = buildDefaultFlagshipRun();
+    const { parameterSetBinding: _omitted, ...identityWithoutBinding } =
+      plan.identity;
+    expect(() =>
+      resolveFlagshipMetricAuthorityForRun({
+        ...plan,
+        identity: identityWithoutBinding,
+      }),
+    ).toThrow(/versioned parameter-set configuration binding/);
+
+    expect(() =>
+      resolveFlagshipMetricAuthorityForRun({
+        ...plan,
+        identity: {
+          ...plan.identity,
+          parameterSetBinding: {
+            ...plan.identity.parameterSetBinding!,
+            authority: "fixture",
+          },
+        },
+      }),
+    ).toThrow(/fixture parameter-set ids must start/);
+
+    expect(() =>
+      resolveFlagshipMetricAuthorityForRun({
+        ...plan,
+        identity: {
+          ...plan.identity,
+          parameterSetBinding: {
+            ...plan.identity.parameterSetBinding!,
+            configurationFingerprint:
+              plan.identity.parameterSetBinding!.configurationFingerprint +
+              "-drift",
+          },
+        },
+      }),
+    ).toThrow(/configuration fingerprint does not match/);
+  });
+
   it("binds the authority to the exact flagship run before constructing history", () => {
     const { plan } = buildDefaultFlagshipRun();
-    const authority = resolveFlagshipMetricAuthorityForRun(plan.identity);
+    const authority = resolveFlagshipMetricAuthorityForRun(plan);
     expect(authority.resistantCohort.memberGenotypeIds).toEqual(
       EXPECTED_ELEVATED_MIC_GENOTYPES,
     );
 
-    const history = createFlagshipLiveAnalysisHistory(plan.identity);
+    const history = createFlagshipLiveAnalysisHistory(plan);
     expect(history.snapshot().samplingPolicy).toEqual(authority.samplingPolicy);
     expect(history.snapshot().samples).toEqual([]);
 
@@ -125,15 +165,21 @@ describe("flagshipMetricAuthority", () => {
 
     expect(() =>
       resolveFlagshipMetricAuthorityForRun({
-        ...plan.identity,
-        scenarioVersion: "foreign-scenario-version",
+        ...plan,
+        identity: {
+          ...plan.identity,
+          scenarioVersion: "foreign-scenario-version",
+        },
       }),
     ).toThrow(/foreign scenario identity/);
 
     expect(() =>
       resolveFlagshipMetricAuthorityForRun({
-        ...plan.identity,
-        parameterSetVersion: "foreign-parameter-set",
+        ...plan,
+        identity: {
+          ...plan.identity,
+          parameterSetVersion: "foreign-parameter-set",
+        },
       }),
     ).toThrow(/foreign parameter-set identity/);
   });

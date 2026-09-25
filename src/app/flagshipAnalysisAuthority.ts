@@ -1,6 +1,7 @@
 import flagshipScenario from "../../data/presets/ecoli_ciprofloxacin_v1.json";
 import { composedConfigurationFingerprint } from "../sim/authoritative";
 import type { GenotypeAnalysisEvidence } from "../sim/evolution/analysis";
+import { buildCuratedMutationGraph } from "../sim/evolution/graph";
 import type { FlagshipComposedRunPlan } from "../sim/flagshipComposition";
 import {
   assertComposedParameterSetBinding,
@@ -23,6 +24,7 @@ const scenarioVersion = requireCanonicalText(
   scenario.version,
 );
 const FLAGSHIP_GENOTYPE_RECORDS = parseFlagshipGenotypeRecords(scenario);
+const FLAGSHIP_EVOLUTION_GRAPH = buildCuratedMutationGraph(flagshipScenario);
 
 /**
  * Assemble the exact scientific evidence required by runtime lineage analysis
@@ -75,6 +77,7 @@ export function createFlagshipRuntimeLineageAnalysisAuthority(
     );
   }
 
+  validateExactFlagshipEvolutionGraph(plan);
   validateEvidenceAgainstRunPlan(plan, FLAGSHIP_GENOTYPE_RECORDS);
 
   return Object.freeze({
@@ -87,6 +90,63 @@ export function createFlagshipRuntimeLineageAnalysisAuthority(
       ),
     ),
   });
+}
+
+function validateExactFlagshipEvolutionGraph(
+  plan: FlagshipComposedRunPlan,
+): void {
+  const actual = plan.config.evolutionGraph;
+  const expected = FLAGSHIP_EVOLUTION_GRAPH;
+
+  if (
+    actual.scenarioId !== expected.scenarioId ||
+    actual.scenarioVersion !== expected.scenarioVersion
+  ) {
+    throw new Error(
+      "flagship lineage-analysis evolution graph identity drifted from scenario authority",
+    );
+  }
+  if (actual.genotypes.length !== expected.genotypes.length) {
+    throw new Error(
+      "flagship lineage-analysis evolution genotype set drifted from scenario authority",
+    );
+  }
+  for (let index = 0; index < expected.genotypes.length; index += 1) {
+    const candidate = actual.genotypes[index]!;
+    const canonical = expected.genotypes[index]!;
+    if (
+      candidate.id !== canonical.id ||
+      candidate.relativeFitness !== canonical.relativeFitness ||
+      candidate.sourceOrder !== canonical.sourceOrder
+    ) {
+      throw new Error(
+        `flagship lineage-analysis evolution genotype drifted from scenario authority at source order ${index}`,
+      );
+    }
+  }
+
+  if (actual.transitions.length !== expected.transitions.length) {
+    throw new Error(
+      "flagship lineage-analysis mutation transition set drifted from scenario authority",
+    );
+  }
+  for (let index = 0; index < expected.transitions.length; index += 1) {
+    const candidate = actual.transitions[index]!;
+    const canonical = expected.transitions[index]!;
+    if (
+      candidate.fromGenotypeId !== canonical.fromGenotypeId ||
+      candidate.toGenotypeId !== canonical.toGenotypeId ||
+      candidate.probabilityPerDivision !== canonical.probabilityPerDivision ||
+      candidate.mutationClass !== canonical.mutationClass ||
+      candidate.citationKey !== canonical.citationKey ||
+      candidate.note !== canonical.note ||
+      candidate.sourceOrder !== canonical.sourceOrder
+    ) {
+      throw new Error(
+        `flagship lineage-analysis mutation transition drifted from scenario authority at source order ${index}`,
+      );
+    }
+  }
 }
 
 function validateEvidenceAgainstRunPlan(

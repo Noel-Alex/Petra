@@ -45,6 +45,9 @@
 ## Collateral sensitivity
 - Imamovic, L., Sommer, M.O.A. (2013). Use of Collateral Sensitivity Networks to Design Drug Cycling Protocols That Avoid Resistance Development. DOI `10.1126/scitranslmed.3006609`.
 
+## Bacteria-fungus interactions
+- Cabral, D.J., Penumutchu, S., Norris, C., Morones-Ramirez, J.R., Belenky, P. (2018). Microbial competition between Escherichia coli and Candida albicans reveals a soluble fungicidal factor. DOI `10.15698/mic2018.05.631`.
+
 ## ML/surrogates
 - Bridging the gap between mechanistic biological models and machine learning surrogates (2023). DOI `10.1371/journal.pcbi.1010988`.
 - Using Emulation to Engineer and Understand Simulations of Biological Systems (2020). DOI `10.1109/TCBB.2018.2843339`.

@@ -24,6 +24,10 @@ import {
   type WorkerResponse,
 } from './protocol'
 import { assertSimulationSeed } from './seed'
+import {
+  LineageRegistry,
+  type LineageRegistryCheckpoint,
+} from './evolution/lineage'
 
 type UnknownRecord = Record<string, unknown>
 
@@ -47,7 +51,7 @@ const CIPROFLOXACIN_COMMAND_KEYS = new Set(['id', 'type', 'intervention'])
  * Runtime promotion boundary for successfully deserialized Worker requests.
  *
  * The returned object is the original payload after validation rather than a
- * reconstructed subset, so protocol-v6 composed configuration/binding fields
+ * reconstructed subset, so protocol-v7 composed configuration/binding fields
  * cannot be silently stripped by an older parser.
  */
 export function parseWorkerRequest(
@@ -443,11 +447,48 @@ function parseComposedState(
   if (!lineageIds.ok) return failure(`.lineageIds ${lineageIds.error}`)
   const genotypeIds = parseDenseStringArray(record.genotypeIds)
   if (!genotypeIds.ok) return failure(`.genotypeIds ${genotypeIds.error}`)
+  const baselineDeathHazardPerHour = parseDenseNumberArray(
+    record.baselineDeathHazardPerHour,
+    lineageIds.value.length,
+    isFiniteNonNegative,
+  )
+  if (!baselineDeathHazardPerHour.ok) {
+    return failure(
+      `.baselineDeathHazardPerHour ${baselineDeathHazardPerHour.error}`,
+    )
+  }
   if (lineageIds.value.length !== genotypeIds.value.length) {
     return failure('.lineageIds and .genotypeIds must have equal length')
   }
   if (new Set(lineageIds.value).size !== lineageIds.value.length) {
     return failure('.lineageIds must be unique')
+  }
+
+  const lineageRegistry = asRecord(record.lineageRegistry)
+  if (lineageRegistry === null) {
+    return failure('.lineageRegistry must be an object')
+  }
+  try {
+    const restored = LineageRegistry.restore(
+      record.lineageRegistry as unknown as LineageRegistryCheckpoint,
+    ).checkpoint()
+    if (
+      restored.records.length !== lineageIds.value.length ||
+      restored.records.some(
+        (entry, index) =>
+          entry.lineageId !== lineageIds.value[index] ||
+          entry.genotypeId !== genotypeIds.value[index],
+      )
+    ) {
+      return failure(
+        '.lineageRegistry records must exactly match composed lineage identity order',
+      )
+    }
+  } catch (error) {
+    return failure(
+      '.lineageRegistry ' +
+        (error instanceof Error ? error.message : 'is invalid'),
+    )
   }
 
   if (!Array.isArray(record.lineageBiomass)) {

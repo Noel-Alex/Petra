@@ -33,6 +33,7 @@ LOD is deterministic for a fixed render snapshot + view request where practical.
 
 Prefer aggregate density/texture at dish scale and bounded representative glyphs at colony scale. Never create one render object per biological cell.
 - `colonyMassPresentation.ts` owns the continuous presentation-only transfer from comparable lineage density to colony-mass alpha. It uses the same snapshot-wide density denominator for every lineage, keeps exact zero/off-mask source density exactly transparent, and never performs neighborhood dilation, connected-component fusion, or another rewrite that could bridge a truly empty source region. Dense connected visual masses come from the source field plus linearly filtered raster presentation; they are not measured colony fronts, cell/CFU counts, or biological merge events.
+- `colonyMassIslands.ts` may derive only a **bounded accent summary** from that already-projected alpha field. Its versioned presentation policy groups threshold support with deterministic eight-neighbour connectivity, requires a minimum visual support size, ranks by integrated alpha, and caps returned islands so accent-object count cannot scale with occupancy. The continuous raster remains the complete mass field; islands never bridge zero-alpha gaps and are not biological colonies/fronts, cell/CFU counts, or organism identity.
 
 ## Accessibility
 

@@ -378,4 +378,75 @@ describe("AnalysisPanel", () => {
     expect(html).not.toContain(">Selected<");
   });
 
+
+  it("bounds lineage SVG geometry without dropping semantic ancestry or selected ancestors", () => {
+    const largeTree = buildLineageTree([
+      {
+        lineageId: "root",
+        parentLineageId: null,
+        genotypeId: "WT",
+        createdAtHours: 0,
+        extinctAtHours: null,
+      },
+      {
+        lineageId: "a",
+        parentLineageId: "root",
+        genotypeId: "A",
+        createdAtHours: 1,
+        extinctAtHours: null,
+      },
+      {
+        lineageId: "a1",
+        parentLineageId: "a",
+        genotypeId: "A1",
+        createdAtHours: 2,
+        extinctAtHours: null,
+      },
+      {
+        lineageId: "b",
+        parentLineageId: "root",
+        genotypeId: "B",
+        createdAtHours: 3,
+        extinctAtHours: null,
+      },
+      {
+        lineageId: "b1",
+        parentLineageId: "b",
+        genotypeId: "B1",
+        createdAtHours: 4,
+        extinctAtHours: null,
+      },
+      {
+        lineageId: "c",
+        parentLineageId: "root",
+        genotypeId: "C",
+        createdAtHours: 5,
+        extinctAtHours: null,
+      },
+    ]);
+
+    const html = renderToStaticMarkup(
+      <AnalysisPanel
+        charts={[chart]}
+        lineageTree={largeTree}
+        motion="off"
+        selectedLineageId="b1"
+        onLineageSelect={() => undefined}
+        lineageTreeSvgNodeBudget={3}
+      />,
+    );
+
+    expect(html).toContain('data-visible-lineages="3"');
+    expect(html).toContain('data-total-lineages="6"');
+    expect(html).toContain('data-hidden-lineages="3"');
+    expect(html).toContain('data-lineage-id="root"');
+    expect(html).toContain('data-lineage-id="b"');
+    expect(html).toContain('data-lineage-id="b1"');
+    expect(html).toContain('data-selected="true"');
+    expect(html).toContain('data-hidden-descendants="3"');
+    expect(html).toContain("SVG LOD shows");
+    expect(html).toContain("remain available in Complete ancestry data");
+    expect(html.match(/data-lineage-record-id=/g) ?? []).toHaveLength(6);
+  });
+
 });

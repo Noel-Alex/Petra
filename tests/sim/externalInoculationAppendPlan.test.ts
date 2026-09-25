@@ -34,20 +34,16 @@ function interventionFor(
   if (binding === undefined) {
     throw new Error('two-bacterium plan must expose provenance binding')
   }
-  const authority =
-    lineageDefinitionId === 'bsubtilis-founder'
-      ? {
-          lineageDefinitionId,
-          genotypeId: 'bsubtilis-static',
-          taxonId: 'bsubtilis-168-trp-plus-sige-minus',
-          taxonContentVersion: 'tannler-2008-growth-context-v1',
-        }
-      : {
-          lineageDefinitionId,
-          genotypeId: 'ecoli-wt',
-          taxonId: 'ecoli-k12-mg1655',
-          taxonContentVersion: 'ecoli-k12-mg1655-v1',
-        }
+  const lineageDefinition = plan.config.lineages.find(
+    (candidate) => candidate.id === lineageDefinitionId,
+  )
+  if (
+    lineageDefinition === undefined ||
+    lineageDefinition.taxonId === undefined ||
+    lineageDefinition.taxonContentVersion === undefined
+  ) {
+    throw new Error('requested inoculation lineage must expose exact taxon authority')
+  }
 
   return {
     schemaVersion: EXTERNAL_INOCULATION_INTERVENTION_SCHEMA_VERSION,
@@ -57,7 +53,10 @@ function interventionFor(
       scenarioId: plan.identity.scenarioId,
       scenarioVersion: plan.identity.scenarioVersion,
       parameterSetBinding: binding,
-      ...authority,
+      lineageDefinitionId: lineageDefinition.id,
+      genotypeId: lineageDefinition.genotypeId,
+      taxonId: lineageDefinition.taxonId,
+      taxonContentVersion: lineageDefinition.taxonContentVersion,
     },
     placement: {
       kind: 'grid-cell',
@@ -177,14 +176,23 @@ describe('external inoculation atomic append planning', () => {
       createdAtHours: 0,
     })
 
+    const sourceDefinition = runPlan.config.lineages.find(
+      (candidate) => candidate.id === 'ecoli-founder',
+    )
+    if (sourceDefinition === undefined) {
+      throw new Error('two-bacterium plan must expose the E. coli source definition')
+    }
+
     expect(planned.lineageEcologyRecord).toMatchObject({
       lineageId: 'L3',
-      genotypeId: 'ecoli-wt',
+      genotypeId: sourceDefinition.genotypeId,
       originKind: 'external-inoculation',
-      sourceLineageDefinitionId: 'ecoli-founder',
-      declaredBaselineGrowthRateScale: null,
-      baselineGrowthRateScale: 1,
-      baselineDeathHazardPerHour: 0,
+      sourceLineageDefinitionId: sourceDefinition.id,
+      declaredBaselineGrowthRateScale:
+        sourceDefinition.baselineGrowthRateScale ?? null,
+      baselineGrowthRateScale:
+        sourceDefinition.baselineGrowthRateScale ?? 1,
+      baselineDeathHazardPerHour: sourceDefinition.deathHazardPerHour,
     })
   })
 

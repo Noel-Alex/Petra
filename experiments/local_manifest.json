@@ -554,6 +554,34 @@
       "timeout_seconds": 30
     },
     {
+      "id": "external-inoculation-validation",
+      "description": "PREPARED; BLOCKED on #1057/#980: exact external-inoculation payload/admission authority is on main, but replay-critical external-root lineage origin plus the atomic executable composed transaction must land before end-to-end validation can run.",
+      "command": [
+        "python",
+        "experiments/blocked.py",
+        "--experiment-id",
+        "external-inoculation-validation",
+        "--blocked-on",
+        "1057",
+        "--blocked-on",
+        "980",
+        "--reason",
+        "Issue #1057 must deliberately version replay-critical lineage origin so an external runtime root is distinct from configured founders and mutation children, and issue #980 must add the atomic aligned-channel composed intervention/command with checkpoint/replay/event semantics. The active #918 protocol/replay migration must be coordinated rather than raced. Until those authorities land, Petra must not validate a fake mutation child, UI-created biology, or an unversioned extra root."
+      ],
+      "issues": [
+        37,
+        542,
+        626,
+        879,
+        890,
+        918,
+        980,
+        1057,
+        1062
+      ],
+      "timeout_seconds": 30
+    },
+    {
       "id": "mops-glucose-resource-calibration",
       "description": "SOURCE INVENTORY RUNNABLE; calibration remains blocked on #938: acquire and verify the exact Knapp Harvard Dataverse V1 file inventory, then stop before fitting until the 37 C D-glucose table/schema and uncertainty representation are reviewed; physical spatial transport remains independently unbound.",
       "command": [

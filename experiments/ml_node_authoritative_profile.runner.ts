@@ -18,6 +18,10 @@ import {
   createSweepParameterPointForBinding,
 } from "../src/ml/executionDefinition";
 import {
+  createFlagshipRunConditionExecutionDefinition,
+  createFlagshipSweepRunCondition,
+} from "../src/ml/flagshipRunCondition";
+import {
   createMechanisticExecutionSchedule,
   mechanisticExecutionScheduleIdentity,
 } from "../src/ml/executionSchedule";
@@ -192,12 +196,23 @@ async function main(): Promise<void> {
   });
   const intervention =
     createNoInterventionExecutionDefinition("no-intervention");
+  const runConditionId = "flagship-established-engineering-initialization-v1";
+  const runConditionExecution =
+    createFlagshipRunConditionExecutionDefinition(
+      runConditionId,
+      ENGINEERING_INITIALIZATION,
+    );
+  const runCondition = createFlagshipSweepRunCondition(
+    runConditionId,
+    ENGINEERING_INITIALIZATION,
+  );
   const executionDefinition = createMechanisticExecutionDefinition({
     parameterSetBinding: flagship.parameterSetBinding,
+    runCondition: runConditionExecution,
     intervention,
   });
   const parameterPoint = createSweepParameterPointForBinding(
-    "flagship-established-engineering-initialization-v1",
+    "flagship-baseline-composed-parameters-v1",
     flagship.parameterSetBinding,
     flagship.config,
   );
@@ -218,6 +233,7 @@ async function main(): Promise<void> {
       targetSchemaVersion: "node-authoritative-profile-target-v1",
     },
     parameterPoints: [parameterPoint],
+    runConditions: [runCondition],
     interventionFamilies: [interventionFamily],
     seeds: DEFAULT_SEEDS,
     maxTrajectories: DEFAULT_SEEDS.length,

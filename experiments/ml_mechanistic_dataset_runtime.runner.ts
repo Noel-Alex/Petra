@@ -1,5 +1,6 @@
 import { mkdirSync, renameSync, writeFileSync } from "node:fs";
 import { cpus } from "node:os";
+import { execFileSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 
 import {
@@ -37,6 +38,23 @@ function writeJsonAtomically(path: string, value: unknown): void {
   const temporary = path + ".partial";
   writeFileSync(temporary, JSON.stringify(value, null, 2) + "\n", "utf8");
   renameSync(temporary, path);
+}
+
+function sourceState(): {
+  readonly commit: string;
+  readonly dirty: boolean;
+} {
+  const commit = execFileSync("git", ["rev-parse", "HEAD"], {
+    encoding: "utf8",
+  }).trim();
+  const dirty =
+    execFileSync("git", ["status", "--porcelain"], {
+      encoding: "utf8",
+    }).trim().length > 0;
+  if (!/^[0-9a-f]{40}$/i.test(commit)) {
+    throw new Error("mechanistic dataset runner could not resolve a Git commit");
+  }
+  return Object.freeze({ commit, dirty });
 }
 
 function normalizeFailure(error: unknown): {
@@ -130,8 +148,13 @@ async function main(): Promise<void> {
       maxWorkers,
       executorModuleUrl: workerModuleUrl,
     });
+    const source = sourceState();
     writeJsonAtomically(resultPath, {
       experiment_id: EXPERIMENT_ID,
+      source: {
+        commit: source.commit,
+        repository_dirty: source.dirty,
+      },
       ...result,
     });
     if (result.status !== "completed") {

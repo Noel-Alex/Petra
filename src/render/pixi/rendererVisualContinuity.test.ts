@@ -101,6 +101,45 @@ describe("Pixi dish visual continuity integration", () => {
     expect(tickerSource).toContain("if (changed) render();");
   });
 
+  it("invalidates prepared scientific layers by revision rather than mutable frame identity", () => {
+    expect(rendererSource).toContain(
+      "initialDishRenderPreparationRevision()",
+    );
+    expect(rendererSource).toContain(
+      "resolveDishRenderPreparationInvalidation(",
+    );
+    expect(rendererSource).not.toContain(
+      "densityTextureSource === drawableState",
+    );
+    expect(rendererSource).not.toContain(
+      "fieldTextureSource === drawableState",
+    );
+
+    const tickerStart = rendererSource.indexOf("const ticker = () => {");
+    const listenerStart = rendererSource.indexOf(
+      "app.ticker.add(ticker);",
+      tickerStart,
+    );
+    const tickerSource = rendererSource.slice(tickerStart, listenerStart);
+    const frameWrite = tickerSource.indexOf("drawableState = step.state;");
+    const revisionAdvance = tickerSource.indexOf(
+      '"scientific-frame"',
+      frameWrite,
+    );
+    expect(frameWrite).toBeGreaterThanOrEqual(0);
+    expect(revisionAdvance).toBeGreaterThan(frameWrite);
+
+    const pointerStart = rendererSource.indexOf(
+      "const onPointerMove = (event: PointerEvent) => {",
+    );
+    const pointerEnd = rendererSource.indexOf(
+      "const finishPointer = (",
+      pointerStart,
+    );
+    const pointerSource = rendererSource.slice(pointerStart, pointerEnd);
+    expect(pointerSource).not.toContain('"scientific-frame"');
+  });
+
   it("collapses reduced/off state transitions to the exact authoritative snapshot", () => {
     const modeStart = rendererSource.indexOf("setMotionMode(nextMode) {");
     const cameraStart = rendererSource.indexOf(

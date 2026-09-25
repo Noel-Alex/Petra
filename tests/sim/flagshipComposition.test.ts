@@ -31,7 +31,7 @@ describe('flagship composed run planning', () => {
     expect(plan.identity).toMatchObject({
       protocolVersion: PROTOCOL_VERSION,
       scenarioId: 'ecoli-ciprofloxacin-spatial',
-      scenarioVersion: '1.4.0-research',
+      scenarioVersion: '1.5.0-research',
       parameterSetId: 'ecoli-ciprofloxacin-baseline-composed',
       parameterSetVersion: '1.1.0',
       seed: baseline.seed,

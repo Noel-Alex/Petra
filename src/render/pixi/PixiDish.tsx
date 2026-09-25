@@ -3,6 +3,7 @@ import { PetraCompactAction } from "../../ui/PetraCompactAction";
 import type { DishRenderSnapshot, SemanticZoomLevel } from "../model";
 import type { DishVisualMotionSpec } from "../visualInterpolation";
 import type { CameraMotionSpec } from "./cameraMotion";
+import { resolveDishActivationPoint } from "./dishActivation";
 import {
   createPixiDishRenderer,
   type PixiDishRenderer,
@@ -30,6 +31,8 @@ export interface PixiDishProps {
   /** Monotonic presentation-only request counter from the React shell. */
   readonly resetCameraSignal?: number;
   readonly onSemanticZoomLevelChange?: (level: SemanticZoomLevel) => void;
+  /** Presentation-only normalized dish activation for authoritative query adapters. */
+  readonly onDishPointActivate?: (point: { readonly x: number; readonly y: number }) => void;
 }
 
 export type RendererStartupStatus = "idle" | "initializing" | "ready" | "failed";
@@ -70,6 +73,7 @@ export function PixiDish({
   ariaDescribedBy,
   resetCameraSignal = 0,
   onSemanticZoomLevelChange,
+  onDishPointActivate,
 }: PixiDishProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const rendererRef = useRef<PixiDishRenderer | null>(null);
@@ -78,6 +82,7 @@ export function PixiDish({
   const visualMotionRef = useRef(visualMotion);
   const overlayRef = useRef(overlayId);
   const semanticZoomCallbackRef = useRef(onSemanticZoomLevelChange);
+  const dishPointActivateCallbackRef = useRef(onDishPointActivate);
   const resetCameraSignalRef = useRef(resetCameraSignal);
   const [startup, setStartup] = useState<RendererStartupState>(IDLE_STARTUP);
   const [retryAttempt, setRetryAttempt] = useState(0);
@@ -96,11 +101,13 @@ export function PixiDish({
     visualMotionRef.current = visualMotion;
     overlayRef.current = overlayId;
     semanticZoomCallbackRef.current = onSemanticZoomLevelChange;
+    dishPointActivateCallbackRef.current = onDishPointActivate;
     snapshotRef.current = renderSnapshot;
   }, [
     cameraMotion,
     motion,
     onSemanticZoomLevelChange,
+    onDishPointActivate,
     overlayId,
     renderSnapshot,
     visualMotion,
@@ -129,6 +136,12 @@ export function PixiDish({
           overlayId,
           onSemanticZoomLevelChange(level) {
             semanticZoomCallbackRef.current?.(level);
+          },
+          onDishPointActivate(point) {
+            const callback = dishPointActivateCallbackRef.current;
+            if (callback === undefined) return false;
+            callback(point);
+            return true;
           },
         }),
       {
@@ -188,6 +201,8 @@ export function PixiDish({
             : "Petra dish waiting for authoritative simulation data");
 
   const rendererInteractive = renderEnabled && startup.status === "ready";
+  const waitingSelectionInteractive =
+    !renderEnabled && onDishPointActivate !== undefined;
 
   return (
     <div
@@ -206,11 +221,49 @@ export function PixiDish({
       <div
         ref={hostRef}
         role="region"
-        tabIndex={rendererInteractive ? 0 : -1}
+        tabIndex={rendererInteractive || waitingSelectionInteractive ? 0 : -1}
         aria-roledescription="interactive Petri dish"
         aria-describedby={ariaDescribedBy}
         aria-label={resolvedAriaLabel}
         aria-busy={renderEnabled && startup.status === "initializing"}
+        onClick={
+          waitingSelectionInteractive
+            ? (event) => {
+                const rect = event.currentTarget.getBoundingClientRect();
+                const viewport = {
+                  width: Math.max(rect.width, 1),
+                  height: Math.max(rect.height, 1),
+                };
+                const screen = {
+                  x: event.clientX - rect.left,
+                  y: event.clientY - rect.top,
+                };
+                const point = resolveDishActivationPoint({
+                  start: screen,
+                  end: screen,
+                  viewport,
+                  camera: { centerX: 0.5, centerY: 0.5, zoom: 1 },
+                });
+                if (point !== null) onDishPointActivate?.(point);
+              }
+            : undefined
+        }
+        onKeyDown={
+          waitingSelectionInteractive
+            ? (event) => {
+                if (
+                  event.key !== "Enter" ||
+                  event.ctrlKey ||
+                  event.metaKey ||
+                  event.altKey
+                ) {
+                  return;
+                }
+                event.preventDefault();
+                onDishPointActivate?.({ x: 0.5, y: 0.5 });
+              }
+            : undefined
+        }
         style={{
           position: "absolute",
           inset: 0,

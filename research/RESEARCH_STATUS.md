@@ -21,10 +21,15 @@ The flagship composes evidence from different strains/assays:
 
 These caveats are acceptable for an educational mechanistic simulator **only because Petra exposes them**.
 
+### Current ciprofloxacin transport decision
+For the current flagship/expo release, Petra intentionally does **not** claim a physical millimeter/time ciprofloxacin transport model. Protocol v5 owns exact replayable `mg/L` concentration-field state and field-edit interventions for the transferred pharmacodynamic mechanism, but those fields do not imply a calibrated diffusion coefficient, decay/clearance law, dish delivery geometry, or clinical-dose equivalence.
+
+Accordingly, #633 research is **OFF for the current flagship**. Petra stays on explicit engineering spatial concentration authority rather than attaching unsupported physical transport semantics. If a future scenario requires physical transport, it must select a named matrix/geometry, source compatible transport evidence, define the grid/time-to-physical mapping, and version that calibration before making mm/time claims.
+
 ### Research still useful
 - locate genotype-specific ciprofloxacin time-kill curves for one or more flagship genotypes to replace/shared-shape assumption;
 - curate compatible E. coli growth/resource parameters for a named medium and dish/agar condition;
-- find an experimentally supported effective drug diffusion coefficient/geometry if Petra wants physical millimeter/time concentration claims rather than normalized spatial transport;
+- future-only: source an effective drug diffusion coefficient/geometry if a later scenario explicitly chooses physical millimeter/time concentration claims; the current flagship does not make that claim;
 - quantify uncertainty/ranges around selected genotype fitness/MIC measurements where paper data permits.
 
 None of these gaps should block a scientifically honest first build if the transfer/calibration status remains visible.

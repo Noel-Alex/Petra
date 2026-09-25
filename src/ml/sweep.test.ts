@@ -327,4 +327,22 @@ describe("mechanistic ML sweep planner", () => {
       }),
     ).toThrow(/minimumGroupsPerSplit must be a positive safe integer/);
   });
+  it("binds execution schedule into task and manifest identity", () => {
+    const first = planMechanisticSweep(definition());
+    const changed = planMechanisticSweep({
+      ...definition(),
+      executionSchedule: createMechanisticExecutionSchedule({
+        totalTicks: 6,
+        snapshotEveryTicks: 2,
+      }),
+    });
+
+    expect(changed.executionScheduleIdentity).not.toBe(first.executionScheduleIdentity);
+    expect(changed.tasks[0]!.trajectoryKey).toBe(first.tasks[0]!.trajectoryKey);
+    expect(changed.tasks[0]!.taskId).not.toBe(first.tasks[0]!.taskId);
+    const manifest = buildMechanisticSweepManifest(changed);
+    expect(manifest.executionScheduleIdentity).toBe(changed.executionScheduleIdentity);
+    expect(manifest.trajectories[0]!.executionScheduleIdentity).toBe(changed.executionScheduleIdentity);
+  });
+
 });

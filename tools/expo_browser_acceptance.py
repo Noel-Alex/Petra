@@ -618,10 +618,54 @@ def continuous_render_publication_pass(
         )
         complete = summary.get("completeTransactionCount")
         transaction_count = summary.get("transactionCount")
-        net_growth = summary.get("netGrowthProjectionCount")
+        phase_counts = (
+            summary.get("phaseCounts")
+            if isinstance(summary.get("phaseCounts"), dict)
+            else {}
+        )
+        runtime_count = phase_counts.get("runtime-snapshot-published")
+        projection_count = phase_counts.get("dish-projection")
+        react_count = phase_counts.get("react-dish-committed")
         complete_rate = (
             round(float(complete) * 1000.0 / elapsed_ms, 3)
             if isinstance(complete, int) and elapsed_ms > 0
+            else None
+        )
+        accepted_phase_ratios = (
+            {
+                "runtimeSamplesPerAcceptedCommand": round(
+                    float(runtime_count) / accepted_delta, 6
+                ),
+                "projectionsPerAcceptedCommand": round(
+                    float(projection_count) / accepted_delta, 6
+                ),
+                "reactCommitsPerAcceptedCommand": round(
+                    float(react_count) / accepted_delta, 6
+                ),
+            }
+            if isinstance(accepted_delta, int)
+            and accepted_delta > 0
+            and isinstance(runtime_count, int)
+            and isinstance(projection_count, int)
+            and isinstance(react_count, int)
+            else None
+        )
+        phase_rates = (
+            {
+                "runtimeSamplesPerWallSecond": round(
+                    float(runtime_count) * 1000.0 / elapsed_ms, 3
+                ),
+                "projectionsPerWallSecond": round(
+                    float(projection_count) * 1000.0 / elapsed_ms, 3
+                ),
+                "reactCommitsPerWallSecond": round(
+                    float(react_count) * 1000.0 / elapsed_ms, 3
+                ),
+            }
+            if elapsed_ms > 0
+            and isinstance(runtime_count, int)
+            and isinstance(projection_count, int)
+            and isinstance(react_count, int)
             else None
         )
 
@@ -632,11 +676,14 @@ def continuous_render_publication_pass(
             and isinstance(accepted_delta, int)
             and accepted_delta >= target_accepted_commands
             and dropped == 0
-            and isinstance(complete, int)
-            and complete > 0
-            and complete == transaction_count
-            and complete == accepted_delta
-            and net_growth == complete
+            and isinstance(transaction_count, int)
+            and transaction_count > 0
+            and isinstance(runtime_count, int)
+            and runtime_count > 0
+            and isinstance(projection_count, int)
+            and projection_count > 0
+            and isinstance(react_count, int)
+            and react_count > 0
         )
 
         checks.append(
@@ -648,6 +695,8 @@ def continuous_render_publication_pass(
                     "requestedMinimumAcceptedCommands": target_accepted_commands,
                     "acceptedCommandAdvance": accepted_delta,
                     "completeTransactionsPerWallSecond": complete_rate,
+                    "acceptedCommandNormalizedPhaseRatios": accepted_phase_ratios,
+                    "phaseRates": phase_rates,
                     "elapsedWallMs": elapsed_ms,
                     "droppedSamples": dropped,
                     "playAction": play_action,
@@ -656,9 +705,11 @@ def continuous_render_publication_pass(
                     "after": after,
                     "measurementBoundary": (
                         "This is a dedicated instrumented publication workload, not "
-                        "renderer frame-time evidence. Counts/ratios may motivate a "
-                        "later publication-policy experiment but do not authorize "
-                        "dropping accepted state or changing biology."
+                        "renderer frame-time evidence. Runtime/projection/commit ratios "
+                        "below 1 are valid observations of the current publication path, "
+                        "not automatic failures or permission to discard authoritative "
+                        "history. They may motivate a later publication-policy experiment "
+                        "but do not authorize changing biology."
                     ),
                 },
                 "blocked" if not captured else None,

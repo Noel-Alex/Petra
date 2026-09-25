@@ -621,6 +621,27 @@
         938
       ],
       "timeout_seconds": 180
+    },
+    {
+      "id": "model-resource-intervention-validation",
+      "description": "PREPARED; BLOCKED on #918 protocol/replay integration: deterministic model-resource set/add/spatial edit, mask/event/order, checkpoint/genesis replay, zero-resource→replenish response, and rejection no-op validation with no physical nutrient claim.",
+      "command": [
+        "python",
+        "experiments/blocked.py",
+        "--experiment-id",
+        "model-resource-intervention-validation",
+        "--blocked-on",
+        "918",
+        "--reason",
+        "The pure model-resource edit authority is on main, but #918 must land the authoritative apply-model-resource command/event plus strict Worker/protocol/replay/export integration before end-to-end command validation is truthful. The deterministic cases and compact-result contract are predeclared in experiments/model_resource_intervention_validation_plan.json; preserve this stable experiment id when activating the executable harness."
+      ],
+      "issues": [
+        158,
+        542,
+        626,
+        918
+      ],
+      "timeout_seconds": 30
     }
   ]
 }

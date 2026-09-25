@@ -368,6 +368,38 @@ describe('worker protocol runtime validation', () => {
     if (!parsed.ok) expect(parsed.error).toContain('rngState')
   })
 
+  it('rejects malformed composed RNG continuation before authority promotion', () => {
+    const corrupt = structuredClone(composedSnapshot)
+    ;(corrupt.checkpoint.rngState as number[]).fill(0)
+
+    const response = parseWorkerResponse({
+      protocolVersion: PROTOCOL_VERSION,
+      type: 'ready',
+      snapshot: corrupt,
+    })
+    expect(response).toMatchObject({ ok: false, commandId: null })
+    if (!response.ok) expect(response.error).toContain('rngState')
+
+    const missing = structuredClone(composedSnapshot) as unknown as {
+      checkpoint: Record<string, unknown>
+    }
+    delete missing.checkpoint.rngState
+    const restore = parseWorkerRequest({
+      protocolVersion: PROTOCOL_VERSION,
+      type: 'command',
+      command: {
+        id: 'restore-missing-composed-rng',
+        type: 'restore',
+        checkpoint: missing.checkpoint,
+      },
+    })
+    expect(restore).toMatchObject({
+      ok: false,
+      commandId: 'restore-missing-composed-rng',
+    })
+    if (!restore.ok) expect(restore.error).toContain('rngState')
+  })
+
   it('rejects composed initialize config that does not match its binding', () => {
     const changedConfig: ComposedSimulationConfig = {
       ...composedConfig,

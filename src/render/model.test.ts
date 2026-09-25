@@ -154,6 +154,107 @@ describe("validateRenderSnapshot", () => {
       }),
     ).toThrow(/dimensions/i);
   });
+
+  it("rejects field values outside their declared legend/transfer bounds", () => {
+    const snapshot = fixture();
+    const nutrient = snapshot.fields[0]!;
+    const values = Float32Array.from(nutrient.values);
+    values[4] = 1.5;
+
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        fields: [{ ...nutrient, values }],
+      }),
+    ).toThrow(/outside its declared bounds/i);
+  });
+
+  it("accepts coherent spatial event metadata", () => {
+    const snapshot = fixture();
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        events: [
+          {
+            id: "event-1",
+            kind: "mutation",
+            simulationTimeHours: 1.5,
+            x: 0.5,
+            y: 0.5,
+            lineageId: "ancestor",
+            label: "Mutation observed",
+          },
+        ],
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects duplicate spatial event identity", () => {
+    const snapshot = fixture();
+    const event = {
+      id: "event-1",
+      kind: "intervention",
+      simulationTimeHours: 1,
+      x: 0.25,
+      y: 0.75,
+      label: "Intervention",
+    };
+
+    expect(() =>
+      validateRenderSnapshot({ ...snapshot, events: [event, event] }),
+    ).toThrow(/duplicate render event id/i);
+  });
+
+  it("rejects invalid spatial event coordinates and future timestamps", () => {
+    const snapshot = fixture();
+    const event = {
+      id: "event-1",
+      kind: "intervention",
+      simulationTimeHours: 1,
+      x: 0.25,
+      y: 0.75,
+      label: "Intervention",
+    };
+
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        events: [{ ...event, x: Number.NaN }],
+      }),
+    ).toThrow(/within \[0, 1\]/i);
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        events: [{ ...event, y: 1.01 }],
+      }),
+    ).toThrow(/within \[0, 1\]/i);
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        events: [{ ...event, simulationTimeHours: 2.01 }],
+      }),
+    ).toThrow(/after the snapshot simulation time/i);
+  });
+
+  it("rejects render events that claim an unknown lineage", () => {
+    const snapshot = fixture();
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        events: [
+          {
+            id: "event-1",
+            kind: "mutation",
+            simulationTimeHours: 1,
+            x: 0.5,
+            y: 0.5,
+            lineageId: "missing-lineage",
+            label: "Mutation observed",
+          },
+        ],
+      }),
+    ).toThrow(/references unknown lineage/i);
+  });
 });
 
 describe("sampleRepresentativeGlyphs", () => {

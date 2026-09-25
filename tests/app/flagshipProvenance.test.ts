@@ -8,7 +8,7 @@ describe("flagship provenance presentation projection", () => {
 
     expect(view.scenario).toEqual({
       id: "ecoli-ciprofloxacin-spatial",
-      version: "1.4.0-research",
+      version: "1.5.0-research",
       title: "E. coli / ciprofloxacin spatial evolution",
     });
   });

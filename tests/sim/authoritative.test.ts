@@ -4,11 +4,16 @@ import {
   composedConfigurationFingerprint,
   createComposedState,
   stepComposedState,
+  stepComposedStateDetailed,
   type ComposedCiprofloxacinConfig,
   type ComposedSimulationConfig,
 } from '../../src/sim/authoritative'
 import type { CuratedMutationGraph } from '../../src/sim/evolution/graph'
 import type { SamplingExecutionPolicy } from '../../src/sim/samplingPolicy'
+import {
+  CELL_EQUIVALENT_CALIBRATION_SCHEMA_VERSION,
+  FRACTIONAL_CARRY_POPULATION_POLICY,
+} from '../../src/sim/populationAuthority'
 
 const evolutionGraph: CuratedMutationGraph = {
   scenarioId: 'test-scenario',
@@ -64,6 +69,7 @@ const config: ComposedSimulationConfig = {
   evolutionScenario: { scenarioId: 'test-scenario', scenarioVersion: '1' },
   ciprofloxacin: null,
   samplingExecutionPolicy: null,
+  populationAuthority: null,
   lineages: [
     { id: 'ancestor', genotypeId: 'WT', deathHazardPerHour: 0 },
     { id: 'variant', genotypeId: 'VAR', deathHazardPerHour: 0.1 },
@@ -237,6 +243,152 @@ describe('authoritative composed state', () => {
     expect(() => stepComposedState(state, reassigned)).toThrow(
       /fingerprint mismatch/,
     )
+  })
+
+  it('binds opt-in population authority into fingerprint, checkpoint state, and spatial division opportunities', () => {
+    const withPopulation: ComposedSimulationConfig = {
+      ...config,
+      populationAuthority: {
+        calibration: {
+          schemaVersion: CELL_EQUIVALENT_CALIBRATION_SCHEMA_VERSION,
+          id: 'fixture-composed-cell-scale-v1',
+          modelBiomassPerCellEquivalent: 0.01,
+          provenance: {
+            classification: 'engineering',
+            sourceKeys: [],
+            limitation:
+              'Test-only engineering scale for composed population integration.',
+          },
+        },
+        policy: FRACTIONAL_CARRY_POPULATION_POLICY,
+      },
+    }
+
+    expect(composedConfigurationFingerprint(withPopulation)).not.toBe(
+      composedConfigurationFingerprint(config),
+    )
+    const state = createComposedState(withPopulation)
+    expect(state.discretePopulation).not.toBeNull()
+    expect(state.discretePopulation?.revision).toBe(0)
+    expect(state.discretePopulation?.standingHostCounts).toEqual([
+      [100, 0],
+      [200, 0],
+    ])
+
+    const result = stepComposedStateDetailed(state, withPopulation)
+    expect(result.totalDivisionOpportunities).toBeGreaterThan(0)
+    expect(result.divisionOpportunities).not.toBeNull()
+    expect(result.divisionOpportunities).toHaveLength(2)
+    expect(result.divisionOpportunities?.[0]).toHaveLength(2)
+    expect(state.discretePopulation?.revision).toBe(1)
+
+    const cloned = cloneComposedState(state)
+    expect(cloned.discretePopulation).toEqual(state.discretePopulation)
+    expect(cloned.discretePopulation).not.toBe(state.discretePopulation)
+    expect(cloned.discretePopulation?.standingHostCounts[0]).not.toBe(
+      state.discretePopulation?.standingHostCounts[0],
+    )
+  })
+
+  it('keeps population authority opt-in and refuses omitted or inconsistent checkpoint state', () => {
+    const missing = { ...config } as Partial<ComposedSimulationConfig>
+    delete missing.populationAuthority
+    expect(() =>
+      createComposedState(missing as ComposedSimulationConfig),
+    ).toThrow(/populationAuthority must be explicit/)
+
+    const withPopulation: ComposedSimulationConfig = {
+      ...config,
+      populationAuthority: {
+        calibration: {
+          schemaVersion: CELL_EQUIVALENT_CALIBRATION_SCHEMA_VERSION,
+          id: 'fixture-composed-cell-scale-v1',
+          modelBiomassPerCellEquivalent: 0.01,
+          provenance: {
+            classification: 'engineering',
+            sourceKeys: [],
+            limitation:
+              'Test-only engineering scale for composed population integration.',
+          },
+        },
+        policy: FRACTIONAL_CARRY_POPULATION_POLICY,
+      },
+    }
+    const missingState = createComposedState(withPopulation)
+    missingState.discretePopulation = null
+    expect(() => stepComposedState(missingState, withPopulation)).toThrow(
+      /requires checkpoint state/,
+    )
+
+    const unexpected = createComposedState(config)
+    ;(
+      unexpected as unknown as {
+        discretePopulation: unknown
+      }
+    ).discretePopulation = {
+      schemaVersion: 1,
+    }
+    expect(() => stepComposedState(unexpected, config)).toThrow(
+      /requires explicit population authority configuration/,
+    )
+  })
+
+  it('validates discrete standing authority against exact committed biomass before stepping', () => {
+    const withPopulation: ComposedSimulationConfig = {
+      ...config,
+      populationAuthority: {
+        calibration: {
+          schemaVersion: CELL_EQUIVALENT_CALIBRATION_SCHEMA_VERSION,
+          id: 'fixture-composed-cell-scale-v1',
+          modelBiomassPerCellEquivalent: 0.01,
+          provenance: {
+            classification: 'engineering',
+            sourceKeys: [],
+            limitation:
+              'Test-only engineering scale for composed population integration.',
+          },
+        },
+        policy: FRACTIONAL_CARRY_POPULATION_POLICY,
+      },
+    }
+    const state = createComposedState(withPopulation)
+    ;(
+      state.discretePopulation!.standingHostCounts[0] as number[]
+    )[0] = 99
+
+    expect(() => stepComposedState(state, withPopulation)).toThrow(
+      /standing|biomass/i,
+    )
+  })
+
+  it('publishes neither ecology nor population state when discrete authority advancement refuses', () => {
+    const withPopulation: ComposedSimulationConfig = {
+      ...config,
+      populationAuthority: {
+        calibration: {
+          schemaVersion: CELL_EQUIVALENT_CALIBRATION_SCHEMA_VERSION,
+          id: 'fixture-composed-cell-scale-v1',
+          modelBiomassPerCellEquivalent: 0.01,
+          provenance: {
+            classification: 'engineering',
+            sourceKeys: [],
+            limitation:
+              'Test-only engineering scale for composed population integration.',
+          },
+        },
+        policy: FRACTIONAL_CARRY_POPULATION_POLICY,
+      },
+    }
+    const state = createComposedState(withPopulation)
+    ;(
+      state.discretePopulation as unknown as { revision: number }
+    ).revision = Number.MAX_SAFE_INTEGER
+    const before = cloneComposedState(state)
+
+    expect(() => stepComposedStateDetailed(state, withPopulation)).toThrow(
+      /revision/,
+    )
+    expect(state).toEqual(before)
   })
 
   it('requires an explicit valid sampling execution policy or null', () => {

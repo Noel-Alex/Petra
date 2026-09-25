@@ -5,7 +5,7 @@ import type {
 } from "./validationStatus";
 
 const RESULT_LOCATOR_PREFIX = "experiments/results/";
-const RESULT_RUN_ID_PATTERN = /^\\d{8}T\\d{12}Z$/;
+const RESULT_RUN_ID_PATTERN = /^\d{8}T\d{12}Z$/;
 const EXPERIMENT_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const LOCAL_EXPERIMENT_RUNNER_STATUSES = new Set([
   "passed",

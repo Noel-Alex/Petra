@@ -49,6 +49,8 @@
 - Chauhan, V. et al. (2026). Evolutionary trajectories determine feasibility of collateral sensitivity-based antibiotic treatment strategies in critical bacterial pathogens. DOI `10.1038/s42003-025-09303-1`.
 
 ## Bacteria-fungus interactions
+- Rosenzweig, W.D., Stotzky, G. (1979). Influence of Environmental Factors on Antagonism of Fungi by Bacteria in Soil: Clay Minerals and pH. DOI `10.1128/aem.38.6.1120-1126.1979`.
+- Rosenzweig, W.D., Stotzky, G. (1980). Influence of Environmental Factors on Antagonism of Fungi by Bacteria in Soil: Nutrient Levels. DOI `10.1128/aem.39.2.354-360.1980`.
 - Cabral, D.J., Penumutchu, S., Norris, C., Morones-Ramirez, J.R., Belenky, P. (2018). Microbial competition between Escherichia coli and Candida albicans reveals a soluble fungicidal factor. DOI `10.15698/mic2018.05.631`.
 
 ## ML/surrogates

@@ -474,6 +474,20 @@
       "timeout_seconds": 30
     },
     {
+      "id": "multidrug-collateral-source-acquisition",
+      "description": "SOURCE ACQUISITION RUNNABLE: inventory the pinned Allen 2021 Dryad deposit and acquire exact small genotype/phenotype/dose-response source tables; stop before isolate selection, PD transfer, or multidrug composition.",
+      "command": [
+        "python",
+        "experiments/multidrug_collateral_source_acquisition.py"
+      ],
+      "issues": [
+        542,
+        573,
+        905
+      ],
+      "timeout_seconds": 180
+    },
+    {
       "id": "multidrug-collateral-validation",
       "description": "PREPARED; BLOCKED on #573/#574: exact collateral-sensitivity evidence pack and authoritative multidrug engine are required before deterministic source-parity validation can run.",
       "command": [

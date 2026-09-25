@@ -1,5 +1,9 @@
 import type { ComposedEcologyObservationEnvelope } from '../sim/composedEcologyObservation'
 import {
+  appendSimulationEventHistory,
+  simulationEventHistoryDelta,
+} from '../sim/eventHistory'
+import {
   PROTOCOL_VERSION,
   type SimulationCheckpoint,
   type SimulationEvent,
@@ -32,22 +36,25 @@ export interface WorkerSnapshotDeltaResponse {
   readonly snapshot: WorkerSnapshotDeltaState
 }
 
-export type WorkerTransportResponse = WorkerResponse | WorkerSnapshotDeltaResponse
+export type WorkerTransportResponse =
+  | WorkerResponse
+  | WorkerSnapshotDeltaResponse
 
 type UnknownRecord = Record<string, unknown>
 
 /**
- * Build the compact response used only when Worker-owned immutable history
- * proves the new snapshot shares the exact retained prefix by object identity.
+ * Build the compact response only when copy-on-write history ancestry proves
+ * the current engine history descends from the previously published history.
  *
- * A restore/history reset or any other prefix discontinuity deliberately
- * returns the existing full protocol-v8 snapshot response instead.
+ * Proof cost is O(number of newly appended events), never O(total retained
+ * history). Restore/rebase/foreign histories deliberately fall back to the
+ * existing full protocol-v8 snapshot response.
  */
 export function createWorkerSnapshotTransportResponse(args: {
   readonly commandId: string
   readonly previousEvents: readonly SimulationEvent[] | null
   readonly snapshot: SimulationSnapshot
-}): WorkerResponse | WorkerSnapshotDeltaResponse {
+}): WorkerTransportResponse {
   const full: WorkerResponse = {
     protocolVersion: PROTOCOL_VERSION,
     type: 'snapshot',
@@ -56,13 +63,16 @@ export function createWorkerSnapshotTransportResponse(args: {
   }
 
   const previous = args.previousEvents
-  if (previous === null || !sharesImmutablePrefix(previous, args.snapshot.events)) {
-    return full
-  }
+  if (previous === null) return full
+
+  const appendedEvents = simulationEventHistoryDelta(
+    previous,
+    args.snapshot.events,
+  )
+  if (appendedEvents === null) return full
 
   const previousTerminalEvent =
     previous.length === 0 ? null : previous[previous.length - 1]!
-  const appendedEvents = args.snapshot.events.slice(previous.length)
 
   return {
     protocolVersion: PROTOCOL_VERSION,
@@ -78,11 +88,11 @@ export function createWorkerSnapshotTransportResponse(args: {
 }
 
 /**
- * Parse the transport-only delta envelope while delegating all scientific
- * checkpoint/event/ecology validation to the existing protocol-v8 parser.
+ * Parse the transport-only delta envelope while delegating scientific
+ * checkpoint/event/ecology structure to the existing protocol-v8 parser.
  *
- * Only the retained terminal event plus newly appended suffix are presented to
- * the protocol parser, so validation cost is independent of older history.
+ * Only the retained terminal event plus the newly appended suffix are passed
+ * through event validation, so old history is not reparsed every command.
  */
 export function parseWorkerSnapshotDeltaResponse(
   value: unknown,
@@ -187,19 +197,18 @@ export function parseWorkerSnapshotDeltaResponse(
     previousEventCount === 0
       ? appendedEvents
       : [record.previousTerminalEvent, ...appendedEvents]
-  const validationSnapshot = {
-    checkpoint: snapshot.checkpoint,
-    events: validationEvents,
-    traceHash: snapshot.traceHash,
-    ...(snapshot.ecologyObservation === undefined
-      ? {}
-      : { ecologyObservation: snapshot.ecologyObservation }),
-  }
   const coreValidation = parseWorkerResponse({
     protocolVersion: PROTOCOL_VERSION,
     type: 'snapshot',
     commandId: record.commandId,
-    snapshot: validationSnapshot,
+    snapshot: {
+      checkpoint: snapshot.checkpoint,
+      events: validationEvents,
+      traceHash: snapshot.traceHash,
+      ...(snapshot.ecologyObservation === undefined
+        ? {}
+        : { ecologyObservation: snapshot.ecologyObservation }),
+    },
   })
   if (!coreValidation.ok) {
     return {
@@ -219,7 +228,7 @@ export function parseWorkerSnapshotDeltaResponse(
 
 /**
  * Reconstruct the exact full SimulationSnapshot expected by existing runtime
- * consumers while sharing the already-owned retained event prefix.
+ * consumers while sharing the already-owned immutable retained event prefix.
  */
 export function materializeWorkerSnapshotDelta(
   previousSnapshot: SimulationSnapshot | null,
@@ -274,13 +283,10 @@ export function materializeWorkerSnapshotDelta(
     )
   }
 
-  const state = structuredClone(response.snapshot)
-  const appendedEvents = structuredClone(response.appendedEvents)
-  const events = Object.freeze([
-    ...previousSnapshot.events,
-    ...appendedEvents,
-  ])
-
+  let events = previousSnapshot.events
+  for (const event of response.appendedEvents) {
+    events = appendSimulationEventHistory(events, event)
+  }
   if (events.length !== response.currentEventCount) {
     throw new Error(
       'worker snapshot delta materialized event count does not match frontier',
@@ -288,8 +294,16 @@ export function materializeWorkerSnapshotDelta(
   }
 
   return {
-    ...state,
+    checkpoint: structuredClone(response.snapshot.checkpoint),
     events,
+    traceHash: response.snapshot.traceHash,
+    ...(response.snapshot.ecologyObservation === undefined
+      ? {}
+      : {
+          ecologyObservation: structuredClone(
+            response.snapshot.ecologyObservation,
+          ),
+        }),
   } as SimulationSnapshot
 }
 
@@ -304,15 +318,6 @@ function snapshotTransportState(
       ? { ecologyObservation: snapshot.ecologyObservation }
       : {}),
   }
-}
-
-function sharesImmutablePrefix(
-  previous: readonly SimulationEvent[],
-  current: readonly SimulationEvent[],
-): boolean {
-  if (current.length < previous.length) return false
-  if (previous.length === 0) return true
-  return current[previous.length - 1] === previous[previous.length - 1]
 }
 
 function sameOptionalEvent(

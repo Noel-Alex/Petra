@@ -43,23 +43,21 @@ Use live GitHub state as a scheduler, not merely a catalog.
 
 These remain useful product/science umbrellas, but are usually too broad to claim wholesale.
 
-- **P0 flagship:** #3 resource-limited growth, #5 evolution/lineages, #6 living-dish renderer, #7 experiment UX.
+- **P0 flagship:** #5 evolution/lineages, #6 living-dish renderer, #7 experiment UX. The original ecology implementation gate #3 is complete; further ecology calibration/physical-resource work is tracked by focused issues rather than reopening it.
 - **P1 product/polish:** #9 counterfactual compare, #10 motion/onboarding/accessibility, #11 guided demo + judge defense.
 - **P2 expansion:** #12 named phage pack, #13 mechanistic dataset + surrogate benchmark.
 
 ### Focused executable / recovery seams
 
-This list is intentionally selective. Use the live issue search for the complete queue and re-check comments/branches immediately before editing.
+This list is intentionally selective and contains **open owners only** as of this reconciliation. Use live issue search for the complete queue and re-check comments/branches immediately before editing.
 
-- **Authoritative runtime + UX integration:** protocol v5 supports explicit composed worker authority plus the first replayable `apply-ciprofloxacin` mutation; #37 owns the remaining flagship activation/integration gates while the omitted-`composedConfig` synthetic engine remains infrastructure-only. #42 is the React/runtime umbrella consuming composed authority. #626 still owns product wiring and the remaining intervention vocabulary beyond ciprofloxacin global/radial/stripe/paint; #159 owns authoritative local-region inspection, #274 owns causal narration for explicit scientific event identities, and #317 exposes the typed Step/Reset/Replay/Seed controls in the shell.
-- **Browser/expo acceptance:** #59 owns real browser visual, motion, keyboard, touch, screen-reader, and frame-time evidence. Source-only work must not claim that evidence.
-- **Renderer/input + accessibility:** #241 owns the live semantic-zoom guide bridge; #253 owns one visual-demo snapshot transaction; #300 owns overview touch scroll chaining; #313 separates renderer-failure narration from retry control; #314 routes retry through shared Petra action motion. Coordinate these shared Pixi/DishViewport paths before editing.
-- **Shell keyboard/motion:** #276 owns conflict-safe playback shortcut wiring. Coordinate broader interaction/onboarding polish through #39 and the #10 umbrella rather than creating competing App-level keyboard or motion authority.
-- **Provenance + judge drill-down:** #278 makes only explicitly supplied DOI/URL locators actionable. #11 remains the integrated demo/judge-defense completion gate; do not turn presentation cues into scientific authority.
-- **Replay + scientific identity:** #222 binds composed lineage channels to genotype identity; #302 makes run-seed identity injective with the uint32 RNG stream; #227 owns the flagship limiting-resource identity gate.
-- **Numerical/runtime safety:** #224 remains open for the authoritative sampling-policy fingerprint hook after its bounded accelerated-sampling core landed. Preserve exact-reference paths and replay-critical sampler identity.
-- **Phage:** #12 remains the named T4/MG1655 implementation umbrella; #283 owns discrete burst-count/lysis bookkeeping. Unbound phage loss/other calibration gaps stay visibly unbound.
-- **ML:** #13 remains the mechanistic-dataset/surrogate umbrella. Real model training/evidence stays downstream of authoritative mechanistic trajectories from #37; do not reopen completed safety-policy work merely to make an ML demo.
+- **Authoritative flagship + intervention path:** #37 owns the remaining composed flagship integration; #42 owns default React/runtime activation; #626 owns the remaining typed intervention vocabulary; #158 owns authoritative intervention metadata/palette/runtime binding. Source-level region inspection is complete; real inspector/pointer/touch/browser evidence is part of #59.
+- **Replay, analysis, and export:** #512 owns runtime history-generation / `runBranchIdentity`; #625 owns synchronized historical scrubbing; #602 owns live authoritative chart wiring; #604 owns remaining lineage-analysis runtime/selection integration; #681 owns safe browser-local experiment-bundle save/load and fresh-runtime replacement.
+- **Scientific and numerical authority:** #562 owns composed integration of the shared discrete population/event authority; #629 owns remaining authoritative metric-contract consumers/cadence hardening; #651 owns production parameter-compatibility integration; #628 owns replay-safe compaction only after protocol and soak evidence justify it.
+- **Provenance + release truth:** #579 owns the broader product provenance/judge audit; #627 owns binding real per-scenario validation evidence; #561 owns the eventual exact release scientific-identity freeze; #11 remains the integrated demo/judge-defense gate.
+- **Browser, offline, soak, and performance evidence:** #59 owns browser/device/a11y/frame-time acceptance; #557 offline/no-network evidence; #558 long-soak evidence; #630 Worker transport measurement; #642 renderer/runtime performance instrumentation evidence; #716 the decisive Windows local-runner rerun. Do not choose an architecture from source instrumentation alone.
+- **Phage:** #12 remains the named T4/MG1655 umbrella; #751 is the focused owner for composed free-phage/infection/lysis/checkpoint/replay integration. Pure burst/lysis bookkeeping #283 is complete and should not be reclaimed.
+- **ML long-lead path:** #13 remains the umbrella; #682 owns exact run-condition identity, #685 execution-schedule/resume identity, #594 the generic laptop worker/CLI after those identities settle, and #544 the first authoritative held-out sweep/evidence.
 - **Build/reproducibility:** #30 owns the canonical JavaScript lockfile/local-install reproducibility task and requires real npm-registry access; do not hand-write lockfile integrity metadata.
 
 

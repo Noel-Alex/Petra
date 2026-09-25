@@ -111,7 +111,38 @@
           }
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "availability": {
+                "const": "enabled-science"
+              }
+            },
+            "required": [
+              "availability"
+            ]
+          },
+          "then": {
+            "properties": {
+              "scienceModeStatus": {
+                "const": "admitted"
+              },
+              "environment": {
+                "properties": {
+                  "resourceBindingStatus": {
+                    "enum": [
+                      "calibrated",
+                      "measured_or_transferred"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "organism": {
       "type": "object",
@@ -183,7 +214,31 @@
           ]
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "resourceBindingStatus": {
+                "const": "unbound"
+              }
+            },
+            "required": [
+              "resourceBindingStatus"
+            ]
+          },
+          "then": {
+            "properties": {
+              "resourceRepresentation": {
+                "const": "dimensionless_model_resource"
+              },
+              "medium": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
     },
     "intervention": {
       "type": "object",

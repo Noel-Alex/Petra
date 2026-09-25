@@ -97,6 +97,7 @@ interface CommandGranularityStressResult {
   readonly totalTicks: number
   readonly batchTicks: number
   readonly biologicalContinuationEquivalent: true
+  readonly finalBiologicalContinuationEvidenceSha256: string
   readonly batchedAdvanceWallMs: number
   readonly fineAdvanceWallMs: number
   readonly finalBatchedCommandCount: number
@@ -106,6 +107,35 @@ interface CommandGranularityStressResult {
   readonly finalBatchedEventHistoryJsonBytes: number
   readonly finalFineEventHistoryJsonBytes: number
   readonly samples: readonly CommandGranularityStressSample[]
+}
+
+interface RetainedMemoryDelta {
+  readonly rssBytes: number
+  readonly heapUsedBytes: number
+  readonly externalBytes: number
+  readonly arrayBuffersBytes: number
+}
+
+interface PostGcRetainedMemoryObservation {
+  readonly commandGranularity: 'batched' | 'one-tick'
+  readonly commandTicks: number
+  readonly commandCount: number
+  readonly eventCount: number
+  readonly eventHistoryJsonBytes: number
+  readonly biologicalContinuationEvidenceSha256: string
+  readonly baselinePostGcMemory: MemorySample
+  readonly retainedPostGcMemory: MemorySample
+  readonly retainedMinusBaseline: RetainedMemoryDelta
+}
+
+interface PostGcRetainedMemoryProfile {
+  readonly gcExposed: true
+  readonly seed: number
+  readonly totalTicks: number
+  readonly biologicalContinuationEquivalent: true
+  readonly expectedBiologicalContinuationEvidenceSha256: string
+  readonly batched: PostGcRetainedMemoryObservation
+  readonly oneTick: PostGcRetainedMemoryObservation
 }
 
 function parsePositiveSafeInteger(
@@ -313,6 +343,43 @@ function checkpointEvidenceSha256(
     .digest('hex')
 }
 
+function biologicalContinuationEvidenceSha256(
+  snapshot: ComposedSimulationSnapshot,
+): string {
+  function canonicalize(value: unknown): unknown {
+    if (ArrayBuffer.isView(value)) {
+      return Array.from(value as unknown as ArrayLike<number>)
+    }
+    if (Array.isArray(value)) {
+      return value.map(canonicalize)
+    }
+    if (value !== null && typeof value === 'object') {
+      const record = value as Record<string, unknown>
+      return Object.fromEntries(
+        Object.keys(record)
+          .sort()
+          .map((key) => [key, canonicalize(record[key])]),
+      )
+    }
+    return value
+  }
+
+  return createHash('sha256')
+    .update(
+      JSON.stringify(
+        canonicalize({
+          identity: snapshot.checkpoint.identity,
+          tick: snapshot.checkpoint.tick,
+          simulationTimeHours: snapshot.checkpoint.simulationTimeHours,
+          rngState: snapshot.checkpoint.rngState,
+          composedState: snapshot.checkpoint.composedState,
+          metrics: snapshot.checkpoint.metrics,
+        }),
+      ),
+    )
+    .digest('hex')
+}
+
 function writeCompactResult(result: unknown): void {
   const output = process.env.PETRA_LOCAL_RESULT_JSON
   if (output === undefined || output.trim() === '') return
@@ -472,6 +539,8 @@ function runCommandGranularityStress(
     totalTicks,
     batchTicks,
     biologicalContinuationEquivalent: true,
+    finalBiologicalContinuationEvidenceSha256:
+      biologicalContinuationEvidenceSha256(batchedSnapshot),
     batchedAdvanceWallMs,
     fineAdvanceWallMs,
     finalBatchedCommandCount: batchedSnapshot.checkpoint.commandCount,
@@ -481,6 +550,158 @@ function runCommandGranularityStress(
     finalBatchedEventHistoryJsonBytes,
     finalFineEventHistoryJsonBytes,
     samples,
+  }
+}
+
+function forceDedicatedExperimentGc(): void {
+  const gc = (globalThis as typeof globalThis & { gc?: () => void }).gc
+  if (typeof gc !== 'function') {
+    throw new Error(
+      'flagship long-soak retained-memory profile requires Node --expose-gc',
+    )
+  }
+
+  // Two explicit collections reduce ordinary short-lived allocation noise while
+  // remaining only an observational experiment action. No simulator state is
+  // derived from memory measurements.
+  gc()
+  gc()
+}
+
+function retainedMemoryDelta(
+  retained: MemorySample,
+  baseline: MemorySample,
+): RetainedMemoryDelta {
+  return {
+    rssBytes: retained.rssBytes - baseline.rssBytes,
+    heapUsedBytes: retained.heapUsedBytes - baseline.heapUsedBytes,
+    externalBytes: retained.externalBytes - baseline.externalBytes,
+    arrayBuffersBytes: retained.arrayBuffersBytes - baseline.arrayBuffersBytes,
+  }
+}
+
+function runPostGcRetainedMemoryVariant(
+  seed: number,
+  totalTicks: number,
+  commandTicks: number,
+  commandGranularity: PostGcRetainedMemoryObservation['commandGranularity'],
+): PostGcRetainedMemoryObservation {
+  if (
+    !Number.isSafeInteger(totalTicks) ||
+    totalTicks <= 0 ||
+    !Number.isSafeInteger(commandTicks) ||
+    commandTicks <= 0 ||
+    commandTicks > totalTicks
+  ) {
+    throw new Error(
+      'post-GC retained-memory profile requires positive safe tick counts',
+    )
+  }
+
+  forceDedicatedExperimentGc()
+  const baselinePostGcMemory = memorySample()
+
+  const initialization: FlagshipRunInitialization = {
+    seed,
+    initialResourceLevel: ENGINEERING_INITIALIZATION.initialResourceLevel,
+    inocula: ENGINEERING_INITIALIZATION.inocula,
+  }
+  const plan = buildFlagshipComposedRunPlan(initialization)
+  const engine = new ComposedSimulationEngine(plan.identity, plan.config)
+
+  let completedTicks = 0
+  let commandIndex = 0
+  let finalSnapshot: ComposedSimulationSnapshot | null = engine.snapshot()
+
+  while (completedTicks < totalTicks) {
+    const ticks = Math.min(commandTicks, totalTicks - completedTicks)
+    finalSnapshot = engine.execute({
+      id: `retained-memory-${seed}-${commandGranularity}-${commandIndex}`,
+      type: 'advance',
+      ticks,
+    })
+    completedTicks += ticks
+    commandIndex += 1
+  }
+
+  validateSnapshot(finalSnapshot)
+  const biologicalContinuationEvidenceSha256 =
+    biologicalContinuationEvidenceSha256(finalSnapshot)
+  const commandCount = finalSnapshot.checkpoint.commandCount
+  const eventCount = finalSnapshot.events.length
+  const eventHistoryBytes = eventHistoryJsonBytes(finalSnapshot)
+
+  if (eventCount !== commandCount + 1) {
+    throw new Error(
+      'post-GC retained-memory profile requires one initialization event plus one event per accepted command',
+    )
+  }
+
+  // Drop the exported snapshot clone before measuring. The engine itself remains
+  // live, so the post-GC observation reflects state/history retained by the
+  // authoritative engine rather than an extra presentation/export clone.
+  finalSnapshot = null
+  forceDedicatedExperimentGc()
+  const retainedPostGcMemory = memorySample()
+
+  return {
+    commandGranularity,
+    commandTicks,
+    commandCount,
+    eventCount,
+    eventHistoryJsonBytes: eventHistoryBytes,
+    biologicalContinuationEvidenceSha256,
+    baselinePostGcMemory,
+    retainedPostGcMemory,
+    retainedMinusBaseline: retainedMemoryDelta(
+      retainedPostGcMemory,
+      baselinePostGcMemory,
+    ),
+  }
+}
+
+function runPostGcRetainedMemoryProfile(
+  seed: number,
+  totalTicks: number,
+  batchTicks: number,
+  expectedBiologicalContinuationEvidenceSha256: string,
+): PostGcRetainedMemoryProfile {
+  const batched = runPostGcRetainedMemoryVariant(
+    seed,
+    totalTicks,
+    batchTicks,
+    'batched',
+  )
+
+  // The prior engine is out of scope before the second baseline is sampled.
+  forceDedicatedExperimentGc()
+
+  const oneTick = runPostGcRetainedMemoryVariant(
+    seed,
+    totalTicks,
+    1,
+    'one-tick',
+  )
+
+  if (
+    batched.biologicalContinuationEvidenceSha256 !==
+      oneTick.biologicalContinuationEvidenceSha256 ||
+    batched.biologicalContinuationEvidenceSha256 !==
+      expectedBiologicalContinuationEvidenceSha256
+  ) {
+    throw new Error(
+      'post-GC retained-memory command granularities changed biological continuation authority',
+    )
+  }
+
+  return {
+    gcExposed: true,
+    seed,
+    totalTicks,
+    biologicalContinuationEquivalent: true,
+    expectedBiologicalContinuationEvidenceSha256,
+    batched,
+    oneTick,
   }
 }
 
@@ -682,6 +903,12 @@ describe.sequential('flagship long-soak local experiment', () => {
         commandStressTicks,
         COMMAND_STRESS_BATCH_TICKS,
       )
+      const postGcRetainedMemory = runPostGcRetainedMemoryProfile(
+        stressSeed,
+        commandStressTicks,
+        COMMAND_STRESS_BATCH_TICKS,
+        commandGranularityStress.finalBiologicalContinuationEvidenceSha256,
+      )
 
       const totalAdvanceWallMs = results.reduce(
         (sum, result) => sum + result.advanceWallMs,
@@ -709,7 +936,7 @@ describe.sequential('flagship long-soak local experiment', () => {
       )
 
       const compactResult = {
-        schema_version: 2,
+        schema_version: 3,
         experiment_id: EXPERIMENT_ID,
         status: 'passed',
         started_at_utc: startedAt,
@@ -762,6 +989,7 @@ describe.sequential('flagship long-soak local experiment', () => {
         },
         seeds: results,
         command_granularity_stress: commandGranularityStress,
+        post_gc_retained_memory: postGcRetainedMemory,
         limitations: [
           'This experiment measures direct authoritative composed-engine execution, not browser Worker queue latency or renderer FPS.',
           'Node process memory samples are observational snapshots, not profiler-grade retained-object attribution.',
@@ -769,6 +997,8 @@ describe.sequential('flagship long-soak local experiment', () => {
           'Event history growth is measured but this experiment does not claim a bounded-retention policy exists.',
           'The command-granularity comparison isolates accepted-command/snapshot-history pressure at equal biological endpoints, but its wall-time delta is not a retained-object profiler or browser Worker measurement.',
           'Serialized event-history bytes are exact UTF-8 JSON evidence for the event payload only; they are not a claim about JavaScript heap object size or structured-clone overhead.',
+          'Post-GC heapUsed/external/arrayBuffers observations compare retained process memory while one authoritative engine remains live; they are not object-retainer proofs and do not choose a compaction policy.',
+          'Post-GC RSS remains allocator/high-water observational evidence because garbage collection need not return pages to the operating system.',
         ],
       }
 
@@ -797,9 +1027,26 @@ describe.sequential('flagship long-soak local experiment', () => {
       ).toBeGreaterThan(
         commandGranularityStress.finalBatchedEventHistoryJsonBytes,
       )
+      expect(postGcRetainedMemory.biologicalContinuationEquivalent).toBe(true)
+      expect(
+        postGcRetainedMemory.batched.biologicalContinuationEvidenceSha256,
+      ).toBe(
+        commandGranularityStress.finalBiologicalContinuationEvidenceSha256,
+      )
+      expect(
+        postGcRetainedMemory.oneTick.biologicalContinuationEvidenceSha256,
+      ).toBe(
+        commandGranularityStress.finalBiologicalContinuationEvidenceSha256,
+      )
+      expect(postGcRetainedMemory.oneTick.eventCount).toBeGreaterThan(
+        postGcRetainedMemory.batched.eventCount,
+      )
+      expect(
+        postGcRetainedMemory.oneTick.eventHistoryJsonBytes,
+      ).toBeGreaterThan(postGcRetainedMemory.batched.eventHistoryJsonBytes)
     } catch (error) {
       writeCompactResult({
-        schema_version: 2,
+        schema_version: 3,
         experiment_id: EXPERIMENT_ID,
         status: 'failed',
         started_at_utc: startedAt,

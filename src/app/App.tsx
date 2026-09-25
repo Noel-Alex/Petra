@@ -16,6 +16,7 @@ import {
 import { resolveDishAmbient } from "../ui/motion/dishAmbient";
 import { planSurfaceTransition } from "../ui/motion/semanticTransitions";
 import { OnboardingGuide } from "../ui/onboarding/OnboardingGuide";
+import { PetraIcon } from "../ui/icons/PetraIcon";
 import { ProvenancePanel } from "../ui/provenance/ProvenancePanel";
 import { DishViewport } from "./DishViewport";
 import { ExperimentRunControls } from "./ExperimentRunControls";
@@ -131,6 +132,8 @@ export function App({
   const [sourcesLifecycle, setSourcesLifecycle] = useState(
     createSourcesSurfaceLifecycle,
   );
+  const [focusSourceSearch, setFocusSourceSearch] = useState(false);
+  const [learningOpen, setLearningOpen] = useState(false);
   const [interventionPlacement, setInterventionPlacement] = useState(
     createInterventionPlacementState,
   );
@@ -200,6 +203,7 @@ export function App({
   );
 
   const closeSources = () => {
+    setFocusSourceSearch(false);
     setSourcesLifecycle((current) =>
       closeSourcesSurface(current, hideSourcesPlan),
     );
@@ -230,6 +234,30 @@ export function App({
     sourcesLifecycle.generation,
     hideSourcesPlan.keepMountedDuringExit,
     hideSourcesPlan.durationMs,
+  ]);
+
+  useEffect(() => {
+    if (
+      !focusSourceSearch ||
+      !sourcesLifecycle.mounted ||
+      !sourcesLifecycle.requestedOpen ||
+      sourcesLifecycle.phase === "exiting"
+    ) {
+      return;
+    }
+
+    const searchInput = document.querySelector<HTMLInputElement>(
+      '#petra-sources-panel input[type="search"]',
+    );
+    if (searchInput !== null) {
+      searchInput.focus();
+      setFocusSourceSearch(false);
+    }
+  }, [
+    focusSourceSearch,
+    sourcesLifecycle.mounted,
+    sourcesLifecycle.requestedOpen,
+    sourcesLifecycle.phase,
   ]);
 
   const activeSourcesPlan =
@@ -344,10 +372,84 @@ export function App({
       ) : null}
 
       <header className="petra-topbar">
-        <div>
-          <p className="petra-kicker">Living laboratory</p>
+        <div className="petra-brand">
+          <span className="petra-brand__mark" aria-hidden="true">
+            <PetraIcon name="lineage" decorative size={32} />
+          </span>
           <h1>Petra</h1>
         </div>
+
+        <nav className="petra-primary-nav" aria-label="Primary">
+          <a className="petra-primary-nav__link" href="#petra-explore">
+            Explore
+          </a>
+          <a
+            className="petra-primary-nav__link"
+            href="#petra-simulate"
+            aria-current="page"
+          >
+            Simulate
+          </a>
+          <PetraCompactAction
+            motionPreference={motionPreference}
+            className="petra-primary-nav__action"
+            aria-expanded={
+              learningOpen && !synchronizedOnboardingSession.state.completed
+            }
+            aria-controls="petra-onboarding"
+            data-active={
+              learningOpen && !synchronizedOnboardingSession.state.completed
+                ? "true"
+                : "false"
+            }
+            onClick={() => {
+              if (synchronizedOnboardingSession.state.completed) {
+                setOnboardingSession((current) =>
+                  applyOnboardingUserAction(
+                    current,
+                    onboardingProjection,
+                    { type: "reset" },
+                  ),
+                );
+                setLearningOpen(true);
+                return;
+              }
+              setLearningOpen((current) => !current);
+            }}
+          >
+            Learn
+          </PetraCompactAction>
+          <PetraCompactAction
+            id={SOURCES_TRIGGER_ID}
+            motionPreference={motionPreference}
+            className="petra-primary-nav__action"
+            aria-expanded={sourcesLifecycle.requestedOpen}
+            aria-controls="petra-sources-panel"
+            data-active={sourcesLifecycle.requestedOpen ? "true" : "false"}
+            onClick={() => {
+              if (sourcesLifecycle.requestedOpen) {
+                closeSources();
+              } else {
+                setSourcesLifecycle(openSourcesSurface);
+              }
+            }}
+          >
+            Library
+          </PetraCompactAction>
+        </nav>
+
+        <PetraCompactAction
+          motionPreference={motionPreference}
+          className="search-trigger"
+          aria-label="Search scientific sources and assumptions"
+          onClick={() => {
+            setFocusSourceSearch(true);
+            setSourcesLifecycle(openSourcesSurface);
+          }}
+        >
+          <PetraIcon name="inspect" decorative size={18} />
+          <span>Search scientific sources…</span>
+        </PetraCompactAction>
 
         <div className="petra-topbar__actions">
           <label className="motion-control">
@@ -390,39 +492,6 @@ export function App({
               <option value="high-contrast">High contrast</option>
             </select>
           </label>
-          {synchronizedOnboardingSession.state.completed ? (
-            <PetraCompactAction
-              motionPreference={motionPreference}
-              className="ghost-button"
-              onClick={() => {
-                setOnboardingSession((current) =>
-                  applyOnboardingUserAction(
-                    current,
-                    onboardingProjection,
-                    { type: "reset" },
-                  ),
-                );
-              }}
-            >
-              Replay guide
-            </PetraCompactAction>
-          ) : null}
-          <PetraCompactAction
-            id={SOURCES_TRIGGER_ID}
-            motionPreference={motionPreference}
-            className="ghost-button"
-            aria-expanded={sourcesLifecycle.requestedOpen}
-            aria-controls="petra-sources-panel"
-            onClick={() => {
-              if (sourcesLifecycle.requestedOpen) {
-                closeSources();
-              } else {
-                setSourcesLifecycle(openSourcesSurface);
-              }
-            }}
-          >
-            {sourcesLifecycle.requestedOpen ? "Close sources" : "Sources"}
-          </PetraCompactAction>
         </div>
       </header>
 
@@ -467,7 +536,11 @@ export function App({
         </section>
       ) : null}
 
-      <section className="petra-workspace" aria-label="Experiment workspace">
+      <section
+        id="petra-explore"
+        className="petra-workspace"
+        aria-label="Experiment workspace"
+      >
         <InterventionPalette
           motion={motionPreference}
           runtimeStatus={experiment.view.status}
@@ -489,7 +562,11 @@ export function App({
           }}
         />
 
-        <section className="dish-stage" aria-label="Petri dish viewport">
+        <section
+          id="petra-learn"
+          className="dish-stage"
+          aria-label="Petri dish viewport"
+        >
           <div
             className="dish-stage__halo"
             aria-hidden="true"
@@ -528,28 +605,50 @@ export function App({
               return true;
             }}
           />
-          {synchronizedOnboardingSession.state.completed ? null : (
+          {!learningOpen || synchronizedOnboardingSession.state.completed ? null : (
             <div className="dish-onboarding-layer">
-              <OnboardingGuide
-                state={synchronizedOnboardingSession.state}
-                motionPreference={motionPreference}
-                onAction={(action) => {
-                  setOnboardingSession((current) =>
-                    applyOnboardingUserAction(
-                      current,
-                      onboardingProjection,
-                      action,
-                    ),
-                  );
-                }}
-              />
+              <section
+                id="petra-onboarding"
+                className="petra-onboarding-window"
+                aria-label="Guided experiment"
+              >
+                <PetraCompactAction
+                  motionPreference={motionPreference}
+                  className="petra-onboarding-window__close"
+                  onClick={() => setLearningOpen(false)}
+                >
+                  Close guide
+                </PetraCompactAction>
+                <OnboardingGuide
+                  state={synchronizedOnboardingSession.state}
+                  motionPreference={motionPreference}
+                  onAction={(action) => {
+                    setOnboardingSession((current) =>
+                      applyOnboardingUserAction(
+                        current,
+                        onboardingProjection,
+                        action,
+                      ),
+                    );
+                  }}
+                />
+              </section>
             </div>
           )}
         </section>
 
-        <aside className="petra-panel petra-panel--inspector" aria-label="Inspector">
-          <p className="petra-kicker">Inspector</p>
-          <h2>Selected region</h2>
+        <aside className="petra-panel petra-panel--inspector" aria-label="Colony details">
+          <p className="petra-kicker">Selected area</p>
+          <h2>Colony Details</h2>
+          <div className="inspector-empty">
+            <span className="inspector-empty__icon" aria-hidden="true">
+              <PetraIcon name="inspect" decorative size={25} />
+            </span>
+            <div>
+              <strong>No colony selected</strong>
+              <p>Live colony details appear when supplied by authoritative state.</p>
+            </div>
+          </div>
           <dl className="metric-list">
             <div>
               <dt>Lineage</dt>
@@ -570,13 +669,11 @@ export function App({
         </aside>
       </section>
 
-      <AnalysisSurface
-        records={analysisRecords}
-        motion={motionPreference}
-        contrastMode={visualContrast}
-      />
-
-      <footer className="timeline-shell" aria-label="Simulation timeline">
+      <footer
+        id="petra-simulate"
+        className="timeline-shell"
+        aria-label="Simulation timeline"
+      >
         <div className="timeline-summary">
           <div>
             <p className="petra-kicker">Timeline</p>
@@ -600,6 +697,12 @@ export function App({
           dispatch={experiment.dispatch}
         />
       </footer>
+
+      <AnalysisSurface
+        records={analysisRecords}
+        motion={motionPreference}
+        contrastMode={visualContrast}
+      />
     </main>
   );
 }

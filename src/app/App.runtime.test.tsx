@@ -39,7 +39,8 @@ describe("App authoritative runtime boundary", () => {
     expect(appSource).toContain(
       "projectOnboardingRuntime(experiment.state, onboardingGates)",
     );
-    expect(appSource).toContain("Replay guide");
+    expect(appSource).toContain('aria-controls="petra-onboarding"');
+    expect(appSource).toContain("setLearningOpen(true)");
     expect(appSource).toContain('{ type: "reset" }');
   });
 

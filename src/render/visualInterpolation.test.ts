@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import visualInterpolationSource from "./visualInterpolation.ts?raw";
 import {
+  LINEAGE_DENSITY_PRESENTATION_SCALE_VERSION,
+  type LineageDensityPresentationScale,
+} from "./lineageDensityScale";
+import {
   ASPERGILLUS_NO10_ORGANISM_PRESENTATION,
   FLAGSHIP_ECOLI_ORGANISM_PRESENTATION,
   type OrganismPresentationIdentity,
@@ -56,6 +60,7 @@ function snapshot(args: {
   maximum?: number;
   rangeMode?: RenderFieldRangeMode;
   mask?: readonly number[];
+  lineageDensityScale?: LineageDensityPresentationScale;
 }): DishRenderSnapshot {
   return {
     snapshotId: args.id,
@@ -80,6 +85,9 @@ function snapshot(args: {
       },
     ],
     lineages: args.lineages,
+    ...(args.lineageDensityScale === undefined
+      ? {}
+      : { lineageDensityScale: args.lineageDensityScale }),
     events: [],
   };
 }
@@ -289,6 +297,58 @@ describe("dish visual continuity", () => {
         LINEAR,
       ),
     ).toEqual({ kind: "snap", reason: "dish-mask-mismatch" });
+  });
+
+  it("preserves stable density scale through interpolation and snaps on source-identity drift", () => {
+    const scale: LineageDensityPresentationScale = {
+      version: LINEAGE_DENSITY_PRESENTATION_SCALE_VERSION,
+      mode: "stable-source",
+      unit: "model-biomass",
+      maximum: 10,
+      maximumTolerance: 10 * 2 ** -23,
+      sourceIdentity: "run-branch-a|config-fingerprint-a",
+    };
+    const from = snapshot({
+      id: "a",
+      biomass: [1, 2],
+      field: [1, 1],
+      lineages: [lineage("ancestor", [1, 2])],
+      lineageDensityScale: scale,
+    });
+    const to = snapshot({
+      id: "b",
+      biomass: [2, 4],
+      field: [1, 1],
+      lineages: [lineage("ancestor", [2, 4])],
+      lineageDensityScale: scale,
+    });
+
+    const plan = planDishVisualTransition(from, to, LINEAR);
+    expect(plan.kind).toBe("interpolate");
+    if (plan.kind !== "interpolate") return;
+    const half = advanceDishVisualTransition(plan.transition, 50);
+    expect(half.complete).toBe(false);
+    expect((half.state as DishPresentationFrame).lineageDensityScale).toEqual(
+      scale,
+    );
+    expect((half.state as DishPresentationFrame).lineageDensityScale).not.toBe(
+      scale,
+    );
+
+    const drifted = snapshot({
+      id: "b",
+      biomass: [2, 4],
+      field: [1, 1],
+      lineages: [lineage("ancestor", [2, 4])],
+      lineageDensityScale: {
+        ...scale,
+        sourceIdentity: "run-branch-b|config-fingerprint-a",
+      },
+    });
+    expect(planDishVisualTransition(from, drifted, LINEAR)).toEqual({
+      kind: "snap",
+      reason: "lineage-density-scale-mismatch",
+    });
   });
 
   it("refuses identity-preserving lineage IDs whose visual metadata changed", () => {

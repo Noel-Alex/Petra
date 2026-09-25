@@ -17,9 +17,9 @@ export interface TimelineEntry {
 export interface ScientificTimelineUpdate {
   readonly timeline: readonly TimelineEntry[]
   /**
-   * Authoritative event suffix admitted by this update. On a discontinuity,
-   * this is the rebuilt full event list so command-confirmation callers fail
-   * closed rather than trusting a stale prefix.
+   * Authoritative event suffix proven to be newly appended. On a history
+   * discontinuity this is empty: timeline presentation may rebuild, but command
+   * confirmation must not trust an ambiguous historical prefix.
    */
   readonly appendedEvents: readonly SimulationEvent[]
   readonly rebuilt: boolean
@@ -74,7 +74,7 @@ export function updateScientificTimeline(args: {
 
   return Object.freeze({
     timeline: Object.freeze([...previousTimeline, ...appendedEntries]),
-    appendedEvents: Object.freeze([...suffix]),
+    appendedEvents: Object.freeze(suffix),
     rebuilt: false,
   })
 }
@@ -85,7 +85,7 @@ function rebuildScientificTimeline(
   validateEventSequenceIdentity(events)
   return Object.freeze({
     timeline: Object.freeze(events.map(projectEvent)),
-    appendedEvents: Object.freeze([...events]),
+    appendedEvents: Object.freeze([]),
     rebuilt: true,
   })
 }

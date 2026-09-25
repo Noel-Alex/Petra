@@ -100,6 +100,10 @@ describe("ecology flux render field", () => {
     ).toThrow(/timeUnit.*canonical/);
 
     expect(() =>
+      projectEcologyNetGrowthField(observation({ stepDuration: 0 })),
+    ).toThrow(/stepDuration.*positive/);
+
+    expect(() =>
       projectEcologyNetGrowthField(observation({ mask: [0, 0, 0, 0] })),
     ).toThrow(/at least one in-mask cell/);
   });

@@ -3,6 +3,11 @@ import type { SimulationEvent } from './protocol'
 export const EMPTY_SIMULATION_EVENT_HISTORY: readonly SimulationEvent[] =
   Object.freeze([])
 
+const historyParent = new WeakMap<
+  readonly SimulationEvent[],
+  readonly SimulationEvent[]
+>()
+
 /**
  * Store one authoritative event exactly once, then share that frozen record
  * across future immutable history prefixes/snapshots.
@@ -23,7 +28,9 @@ export function appendSimulationEventHistory(
   }
 
   const stored = deepFreeze(structuredClone(event))
-  return Object.freeze([...history, stored])
+  const next = Object.freeze([...history, stored])
+  historyParent.set(next, history)
+  return next
 }
 
 function deepFreeze<T>(value: T): T {
@@ -42,4 +49,52 @@ function deepFreeze<T>(value: T): T {
   }
 
   return Object.freeze(value)
+}
+
+
+/**
+ * Materialize a detached immutable history from a deserialized/full baseline.
+ * Ordinary live deltas should use appendSimulationEventHistory directly; this
+ * full pass is for initialization/rebase boundaries only.
+ */
+export function cloneSimulationEventHistory(
+  events: readonly SimulationEvent[],
+): readonly SimulationEvent[] {
+  let history = EMPTY_SIMULATION_EVENT_HISTORY
+  for (const event of events) {
+    history = appendSimulationEventHistory(history, event)
+  }
+  return history
+}
+
+/**
+ * Return only the events appended between two engine-owned immutable history
+ * arrays when ancestry is provable through appendSimulationEventHistory().
+ *
+ * This is an internal same-realm provenance check, not a wire identity. It is
+ * O(number of newly appended events), never O(total retained history). A
+ * restore/rebase/foreign array has no ancestry path and returns null.
+ */
+export function simulationEventHistoryDelta(
+  previous: readonly SimulationEvent[],
+  current: readonly SimulationEvent[],
+): readonly SimulationEvent[] | null {
+  if (current === previous) return Object.freeze([])
+  if (current.length < previous.length) return null
+
+  const reversed: SimulationEvent[] = []
+  let cursor = current
+
+  while (cursor !== previous) {
+    if (cursor.length <= previous.length) return null
+    const parent = historyParent.get(cursor)
+    if (parent === undefined) return null
+    const appended = cursor[cursor.length - 1]
+    if (appended === undefined) return null
+    reversed.push(appended)
+    cursor = parent
+  }
+
+  reversed.reverse()
+  return Object.freeze(reversed)
 }

@@ -1,10 +1,14 @@
+import { cloneSimulationEventHistory } from "../sim/eventHistory";
 import {
   type SimulationCommand,
   type SimulationSnapshot,
   type WorkerErrorCode,
   type WorkerRequest,
-  type WorkerResponse,
 } from "../sim/protocol";
+import {
+  materializeWorkerSnapshotDelta,
+  type WorkerTransportResponse,
+} from "../worker/eventDeltaTransport";
 import {
   WORKER_PERFORMANCE_DIAGNOSTICS_VERSION,
   estimateStructuredClonePayloadBytes,
@@ -60,8 +64,10 @@ export interface WorkerSessionPerformanceSample {
    */
   readonly senderPostMessageCallMs: number | null;
   /**
-   * Main-thread cost of cloning the accepted authoritative snapshot into
-   * WorkerSession-owned immutable state. This is local copy cost only.
+   * Main-thread cost of materializing the accepted authoritative snapshot into
+   * WorkerSession-owned immutable state. Full baselines clone all events once;
+   * delta responses clone/freeze only the new suffix plus current snapshot
+   * state. This is local ownership/materialization cost only.
    */
   readonly mainThreadSnapshotCloneMs: number | null;
   readonly roundTripMs: number;
@@ -283,7 +289,10 @@ export class WorkerSession {
       return;
     }
 
-    if (response.type !== "snapshot") {
+    if (
+      response.type !== "snapshot" &&
+      response.type !== "snapshot-delta"
+    ) {
       this.recordPerformance(response, "protocol-error");
       this.fail(
         `Expected snapshot for command ${active.command.id}`,
@@ -298,6 +307,11 @@ export class WorkerSession {
         `Worker snapshot command mismatch: expected ${active.command.id}, received ${response.commandId}`,
         response.commandId,
       );
+      return;
+    }
+
+    if (response.type === "snapshot-delta") {
+      this.acceptSuccessfulDeltaSnapshot(response);
       return;
     }
 
@@ -324,15 +338,75 @@ export class WorkerSession {
     const options = this.performanceOptions;
     const measurement = this.activePerformance;
     if (options === null || measurement === null) {
-      return { snapshot: structuredClone(snapshot), cloneDurationMs: null };
+      return {
+        snapshot: materializeOwnedFullSnapshot(snapshot),
+        cloneDurationMs: null,
+      };
     }
 
     const startedAtMs = options.now();
-    const cloned = structuredClone(snapshot);
+    const owned = materializeOwnedFullSnapshot(snapshot);
     return {
-      snapshot: cloned,
+      snapshot: owned,
       cloneDurationMs: Math.max(0, options.now() - startedAtMs),
     };
+  }
+
+  private prepareDeltaSnapshot(
+    response: Extract<
+      InstrumentedWorkerResponse,
+      { readonly type: "snapshot-delta" }
+    >,
+  ): PreparedSnapshot {
+    const options = this.performanceOptions;
+    const measurement = this.activePerformance;
+    if (options === null || measurement === null) {
+      return {
+        snapshot: materializeWorkerSnapshotDelta(
+          this.current.latestSnapshot,
+          response,
+        ),
+        cloneDurationMs: null,
+      };
+    }
+
+    const startedAtMs = options.now();
+    const snapshot = materializeWorkerSnapshotDelta(
+      this.current.latestSnapshot,
+      response,
+    );
+    return {
+      snapshot,
+      cloneDurationMs: Math.max(0, options.now() - startedAtMs),
+    };
+  }
+
+  private acceptSuccessfulDeltaSnapshot(
+    response: Extract<
+      InstrumentedWorkerResponse,
+      { readonly type: "snapshot-delta" }
+    >,
+  ): void {
+    const completedAtMs =
+      this.performanceOptions !== null && this.activePerformance !== null
+        ? this.performanceOptions.now()
+        : null;
+    let prepared: PreparedSnapshot;
+    try {
+      prepared = this.prepareDeltaSnapshot(response);
+    } catch (error) {
+      this.recordPerformance(response, "protocol-error");
+      this.fail(
+        error instanceof Error ? error.message : String(error),
+        response.commandId,
+      );
+      return;
+    }
+    this.recordPerformance(response, "success", {
+      completedAtMs,
+      mainThreadSnapshotCloneMs: prepared.cloneDurationMs,
+    });
+    this.complete(prepared.snapshot);
   }
 
   private acceptSuccessfulSnapshot(
@@ -343,7 +417,17 @@ export class WorkerSession {
       this.performanceOptions !== null && this.activePerformance !== null
         ? this.performanceOptions.now()
         : null;
-    const prepared = this.prepareSnapshot(snapshot);
+    let prepared: PreparedSnapshot;
+    try {
+      prepared = this.prepareSnapshot(snapshot);
+    } catch (error) {
+      this.recordPerformance(response, "protocol-error");
+      this.fail(
+        error instanceof Error ? error.message : String(error),
+        responseCommandId(response),
+      );
+      return;
+    }
     this.recordPerformance(response, "success", {
       completedAtMs,
       mainThreadSnapshotCloneMs: prepared.cloneDurationMs,
@@ -380,11 +464,18 @@ export class WorkerSession {
     const authoritativeEventArrayLength =
       response?.type === "ready" || response?.type === "snapshot"
         ? response.snapshot.events.length
+        : response?.type === "snapshot-delta"
+          ? response.currentEventCount
+          : null;
+    const responseCheckpoint =
+      response?.type === "ready" ||
+      response?.type === "snapshot" ||
+      response?.type === "snapshot-delta"
+        ? response.snapshot.checkpoint
         : null;
     const authoritativeActiveLineageCount =
-      (response?.type === "ready" || response?.type === "snapshot") &&
-      response.snapshot.checkpoint.authority === "composed"
-        ? response.snapshot.checkpoint.composedState.lineageIds.length
+      responseCheckpoint?.authority === "composed"
+        ? responseCheckpoint.composedState.lineageIds.length
         : null;
     const sample: WorkerSessionPerformanceSample = {
       version: WORKER_SESSION_PERFORMANCE_SAMPLE_VERSION,
@@ -491,6 +582,22 @@ export class WorkerSession {
   }
 }
 
+function materializeOwnedFullSnapshot(
+  snapshot: SimulationSnapshot,
+): SimulationSnapshot {
+  return {
+    checkpoint: structuredClone(snapshot.checkpoint),
+    events: cloneSimulationEventHistory(snapshot.events),
+    traceHash: snapshot.traceHash,
+    ...("ecologyObservation" in snapshot &&
+    snapshot.ecologyObservation !== undefined
+      ? {
+          ecologyObservation: structuredClone(snapshot.ecologyObservation),
+        }
+      : {}),
+  } as SimulationSnapshot;
+}
+
 export function createBrowserWorkerPort(worker: Worker): WorkerPort {
   return {
     post(request) {
@@ -531,8 +638,15 @@ export function createSimulationWorkerSession(
   return new WorkerSession(createBrowserWorkerPort(worker), performanceOptions);
 }
 
-function responseCommandId(response: WorkerResponse): string | null {
-  if (response.type === "snapshot") return response.commandId;
+function responseCommandId(
+  response: WorkerTransportResponse,
+): string | null {
+  if (
+    response.type === "snapshot" ||
+    response.type === "snapshot-delta"
+  ) {
+    return response.commandId;
+  }
   if (response.type === "error") return response.commandId ?? null;
   return null;
 }

@@ -5,6 +5,9 @@ import {
   createRunIdentity,
 } from "../../src/sim/protocol";
 import {
+  WORKER_EVENT_DELTA_TRANSPORT_VERSION,
+} from "../../src/worker/eventDeltaTransport";
+import {
   parseInstrumentedWorkerRequest,
   parseInstrumentedWorkerResponse,
 } from "../../src/worker/performanceInstrumentation";
@@ -80,6 +83,53 @@ describe("worker performance instrumentation envelope validation", () => {
     if (!parsed.ok) throw new Error(parsed.error);
     expect(parsed.value).toBe(payload);
     expect(parsed.value.performanceDiagnostics?.executionDurationMs).toBe(0.25);
+  });
+
+  it("validates performance diagnostics on a transport-only event delta", () => {
+    const payload = {
+      protocolVersion: PROTOCOL_VERSION,
+      transportVersion: WORKER_EVENT_DELTA_TRANSPORT_VERSION,
+      type: "snapshot-delta" as const,
+      commandId: "advance-delta",
+      previousEventCount: 1,
+      previousTerminalEvent: {
+        sequence: 0,
+        tick: 0,
+        simulationTimeHours: 0,
+        type: "initialized" as const,
+      },
+      currentEventCount: 2,
+      appendedEvents: [
+        {
+          sequence: 1,
+          tick: 1,
+          simulationTimeHours: 1 / 60,
+          type: "advanced" as const,
+          commandId: "advance-delta",
+          value: 1,
+        },
+      ],
+      snapshot: {
+        checkpoint: {
+          ...snapshot().checkpoint,
+          tick: 1,
+          simulationTimeHours: 1 / 60,
+          commandCount: 1,
+        },
+        traceHash: "performance-envelope-trace-delta",
+      },
+      performanceDiagnostics: {
+        version: 1 as const,
+        executionDurationMs: 0.5,
+      },
+    };
+
+    const parsed = parseInstrumentedWorkerResponse(payload);
+    expect(parsed).toMatchObject({ ok: true });
+    if (!parsed.ok) throw new Error(parsed.error);
+    expect(parsed.value).toBe(payload);
+    expect(parsed.value.type).toBe("snapshot-delta");
+    expect(parsed.value.performanceDiagnostics?.executionDurationMs).toBe(0.5);
   });
 
   it("rejects invalid response diagnostics without trusting inbound correlation", () => {

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   EMPTY_SIMULATION_EVENT_HISTORY,
   appendSimulationEventHistory,
+  simulationEventHistoryDelta,
 } from '../../src/sim/eventHistory'
 
 describe('immutable simulation event history', () => {
@@ -77,4 +78,79 @@ describe('immutable simulation event history', () => {
       }),
     ).toThrow(/sequence must equal the append-only history length/)
   })
+
+  it('derives only newly appended events from immutable history ancestry', () => {
+    const first = appendSimulationEventHistory(
+      EMPTY_SIMULATION_EVENT_HISTORY,
+      {
+        sequence: 0,
+        tick: 0,
+        simulationTimeHours: 0,
+        type: 'initialized',
+      },
+    )
+    const second = appendSimulationEventHistory(first, {
+      sequence: 1,
+      tick: 1,
+      simulationTimeHours: 0.01,
+      type: 'advanced',
+      commandId: 'a',
+      value: 1,
+    })
+    const third = appendSimulationEventHistory(second, {
+      sequence: 2,
+      tick: 2,
+      simulationTimeHours: 0.02,
+      type: 'advanced',
+      commandId: 'b',
+      value: 1,
+    })
+
+    expect(simulationEventHistoryDelta(first, third)).toEqual([
+      second[1],
+      third[2],
+    ])
+    expect(simulationEventHistoryDelta(third, third)).toEqual([])
+  })
+
+  it('refuses to invent a delta across an unrelated or rebased history', () => {
+    const baseline = appendSimulationEventHistory(
+      EMPTY_SIMULATION_EVENT_HISTORY,
+      {
+        sequence: 0,
+        tick: 0,
+        simulationTimeHours: 0,
+        type: 'initialized',
+      },
+    )
+    const unrelated = Object.freeze([
+      structuredClone(baseline[0]!),
+      Object.freeze({
+        sequence: 1,
+        tick: 1,
+        simulationTimeHours: 0.01,
+        type: 'advanced' as const,
+        commandId: 'foreign',
+        value: 1,
+      }),
+    ])
+
+    expect(simulationEventHistoryDelta(baseline, unrelated)).toBeNull()
+    expect(
+      simulationEventHistoryDelta(
+        baseline,
+        appendSimulationEventHistory(
+          EMPTY_SIMULATION_EVENT_HISTORY,
+          {
+            sequence: 0,
+            tick: 7,
+            simulationTimeHours: 0.07,
+            type: 'restored',
+            commandId: 'restore',
+          },
+        ),
+      ),
+    ).toBeNull()
+  })
+
 })

@@ -1,10 +1,11 @@
-import type {
-  WorkerRequest,
-  WorkerResponse,
-} from "../sim/protocol";
+import type { WorkerRequest, WorkerResponse } from "../sim/protocol";
+import {
+  parseWorkerSnapshotDeltaResponse,
+  type WorkerSnapshotDeltaResponse,
+  type WorkerTransportResponse,
+} from "./eventDeltaTransport";
 import {
   parseWorkerRequest,
-  parseWorkerResponse,
   type ProtocolParseResult,
 } from "../sim/protocolRuntime";
 
@@ -24,7 +25,7 @@ export type InstrumentedWorkerRequest = WorkerRequest & {
   readonly performanceDiagnostics?: true;
 };
 
-export type InstrumentedWorkerResponse = WorkerResponse & {
+export type InstrumentedWorkerResponse = WorkerTransportResponse & {
   readonly performanceDiagnostics?: WorkerExecutionDiagnostics;
 };
 
@@ -80,9 +81,6 @@ export function parseInstrumentedWorkerRequest(
 export function parseInstrumentedWorkerResponse(
   value: unknown,
 ): ProtocolParseResult<InstrumentedWorkerResponse> {
-  const parsed = parseWorkerResponse(value);
-  if (!parsed.ok) return parsed;
-
   const record = asRecord(value);
   if (record === null) {
     return {
@@ -91,6 +89,15 @@ export function parseInstrumentedWorkerResponse(
       commandId: null,
     };
   }
+
+  const parsed: ProtocolParseResult<
+    WorkerResponse | WorkerSnapshotDeltaResponse
+  > =
+    record.type === "snapshot-delta"
+      ? parseWorkerSnapshotDeltaResponse(value)
+      : parseWorkerResponse(value);
+  if (!parsed.ok) return parsed;
+
   if (record.performanceDiagnostics === undefined) {
     return { ok: true, value: value as InstrumentedWorkerResponse };
   }

@@ -6,6 +6,7 @@ import {
   type WorkerPortHandlers,
 } from "../../src/app/workerSession";
 import type { ComposedSimulationConfig } from "../../src/sim/authoritative";
+import { WORKER_EVENT_DELTA_TRANSPORT_VERSION } from "../../src/worker/eventDeltaTransport";
 import { ComposedSimulationEngine } from "../../src/sim/composedEngine";
 import type { CuratedMutationGraph } from "../../src/sim/evolution/graph";
 import { createFixtureComposedParameterSetBinding } from "../../src/sim/parameterSetBinding";
@@ -226,6 +227,142 @@ describe("worker session", () => {
     expect(session.state.pendingCommandId).toBeNull();
   });
 
+  it("reconstructs a compact event delta onto the owned immutable baseline", () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+
+    session.enqueue([
+      { protocolVersion: PROTOCOL_VERSION, type: "initialize", identity },
+    ]);
+    const initializedEvent = {
+      sequence: 0,
+      tick: 0,
+      simulationTimeHours: 0,
+      type: "initialized" as const,
+    };
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: {
+        ...snapshot(0),
+        events: [initializedEvent],
+      },
+    });
+
+    const baseline = session.state.latestSnapshot;
+    if (baseline === null) throw new Error("expected baseline snapshot");
+    expect(Object.isFrozen(baseline.events)).toBe(true);
+    expect(Object.isFrozen(baseline.events[0])).toBe(true);
+
+    session.enqueue([
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: { id: "advance-delta", type: "advance", ticks: 1 },
+      },
+    ]);
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      transportVersion: WORKER_EVENT_DELTA_TRANSPORT_VERSION,
+      type: "snapshot-delta",
+      commandId: "advance-delta",
+      previousEventCount: 1,
+      previousTerminalEvent: initializedEvent,
+      currentEventCount: 2,
+      appendedEvents: [
+        {
+          sequence: 1,
+          tick: 1,
+          simulationTimeHours: 1 / 60,
+          type: "advanced",
+          commandId: "advance-delta",
+          value: 1,
+        },
+      ],
+      snapshot: {
+        checkpoint: snapshot(1, 1).checkpoint,
+        traceHash: "delta-trace-1",
+      },
+    });
+
+    expect(session.state.phase).toBe("ready");
+    const accepted = session.state.latestSnapshot;
+    if (accepted === null) throw new Error("expected accepted snapshot");
+    expect(accepted.events).toHaveLength(2);
+    expect(accepted.events[0]).toBe(baseline.events[0]);
+    expect(Object.isFrozen(accepted.events)).toBe(true);
+    expect(Object.isFrozen(accepted.events[1])).toBe(true);
+    expect(accepted.events[1]).toMatchObject({
+      sequence: 1,
+      commandId: "advance-delta",
+    });
+  });
+
+  it("fails closed when a delta retained frontier does not match session history", () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+
+    session.enqueue([
+      { protocolVersion: PROTOCOL_VERSION, type: "initialize", identity },
+    ]);
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: {
+        ...snapshot(0),
+        events: [
+          {
+            sequence: 0,
+            tick: 0,
+            simulationTimeHours: 0,
+            type: "initialized",
+          },
+        ],
+      },
+    });
+
+    session.enqueue([
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: { id: "advance-forged", type: "advance", ticks: 1 },
+      },
+    ]);
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      transportVersion: WORKER_EVENT_DELTA_TRANSPORT_VERSION,
+      type: "snapshot-delta",
+      commandId: "advance-forged",
+      previousEventCount: 1,
+      previousTerminalEvent: {
+        sequence: 0,
+        tick: 0,
+        simulationTimeHours: 0,
+        type: "initialized",
+        commandId: "forged-history",
+      },
+      currentEventCount: 2,
+      appendedEvents: [
+        {
+          sequence: 1,
+          tick: 1,
+          simulationTimeHours: 1 / 60,
+          type: "advanced",
+          commandId: "advance-forged",
+          value: 1,
+        },
+      ],
+      snapshot: {
+        checkpoint: snapshot(1, 1).checkpoint,
+        traceHash: "delta-trace-forged",
+      },
+    });
+
+    expect(session.state.phase).toBe("error");
+    expect(session.state.error).toContain("retained event frontier");
+    expect(session.state.latestSnapshot?.events).toHaveLength(1);
+  });
+
   it("rejects mismatched command responses instead of accepting stale state", () => {
     const port = new FakePort();
     const session = new WorkerSession(port);
@@ -247,6 +384,36 @@ describe("worker session", () => {
 
     expect(session.state.phase).toBe("error");
     expect(session.state.error).toContain("expected expected, received stale");
+    expect(session.state.latestSnapshot).toBeNull();
+  });
+
+  it("fails closed when a full baseline cannot be materialized into immutable history", () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+
+    session.enqueue([
+      { protocolVersion: PROTOCOL_VERSION, type: "initialize", identity },
+    ]);
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: {
+        ...snapshot(0),
+        events: [
+          {
+            sequence: 5,
+            tick: 0,
+            simulationTimeHours: 0,
+            type: "initialized",
+          },
+        ],
+      },
+    });
+
+    expect(session.state.phase).toBe("error");
+    expect(session.state.error).toContain(
+      "sequence must equal the append-only history length",
+    );
     expect(session.state.latestSnapshot).toBeNull();
   });
 
@@ -545,6 +712,88 @@ describe("worker session", () => {
     expect(session.state.phase).toBe("ready");
   });
 
+
+  it("profiles delta payload bytes while retaining reconstructed total event count", () => {
+    const port = new FakePort();
+    const samples: import("../../src/app/workerSession").WorkerSessionPerformanceSample[] = [];
+    let now = 100;
+    const session = new WorkerSession(port, {
+      observe: (sample) => samples.push(sample),
+      now: () => now,
+    });
+    const initialized = {
+      sequence: 0,
+      tick: 0,
+      simulationTimeHours: 0,
+      type: "initialized" as const,
+    };
+
+    session.enqueue([
+      { protocolVersion: PROTOCOL_VERSION, type: "initialize", identity },
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "command",
+        command: { id: "advance-delta-profiled", type: "advance", ticks: 1 },
+      },
+    ]);
+    now = 106;
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: {
+        ...snapshot(0),
+        events: [initialized],
+        traceHash: "trace-baseline",
+      },
+      performanceDiagnostics: {
+        version: 1,
+        executionDurationMs: 1,
+      },
+    });
+
+    now = 110;
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      transportVersion: WORKER_EVENT_DELTA_TRANSPORT_VERSION,
+      type: "snapshot-delta",
+      commandId: "advance-delta-profiled",
+      previousEventCount: 1,
+      previousTerminalEvent: initialized,
+      currentEventCount: 2,
+      appendedEvents: [
+        {
+          sequence: 1,
+          tick: 1,
+          simulationTimeHours: 1 / 60,
+          type: "advanced",
+          commandId: "advance-delta-profiled",
+          value: 1,
+        },
+      ],
+      snapshot: {
+        checkpoint: snapshot(1, 1).checkpoint,
+        traceHash: "trace-after-delta",
+      },
+      performanceDiagnostics: {
+        version: 1,
+        executionDurationMs: 2,
+      },
+    });
+
+    expect(samples).toHaveLength(2);
+    expect(samples[1]).toMatchObject({
+      version: 3,
+      requestType: "command",
+      commandType: "advance",
+      commandId: "advance-delta-profiled",
+      authoritativeEventArrayLength: 2,
+      mainThreadSnapshotCloneMs: 0,
+      workerExecutionMs: 2,
+      outcome: "success",
+    });
+    expect(samples[1]?.responsePayloadBytes).toBeGreaterThan(0);
+    expect(session.state.latestSnapshot?.events).toHaveLength(2);
+  });
 
   it("records authoritative active lineage load only for composed snapshots", () => {
     const port = new FakePort();

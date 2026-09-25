@@ -779,6 +779,179 @@ describe("experiment runtime", () => {
     expect(runtime.state.runBranchIdentity).toBe(branchIdentity);
   });
 
+  it("starts from an explicit checkpoint replay origin through the normal runtime lifecycle", () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+    const origin = makeSnapshot({
+      tick: 2,
+      commandCount: 1,
+      events: [],
+    }).checkpoint;
+    const importedCommand = {
+      id: "imported-advance",
+      type: "advance" as const,
+      ticks: 2,
+    };
+    const runtime = new ExperimentRuntime(
+      session,
+      syntheticIdentity,
+      commandIds("startup-restore"),
+      undefined,
+      {
+        originCheckpoint: origin,
+        commands: [importedCommand],
+      },
+    );
+
+    expect(runtime.state.worker.phase).toBe("idle");
+    expect(runtime.start()).toBe(true);
+    expect(port.posted).toEqual([
+      {
+        protocolVersion: PROTOCOL_VERSION,
+        type: "initialize",
+        identity: syntheticIdentity,
+      },
+    ]);
+
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: makeSnapshot({
+        tick: 0,
+        events: [
+          {
+            sequence: 0,
+            tick: 0,
+            simulationTimeHours: 0,
+            type: "initialized",
+          },
+        ],
+      }),
+    });
+    expect(port.posted.at(-1)).toEqual({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "command",
+      command: {
+        id: "startup-restore",
+        type: "restore",
+        checkpoint: origin,
+      },
+    });
+
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      commandId: "startup-restore",
+      snapshot: makeSnapshot({
+        tick: 2,
+        commandCount: 1,
+        events: [
+          {
+            sequence: 0,
+            tick: 2,
+            simulationTimeHours: 2 / 60,
+            type: "restored",
+            commandId: "startup-restore",
+          },
+        ],
+      }),
+    });
+    expect(port.posted.at(-1)).toEqual({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "command",
+      command: importedCommand,
+    });
+
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      commandId: importedCommand.id,
+      snapshot: makeSnapshot({
+        tick: 4,
+        commandCount: 2,
+        events: [
+          {
+            sequence: 0,
+            tick: 2,
+            simulationTimeHours: 2 / 60,
+            type: "restored",
+            commandId: "startup-restore",
+          },
+          {
+            sequence: 1,
+            tick: 4,
+            simulationTimeHours: 4 / 60,
+            type: "advanced",
+            commandId: importedCommand.id,
+            value: 2,
+          },
+        ],
+      }),
+    });
+
+    expect(runtime.state.worker.phase).toBe("ready");
+    expect(runtime.state.snapshot?.checkpoint.tick).toBe(4);
+    expect(runtime.state.controls.acceptedCommands).toEqual([
+      importedCommand,
+    ]);
+
+    expect(runtime.dispatch({ type: "replay" })).toEqual({
+      accepted: true,
+      reason: null,
+    });
+    expect(port.posted.at(-1)).toMatchObject({
+      type: "initialize",
+      identity: syntheticIdentity,
+    });
+
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: makeSnapshot({
+        tick: 0,
+        events: [
+          {
+            sequence: 0,
+            tick: 0,
+            simulationTimeHours: 0,
+            type: "initialized",
+          },
+        ],
+      }),
+    });
+    expect(port.posted.at(-1)).toEqual({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "command",
+      command: {
+        id: "startup-restore",
+        type: "restore",
+        checkpoint: origin,
+      },
+    });
+  });
+
+  it("fails closed before startup replay when the restore id collides with imported history", () => {
+    const port = new FakePort();
+    const session = new WorkerSession(port);
+    const origin = makeSnapshot({ tick: 0 }).checkpoint;
+    const runtime = new ExperimentRuntime(
+      session,
+      syntheticIdentity,
+      commandIds("imported-command"),
+      undefined,
+      {
+        originCheckpoint: origin,
+        commands: [
+          { id: "imported-command", type: "advance", ticks: 1 },
+        ],
+      },
+    );
+
+    expect(() => runtime.start()).toThrow(/restore command id collides/);
+    expect(port.posted).toEqual([]);
+    expect(runtime.state.worker.phase).toBe("idle");
+  });
+
   it("binds step-local ecology observations to the active runtime history generation and clears stale ones", () => {
     const port = new FakePort();
     const session = new WorkerSession(port);

@@ -20,7 +20,7 @@ Deliver a reproducible spatial *E. coli + ciprofloxacin* vertical slice that is 
 
 The current project scheduling directive is to make the **working flagship simulation/runtime the number-one priority**. The repository has many strong isolated pieces, but current `main` is still not one complete authoritative browser experiment. Until that changes:
 
-1. prioritize #37 and every concrete prerequisite/blocker needed to finish the product-facing protocol-v5 composed worker flagship loop;
+1. prioritize #37 and every concrete prerequisite/blocker needed to finish the product-facing protocol-v6 composed worker flagship loop;
 2. prioritize numerical/scientific validation, parameter binding, local experiments, data generation, and tooling when they unblock that loop;
 3. keep UI, visual-system, and motion work moving only on spare/non-conflicting capacity or when the functional path is blocked;
 4. keep learned-model authority downstream of authoritative mechanistic trajectories and explicit promotion/validation gates, while preparing batch/dataset/training/benchmark infrastructure early enough that local compute can start immediately once those trajectories exist.
@@ -51,7 +51,7 @@ These remain useful product/science umbrellas, but are usually too broad to clai
 
 This list is intentionally selective. Use the live issue search for the complete queue and re-check comments/branches immediately before editing.
 
-- **Authoritative runtime + UX integration:** protocol v5 supports explicit composed worker authority plus the first replayable `apply-ciprofloxacin` mutation; #37 owns the remaining flagship activation/integration gates while the omitted-`composedConfig` synthetic engine remains infrastructure-only. #42 is the React/runtime umbrella consuming composed authority. #626 still owns product wiring and the remaining intervention vocabulary beyond ciprofloxacin global/radial/stripe/paint; #159 owns authoritative local-region inspection, #274 owns causal narration for explicit scientific event identities, and #317 exposes the typed Step/Reset/Replay/Seed controls in the shell.
+- **Authoritative runtime + UX integration:** protocol v6 supports explicit composed worker authority plus the first replayable `apply-ciprofloxacin` mutation; #37 owns the remaining flagship activation/integration gates while the omitted-`composedConfig` synthetic engine remains infrastructure-only. #42 is the React/runtime umbrella consuming composed authority. #626 still owns product wiring and the remaining intervention vocabulary beyond ciprofloxacin global/radial/stripe/paint; #159 owns authoritative local-region inspection, #274 owns causal narration for explicit scientific event identities, and #317 exposes the typed Step/Reset/Replay/Seed controls in the shell.
 - **Browser/expo acceptance:** #59 owns real browser visual, motion, keyboard, touch, screen-reader, and frame-time evidence. Source-only work must not claim that evidence.
 - **Renderer/input + accessibility:** #241 owns the live semantic-zoom guide bridge; #253 owns one visual-demo snapshot transaction; #300 owns overview touch scroll chaining; #313 separates renderer-failure narration from retry control; #314 routes retry through shared Petra action motion. Coordinate these shared Pixi/DishViewport paths before editing.
 - **Shell keyboard/motion:** #276 owns conflict-safe playback shortcut wiring. Coordinate broader interaction/onboarding polish through #39 and the #10 umbrella rather than creating competing App-level keyboard or motion authority.

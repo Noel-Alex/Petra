@@ -119,6 +119,14 @@ export function validateRenderSnapshot(snapshot: DishRenderSnapshot): void {
     if (lineageIds.has(lineage.id)) throw new RangeError(`duplicate lineage id: ${lineage.id}`); lineageIds.add(lineage.id);
     assertLength(`lineage ${lineage.id}`, lineage.density.length, cells); assertFiniteNonNegativeArray(`lineage ${lineage.id}`, lineage.density);
   }
+  if (
+    snapshot.acceptedInterventionFootprints !== undefined &&
+    !Array.isArray(snapshot.acceptedInterventionFootprints)
+  ) {
+    throw new TypeError(
+      "acceptedInterventionFootprints must be an array when provided",
+    );
+  }
   let previousFootprintSequence = -1;
   for (const footprint of snapshot.acceptedInterventionFootprints ?? []) {
     assertAcceptedInterventionFootprint(footprint);

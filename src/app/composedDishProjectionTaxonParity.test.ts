@@ -217,10 +217,18 @@ describe("composed dish mixed-taxon presentation parity", () => {
       throw new Error("expected taxon-authoritative state");
     }
 
-    const reordered = structuredClone(simulation);
-    reordered.checkpoint.composedState.lineageTaxonMap = {
-      ...mapping,
-      lineageIds: [mapping.lineageIds[1]!, mapping.lineageIds[0]!],
+    const reordered = {
+      ...structuredClone(simulation),
+      checkpoint: {
+        ...structuredClone(simulation.checkpoint),
+        composedState: {
+          ...structuredClone(simulation.checkpoint.composedState),
+          lineageTaxonMap: {
+            ...mapping,
+            lineageIds: [mapping.lineageIds[1]!, mapping.lineageIds[0]!],
+          },
+        },
+      },
     };
     expect(() =>
       projectAuthoritativeComposedDishSnapshot(
@@ -231,13 +239,21 @@ describe("composed dish mixed-taxon presentation parity", () => {
       ),
     ).toThrow(/taxon order mismatch/i);
 
-    const stale = structuredClone(simulation);
-    stale.checkpoint.composedState.lineageTaxonMap = {
-      ...mapping,
-      taxonContentVersions: [
-        PRIMARY_TAXON.contentVersion + ":stale",
-        mapping.taxonContentVersions[1]!,
-      ],
+    const stale = {
+      ...structuredClone(simulation),
+      checkpoint: {
+        ...structuredClone(simulation.checkpoint),
+        composedState: {
+          ...structuredClone(simulation.checkpoint.composedState),
+          lineageTaxonMap: {
+            ...mapping,
+            taxonContentVersions: [
+              PRIMARY_TAXON.contentVersion + ":stale",
+              mapping.taxonContentVersions[1]!,
+            ],
+          },
+        },
+      },
     };
     expect(() =>
       projectAuthoritativeComposedDishSnapshot(

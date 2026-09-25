@@ -266,6 +266,11 @@ def profile_expression(advance_ticks: list[int]) -> str:
               "history-age probe is missing WorkerSession performance evidence",
             );
           }
+          if (sample.authoritativeEventArrayLength !== frontier) {
+            throw new Error(
+              "history-age performance sample event frontier does not match authoritative snapshot",
+            );
+          }
           frontierSamples.push({
             responsePayloadBytes: sample.responsePayloadBytes,
             senderPostMessageCallMs: sample.senderPostMessageCallMs,
@@ -555,6 +560,79 @@ def timing_stats(samples: list[dict[str, Any]], field: str) -> dict[str, Any]:
     }
 
 
+def history_age_statistics(probes: list[dict[str, Any]]) -> dict[str, Any]:
+    fields_ms = (
+        "senderPostMessageCallMs",
+        "mainThreadSnapshotCloneMs",
+        "roundTripMs",
+        "workerExecutionMs",
+        "nonWorkerRoundTripMs",
+    )
+    summarized: list[dict[str, Any]] = []
+    for probe in probes:
+        samples = probe["performanceSamples"]
+        summarized.append(
+            {
+                "event_count": probe["eventCount"],
+                "event_payload_bytes": probe["eventPayloadBytes"],
+                "reconstructed_full_snapshot_bytes": probe[
+                    "reconstructedFullSnapshotBytes"
+                ],
+                "checkpoint": probe["checkpoint"],
+                "response_payload_bytes": timing_stats(
+                    samples, "responsePayloadBytes"
+                ),
+                "timing_ms": {
+                    field: timing_stats(samples, field) for field in fields_ms
+                },
+            }
+        )
+
+    early = summarized[0]
+    late = summarized[-1]
+
+    def p50_ratio(field: str) -> float | None:
+        early_value = early["timing_ms"][field]["p50"]
+        late_value = late["timing_ms"][field]["p50"]
+        if (
+            not isinstance(early_value, (int, float))
+            or not isinstance(late_value, (int, float))
+            or early_value <= 0
+        ):
+            return None
+        return float(late_value) / float(early_value)
+
+    early_payload = early["response_payload_bytes"]["p50"]
+    late_payload = late["response_payload_bytes"]["p50"]
+    payload_ratio = (
+        None
+        if not isinstance(early_payload, (int, float))
+        or not isinstance(late_payload, (int, float))
+        or early_payload <= 0
+        else float(late_payload) / float(early_payload)
+    )
+
+    return {
+        "probes": summarized,
+        "early_to_late": {
+            "early_event_count": early["event_count"],
+            "late_event_count": late["event_count"],
+            "response_payload_p50_ratio": payload_ratio,
+            "sender_post_message_p50_ratio": p50_ratio(
+                "senderPostMessageCallMs"
+            ),
+            "main_thread_materialization_p50_ratio": p50_ratio(
+                "mainThreadSnapshotCloneMs"
+            ),
+            "round_trip_p50_ratio": p50_ratio("roundTripMs"),
+            "worker_execution_p50_ratio": p50_ratio("workerExecutionMs"),
+            "non_worker_round_trip_p50_ratio": p50_ratio(
+                "nonWorkerRoundTripMs"
+            ),
+        },
+    }
+
+
 def write_result(result: dict[str, Any]) -> None:
     RESULT_JSON.parent.mkdir(parents=True, exist_ok=True)
     RESULT_JSON.write_text(
@@ -687,6 +765,7 @@ def main() -> int:
                     "nonWorkerRoundTripMs",
                 )
             },
+            "history_age_statistics": history_age_statistics(probes),
             "evidence_boundary": (
                 "This local Chromium run drives Petra's real provenance-bound composed Worker "
                 "through WorkerSession. request/response payload bytes are application-data "

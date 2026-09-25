@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "experiment_id": "fungal-spatial-growth-validation",
+  "lifecycle": {
+    "current_status": "prepared-blocked",
+    "blocked_on_issues": [
+      556,
+      615
+    ],
+    "activation_rule": "Replace only the manifest blocked command with the dedicated real runner/config after #556 approves one named fungal pack and #615 exposes authoritative fungal state/checkpoint/events/metrics. Preserve this stable experiment id and evidence contract.",
+    "research_needed": false
+  },
+  "authority_boundary": {
+    "allowed_sources": [
+      "approved named fungal pack from #556",
+      "authoritative fungal simulation state/checkpoints/events/metrics from #615"
+    ],
+    "forbidden_sources": [
+      "renderer hyphae or paths as growth authority",
+      "generic fungus constants",
+      "E. coli model-resource relabelled as physical glucose without a reviewed bridge",
+      "unsourced bacteria-fungus attack or cooperation coefficients"
+    ],
+    "evidence_classes": [
+      "numerical-replay-correctness",
+      "configured-model-contract",
+      "source-context-validation"
+    ],
+    "explicitly_not_claimed": [
+      "whole-system biological validation from replay correctness alone",
+      "browser/render acceptance",
+      "cross-species interaction validity unless separately enabled by sourced authority"
+    ]
+  },
+  "deterministic_workload_contract": {
+    "fixed_seed_set_required": true,
+    "seed_set_policy": "The activated runner must commit a small explicit fixed seed list in source before evidence is collected; seeds are engineering replay inputs, not fitted biological parameters.",
+    "named_pack_identity_required": true,
+    "exact_taxon_and_background_required": true,
+    "engine_and_configuration_fingerprint_required": true,
+    "horizon_and_sampling_cadence": "source-pack-owned-or-explicit-engineering-with-visible-limitation",
+    "controls": [
+      {
+        "id": "zero-resource",
+        "requirement": "Use the authoritative pack/resource contract to establish a true zero-resource or equivalent no-growth input; assert no source-incompatible biomass production."
+      },
+      {
+        "id": "zero-growth",
+        "requirement": "Disable the named pack's growth mechanism through an explicit supported control and assert no growth-state advance."
+      },
+      {
+        "id": "same-seed-replay",
+        "requirement": "Same seed + same accepted commands must reproduce checkpoint/event/metric identity exactly."
+      },
+      {
+        "id": "checkpoint-continuation",
+        "requirement": "Checkpoint restore plus suffix continuation must reproduce the uninterrupted authoritative result."
+      }
+    ],
+    "optional_controls_after_authority_exists": [
+      {
+        "id": "shared-resource-competition",
+        "prerequisite_issues": [
+          553,
+          615
+        ],
+        "requirement": "Run only when a named bacterial competitor and a reviewed shared-resource compatibility contract exist; otherwise omit rather than synthesize interaction."
+      }
+    ],
+    "source_validation_targets": "Only target quantities explicitly approved by #556 with exact strain/background, medium/substrate, temperature, culture format, unit, source key, and validity envelope. Unapproved radial/branching/resource quantities remain absent, not zero-filled."
+  },
+  "compact_result_contract": {
+    "required_top_level_fields": [
+      "schema_version",
+      "experiment_id",
+      "status",
+      "authority",
+      "workload",
+      "controls",
+      "replay",
+      "source_validation",
+      "runtime",
+      "limitations"
+    ],
+    "authority": {
+      "required_fields": [
+        "content_pack_id",
+        "content_pack_version",
+        "taxon_id",
+        "scientific_name",
+        "strain_or_background",
+        "engine_version",
+        "protocol_version",
+        "configuration_fingerprint",
+        "source_keys"
+      ]
+    },
+    "workload": {
+      "required_fields": [
+        "seeds",
+        "horizon",
+        "sampling_cadence",
+        "resource_context",
+        "termination_reason"
+      ]
+    },
+    "controls": {
+      "required_ids": [
+        "zero-resource",
+        "zero-growth"
+      ],
+      "result_fields": [
+        "status",
+        "observed_summary",
+        "acceptance"
+      ]
+    },
+    "replay": {
+      "required_fields": [
+        "same_seed_replay",
+        "checkpoint_continuation",
+        "trace_identity"
+      ]
+    },
+    "source_validation": {
+      "result_shape": "array",
+      "item_fields": [
+        "target_id",
+        "evidence_class",
+        "source_key",
+        "context",
+        "unit",
+        "expected",
+        "observed",
+        "acceptance",
+        "limitation"
+      ],
+      "rule": "No item may exist unless the target is explicitly approved by #556; model-contract checks and source-context validation must remain distinguishable."
+    },
+    "runtime": {
+      "required_fields": [
+        "wall_seconds",
+        "peak_memory_bytes",
+        "resumed",
+        "checkpoint_count"
+      ],
+      "nullable_fields": [
+        "peak_memory_bytes"
+      ]
+    },
+    "limitations": {
+      "type": "array-of-non-empty-strings",
+      "minimum_items": 1
+    }
+  },
+  "local_artifact_policy": {
+    "compact_json_only_in_git": true,
+    "raw_traces_local_only": true,
+    "checkpoints_local_only": true,
+    "screenshots_local_only": true,
+    "artifact_directory_env": "PETRA_LOCAL_ARTIFACT_DIR",
+    "compact_result_env": "PETRA_LOCAL_RESULT_JSON"
+  },
+  "resumability": {
+    "required_if_run_exceeds_one_practical_laptop_session": true,
+    "requirement": "Use authoritative checkpoints plus a stable run/resume identity; resume must not alter seed, pack/config identity, horizon, sampling cadence, or already accepted prefix."
+  }
+}

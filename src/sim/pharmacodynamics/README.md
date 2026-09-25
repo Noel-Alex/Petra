@@ -42,6 +42,28 @@ Crucially, Regoes `psi_max` is the baseline of the **source PD curve**. Petra's 
 
 Applying this PD-derived loss under zero resource is a declared composition policy and sensitivity target, **not** a quantitatively calibrated stationary-phase claim.
 
+## Chloramphenicol MG1655 growth inhibition
+
+`chloramphenicol.ts` implements the Greulich et al. (2015), DOI
+`10.15252/MSB.20145949`, equation-7 ribosome transport/binding response for
+*E. coli* K-12 MG1655. The source-owned parameter records live in
+`data/pharmacodynamics/chloramphenicol_mg1655_v1.json` and keep the glucose
+and glycerol modified-MOPS families separate.
+
+For `x = lambda/lambda0`, the evaluator solves the recorded cubic and accepts
+only one finite physical root in `[0, 1]`; zero drug returns `x = 1`
+exactly, while ambiguous/no-valid-root states fail closed. Inputs carry explicit
+`uM` concentration and `h^-1` drug-free growth-rate units plus the exact
+environment-family ID.
+
+This authority is mechanistically different from ciprofloxacin composition:
+chloramphenicol supplies `divisionMultiplier = x` and **no authorized
+incremental killing/loss hazard**. It does not reuse Regoes, infer a CAT
+resistance curve from MIC, or create mutation/transport/multi-drug rules.
+Petra's current dimensionless `model-resource` context is not an implicit
+glucose/glycerol MOPS binding; grounded product enablement remains blocked on
+the explicit environment decision in #928.
+
 ## Authority boundary
 
 - scenario/preset data owns biological parameter values, policy version, classification, and citations;

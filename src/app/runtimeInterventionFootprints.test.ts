@@ -190,7 +190,8 @@ describe("runtime intervention footprint binding", () => {
   });
 
   it("preserves same-time mutating-command order independently of biological time", () => {
-    const before = projectRuntimeInterventionFootprintFrame(
+    const accumulator = new RuntimeInterventionFootprintAccumulator();
+    const before = accumulator.project(
       runtimeState(
         composedSnapshot({
           commandCount: 4,
@@ -199,18 +200,17 @@ describe("runtime intervention footprint binding", () => {
         }),
       ),
     );
-    const after = projectRuntimeInterventionFootprintFrame(
-      runtimeState(
-        composedSnapshot({
-          commandCount: 5,
-          traceHash: "trace-command-5",
-          events: [
-            appliedEvent({ sequence: 7, commandId: "dose-7" }),
-            appliedEvent({ sequence: 8, commandId: "dose-8" }),
-          ],
-        }),
-      ),
+    const afterState = runtimeState(
+      composedSnapshot({
+        commandCount: 5,
+        traceHash: "trace-command-5",
+        events: [
+          appliedEvent({ sequence: 7, commandId: "dose-7" }),
+          appliedEvent({ sequence: 8, commandId: "dose-8" }),
+        ],
+      }),
     );
+    const after = accumulator.project(afterState);
 
     expect(after.simulationTimeHours).toBe(before.simulationTimeHours);
     expect(after.tick).toBe(before.tick);
@@ -259,6 +259,11 @@ describe("runtime intervention footprint binding", () => {
 
     expect(afterAdvances.footprints).toHaveLength(1);
     expect(afterAdvances.footprints[0]).toBe(retained);
+    expect(afterAdvances.footprints).toEqual(
+      projectRuntimeInterventionFootprintFrame(
+        runtimeState(afterAdvancesSnapshot),
+      ).footprints,
+    );
 
     const sameTimeDose = appliedEvent({
       sequence: 8 + advanceCount,
@@ -289,6 +294,23 @@ describe("runtime intervention footprint binding", () => {
     expect(afterDose.footprints[0]).toBe(retained);
     expect(afterDose.footprints[1]!.intervention).not.toBe(
       sameTimeDose.intervention,
+    );
+    expect(afterDose.footprints).toEqual(
+      projectRuntimeInterventionFootprintFrame(
+        runtimeState(
+          composedSnapshot({
+            tick: 12 + advanceCount,
+            simulationTimeHours: 0.24 + advanceCount * 0.01,
+            commandCount: 5 + advanceCount,
+            traceHash: "trace-dose-after-512-advances",
+            events: [
+              appliedEvent({ sequence: 7, commandId: "dose-7" }),
+              ...advanceEvents,
+              sameTimeDose,
+            ],
+          }),
+        ),
+      ).footprints,
     );
   });
 

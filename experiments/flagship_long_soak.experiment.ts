@@ -799,7 +799,7 @@ describe.sequential('flagship long-soak local experiment', () => {
       )
     } catch (error) {
       writeCompactResult({
-        schema_version: 1,
+        schema_version: 2,
         experiment_id: EXPERIMENT_ID,
         status: 'failed',
         started_at_utc: startedAt,

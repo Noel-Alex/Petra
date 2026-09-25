@@ -32,6 +32,7 @@ Zoom thresholds are presentation policy. Crossing them may reveal/hide informati
 LOD is deterministic for a fixed render snapshot + view request where practical. Representative sampling uses a stable presentation-domain identity plus grid, lineage, and cell identity rather than snapshot-instance/time entropy, so stationary colonies do not visually reshuffle every frame. Grid/index-schema changes intentionally invalidate that presentation sample; persistent glyphs remain visual proxies and must never be described as the same individual bacterium across time.
 
 Prefer aggregate density/texture at dish scale and bounded representative glyphs at colony scale. Never create one render object per biological cell.
+- `colonyMassPresentation.ts` owns the continuous presentation-only transfer from comparable lineage density to colony-mass alpha. It uses the same snapshot-wide density denominator for every lineage, keeps exact zero/off-mask source density exactly transparent, and never performs neighborhood dilation, connected-component fusion, or another rewrite that could bridge a truly empty source region. Dense connected visual masses come from the source field plus linearly filtered raster presentation; they are not measured colony fronts, cell/CFU counts, or biological merge events.
 
 ## Accessibility
 

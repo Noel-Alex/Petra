@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { writeDensityRaster } from "./densityRaster";
+import { COLONY_MASS_RASTER_MAX_ALPHA, writeDensityRaster } from "./densityRaster";
 import { writeFieldRaster } from "./fieldRaster";
 import { createRendererDemoSnapshot } from "./pixi/demoSnapshot";
 import { projectOverlayScalar, resolveOverlayPresentation, overlayPatternMultiplier } from "./overlayPresentation";
@@ -17,9 +17,14 @@ describe("bounded density and overlay textures", () => {
     const state = fixture(), output = new Uint8ClampedArray(144 * 4);
     writeDensityRaster(state, 2, output);
     expect(output[3]).toBe(0); expect(output[7]).toBe(0);
-    expect(output[11]).toBe(83); expect(output[15]).toBe(166); expect(output[19]).toBe(0);
+    expect(output[11]).toBe(110); expect(output[15]).toBe(219); expect(output[19]).toBe(0);
     expect(state.lineages[0]!.density[3]).toBe(2);
   });
+  it("uses a high-opacity but bounded presentation cap for dense colony mass", () => {
+    expect(COLONY_MASS_RASTER_MAX_ALPHA).toBeGreaterThan(0.8);
+    expect(COLONY_MASS_RASTER_MAX_ALPHA).toBeLessThan(1);
+  });
+
   it("clears reusable storage and rejects a mismatched buffer", () => {
     const state = fixture(), output = new Uint8ClampedArray(144 * 4).fill(255);
     writeDensityRaster(state, 0, output);

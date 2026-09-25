@@ -39,7 +39,7 @@
     },
     {
       "id": "worker-transport-profile",
-      "description": "Real composed browser Worker transport profile: payload-size breakdown, sender postMessage handoff, request-window/worker time, and accepted-snapshot clone cost.",
+      "description": "Real composed browser Worker transport profile: payload-size breakdown, sender postMessage handoff, request-window/worker time, accepted-snapshot materialization cost, and matched-biological-state history-age probes through the 625-event maintainer frontier.",
       "command": [
         "python",
         "tools/worker_transport_profile.py"
@@ -48,9 +48,10 @@
         519,
         577,
         630,
-        642
+        642,
+        1102
       ],
-      "timeout_seconds": 300
+      "timeout_seconds": 900
     },
     {
       "id": "render-projection-parity",

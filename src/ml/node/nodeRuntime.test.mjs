@@ -23,6 +23,7 @@ import {
   validateNodeMechanisticDatasetWorkerEnvelope,
   runNodeMechanisticDatasetPackage,
 } from "./datasetRuntime.ts";
+import { buildNodeMechanisticDatasetGenerationEvidence } from "./datasetEvidenceRuntime.ts";
 
 const temporaryRoots = [];
 
@@ -325,4 +326,148 @@ describe("Node mechanistic sweep adapters", () => {
 
     await executor.dispose();
   });
+  it("builds verified compact generation evidence by reopening finalized JSONL", async () => {
+    const root = createRoot();
+    const plan = planMechanisticSweep(definition());
+    const datasetPackage = {
+      schemaVersion: NODE_MECHANISTIC_DATASET_PACKAGE_SCHEMA_VERSION,
+      packageId: "node-evidence-fixture",
+      plan,
+      executorData: { spinMilliseconds: 1 },
+      outputBaseName: "evidence-dataset",
+      evidenceBoundary:
+        "Fixture-only dataset evidence; not biological validation or promotion evidence.",
+    };
+    const result = await runNodeMechanisticDatasetPackage(datasetPackage, {
+      artifactDirectory: root,
+      maxWorkers: 2,
+      executorModuleUrl: new URL(
+        "./workerThreadFixtureExecutor.mjs",
+        import.meta.url,
+      ).href,
+      workerHostModuleUrl: new URL(
+        "./workerThreadHost.mjs",
+        import.meta.url,
+      ).href,
+    });
+
+    const evidence = buildNodeMechanisticDatasetGenerationEvidence(
+      datasetPackage,
+      result,
+      {
+        artifactDirectory: root,
+        engineCommit: "0123456789abcdef0123456789abcdef01234567",
+        repositoryDirty: false,
+        logicalCpuCount: 8,
+      },
+    );
+
+    expect(evidence.status).toBe("complete");
+    expect(evidence.artifactIntegrityVerified).toBe(true);
+    expect(evidence.promotionEvidence).toBe(false);
+    expect(evidence.dataset?.sampleCount).toBe(plan.trajectoryCount * 2);
+    expect(evidence.dataset?.terminationReasonCounts).toEqual({
+      "fixture-worker-complete": plan.trajectoryCount,
+    });
+    expect(evidence.dataset?.targetNumericRanges.futurePopulation?.count).toBe(
+      plan.trajectoryCount * 2,
+    );
+    expect(evidence.runtime).toMatchObject({
+      logicalCpuCount: 8,
+      workerCount: 2,
+    });
+    expect(evidence.runtime?.durationSeconds).toBeGreaterThanOrEqual(0);
+  });
+
+  it("keeps failed runtime evidence incomplete and refuses escaped finalized paths", async () => {
+    const root = createRoot();
+    const plan = planMechanisticSweep(definition());
+    const datasetPackage = {
+      schemaVersion: NODE_MECHANISTIC_DATASET_PACKAGE_SCHEMA_VERSION,
+      packageId: "node-evidence-refusal-fixture",
+      plan,
+      executorData: { spinMilliseconds: 1 },
+      outputBaseName: "evidence-refusal-dataset",
+      evidenceBoundary:
+        "Fixture-only dataset evidence; not biological validation or promotion evidence.",
+    };
+    const complete = await runNodeMechanisticDatasetPackage(datasetPackage, {
+      artifactDirectory: root,
+      maxWorkers: 2,
+      executorModuleUrl: new URL(
+        "./workerThreadFixtureExecutor.mjs",
+        import.meta.url,
+      ).href,
+      workerHostModuleUrl: new URL(
+        "./workerThreadHost.mjs",
+        import.meta.url,
+      ).href,
+    });
+    const records = complete.runReport.records.map((record, index) =>
+      index === 0
+        ? {
+            taskId: record.taskId,
+            trajectoryKey: record.trajectoryKey,
+            status: "failed",
+            failure: {
+              name: "RangeError",
+              message: "fixture evidence failure",
+            },
+          }
+        : record,
+    );
+    const incomplete = {
+      ...complete,
+      status: "incomplete",
+      runReport: {
+        ...complete.runReport,
+        completedTrajectoryCount:
+          complete.runReport.completedTrajectoryCount - 1,
+        failedTrajectoryCount: 1,
+        records,
+      },
+      dataset: { finalized: false },
+    };
+
+    const evidence = buildNodeMechanisticDatasetGenerationEvidence(
+      datasetPackage,
+      incomplete,
+      {
+        artifactDirectory: root,
+        engineCommit: "0123456789abcdef0123456789abcdef01234567",
+        repositoryDirty: true,
+        logicalCpuCount: 4,
+      },
+    );
+    expect(evidence.status).toBe("incomplete");
+    expect(evidence.dataset).toBeNull();
+    expect(evidence.artifactIntegrityVerified).toBe(false);
+    expect(evidence.run.failures).toEqual([
+      {
+        name: "RangeError",
+        message: "fixture evidence failure",
+        count: 1,
+      },
+    ]);
+
+    expect(() =>
+      buildNodeMechanisticDatasetGenerationEvidence(
+        datasetPackage,
+        {
+          ...complete,
+          dataset: {
+            ...complete.dataset,
+            datasetRelativePath: "../escaped.jsonl",
+          },
+        },
+        {
+          artifactDirectory: root,
+          engineCommit: "0123456789abcdef0123456789abcdef01234567",
+          repositoryDirty: false,
+          logicalCpuCount: 4,
+        },
+      ),
+    ).toThrow(/escapes the artifact directory/);
+  });
+
 });

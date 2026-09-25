@@ -17,6 +17,7 @@ A green source-test run is **not** browser, GPU, frame-time/device, or experimen
 ## Numerical invariants
 
 - same seed + same actions -> identical checkpoint hashes;
+- composed checkpoint RNG state is dense/non-zero, detached on export, restored exactly, and malformed stochastic continuation is an atomic refusal;
 - no NaN/Inf;
 - non-negative populations and concentrations;
 - passive no-flux diffusion conserves total mass within tolerance;
@@ -51,7 +52,7 @@ If enabled:
 - zero drug produces zero incremental PD-derived loss;
 - at the reference zMIC, the incremental loss equals the converted reference drug-free PD rate while the transferred PD response itself crosses zero;
 - the spatial loss field follows the authoritative drug mask/concentration state and remains finite/non-negative;
-- composed protocol-v6/state-v4 authority refuses non-zero ciprofloxacin exposure without explicit supported PD/MIC authority, refuses missing active-genotype MICs, and refuses off-mask concentration;
+- composed protocol-v8/state-v5 authority refuses non-zero ciprofloxacin exposure without explicit supported PD/MIC authority, refuses missing active-genotype MICs, and refuses off-mask concentration;
 - changing the **initial** ciprofloxacin landscape or PD/MIC authority changes the composed configuration fingerprint, while accepted intervention commands mutate only checkpoint state and remain reproducible through command/checkpoint history;
 - global/radial/stripe/paint ciprofloxacin commands preserve the exact composed mask, validate dense normalized geometry and finite Float32-representable `mg/L`, apply transactionally, increment accepted command position without advancing biological time, and are replay/export complete;
 - a refused intervention is an exact replay no-op: checkpoint drug state, biomass/resource state, metrics, tick/time, command count, and event history remain unchanged;

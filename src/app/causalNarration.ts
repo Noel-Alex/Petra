@@ -7,6 +7,7 @@ import {
   type CausalAnnouncementPlan,
 } from "../ui/motion/announcements";
 import type { CausalEventBurstItem } from "../ui/motion/scheduler";
+import type { ExperimentRuntimeState } from "./experimentRuntime";
 
 export interface AuthoritativeCausalEventStream {
   /** Exact active simulation run identity supplied by runtime authority. */
@@ -20,6 +21,38 @@ export interface AuthoritativeCausalEventStream {
    */
   readonly runBranchIdentity: string;
   readonly events: readonly CausalEventBurstItem[];
+}
+
+/**
+ * Bind already-authoritative causal event items to the exact runtime-owned
+ * run/history scope. This helper supplies identity only; it does not promote
+ * timeline labels or renderer observations into causal scientific events.
+ */
+export function bindRuntimeCausalEventStream(
+  runtimeState: ExperimentRuntimeState,
+  events: readonly CausalEventBurstItem[],
+): AuthoritativeCausalEventStream {
+  if (runtimeState.snapshot === null) {
+    throw new Error(
+      "runtime causal event stream requires an authoritative runtime snapshot",
+    );
+  }
+  if (
+    !sameRunIdentity(
+      runtimeState.controls.identity,
+      runtimeState.snapshot.checkpoint.identity,
+    )
+  ) {
+    throw new Error(
+      "runtime causal event stream snapshot identity does not match active controls",
+    );
+  }
+
+  return Object.freeze({
+    runIdentity: structuredClone(runtimeState.controls.identity),
+    runBranchIdentity: runtimeState.runBranchIdentity,
+    events: Object.freeze(structuredClone(events)),
+  });
 }
 
 export interface CausalNarrationSession {
@@ -124,6 +157,17 @@ export function advanceCausalNarrationSession(
 }
 
 export function causalRunIdentityKey(identity: RunIdentity): string {
+  const binding =
+    identity.parameterSetBinding === undefined
+      ? null
+      : [
+          identity.parameterSetBinding.schemaVersion,
+          identity.parameterSetBinding.authority,
+          identity.parameterSetBinding.parameterSetId,
+          identity.parameterSetBinding.parameterSetVersion,
+          identity.parameterSetBinding.configurationFingerprint,
+        ];
+
   return JSON.stringify([
     identity.engineVersion,
     identity.protocolVersion,
@@ -131,6 +175,7 @@ export function causalRunIdentityKey(identity: RunIdentity): string {
     identity.scenarioVersion,
     identity.parameterSetId,
     identity.parameterSetVersion,
+    binding,
     identity.seed,
   ]);
 }

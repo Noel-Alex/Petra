@@ -32,6 +32,7 @@ JSON must parse; schemas/presets must pass the repository verifier. Science-mode
 
 ## Child DOX index
 - `phage/AGENTS.md` — canonical published phage evidence, measured-row integrity, and unresolved unit/transport boundaries.
+- `environments/AGENTS.md` — source-context environment evidence, calibrated-vs-unbound resource bridges, and spatial-transfer gates.
 
 ## Record-level presentation provenance
 - Science records exposed to UI may carry a nested `provenance` object with an explicit presentation evidence classification, source key(s), and any record-specific context/transfer/calibration/limitation metadata.

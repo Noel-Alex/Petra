@@ -179,6 +179,48 @@ function validateObservationStructure(
     assertCellChannel(name, values, cellCount, predicate)
   }
 
+  const channelsThatMustBeZeroOffMask: readonly (
+    readonly [string, readonly number[]]
+  )[] = [
+    ['divisionBiomassByCell', observation.divisionBiomassByCell],
+    ['deathBiomassByCell', observation.deathBiomassByCell],
+    ['netLocalBiomassChangeByCell', observation.netLocalBiomassChangeByCell],
+    [
+      'averageDivisionBiomassRateByCell',
+      observation.averageDivisionBiomassRateByCell,
+    ],
+    [
+      'averageDeathBiomassRateByCell',
+      observation.averageDeathBiomassRateByCell,
+    ],
+    [
+      'averageNetLocalBiomassRateByCell',
+      observation.averageNetLocalBiomassRateByCell,
+    ],
+  ]
+  for (const [name, values] of channelsThatMustBeZeroOffMask) {
+    for (let cell = 0; cell < cellCount; cell += 1) {
+      if (observation.mask[cell] === 0 && values[cell] !== 0) {
+        throw new Error(`${name} must be zero outside the ecology mask at cell ${cell}`)
+      }
+    }
+  }
+  for (const [name, channels] of [
+    ['divisionBiomassByLineage', observation.divisionBiomassByLineage],
+    ['deathBiomassByLineage', observation.deathBiomassByLineage],
+  ] as const) {
+    for (let lineage = 0; lineage < channels.length; lineage += 1) {
+      const channel = channels[lineage]!
+      for (let cell = 0; cell < cellCount; cell += 1) {
+        if (observation.mask[cell] === 0 && channel[cell] !== 0) {
+          throw new Error(
+            `${name}[${lineage}] must be zero outside the ecology mask at cell ${cell}`,
+          )
+        }
+      }
+    }
+  }
+
   if (
     !Number.isFinite(observation.totalDivisionBiomass) ||
     observation.totalDivisionBiomass < 0

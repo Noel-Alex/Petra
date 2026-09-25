@@ -25,7 +25,7 @@ export function buildOverlayLegend(
   const rangeMode = resolveRenderFieldRangeMode(field);
   const rangeText =
     rangeMode === "snapshot-extrema"
-      ? `Current-snapshot range ${formattedRange}`
+      ? `Current snapshot range ${formattedRange}`
       : `Fixed presentation range ${formattedRange}`;
   const rangeDisclosure =
     rangeMode === "snapshot-extrema"

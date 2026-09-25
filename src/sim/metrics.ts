@@ -262,6 +262,9 @@ export function extractAuthoritativeMetricSample(args: {
   if (!Number.isSafeInteger(checkpoint.tick) || checkpoint.tick < 0) {
     throw new Error('checkpoint tick must be a non-negative safe integer')
   }
+  if (!shouldSampleAuthoritativeMetrics(checkpoint.tick, args.samplingPolicy)) {
+    throw new Error('checkpoint tick is off the declared metric sampling cadence')
+  }
   finiteNonNegative('checkpoint simulationTimeHours', checkpoint.simulationTimeHours)
   finiteNonNegative('checkpoint totalBiomass', checkpoint.metrics.totalBiomass)
   finiteNonNegative('checkpoint totalResource', checkpoint.metrics.totalResource)

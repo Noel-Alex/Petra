@@ -7,6 +7,8 @@ import {
 
 export interface LineageOriginRenderEventProjectionInput {
   readonly lineageRegistry: LineageRegistryCheckpoint;
+  /** Exact current lineage identity from the enclosing render snapshot. */
+  readonly activeLineageIds: readonly string[];
   readonly gridWidth: number;
   readonly gridHeight: number;
   readonly dishMask: readonly number[] | Uint8Array;
@@ -19,6 +21,11 @@ export interface LineageOriginRenderEventProjectionInput {
  * This is a presentation projection only. It does not create lineage authority,
  * infer a mutation location from density, or invent a point for records whose
  * authoritative originCellIndex is null.
+ *
+ * The lineage registry is historical and may retain extinct children after the
+ * current composed/render lineage arrays have dropped them. Those historical
+ * origins are still validated here, but only currently active lineage identities
+ * may become structured RenderEvent lineage references.
  */
 export function projectLineageOriginRenderEvents(
   input: LineageOriginRenderEventProjectionInput,
@@ -52,6 +59,10 @@ export function projectLineageOriginRenderEvents(
   const registry = LineageRegistry.restore(input.lineageRegistry);
   const records = new Map(
     registry.list().map((record) => [record.lineageId, record] as const),
+  );
+  const activeLineageIds = validateActiveLineageIds(
+    input.activeLineageIds,
+    records,
   );
 
   const projected: RenderEvent[] = [];
@@ -89,6 +100,12 @@ export function projectLineageOriginRenderEvents(
       );
     }
 
+    // RenderEvent.lineageId is same-snapshot identity, not a historical foreign
+    // key. Extinct children remain in replay-critical registry history, but once
+    // absent from the enclosing active lineage set their old point marker is not
+    // carried into the current dish snapshot.
+    if (!activeLineageIds.has(record.lineageId)) continue;
+
     const center = gridCellCenter(
       originCellIndex,
       input.gridWidth,
@@ -111,6 +128,36 @@ export function projectLineageOriginRenderEvents(
   }
 
   return Object.freeze(projected);
+}
+
+function validateActiveLineageIds(
+  lineageIds: readonly string[],
+  records: ReadonlyMap<string, unknown>,
+): ReadonlySet<string> {
+  const active = new Set<string>();
+  for (const lineageId of lineageIds) {
+    if (
+      typeof lineageId !== "string" ||
+      lineageId.length === 0 ||
+      lineageId !== lineageId.trim()
+    ) {
+      throw new TypeError(
+        "lineage origin render projection active lineage ids must be canonical non-empty strings",
+      );
+    }
+    if (active.has(lineageId)) {
+      throw new RangeError(
+        `lineage origin render projection active lineage ids must be unique: ${lineageId}`,
+      );
+    }
+    if (!records.has(lineageId)) {
+      throw new RangeError(
+        `lineage origin render projection active lineage is absent from registry: ${lineageId}`,
+      );
+    }
+    active.add(lineageId);
+  }
+  return active;
 }
 
 function assertGrid(width: number, height: number): void {

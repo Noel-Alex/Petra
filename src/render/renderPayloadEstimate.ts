@@ -87,35 +87,37 @@ export function estimateDishRenderSnapshotPayload(
     }
   }
 
-  const metadataJsonUtf8Bytes = utf8ByteLength(
-    JSON.stringify({
-      snapshotId: snapshot.snapshotId,
-      samplingIdentity: snapshot.samplingIdentity,
-      simulationTimeHours: snapshot.simulationTimeHours,
-      gridWidth: snapshot.gridWidth,
-      gridHeight: snapshot.gridHeight,
-      fields: snapshot.fields.map((field) => ({
-        id: field.id,
-        kind: field.kind,
-        label: field.label,
-        unit: field.unit,
-        width: field.width,
-        height: field.height,
-        rangeMode: field.rangeMode ?? null,
-        minimum: field.minimum,
-        maximum: field.maximum,
-      })),
-      lineages: snapshot.lineages.map((lineage) => ({
-        id: lineage.id,
-        label: lineage.label,
-        appearanceToken: lineage.appearanceToken,
-        patternToken: lineage.patternToken,
-      })),
-      acceptedInterventionFootprints:
-        snapshot.acceptedInterventionFootprints ?? null,
-      events: snapshot.events,
-    }),
-  );
+  const metadataJson = JSON.stringify({
+    snapshotId: snapshot.snapshotId,
+    samplingIdentity: snapshot.samplingIdentity,
+    simulationTimeHours: snapshot.simulationTimeHours,
+    gridWidth: snapshot.gridWidth,
+    gridHeight: snapshot.gridHeight,
+    fields: snapshot.fields.map((field) => ({
+      id: field.id,
+      kind: field.kind,
+      label: field.label,
+      unit: field.unit,
+      width: field.width,
+      height: field.height,
+      rangeMode: field.rangeMode ?? null,
+      minimum: field.minimum,
+      maximum: field.maximum,
+    })),
+    lineages: snapshot.lineages.map((lineage) => ({
+      id: lineage.id,
+      label: lineage.label,
+      appearanceToken: lineage.appearanceToken,
+      patternToken: lineage.patternToken,
+    })),
+    acceptedInterventionFootprints:
+      snapshot.acceptedInterventionFootprints ?? null,
+    events: snapshot.events,
+  });
+  if (metadataJson === undefined) {
+    throw new TypeError("render payload metadata must be JSON serializable");
+  }
+  const metadataJsonUtf8Bytes = utf8ByteLength(metadataJson);
 
   return Object.freeze({
     version: DISH_RENDER_PAYLOAD_ESTIMATE_VERSION,

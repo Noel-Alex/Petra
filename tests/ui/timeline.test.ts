@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createRunIdentity, type SimulationSnapshot } from '../../src/sim/protocol'
-import { buildScientificTimeline } from '../../src/ui/timeline'
+import { buildScientificTimeline, updateScientificTimeline } from '../../src/ui/timeline'
 
 const identity = createRunIdentity({
   scenarioId: 'timeline-fixture',
@@ -193,4 +193,123 @@ describe('scientific timeline projection', () => {
       ).toThrow(/simulationTimeHours must be finite and non-negative/)
     },
   )
+  it('appends only the new suffix for a long retained history', () => {
+    const previousEvents = Array.from({ length: 1_000 }, (_, sequence) => ({
+      sequence,
+      tick: sequence,
+      simulationTimeHours: sequence / 10,
+      type: 'advanced' as const,
+      commandId: `advance-${sequence}`,
+      value: 1,
+    }))
+    const previousSnapshot = snapshotWith(previousEvents)
+    const previousTimeline = buildScientificTimeline(previousSnapshot)
+    const appended = {
+      sequence: 1_000,
+      tick: 1_000,
+      simulationTimeHours: 100,
+      type: 'advanced' as const,
+      commandId: 'advance-1000',
+      value: 1,
+    }
+
+    const update = updateScientificTimeline({
+      previousTimeline,
+      previousEvents,
+      nextEvents: [...previousEvents, appended],
+    })
+
+    expect(update.rebuilt).toBe(false)
+    expect(update.appendedEvents).toEqual([appended])
+    expect(update.timeline).toHaveLength(1_001)
+    expect(update.timeline.slice(0, 1_000)).toEqual(previousTimeline)
+    expect(update.timeline.at(-1)).toMatchObject({
+      sequence: 1_000,
+      commandId: 'advance-1000',
+    })
+  })
+
+  it('reuses the existing timeline when a snapshot adds no event', () => {
+    const events = [
+      { sequence: 0, tick: 0, simulationTimeHours: 0, type: 'initialized' as const },
+    ]
+    const previousTimeline = buildScientificTimeline(snapshotWith(events))
+    const update = updateScientificTimeline({
+      previousTimeline,
+      previousEvents: events,
+      nextEvents: [...events],
+    })
+
+    expect(update.rebuilt).toBe(false)
+    expect(update.appendedEvents).toEqual([])
+    expect(update.timeline).toBe(previousTimeline)
+  })
+
+  it('rebuilds fail-closed when the retained boundary was rewritten', () => {
+    const previousEvents = [
+      { sequence: 0, tick: 0, simulationTimeHours: 0, type: 'initialized' as const },
+      {
+        sequence: 1,
+        tick: 1,
+        simulationTimeHours: 0.1,
+        type: 'advanced' as const,
+        commandId: 'old',
+        value: 1,
+      },
+    ]
+    const previousTimeline = buildScientificTimeline(snapshotWith(previousEvents))
+    const rewritten = [
+      previousEvents[0]!,
+      {
+        sequence: 1,
+        tick: 1,
+        simulationTimeHours: 0.1,
+        type: 'advanced' as const,
+        commandId: 'rewritten',
+        value: 1,
+      },
+      {
+        sequence: 2,
+        tick: 2,
+        simulationTimeHours: 0.2,
+        type: 'advanced' as const,
+        commandId: 'new',
+        value: 1,
+      },
+    ]
+
+    const update = updateScientificTimeline({
+      previousTimeline,
+      previousEvents,
+      nextEvents: rewritten,
+    })
+
+    expect(update.rebuilt).toBe(true)
+    expect(update.appendedEvents).toEqual(rewritten)
+    expect(update.timeline.map((entry) => entry.commandId)).toEqual([
+      undefined,
+      'rewritten',
+      'new',
+    ])
+  })
+
+  it('validates only the appended sequence frontier and refuses duplicates', () => {
+    const previousEvents = [
+      { sequence: 0, tick: 0, simulationTimeHours: 0, type: 'initialized' as const },
+      { sequence: 4, tick: 4, simulationTimeHours: 0.4, type: 'advanced' as const },
+    ]
+    const previousTimeline = buildScientificTimeline(snapshotWith(previousEvents))
+
+    expect(() =>
+      updateScientificTimeline({
+        previousTimeline,
+        previousEvents,
+        nextEvents: [
+          ...previousEvents,
+          { sequence: 4, tick: 5, simulationTimeHours: 0.5, type: 'advanced' },
+        ],
+      }),
+    ).toThrow(/duplicate authoritative event sequence: 4/)
+  })
+
 })

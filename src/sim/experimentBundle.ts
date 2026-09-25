@@ -15,6 +15,7 @@ import {
   assertComposedParameterSetBinding,
 } from './parameterSetBinding'
 import { assertCiprofloxacinIntervention } from './ciprofloxacinIntervention'
+import { assertModelResourceIntervention } from './resourceIntervention'
 import {
   type RunIdentity,
   type SimulationCheckpoint,
@@ -30,7 +31,7 @@ import {
   type ReplayAuthority,
 } from './replayCompatibility'
 
-export const EXPERIMENT_BUNDLE_SCHEMA_VERSION = 2 as const
+export const EXPERIMENT_BUNDLE_SCHEMA_VERSION = 3 as const
 
 const INTERNAL_BUNDLE_RESTORE_COMMAND_ID =
   '__petra_experiment_bundle_restore__'
@@ -68,6 +69,11 @@ const SYNTHETIC_PULSE_COMMAND_KEYS = new Set([
   'magnitude',
 ])
 const CIPROFLOXACIN_COMMAND_KEYS = new Set([
+  'id',
+  'type',
+  'intervention',
+])
+const MODEL_RESOURCE_COMMAND_KEYS = new Set([
   'id',
   'type',
   'intervention',
@@ -151,7 +157,7 @@ const GENOTYPE_METRIC_KEYS = new Set([
 
 type ReplayMutationCommand = Extract<
   SimulationCommand,
-  { type: 'advance' | 'apply-ciprofloxacin' | 'synthetic-pulse' }
+  { type: 'advance' | 'apply-ciprofloxacin' | 'apply-model-resource' | 'synthetic-pulse' }
 >
 
 export type ExperimentReplayCommand = Readonly<ReplayMutationCommand>
@@ -682,6 +688,38 @@ function validateReplayCommands(
       continue
     }
 
+    if (command.type === 'apply-model-resource') {
+      assertOnlyKeys(
+        command as unknown as Record<string, unknown>,
+        MODEL_RESOURCE_COMMAND_KEYS,
+        `experiment replay command ${index}`,
+        'command-invalid',
+      )
+      if (authority !== 'composed') {
+        throw new ExperimentBundleError(
+          'command-invalid',
+          'Synthetic experiment bundles cannot contain apply-model-resource commands.',
+        )
+      }
+      if (composedConfig === null || composedConfig === undefined) {
+        throw new ExperimentBundleError(
+          'command-invalid',
+          'Model-resource replay commands require composed simulation authority.',
+        )
+      }
+      try {
+        assertModelResourceIntervention(command.intervention)
+      } catch (error) {
+        throw new ExperimentBundleError(
+          'command-invalid',
+          error instanceof Error
+            ? error.message
+            : 'Model-resource replay intervention is invalid.',
+        )
+      }
+      continue
+    }
+
     if (command.type === 'synthetic-pulse') {
       assertOnlyKeys(
         command as unknown as Record<string, unknown>,
@@ -706,7 +744,7 @@ function validateReplayCommands(
 
     throw new ExperimentBundleError(
       'command-invalid',
-      'Experiment replay history may contain only mutating advance/apply-ciprofloxacin/synthetic-pulse commands; restore/snapshot commands are replay metadata, not history.',
+      'Experiment replay history may contain only mutating advance/apply-ciprofloxacin/apply-model-resource/synthetic-pulse commands; restore/snapshot commands are replay metadata, not history.',
     )
   }
 }
@@ -769,6 +807,7 @@ function validateEvents(
     'initialized',
     'advanced',
     'ciprofloxacin-applied',
+    'model-resource-applied',
     'synthetic-pulse',
     'restored',
   ])
@@ -844,6 +883,15 @@ function validateEvents(
         'Synthetic experiment evidence cannot contain ciprofloxacin-applied events.',
       )
     }
+    if (
+      authority === 'synthetic' &&
+      event.type === 'model-resource-applied'
+    ) {
+      throw new ExperimentBundleError(
+        'evidence-invalid',
+        'Synthetic experiment evidence cannot contain model-resource-applied events.',
+      )
+    }
     if (event.commandId !== undefined) {
       canonicalText(
         event.commandId,
@@ -868,10 +916,21 @@ function validateEvents(
             : 'Ciprofloxacin evidence intervention is invalid.',
         )
       }
+    } else if (event.type === 'model-resource-applied') {
+      try {
+        assertModelResourceIntervention(event.intervention)
+      } catch (error) {
+        throw new ExperimentBundleError(
+          'evidence-invalid',
+          error instanceof Error
+            ? error.message
+            : 'Model-resource evidence intervention is invalid.',
+        )
+      }
     } else if (event.intervention !== undefined) {
       throw new ExperimentBundleError(
         'evidence-invalid',
-        'Only ciprofloxacin-applied events may carry intervention payloads.',
+        'Only accepted intervention events may carry intervention payloads.',
       )
     }
 

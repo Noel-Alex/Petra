@@ -324,8 +324,7 @@ describe("authoritative composed dish projection", () => {
           ...structuredClone(simulation.checkpoint.metrics),
           lineageBiomass: {
             ...structuredClone(simulation.checkpoint.metrics.lineageBiomass),
-            "founder-wt":
-              simulation.checkpoint.metrics.lineageBiomass["founder-wt"]! + 0.25,
+            L1: simulation.checkpoint.metrics.lineageBiomass.L1! + 0.25,
           },
         },
       },
@@ -335,7 +334,7 @@ describe("authoritative composed dish projection", () => {
         lineageMetricDrift,
         "fixture-branch-0",
       ),
-    ).toThrow(/lineage "founder-wt" biomass metric does not match spatial state/);
+    ).toThrow(/lineage "L1" biomass metric does not match spatial state/);
 
     const lineageIdentityDrift = {
       ...structuredClone(simulation),

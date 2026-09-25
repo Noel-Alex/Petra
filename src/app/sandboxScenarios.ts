@@ -7,6 +7,10 @@ import {
   type FlagshipComposedRunPlan,
 } from "../sim/flagshipComposition";
 import {
+  buildTwoBacteriumSharedResourceRunPlan,
+  type TwoBacteriumComposedRunPlan,
+} from "../sim/twoBacteriumComposition";
+import {
   composedConfigurationFingerprint,
   type ComposedSimulationConfig,
 } from "../sim/authoritative";
@@ -20,6 +24,8 @@ export const SANDBOX_MODE = "sandbox" as const;
 export const SANDBOX_SCENARIO_CATALOG_VERSION = 1 as const;
 export const SANDBOX_RUNTIME_REGISTRY_VERSION = 1 as const;
 export const FLAGSHIP_SANDBOX_RUNTIME_ID = "flagship-composed-v1" as const;
+export const TWO_BACTERIUM_SANDBOX_RUNTIME_ID =
+  "ecoli-bsubtilis-shared-resource-v1" as const;
 
 export interface SandboxFounderInoculum {
   readonly lineageId: string;
@@ -89,11 +95,32 @@ export interface SandboxActiveRunView {
   readonly seed: number;
 }
 
+export type SandboxRuntimeAvailability =
+  | "available"
+  | "blocked-local-evidence";
+
+export interface SandboxRuntimeEvidenceGate {
+  readonly experimentId: string;
+  readonly issueIds: readonly number[];
+}
+
+export interface SandboxRuntimeReadiness {
+  readonly registryVersion: typeof SANDBOX_RUNTIME_REGISTRY_VERSION;
+  readonly runtimeId: string;
+  readonly scenarioId: string;
+  readonly scenarioVersion: string;
+  readonly title: string;
+  readonly availability: SandboxRuntimeAvailability;
+  readonly evidenceGate: SandboxRuntimeEvidenceGate | null;
+}
+
 interface SandboxRuntimeRegistration {
   readonly registryVersion: typeof SANDBOX_RUNTIME_REGISTRY_VERSION;
   readonly runtimeId: string;
   readonly scenarioId: string;
   readonly scenarioVersion: string;
+  readonly availability: SandboxRuntimeAvailability;
+  readonly evidenceGate: SandboxRuntimeEvidenceGate | null;
   readonly buildRun: (
     seed: number,
     initialization: SandboxRunInitialization,
@@ -102,6 +129,8 @@ interface SandboxRuntimeRegistration {
 
 const FLAGSHIP_SANDBOX_SCENARIO_ID = "ecoli-ciprofloxacin-spatial";
 const FLAGSHIP_SANDBOX_SCENARIO_VERSION = "1.5.0-research";
+const TWO_BACTERIUM_SANDBOX_SCENARIO_ID = "ecoli-bsubtilis-shared-resource";
+const TWO_BACTERIUM_SANDBOX_SCENARIO_VERSION = "1.0.0-experimental";
 
 /**
  * Executable Sandbox runtimes are explicit product authority.
@@ -117,11 +146,34 @@ const SANDBOX_RUNTIME_REGISTRATIONS: readonly SandboxRuntimeRegistration[] =
       runtimeId: FLAGSHIP_SANDBOX_RUNTIME_ID,
       scenarioId: FLAGSHIP_SANDBOX_SCENARIO_ID,
       scenarioVersion: FLAGSHIP_SANDBOX_SCENARIO_VERSION,
+      availability: "available" as const,
+      evidenceGate: null,
       buildRun(
         seed: number,
         initialization: SandboxRunInitialization,
       ): FlagshipComposedRunPlan {
         return buildFlagshipComposedRunPlan({
+          seed,
+          initialResourceLevel: initialization.initialResourceLevel,
+          inocula: initialization.inocula,
+        });
+      },
+    }),
+    Object.freeze({
+      registryVersion: SANDBOX_RUNTIME_REGISTRY_VERSION,
+      runtimeId: TWO_BACTERIUM_SANDBOX_RUNTIME_ID,
+      scenarioId: TWO_BACTERIUM_SANDBOX_SCENARIO_ID,
+      scenarioVersion: TWO_BACTERIUM_SANDBOX_SCENARIO_VERSION,
+      availability: "blocked-local-evidence" as const,
+      evidenceGate: Object.freeze({
+        experimentId: "two-bacterium-shared-resource-validation",
+        issueIds: Object.freeze([907]),
+      }),
+      buildRun(
+        seed: number,
+        initialization: SandboxRunInitialization,
+      ): TwoBacteriumComposedRunPlan {
+        return buildTwoBacteriumSharedResourceRunPlan({
           seed,
           initialResourceLevel: initialization.initialResourceLevel,
           inocula: initialization.inocula,
@@ -149,6 +201,38 @@ function assertRuntimeRegistry(): void {
     if (registration.registryVersion !== SANDBOX_RUNTIME_REGISTRY_VERSION) {
       throw new Error("unsupported Sandbox runtime registration version");
     }
+    if (registration.availability === "available") {
+      if (registration.evidenceGate !== null) {
+        throw new Error(
+          `available Sandbox runtime cannot retain an evidence gate: ${registration.runtimeId}`,
+        );
+      }
+    } else {
+      const gate = registration.evidenceGate;
+      if (gate === null) {
+        throw new Error(
+          `blocked Sandbox runtime requires an evidence gate: ${registration.runtimeId}`,
+        );
+      }
+      canonicalText("Sandbox runtime evidence experiment id", gate.experimentId);
+      if (gate.issueIds.length === 0) {
+        throw new Error(
+          `blocked Sandbox runtime requires at least one evidence issue: ${registration.runtimeId}`,
+        );
+      }
+      const issueIds = new Set<number>();
+      for (const issueId of gate.issueIds) {
+        if (!Number.isSafeInteger(issueId) || issueId <= 0) {
+          throw new Error("Sandbox runtime evidence issue ids must be positive safe integers");
+        }
+        if (issueIds.has(issueId)) {
+          throw new Error(
+            `duplicate Sandbox runtime evidence issue id ${issueId}: ${registration.runtimeId}`,
+          );
+        }
+        issueIds.add(issueId);
+      }
+    }
     if (runtimeIds.has(registration.runtimeId)) {
       throw new Error(
         `duplicate Sandbox runtime registration: ${registration.runtimeId}`,
@@ -170,9 +254,59 @@ function findRuntimeRegistration(args: {
 }): SandboxRuntimeRegistration | undefined {
   return SANDBOX_RUNTIME_REGISTRATIONS.find(
     (registration) =>
+      registration.availability === "available" &&
       registration.runtimeId === args.runtimeId &&
       registration.scenarioId === args.scenarioId &&
       registration.scenarioVersion === args.scenarioVersion,
+  );
+}
+
+/**
+ * Readiness is coordination/product metadata, not execution authority.
+ *
+ * A blocked candidate may carry its exact reviewed builder internally so the
+ * integration seam is type-checked, but callers receive only immutable
+ * identity + evidence-gate metadata. Selection/build paths below admit only
+ * registrations whose availability is exactly "available".
+ */
+export function listSandboxRuntimeReadiness(): readonly SandboxRuntimeReadiness[] {
+  assertRuntimeRegistry();
+  const discovered = listBundledScenarioDiscovery();
+  const discoveryByKey = new Map<string, ScenarioDiscoveryEntry>();
+
+  for (const entry of discovered) {
+    const key = scenarioKey(entry.id, entry.version);
+    if (discoveryByKey.has(key)) {
+      throw new Error(`duplicate bundled Sandbox discovery identity: ${key}`);
+    }
+    discoveryByKey.set(key, entry);
+  }
+
+  return Object.freeze(
+    SANDBOX_RUNTIME_REGISTRATIONS.map((registration) => {
+      const key = runtimeRegistrationKey(registration);
+      const discovery = discoveryByKey.get(key);
+      if (discovery === undefined) {
+        throw new Error(
+          `Sandbox runtime ${registration.runtimeId} has no exact bundled discovery entry for ${key}`,
+        );
+      }
+      return Object.freeze({
+        registryVersion: registration.registryVersion,
+        runtimeId: registration.runtimeId,
+        scenarioId: registration.scenarioId,
+        scenarioVersion: registration.scenarioVersion,
+        title: discovery.title,
+        availability: registration.availability,
+        evidenceGate:
+          registration.evidenceGate === null
+            ? null
+            : Object.freeze({
+                experimentId: registration.evidenceGate.experimentId,
+                issueIds: Object.freeze([...registration.evidenceGate.issueIds]),
+              }),
+      });
+    }),
   );
 }
 
@@ -194,7 +328,9 @@ export function listSandboxScenarios(): SandboxScenarioCatalog {
     discoveryByKey.set(key, entry);
   }
 
-  const scenarios = SANDBOX_RUNTIME_REGISTRATIONS.map((registration) => {
+  const scenarios = SANDBOX_RUNTIME_REGISTRATIONS.filter(
+    (registration) => registration.availability === "available",
+  ).map((registration) => {
     const key = runtimeRegistrationKey(registration);
     const discovery = discoveryByKey.get(key);
     if (discovery === undefined) {

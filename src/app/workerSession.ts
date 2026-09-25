@@ -309,18 +309,7 @@ export class WorkerSession {
     }
 
     if (response.type === "snapshot-delta") {
-      let prepared: PreparedSnapshot;
-      try {
-        prepared = this.prepareDeltaSnapshot(response);
-      } catch (error) {
-        this.recordPerformance(response, "protocol-error");
-        this.fail(
-          error instanceof Error ? error.message : String(error),
-          response.commandId,
-        );
-        return;
-      }
-      this.acceptSuccessfulPreparedSnapshot(response, prepared);
+      this.acceptSuccessfulDeltaSnapshot(response);
       return;
     }
 
@@ -387,24 +376,43 @@ export class WorkerSession {
     };
   }
 
-  private acceptSuccessfulSnapshot(
-    response: InstrumentedWorkerResponse,
-    snapshot: SimulationSnapshot,
-  ): void {
-    this.acceptSuccessfulPreparedSnapshot(
-      response,
-      this.prepareSnapshot(snapshot),
-    );
-  }
-
-  private acceptSuccessfulPreparedSnapshot(
-    response: InstrumentedWorkerResponse,
-    prepared: PreparedSnapshot,
+  private acceptSuccessfulDeltaSnapshot(
+    response: Extract<
+      InstrumentedWorkerResponse,
+      { readonly type: "snapshot-delta" }
+    >,
   ): void {
     const completedAtMs =
       this.performanceOptions !== null && this.activePerformance !== null
         ? this.performanceOptions.now()
         : null;
+    let prepared: PreparedSnapshot;
+    try {
+      prepared = this.prepareDeltaSnapshot(response);
+    } catch (error) {
+      this.recordPerformance(response, "protocol-error");
+      this.fail(
+        error instanceof Error ? error.message : String(error),
+        response.commandId,
+      );
+      return;
+    }
+    this.recordPerformance(response, "success", {
+      completedAtMs,
+      mainThreadSnapshotCloneMs: prepared.cloneDurationMs,
+    });
+    this.complete(prepared.snapshot);
+  }
+
+  private acceptSuccessfulSnapshot(
+    response: InstrumentedWorkerResponse,
+    snapshot: SimulationSnapshot,
+  ): void {
+    const completedAtMs =
+      this.performanceOptions !== null && this.activePerformance !== null
+        ? this.performanceOptions.now()
+        : null;
+    const prepared = this.prepareSnapshot(snapshot);
     this.recordPerformance(response, "success", {
       completedAtMs,
       mainThreadSnapshotCloneMs: prepared.cloneDurationMs,

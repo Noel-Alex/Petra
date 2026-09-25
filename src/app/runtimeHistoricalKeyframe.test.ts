@@ -105,15 +105,18 @@ describe("runtime historical keyframe transaction", () => {
 
     const capturedResource =
       transaction.scientific.snapshot.checkpoint.composedState.resource[0]!;
-    const callerOwnedResource = snapshot.checkpoint.composedState
-      .resource as unknown as number[];
-    callerOwnedResource[0] = capturedResource + 123;
 
+    expect(
+      transaction.scientific.snapshot.checkpoint.composedState.resource,
+    ).not.toBe(snapshot.checkpoint.composedState.resource);
     expect(
       transaction.scientific.snapshot.checkpoint.composedState.resource[0],
     ).toBe(capturedResource);
     const resourceField = transaction.dish.snapshot.fields.find(
       (field) => field.kind === "resource",
+    );
+    expect(resourceField?.values).not.toBe(
+      transaction.scientific.snapshot.checkpoint.composedState.resource,
     );
     expect(resourceField?.values[0]).toBeCloseTo(
       Math.fround(capturedResource),

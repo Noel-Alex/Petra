@@ -220,7 +220,15 @@ export function appendMaterializedMutationLineagesToAuthority(
     const child = materialization.children[index]!;
     const record =
       nextCheckpoint.records[currentCheckpoint.records.length + index]!;
-    validateMaterializedChild(child, record);
+    const parent = nextCheckpoint.records.find(
+      (candidate) => candidate.lineageId === child.parentLineageId,
+    );
+    validateMaterializedChild(
+      child,
+      record,
+      parent,
+      materialization.createdAtHours,
+    );
 
     if (dynamicLossPolicy === null) {
       throw new Error(
@@ -253,17 +261,28 @@ export function appendMaterializedMutationLineagesToAuthority(
 function validateMaterializedChild(
   child: MaterializedMutationChild,
   record: LineageRecord,
+  parent: LineageRecord | undefined,
+  materializationTimeHours: number,
 ): void {
   if (
     child.lineageId !== record.lineageId ||
     child.targetGenotypeId !== record.genotypeId ||
     child.parentLineageId !== record.parentLineageId ||
     child.createdAtHours !== record.createdAtHours ||
+    child.createdAtHours !== materializationTimeHours ||
     child.originCellIndex !== record.originCellIndex ||
     child.mutationClass !== record.mutationClass
   ) {
     throw new Error(
       "materialized mutation child does not match registry checkpoint record",
+    );
+  }
+  if (
+    parent === undefined ||
+    parent.genotypeId !== child.sourceGenotypeId
+  ) {
+    throw new Error(
+      "materialized mutation child source genotype does not match registry parent",
     );
   }
 }

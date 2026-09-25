@@ -992,7 +992,10 @@ function drawScene(args: {
     snapshot.lineages,
     organismPresentation,
   );
-  if (lineagePresentations.hasAnyPresentation || level !== "dish") {
+  if (
+    lineagePresentations.hasAnySupportedDishGlyphPresentation ||
+    level !== "dish"
+  ) {
     const glyphs = sampleRepresentativeGlyphs(snapshot, camera, level === "dish" ? "colony" : level, {
       maxGlyphs: Math.min(maxRepresentativeGlyphs, level === "dish" ? 140 : 260),
       minimumDensity: lineageDensityMaximum * 0.12,

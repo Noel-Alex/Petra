@@ -52,7 +52,11 @@ export interface ControlDispatchResult {
 
 export type AuthoritativeInterventionCommand = Extract<
   SimulationCommand,
-  { readonly type: "apply-ciprofloxacin" }
+  {
+    readonly type:
+      | "apply-ciprofloxacin"
+      | "apply-model-resource";
+  }
 >;
 
 export type ExperimentRuntimeListener = (state: ExperimentRuntimeState) => void;

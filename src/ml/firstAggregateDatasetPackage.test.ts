@@ -1,14 +1,18 @@
 import { describe, expect, it } from "vitest";
 
+import { ComposedSimulationEngine } from "../sim/composedEngine";
+import { createRunIdentity } from "../sim/protocol";
 import {
   assertTaskMatchesMechanisticExecutionDefinition,
 } from "./executionDefinition";
+import { createComposedMechanisticTaskExecutor } from "./runner";
 import {
   createNodeMechanisticDatasetPackage,
   FIRST_AGGREGATE_DATASET_PACKAGE_ID,
   FIRST_AGGREGATE_DATASET_VERSION,
   FIRST_AGGREGATE_INPUT_SCHEMA_VERSION,
   FIRST_AGGREGATE_TARGET_SCHEMA_VERSION,
+  projectFirstAggregateTransition,
   resolveNodeMechanisticDatasetTaskDefinition,
 } from "./firstAggregateDatasetPackage";
 
@@ -128,6 +132,100 @@ describe("first authoritative aggregate dataset package", () => {
     expect(definition.executionDefinition.intervention.commands).toEqual(
       [],
     );
+    expect(definition.project).toBeUndefined();
+    expect(definition.projectTransition).toBe(
+      projectFirstAggregateTransition,
+    );
+  });
+
+  it("emits exact future transition rows without a synthetic initial zero-flux target", async () => {
+    const datasetPackage = createNodeMechanisticDatasetPackage();
+    const task = datasetPackage.plan.tasks[0]!;
+    const executor = createComposedMechanisticTaskExecutor((candidate) =>
+      resolveNodeMechanisticDatasetTaskDefinition(
+        candidate,
+        datasetPackage.executorData,
+      ),
+    );
+
+    const result = await executor.execute(task);
+
+    expect(result.samples).toHaveLength(16);
+    const first = result.samples[0]!;
+    expect(first.snapshotIndex).toBe(0);
+    expect(first.input).toMatchObject({
+      sourceTick: 0,
+      sourceTimeHours: 0,
+    });
+    expect(first.target).toMatchObject({
+      targetTick: 64,
+      forecastHorizonTicks: 64,
+    });
+    expect(first.simulationTimeHours).toBe(first.target.targetTimeHours);
+    expect(first.target.targetTimeHours).toBeGreaterThan(
+      first.input.sourceTimeHours,
+    );
+    expect(first.target.terminalStepDivisionBiomass).toBeGreaterThanOrEqual(0);
+    expect(first.target.terminalStepDeathBiomass).toBeGreaterThanOrEqual(0);
+    expect(first.target.terminalStepResourceConsumed).toBeGreaterThanOrEqual(0);
+
+    const last = result.samples.at(-1)!;
+    expect(last.input.sourceTick).toBe(960);
+    expect(last.target.targetTick).toBe(1024);
+    expect(last.target.forecastHorizonTicks).toBe(64);
+    expect(last.terminationReason).toBe(
+      "first-aggregate-heldout-horizon-complete",
+    );
+  });
+
+  it("pairs a source state with the exact subsequent one-tick authoritative flux", () => {
+    const datasetPackage = createNodeMechanisticDatasetPackage();
+    const task = datasetPackage.plan.tasks[0]!;
+    const definition = resolveNodeMechanisticDatasetTaskDefinition(
+      task,
+      datasetPackage.executorData,
+    );
+    const binding = definition.executionDefinition.parameterSetBinding;
+    const engine = new ComposedSimulationEngine(
+      createRunIdentity({
+        scenarioId: task.trajectory.group.scenarioId,
+        scenarioVersion: task.trajectory.group.scenarioVersion,
+        parameterSetId: binding.parameterSetId,
+        parameterSetVersion: binding.parameterSetVersion,
+        parameterSetBinding: binding,
+        seed: task.trajectory.seed,
+      }),
+      definition.config,
+    );
+
+    const source = engine.snapshot();
+    const target = engine.execute({
+      id: "first-aggregate-one-tick-pairing",
+      type: "advance",
+      ticks: 1,
+    });
+    const projected = projectFirstAggregateTransition(source, target);
+
+    expect(projected.input).toEqual({
+      sourceTick: source.checkpoint.tick,
+      sourceTimeHours: source.checkpoint.simulationTimeHours,
+      totalBiomass: source.checkpoint.metrics.totalBiomass,
+      totalResource: source.checkpoint.metrics.totalResource,
+      occupiedCells: source.checkpoint.metrics.occupiedCells,
+    });
+    expect(projected.target).toEqual({
+      targetTick: target.checkpoint.tick,
+      targetTimeHours: target.checkpoint.simulationTimeHours,
+      forecastHorizonTicks: 1,
+      forecastHorizonHours:
+        target.checkpoint.simulationTimeHours -
+        source.checkpoint.simulationTimeHours,
+      terminalStepDivisionBiomass:
+        target.checkpoint.metrics.divisionBiomass,
+      terminalStepDeathBiomass: target.checkpoint.metrics.deathBiomass,
+      terminalStepResourceConsumed:
+        target.checkpoint.metrics.resourceConsumed,
+    });
   });
 
   it("fails closed when worker executor data or task identity is tampered", () => {

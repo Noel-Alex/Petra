@@ -117,8 +117,8 @@ export function createTimelineBookmark(
 }
 
 /**
- * Protocol v6 exposes generic lifecycle/fixture events plus the exact
- * `ciprofloxacin-applied` command-acceptance event.
+ * Protocol v9 exposes generic lifecycle/fixture events plus exact typed
+ * `ciprofloxacin-applied` and `model-resource-applied` command-acceptance events.
  *
  * That event proves an intervention command was accepted, but it does not prove
  * a downstream biological threshold. Named threshold/event requests therefore

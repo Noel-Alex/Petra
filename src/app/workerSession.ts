@@ -3,7 +3,6 @@ import {
   type SimulationSnapshot,
   type WorkerErrorCode,
   type WorkerRequest,
-  type WorkerResponse,
 } from "../sim/protocol";
 import {
   materializeWorkerSnapshotDelta,

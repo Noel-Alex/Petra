@@ -104,7 +104,7 @@
       "provenance": {
         "classification": "transferred",
         "citation": "regoes_2004",
-        "sourceContext": "Escherichia coli CAB1 (O18:K1:H7), LB, 37 C",
+        "context": "Escherichia coli CAB1 (O18:K1:H7), LB, 37 C",
         "sourceTestedRangeMgPerL": {
           "minimum": 0,
           "maximum": 2

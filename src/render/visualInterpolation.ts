@@ -1,4 +1,6 @@
 import {
+  isRenderFieldRangeMode,
+  resolveRenderFieldRangeMode,
   validateRenderSnapshot,
   type DishRenderSnapshot,
   type RenderField,
@@ -50,14 +52,11 @@ export type DishVisualTransitionRefusalReason =
   | "field-metadata-mismatch"
   | "lineage-metadata-mismatch";
 
-interface MutableRenderField {
-  readonly id: string;
-  readonly kind: RenderField["kind"];
-  readonly label: string;
-  readonly unit: string;
-  readonly width: number;
-  readonly height: number;
-  readonly values: Float32Array;
+interface MutableRenderField extends Omit<
+  RenderField,
+  "values" | "minimum" | "maximum"
+> {
+  values: Float32Array;
   minimum: number;
   maximum: number;
 }
@@ -312,20 +311,20 @@ function writeFrame(
       channel.to.values,
       easedProgress,
     );
-    // Field bounds are source-supplied scalar-range metadata at exact
-    // authoritative keyframes. When that range changes between compatible
-    // snapshots, only the presentation frame interpolates it so transfer
-    // functions/legends evolve continuously without rewriting source values.
-    channel.output.minimum = mixNumber(
-      channel.from.minimum,
-      channel.to.minimum,
-      easedProgress,
-    );
-    channel.output.maximum = mixNumber(
-      channel.from.maximum,
-      channel.to.maximum,
-      easedProgress,
-    );
+    if (resolveRenderFieldRangeMode(channel.output) === "snapshot-extrema") {
+      // Observed extrema are explicitly per-snapshot presentation metadata.
+      // Interpolate only the transient frame; exact keyframes remain untouched.
+      channel.output.minimum = mixNumber(
+        channel.from.minimum,
+        channel.to.minimum,
+        easedProgress,
+      );
+      channel.output.maximum = mixNumber(
+        channel.from.maximum,
+        channel.to.maximum,
+        easedProgress,
+      );
+    }
   }
 
   for (const channel of transition.lineageChannels) {
@@ -376,13 +375,25 @@ function fieldIdentityMetadataEqual(
   left: RenderField,
   right: RenderField,
 ): boolean {
+  const leftRangeMode = resolveRenderFieldRangeMode(left);
+  const rightRangeMode = resolveRenderFieldRangeMode(right);
+  if (
+    left.id !== right.id ||
+    left.kind !== right.kind ||
+    left.label !== right.label ||
+    left.unit !== right.unit ||
+    left.width !== right.width ||
+    left.height !== right.height ||
+    leftRangeMode !== rightRangeMode
+  ) {
+    return false;
+  }
+
+  if (leftRangeMode === "snapshot-extrema") return true;
+
   return (
-    left.id === right.id &&
-    left.kind === right.kind &&
-    left.label === right.label &&
-    left.unit === right.unit &&
-    left.width === right.width &&
-    left.height === right.height
+    left.minimum === right.minimum &&
+    left.maximum === right.maximum
   );
 }
 
@@ -450,6 +461,12 @@ function assertVisualState(state: DishVisualState): void {
       throw new RangeError("visual state field geometry must match grid");
     }
     assertFiniteArray(field.values, false, "visual state field");
+    if (
+      field.rangeMode !== undefined &&
+      !isRenderFieldRangeMode(field.rangeMode)
+    ) {
+      throw new RangeError("visual state field range mode is unsupported");
+    }
     if (
       !Number.isFinite(field.minimum) ||
       !Number.isFinite(field.maximum)

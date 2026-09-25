@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import visualInterpolationSource from "./visualInterpolation.ts?raw";
 
-import type { DishRenderSnapshot, RenderLineage } from "./model";
+import type {
+  DishRenderSnapshot,
+  RenderFieldRangeMode,
+  RenderLineage,
+} from "./model";
 import {
   advanceDishVisualTransition,
   copyDishVisualMotionSpec,
@@ -41,6 +45,7 @@ function snapshot(args: {
   unit?: string;
   minimum?: number;
   maximum?: number;
+  rangeMode?: RenderFieldRangeMode;
   mask?: readonly number[];
 }): DishRenderSnapshot {
   return {
@@ -60,6 +65,7 @@ function snapshot(args: {
         width: 2,
         height: 1,
         values: new Float32Array(args.field),
+        ...(args.rangeMode === undefined ? {} : { rangeMode: args.rangeMode }),
         minimum: args.minimum ?? 0,
         maximum: args.maximum ?? 10,
       },
@@ -133,7 +139,7 @@ describe("dish visual continuity", () => {
     expect(complete).toEqual({ complete: true, state: to });
   });
 
-  it("interpolates changing source field ranges as presentation metadata", () => {
+  it("keeps fixed transfer ranges stable across compatible snapshots", () => {
     const from = snapshot({
       id: "a",
       biomass: [1, 2],
@@ -147,6 +153,32 @@ describe("dish visual continuity", () => {
       biomass: [3, 4],
       field: [6, 18],
       lineages: [lineage("ancestor", [3, 4])],
+      minimum: 0,
+      maximum: 20,
+    });
+
+    expect(planDishVisualTransition(from, to, LINEAR)).toEqual({
+      kind: "snap",
+      reason: "field-metadata-mismatch",
+    });
+  });
+
+  it("interpolates explicitly observed snapshot field extrema as presentation metadata", () => {
+    const from = snapshot({
+      id: "a",
+      biomass: [1, 2],
+      field: [2, 8],
+      lineages: [lineage("ancestor", [1, 2])],
+      rangeMode: "snapshot-extrema",
+      minimum: 0,
+      maximum: 10,
+    });
+    const to = snapshot({
+      id: "b",
+      biomass: [3, 4],
+      field: [6, 18],
+      lineages: [lineage("ancestor", [3, 4])],
+      rangeMode: "snapshot-extrema",
       minimum: 4,
       maximum: 20,
     });

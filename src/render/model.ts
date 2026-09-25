@@ -16,6 +16,29 @@ export const OVERLAY_KINDS = [
 
 export type OverlayKind = (typeof OVERLAY_KINDS)[number];
 
+export const RENDER_FIELD_RANGE_MODES = [
+  "fixed",
+  "snapshot-extrema",
+] as const;
+
+export type RenderFieldRangeMode =
+  (typeof RENDER_FIELD_RANGE_MODES)[number];
+
+export function isRenderFieldRangeMode(
+  value: unknown,
+): value is RenderFieldRangeMode {
+  return (
+    typeof value === "string" &&
+    (RENDER_FIELD_RANGE_MODES as readonly string[]).includes(value)
+  );
+}
+
+export function resolveRenderFieldRangeMode(
+  field: Pick<RenderField, "rangeMode">,
+): RenderFieldRangeMode {
+  return field.rangeMode ?? "fixed";
+}
+
 export function isOverlayKind(value: unknown): value is OverlayKind {
   return (
     typeof value === "string" &&
@@ -23,7 +46,23 @@ export function isOverlayKind(value: unknown): value is OverlayKind {
   );
 }
 
-export interface RenderField { readonly id: string; readonly kind: OverlayKind; readonly label: string; readonly unit: string; readonly width: number; readonly height: number; readonly values: Float32Array; readonly minimum: number; readonly maximum: number; }
+export interface RenderField {
+  readonly id: string;
+  readonly kind: OverlayKind;
+  readonly label: string;
+  readonly unit: string;
+  readonly width: number;
+  readonly height: number;
+  readonly values: Float32Array;
+  /**
+   * Presentation range semantics. Omitted is the backward-compatible
+   * "fixed" mode: minimum/maximum are stable transfer metadata.
+   * "snapshot-extrema" explicitly declares per-snapshot observed bounds.
+   */
+  readonly rangeMode?: RenderFieldRangeMode;
+  readonly minimum: number;
+  readonly maximum: number;
+}
 export interface RenderLineage { readonly id: string; readonly label: string; readonly appearanceToken: LineageAppearanceToken; readonly patternToken: LineagePatternToken; readonly density: Float32Array; }
 export interface RenderEvent { readonly id: string; readonly kind: string; readonly simulationTimeHours: number; readonly x: number; readonly y: number; readonly lineageId?: string; readonly label: string; }
 export interface DishRenderSnapshot { readonly snapshotId: string; /** Stable presentation-only domain for deterministic representative-glyph sampling across related snapshots. */ readonly samplingIdentity: string; readonly simulationTimeHours: number; readonly gridWidth: number; readonly gridHeight: number; readonly dishMask: Uint8Array; readonly biomass: Float32Array; readonly fields: readonly RenderField[]; readonly lineages: readonly RenderLineage[]; readonly events: readonly RenderEvent[]; }
@@ -57,6 +96,7 @@ export function validateRenderSnapshot(snapshot: DishRenderSnapshot): void {
     fieldIds.add(field.id);
     if (field.width !== snapshot.gridWidth || field.height !== snapshot.gridHeight) throw new RangeError(`field ${field.id} dimensions must match snapshot grid`);
     assertLength(`field ${field.id}`, field.values.length, cells); assertFiniteArray(`field ${field.id}`, field.values);
+    if (field.rangeMode !== undefined && !isRenderFieldRangeMode(field.rangeMode)) throw new RangeError(`field ${field.id} has unsupported range mode: ${String(field.rangeMode)}`);
     if (!Number.isFinite(field.minimum) || !Number.isFinite(field.maximum)) throw new TypeError(`field ${field.id} bounds must be finite`);
     if (field.maximum < field.minimum) throw new RangeError(`field ${field.id} maximum must be >= minimum`);
     for (let index = 0; index < field.values.length; index += 1) {

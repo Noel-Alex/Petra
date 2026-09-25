@@ -155,6 +155,21 @@ describe("validateRenderSnapshot", () => {
     ).toThrow(/dimensions/i);
   });
 
+  it("rejects unknown field range semantics", () => {
+    const snapshot = fixture();
+    const invalid = {
+      ...snapshot.fields[0]!,
+      rangeMode: "adaptive-magic",
+    } as unknown as DishRenderSnapshot["fields"][number];
+
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        fields: [invalid],
+      }),
+    ).toThrow(/unsupported range mode/i);
+  });
+
   it("rejects field values outside their declared legend/transfer bounds", () => {
     const snapshot = fixture();
     const nutrient = snapshot.fields[0]!;

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { sampleRepresentativeGlyphs } from "./lod";
+import { LINEAGE_DENSITY_PRESENTATION_SCALE_VERSION } from "./lineageDensityScale";
 import { FLAGSHIP_ECOLI_ORGANISM_PRESENTATION } from "./organismPresentationIdentity";
 import {
   ACCEPTED_INTERVENTION_FOOTPRINT_VERSION,
@@ -123,6 +124,40 @@ describe("semanticZoomLevel", () => {
 describe("validateRenderSnapshot", () => {
   it("accepts a consistent snapshot", () => {
     expect(() => validateRenderSnapshot(fixture())).not.toThrow();
+  });
+
+  it("admits a stable source scale and refuses density beyond its source-owned tolerance", () => {
+    const snapshot = fixture();
+    const maximum = 5;
+    const maximumTolerance = maximum * 2 ** -23;
+    const lineageDensityScale = {
+      version: LINEAGE_DENSITY_PRESENTATION_SCALE_VERSION,
+      mode: "stable-source" as const,
+      unit: "model-biomass",
+      maximum,
+      maximumTolerance,
+      sourceIdentity: "run-branch-a|config-fingerprint-a",
+    };
+
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        lineageDensityScale,
+      }),
+    ).not.toThrow();
+
+    const density = Float32Array.from(snapshot.lineages[0]!.density);
+    density[4] = maximum + maximumTolerance * 4;
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        lineageDensityScale,
+        lineages: [
+          { ...snapshot.lineages[0]!, density },
+          snapshot.lineages[1]!,
+        ],
+      }),
+    ).toThrow(/stable source maximum beyond source-owned representation tolerance/);
   });
 
   it("requires a stable sampling identity", () => {

@@ -39,9 +39,11 @@ describe("T4/MG1655 runtime host admission", () => {
       genotypeIds: state.genotypeIds,
     });
 
+    expect(state.lineageIds).toEqual(["L1"]);
+    expect(state.genotypeIds).toEqual(["WT"]);
     expect(admitted).toEqual([
       {
-        lineageId: "founder-wt",
+        lineageId: "L1",
         lineageIndex: 0,
         genotypeId: "WT",
         taxonId: "ecoli-k12-mg1655",

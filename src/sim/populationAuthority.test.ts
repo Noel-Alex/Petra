@@ -6,10 +6,12 @@ import {
   CELL_EQUIVALENT_CALIBRATION_SCHEMA_VERSION,
   FRACTIONAL_CARRY_POPULATION_POLICY,
   advanceDiscretePopulationAuthority,
+  beginDiscretePopulationAuthorityAdvance,
   createDiscretePopulationAuthorityState,
   discretePopulationConfigurationIdentity,
   extendDiscretePopulationAuthorityLineages,
   planDiscreteHostRemoval,
+  reconcileDiscretePopulationStandingAuthority,
   restoreDiscretePopulationAuthorityState,
   type CellEquivalentCalibration,
   type DiscretePopulationAuthorityConfig,
@@ -125,6 +127,29 @@ describe('shared discrete population authority', () => {
       state.standingHostCounts[0]![0]! +
         state.standingResidualCellEquivalents[0]![0]!,
     ).toBe(biomass / cfg.calibration.modelBiomassPerCellEquivalent)
+  })
+
+  it('separates division opportunity carry from final standing-host reconciliation', () => {
+    const cfg = config({ width: 1, mask: [1] })
+    const initial = createDiscretePopulationAuthorityState(cfg, [[4]])
+
+    const division = beginDiscretePopulationAuthorityAdvance(
+      initial,
+      cfg,
+      [new Float64Array([2])],
+    )
+    expect(division.divisionOpportunities).toEqual([[1]])
+    expect(division.state.revision).toBe(1)
+    expect(division.state.standingHostCounts).toEqual([[2]])
+
+    const reconciled = reconcileDiscretePopulationStandingAuthority(
+      division.state,
+      cfg,
+      [[6]],
+    )
+    expect(reconciled.revision).toBe(1)
+    expect(reconciled.standingHostCounts).toEqual([[3]])
+    expect(reconciled.divisionResidualCellEquivalents).toEqual([[0]])
   })
 
   it('emits an exact integer opportunity at the calibrated boundary', () => {

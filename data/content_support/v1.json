@@ -1,0 +1,94 @@
+{
+  "kind": "petra-supported-content-matrix",
+  "schemaVersion": 1,
+  "version": "1.0.0",
+  "supportedScenarios": [
+    {
+      "id": "flagship-ecoli-ciprofloxacin",
+      "availability": "enabled-research",
+      "scienceModeStatus": "not-admitted",
+      "scenario": {
+        "id": "ecoli-ciprofloxacin-spatial",
+        "version": "1.5.0-research"
+      },
+      "organisms": [
+        {
+          "scientificName": "Escherichia coli",
+          "background": "K-12 MG1655 for curated resistance phenotypes",
+          "microbialGroup": "bacterium",
+          "presentationIdentityId": "ecoli-k12-mg1655-representative-morphology-v1"
+        }
+      ],
+      "environment": {
+        "resourceContextVersion": "unbound-model-resource-v1",
+        "resourceBindingStatus": "unbound",
+        "resourceRepresentation": "dimensionless_model_resource",
+        "medium": null,
+        "referenceTemperatureC": 37
+      },
+      "interventions": [
+        {
+          "id": "ciprofloxacin",
+          "kind": "antibiotic",
+          "protocolCommand": "apply-ciprofloxacin",
+          "concentrationUnit": "mg/L",
+          "supportedGeometries": [
+            "global",
+            "radial",
+            "stripe",
+            "paint"
+          ]
+        }
+      ],
+      "limitations": [
+        "This is a research-stage product scenario, not grounded Science-Mode admission: its limiting-resource context remains explicitly unbound and the ecology execution profile remains engineering-classified.",
+        "The resource channel is model-resource, not a named physical substrate or concentration.",
+        "The ciprofloxacin intervention edits the model concentration field; it does not establish physical delivery, diffusion, decay, clearance, or clinical dosing.",
+        "The E. coli rod presentation identity authorizes only a coarse representative silhouette and is not biological checkpoint, replay, population-count, or physical-dimension authority."
+      ]
+    }
+  ],
+  "expansionQueue": [
+    {
+      "id": "first-shared-resource-bacterial-competitor",
+      "kind": "bacterial-competitor",
+      "availability": "blocked-research",
+      "issues": [
+        553,
+        873,
+        866
+      ],
+      "reason": "Requires one named provenance-complete competitor pack and compatible per-lineage presentation mapping before product exposure."
+    },
+    {
+      "id": "first-grounded-fungal-competitor",
+      "kind": "fungal-competitor",
+      "availability": "blocked-research",
+      "issues": [
+        556,
+        615,
+        866
+      ],
+      "reason": "Fungal Science Mode remains blocked until the named fungal evidence pack is approved and authoritative fungal spatial state exists."
+    },
+    {
+      "id": "first-post-ciprofloxacin-antibiotic",
+      "kind": "antimicrobial",
+      "availability": "blocked-research",
+      "issues": [
+        874,
+        573
+      ],
+      "reason": "Requires a named drug/background pack with its own source-backed susceptibility and pharmacodynamic authority; ciprofloxacin equations are not a universal antibiotic template."
+    },
+    {
+      "id": "named-microbial-interactions",
+      "kind": "interaction",
+      "availability": "blocked-research",
+      "issues": [
+        647
+      ],
+      "reason": "Direct antagonism, cooperation, and cross-feeding require named pairwise evidence; no generic attack or cooperation coefficient is authorized."
+    }
+  ]
+}

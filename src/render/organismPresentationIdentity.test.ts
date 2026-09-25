@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import rawAspergillusNo10Identity from "../../data/presentation/aspergillus_niger_var_hennebergi_no10_v1.json";
+import rawBacillus168SigEIdentity from "../../data/presentation/bacillus_subtilis_168_sige_v1.json";
 import rawFlagshipIdentity from "../../data/presentation/ecoli_k12_mg1655_v1.json";
 import {
   ASPERGILLUS_NO10_ORGANISM_PRESENTATION,
+  BACILLUS_168_SIGE_ORGANISM_PRESENTATION,
   FLAGSHIP_ECOLI_ORGANISM_PRESENTATION,
   parseOrganismPresentationIdentity,
 } from "./organismPresentationIdentity";
@@ -36,6 +38,33 @@ describe("organism presentation identity", () => {
     expect(Object.isFrozen(identity.provenance)).toBe(true);
     expect(Object.isFrozen(identity.provenance.sources)).toBe(true);
     expect(identity.provenance.sources.every(Object.isFrozen)).toBe(true);
+  });
+
+  it("promotes the selected Bacillus 168 sigE- pack only as transferred bacterium + rod presentation evidence", () => {
+    const identity = BACILLUS_168_SIGE_ORGANISM_PRESENTATION;
+
+    expect(identity).toMatchObject({
+      kind: "petra-organism-presentation-identity",
+      schemaVersion: 1,
+      scientificName: "Bacillus subtilis",
+      background: "168 trp+ sigE-; sporulation-deficient laboratory derivative",
+      organismKind: "bacterium",
+      morphology: "rod",
+      provenance: {
+        classification: "transferred",
+      },
+    });
+    expect(identity.provenance.sources.map((source) => source.doi)).toEqual([
+      "10.1128/mSystems.01017-21",
+      "10.1186/1475-2859-7-19",
+    ]);
+    expect(identity.provenance.transferNote).toMatch(/parental 168 background/i);
+    expect(identity.provenance.limitation).toMatch(/does not authorize physical cell/i);
+    expect(identity.provenance.limitation).toMatch(/sporulation morphology/i);
+    expect(() =>
+      parseOrganismPresentationIdentity(rawBacillus168SigEIdentity),
+    ).not.toThrow();
+    expect(Object.isFrozen(identity)).toBe(true);
   });
 
   it("promotes the named Aspergillus no. 10 record as measured fungus + filamentous-hyphal presentation evidence", () => {

@@ -351,6 +351,227 @@ def browser_performance_probe_snapshot(cdp: CDP) -> dict[str, Any] | None:
     return snapshot if isinstance(snapshot, dict) else None
 
 
+
+def install_render_publication_probe(cdp: CDP) -> bool:
+    installed = cdp.eval(
+        """(() => {
+          const state = {
+            samples: [],
+            droppedSamples: 0,
+            maxSamples: 20000
+          };
+          globalThis.__petraQaRenderPublicationProbeState = state;
+          globalThis.__petraRenderPublicationPerformanceProbe = {
+            version: 1,
+            observe(sample) {
+              if (state.samples.length >= state.maxSamples) {
+                state.droppedSamples += 1;
+                return;
+              }
+              state.samples.push(sample);
+            }
+          };
+          return true;
+        })()"""
+    )
+    return installed is True
+
+
+def reset_render_publication_probe(cdp: CDP) -> bool:
+    reset = cdp.eval(
+        """(() => {
+          const state = globalThis.__petraQaRenderPublicationProbeState;
+          const probe = globalThis.__petraRenderPublicationPerformanceProbe;
+          if (!state || probe?.version !== 1 || typeof probe.observe !== 'function') {
+            return false;
+          }
+          state.samples = [];
+          state.droppedSamples = 0;
+          return true;
+        })()"""
+    )
+    return reset is True
+
+
+def render_publication_probe_snapshot(cdp: CDP) -> dict[str, Any] | None:
+    snapshot = cdp.eval(
+        """(() => {
+          const state = globalThis.__petraQaRenderPublicationProbeState;
+          const probe = globalThis.__petraRenderPublicationPerformanceProbe;
+          if (!state || probe?.version !== 1 || !Array.isArray(state.samples)) {
+            return {
+              available: false,
+              error: 'render-publication-probe-unavailable'
+            };
+          }
+
+          const finite = (value) =>
+            typeof value === 'number' && Number.isFinite(value);
+          const percentile = (values, fraction) => {
+            const ordered = values.filter(finite).sort((a, b) => a - b);
+            if (ordered.length === 0) return null;
+            const index = Math.min(
+              ordered.length - 1,
+              Math.floor(ordered.length * fraction)
+            );
+            return ordered[index];
+          };
+          const stats = (values) => {
+            const finiteValues = values.filter(finite);
+            if (finiteValues.length === 0) {
+              return { count: 0, average: null, p50: null, p95: null, max: null };
+            }
+            return {
+              count: finiteValues.length,
+              average:
+                finiteValues.reduce((sum, value) => sum + value, 0) /
+                finiteValues.length,
+              p50: percentile(finiteValues, 0.50),
+              p95: percentile(finiteValues, 0.95),
+              max: Math.max(...finiteValues)
+            };
+          };
+          const ratio = (numerator, denominator) =>
+            denominator > 0 ? numerator / denominator : null;
+          const identityKey = (sample) => JSON.stringify([
+            sample.runBranchIdentity,
+            sample.traceHash,
+            sample.tick,
+            sample.commandCount,
+            sample.simulationTimeHours
+          ]);
+
+          const phaseCounts = {
+            'runtime-snapshot-published': 0,
+            'dish-projection': 0,
+            'react-dish-committed': 0
+          };
+          const identities = new Map();
+          const projectionDurations = [];
+          const payloadEstimateDurations = [];
+          const applicationPayloadBytes = [];
+          const uniqueBackingBufferBytes = [];
+          const metadataJsonUtf8Bytes = [];
+          const fieldCounts = [];
+          const lineageCounts = [];
+          let projectionErrors = 0;
+          let projectionNulls = 0;
+          let projectionSnapshots = 0;
+          let projectionsWithNetGrowth = 0;
+          let commitsWithNetGrowth = 0;
+
+          for (const sample of state.samples) {
+            if (!sample || typeof sample !== 'object') continue;
+            const phase = sample.phase;
+            if (!(phase in phaseCounts)) continue;
+            phaseCounts[phase] += 1;
+
+            const key = identityKey(sample);
+            const phases = identities.get(key) ?? new Set();
+            phases.add(phase);
+            identities.set(key, phases);
+
+            if (phase === 'dish-projection') {
+              if (finite(sample.projectionDurationMs)) {
+                projectionDurations.push(sample.projectionDurationMs);
+              }
+              if (finite(sample.payloadEstimateDurationMs)) {
+                payloadEstimateDurations.push(sample.payloadEstimateDurationMs);
+              }
+              if (sample.outcome === 'error') projectionErrors += 1;
+              if (sample.outcome === 'null') projectionNulls += 1;
+              if (sample.outcome === 'snapshot') projectionSnapshots += 1;
+              if (sample.hasNetGrowthField === true) projectionsWithNetGrowth += 1;
+              if (finite(sample.fieldCount)) fieldCounts.push(sample.fieldCount);
+              if (finite(sample.lineageCount)) lineageCounts.push(sample.lineageCount);
+              const payload = sample.payloadEstimate;
+              if (payload && typeof payload === 'object') {
+                if (finite(payload.estimatedApplicationPayloadBytes)) {
+                  applicationPayloadBytes.push(payload.estimatedApplicationPayloadBytes);
+                }
+                if (finite(payload.uniqueBackingBufferBytes)) {
+                  uniqueBackingBufferBytes.push(payload.uniqueBackingBufferBytes);
+                }
+                if (finite(payload.metadataJsonUtf8Bytes)) {
+                  metadataJsonUtf8Bytes.push(payload.metadataJsonUtf8Bytes);
+                }
+              }
+            } else if (phase === 'react-dish-committed') {
+              if (sample.hasNetGrowthField === true) commitsWithNetGrowth += 1;
+              if (finite(sample.fieldCount)) fieldCounts.push(sample.fieldCount);
+              if (finite(sample.lineageCount)) lineageCounts.push(sample.lineageCount);
+            }
+          }
+
+          let fullyCorrelatedIdentities = 0;
+          let runtimeOnlyIdentities = 0;
+          let projectionWithoutCommitIdentities = 0;
+          for (const phases of identities.values()) {
+            const hasRuntime = phases.has('runtime-snapshot-published');
+            const hasProjection = phases.has('dish-projection');
+            const hasCommit = phases.has('react-dish-committed');
+            if (hasRuntime && hasProjection && hasCommit) fullyCorrelatedIdentities += 1;
+            if (hasRuntime && !hasProjection && !hasCommit) runtimeOnlyIdentities += 1;
+            if (hasProjection && !hasCommit) projectionWithoutCommitIdentities += 1;
+          }
+
+          return {
+            available: true,
+            version: 1,
+            sampleCount: state.samples.length,
+            droppedSamples: state.droppedSamples,
+            phaseCounts,
+            identityCount: identities.size,
+            fullyCorrelatedIdentities,
+            runtimeOnlyIdentities,
+            projectionWithoutCommitIdentities,
+            fullCorrelationCoverage:
+              identities.size > 0
+                ? fullyCorrelatedIdentities / identities.size
+                : null,
+            phaseRatios: {
+              projectionPerRuntime: ratio(
+                phaseCounts['dish-projection'],
+                phaseCounts['runtime-snapshot-published']
+              ),
+              reactCommitPerProjection: ratio(
+                phaseCounts['react-dish-committed'],
+                phaseCounts['dish-projection']
+              ),
+              reactCommitPerRuntime: ratio(
+                phaseCounts['react-dish-committed'],
+                phaseCounts['runtime-snapshot-published']
+              )
+            },
+            projectionOutcomes: {
+              snapshot: projectionSnapshots,
+              null: projectionNulls,
+              error: projectionErrors
+            },
+            projectionDurationMs: stats(projectionDurations),
+            payloadEstimateDurationMs: stats(payloadEstimateDurations),
+            estimatedApplicationPayloadBytes: stats(applicationPayloadBytes),
+            uniqueBackingBufferBytes: stats(uniqueBackingBufferBytes),
+            metadataJsonUtf8Bytes: stats(metadataJsonUtf8Bytes),
+            fieldCount: stats(fieldCounts),
+            lineageCount: stats(lineageCounts),
+            projectionsWithNetGrowth,
+            commitsWithNetGrowth,
+            correlationScope: (
+              'Identity correlation is valid only for this reset, advance-only ' +
+              'playback workload. The branch+trace+tick+commandCount+time tuple ' +
+              'is not a globally unique accepted-response id.'
+            ),
+            payloadBoundary: (
+              'Payload bytes are renderer-facing application-payload estimates, ' +
+              'not structured-clone framing, link bandwidth, receiver ' +
+              'deserialization, heap use, GPU memory, or transfer cost.'
+            )
+          };
+        })()"""
+    )
+    return snapshot if isinstance(snapshot, dict) else None
+
 def chromium_runtime_metrics(cdp: CDP) -> dict[str, Any]:
     raw = cdp.call("Performance.getMetrics").get("metrics", [])
     values = {
@@ -1696,6 +1917,7 @@ def profile_authoritative_playback(
     before = run_control_state(cdp)
 
     reset_browser_performance_probe(cdp)
+    render_publication_probe_reset = reset_render_publication_probe(cdp)
     runtime_before = chromium_runtime_metrics(cdp)
     play = click_run_control(cdp, "Play")
     time.sleep(0.05)
@@ -1707,6 +1929,7 @@ def profile_authoritative_playback(
     after = wait_run_status(cdp, "ready")
     runtime_after = chromium_runtime_metrics(cdp)
     probe = browser_performance_probe_snapshot(cdp)
+    render_publication = render_publication_probe_snapshot(cdp)
 
     before_hours = before.get("simulationTimeHours") if before else None
     after_hours = after.get("simulationTimeHours") if after else None
@@ -1749,6 +1972,8 @@ def profile_authoritative_playback(
         "runtimeAfter": runtime_after,
         "runtimeDelta": numeric_metric_delta(runtime_before, runtime_after),
         "browserProbe": probe,
+        "renderPublicationProbeReset": render_publication_probe_reset,
+        "renderPublication": render_publication,
         "workerSessionPerformance": {
             "status": "not-exposed-by-product-dom",
             "followupExperiment": "worker-transport-profile",
@@ -1798,6 +2023,7 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
 
     cdp.call("Performance.enable")
     install_browser_performance_probes(cdp)
+    render_publication_probe_installed = install_render_publication_probe(cdp)
 
     profile_whole_reset_ok = click_overview_reset(cdp)
     time.sleep(0.1)
@@ -2064,6 +2290,58 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
                         "churn during continuous playback."
                     ),
                 },
+            )
+        )
+
+        publication = (
+            profile.get("renderPublication")
+            if isinstance(profile.get("renderPublication"), dict)
+            else {}
+        )
+        phase_counts = (
+            publication.get("phaseCounts")
+            if isinstance(publication.get("phaseCounts"), dict)
+            else {}
+        )
+        publication_evidence = (
+            render_publication_probe_installed
+            and profile.get("renderPublicationProbeReset") is True
+            and publication.get("available") is True
+            and publication.get("droppedSamples") == 0
+            and isinstance(phase_counts.get("runtime-snapshot-published"), int)
+            and phase_counts.get("runtime-snapshot-published", 0) > 0
+            and isinstance(phase_counts.get("dish-projection"), int)
+            and phase_counts.get("dish-projection", 0) > 0
+            and isinstance(phase_counts.get("react-dish-committed"), int)
+            and phase_counts.get("react-dish-committed", 0) > 0
+            and isinstance(publication.get("fullyCorrelatedIdentities"), int)
+            and publication.get("fullyCorrelatedIdentities", 0) > 0
+            and isinstance(publication.get("projectionDurationMs"), dict)
+            and publication.get("projectionDurationMs", {}).get("count", 0) > 0
+            and isinstance(
+                publication.get("estimatedApplicationPayloadBytes"), dict
+            )
+            and publication.get(
+                "estimatedApplicationPayloadBytes", {}
+            ).get("count", 0) > 0
+        )
+        checks.append(
+            check(
+                f"authoritative playback {speed}x: render publication evidence captured",
+                publication_evidence,
+                {
+                    "probeInstalled": render_publication_probe_installed,
+                    "probeReset": profile.get("renderPublicationProbeReset"),
+                    "renderPublication": publication,
+                    "interpretation": (
+                        "Counts and ratios are diagnostics only. They measure "
+                        "runtime publication, main-thread composed→dish projection, "
+                        "renderer-facing application-payload estimates, and React "
+                        "dish commits without selecting a render cadence or "
+                        "transport architecture."
+                    ),
+                },
+                "blocked" if not publication_evidence else None,
             )
         )
 

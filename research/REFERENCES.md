@@ -6,6 +6,7 @@
 - Cao, Y., Gillespie, D.T., Petzold, L.R. (2005). Avoiding negative populations in explicit Poisson tau-leaping. DOI `10.1063/1.1992473`.
 
 ## Growth/spatial ecology
+- Neidhardt, F.C., Bloch, P.L., Smith, D.F. (1974). Culture Medium for Enterobacteria. DOI `10.1128/jb.119.3.736-747.1974`.
 - Ratkowsky, D.A. et al. (1982). Relationship between temperature and growth rate of bacterial cultures. DOI `10.1128/jb.149.1.1-5.1982`.
 - Ratkowsky et al. (1983). Model for bacterial culture growth rate throughout the entire biokinetic temperature range. DOI `10.1128/JB.154.3.1222-1226.1983`.
 - Rosso, L., Lobry, J.R., Bajard, S., Flandrois, J.P. (1995). Convenient Model To Describe the Combined Effects of Temperature and pH on Microbial Growth. DOI `10.1128/AEM.61.2.610-616.1995`.

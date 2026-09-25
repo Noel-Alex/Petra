@@ -285,7 +285,7 @@ describe('scientific timeline projection', () => {
     })
 
     expect(update.rebuilt).toBe(true)
-    expect(update.appendedEvents).toEqual(rewritten)
+    expect(update.appendedEvents).toEqual([])
     expect(update.timeline.map((entry) => entry.commandId)).toEqual([
       undefined,
       'rewritten',

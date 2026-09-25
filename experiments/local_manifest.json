@@ -157,20 +157,18 @@
     },
     {
       "id": "evolution-replicate-statistics",
-      "description": "PREPARED; BLOCKED on composed evolution integration (#562/#5/#37): the many-seed sampler harness is ready, but truthful end-to-end emergence requires replay-critical population/opportunity/child-lineage state in composed authority.",
+      "description": "PREPARED; BLOCKED on #5/#37 composed evolution integration: #562 discrete population/opportunity authority is on main, but truthful end-to-end emergence still requires replay-critical child-lineage mutation state and flagship exposure.",
       "command": [
         "python",
         "experiments/blocked.py",
         "--experiment-id",
         "evolution-replicate-statistics",
         "--blocked-on",
-        "562",
-        "--blocked-on",
         "5",
         "--blocked-on",
         "37",
         "--reason",
-        "PR #765 prepared the repository-owned many-seed sampler harness. The #562 discrete-population core is already landed, but its state/opportunity authority still must be integrated into composed checkpoints/runtime; #5 must integrate sampled child-lineage state/materialization; and #37 must expose the resulting authoritative composed evolution path before this stable experiment can run truthful end-to-end emergence statistics."
+        "PR #765 prepared the repository-owned many-seed sampler harness and PR #793 integrated #562 discrete population/opportunity authority into composed checkpoints/runtime. #5 must still integrate sampled child-lineage mutation state/materialization, and #37 must expose the resulting authoritative composed evolution path before this stable experiment can run truthful end-to-end emergence statistics."
       ],
       "issues": [
         5,

@@ -5,6 +5,8 @@ import type {
 } from "./validationStatus";
 
 const RESULT_LOCATOR_PREFIX = "experiments/results/";
+const RESULT_RUN_ID_PATTERN = /^\\d{8}T\\d{12}Z$/;
+const EXPERIMENT_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const LOCAL_EXPERIMENT_RUNNER_STATUSES = new Set([
   "passed",
   "failed",
@@ -53,6 +55,9 @@ export function projectLocalExperimentValidationEvidence(
 ): ScenarioValidationEvidenceRecord {
   assertCanonicalText("validation record id", binding.recordId);
   assertCanonicalText("experiment id", binding.experimentId);
+  if (!EXPERIMENT_ID_PATTERN.test(binding.experimentId)) {
+    throw new Error("experiment id must use Petra manifest id syntax");
+  }
   assertCanonicalText("validation summary", binding.summary);
   assertResultLocator(binding.locator, binding.experimentId);
 
@@ -119,6 +124,12 @@ function parseLocalExperimentResult(value: unknown): LocalExperimentResultRecord
   if (typeof error === "string") {
     assertCanonicalText("local experiment error", error);
   }
+
+  assertRunnerOutcomeConsistency(
+    status as LocalExperimentResultRecord["status"],
+    returnCode as number | null,
+    error as string | null,
+  );
 
   return {
     id,
@@ -227,13 +238,41 @@ function assertResultLocator(locator: string, experimentId: string): void {
   const pieces = relative.split("/");
   if (
     pieces.length !== 2 ||
-    pieces[0]!.length === 0 ||
-    pieces[0] === "." ||
-    pieces[0] === ".." ||
+    !RESULT_RUN_ID_PATTERN.test(pieces[0] ?? "") ||
     pieces[1] !== `${experimentId}.json`
   ) {
     throw new Error(
       "local experiment validation locator must identify the exact per-experiment result JSON",
+    );
+  }
+}
+
+function assertRunnerOutcomeConsistency(
+  status: LocalExperimentResultRecord["status"],
+  returnCode: number | null,
+  error: string | null,
+): void {
+  if (status === "passed") {
+    if (returnCode !== 0 || error !== null) {
+      throw new Error(
+        "passed local experiment evidence requires return_code 0 and no runner error",
+      );
+    }
+    return;
+  }
+
+  if (status === "error" || status === "timeout") {
+    if (returnCode !== null || error === null) {
+      throw new Error(
+        `${status} local experiment evidence requires no return code and an explicit runner error`,
+      );
+    }
+    return;
+  }
+
+  if (returnCode === null && error === null) {
+    throw new Error(
+      "failed local experiment evidence requires a nonzero/recorded return code or explicit runner error",
     );
   }
 }

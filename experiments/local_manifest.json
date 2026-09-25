@@ -3,7 +3,7 @@
   "experiments": [
     {
       "id": "expo-browser-acceptance",
-      "description": "Headless Chrome/Chromium expo QA for layout, motion modes, keyboard/touch smoke, accessibility, screenshots, and frame timing.",
+      "description": "Headless Chrome/Chromium expo QA for layout, motion/input/accessibility, screenshots, renderer timing, and authoritative render-publication profiling.",
       "command": [
         "python",
         "tools/expo_browser_acceptance.py"
@@ -15,7 +15,8 @@
         468,
         500,
         577,
-        642
+        642,
+        876
       ],
       "timeout_seconds": 300
     },

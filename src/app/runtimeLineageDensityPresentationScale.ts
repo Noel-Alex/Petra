@@ -5,7 +5,7 @@ import type { RunIdentity } from "../sim/protocol";
 import {
   LINEAGE_DENSITY_PRESENTATION_SCALE_SCHEMA_VERSION,
   validateLineageDensityPresentationScale,
-  type SourceOwnedLineageDensityPresentationScale,
+  type SourceOwnedFixedLineageDensityPresentationScale,
 } from "../render/lineageDensityScale";
 
 const BIOMASS_UNIT = "model-biomass" as const;
@@ -22,7 +22,7 @@ export function projectRuntimeLineageDensityPresentationScale(
   config: ComposedSimulationConfig,
   identity: RunIdentity,
   runBranchIdentity: string,
-): SourceOwnedLineageDensityPresentationScale {
+): SourceOwnedFixedLineageDensityPresentationScale {
   if (
     typeof runBranchIdentity !== "string" ||
     runBranchIdentity.length === 0 ||
@@ -36,7 +36,7 @@ export function projectRuntimeLineageDensityPresentationScale(
   assertComposedParameterSetBinding(identity, config);
   const binding = identity.parameterSetBinding;
 
-  const scale: SourceOwnedLineageDensityPresentationScale = {
+  const scale: SourceOwnedFixedLineageDensityPresentationScale = {
     schemaVersion: LINEAGE_DENSITY_PRESENTATION_SCALE_SCHEMA_VERSION,
     mode: "source-owned-fixed",
     unit: BIOMASS_UNIT,

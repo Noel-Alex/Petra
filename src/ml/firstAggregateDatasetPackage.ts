@@ -29,6 +29,12 @@ import {
   type FlagshipRunInitialization,
 } from "../sim/flagshipComposition";
 import type { ComposedSimulationSnapshot } from "../sim/protocol";
+import {
+  AUTHORITATIVE_METRIC_SCHEMA_VERSION,
+  METRIC_SAMPLING_POLICY_VERSION,
+  extractAuthoritativeMetricSample,
+  type MetricSamplingPolicy,
+} from "../sim/metrics";
 
 export const FIRST_AGGREGATE_DATASET_PACKAGE_ID =
   "flagship-first-aggregate-no-intervention-v2" as const;
@@ -53,6 +59,14 @@ const BASELINE_RESOURCE_LEVEL = 8;
 const BASELINE_FOUNDER_BIOMASS = 1;
 const TOTAL_TICKS = 1024;
 const SNAPSHOT_EVERY_TICKS = 64;
+export const FIRST_AGGREGATE_SOURCE_METRIC_SCHEMA_VERSION =
+  AUTHORITATIVE_METRIC_SCHEMA_VERSION;
+export const FIRST_AGGREGATE_METRIC_SAMPLING_POLICY: MetricSamplingPolicy =
+  Object.freeze({
+    version: METRIC_SAMPLING_POLICY_VERSION,
+    everyTicks: SNAPSHOT_EVERY_TICKS,
+    offsetTicks: 0,
+  });
 const MAX_TRAJECTORIES = 27;
 const CANONICAL_SEEDS = Object.freeze([
   0x5eed1234,
@@ -290,6 +304,15 @@ export function projectFirstAggregateTransition(
       "first aggregate dataset transition requires consecutive authoritative observation identity",
     );
   }
+  if (
+    sourceSnapshot.checkpoint.tick !== context.sourceTick ||
+    targetSnapshot.checkpoint.tick !== context.targetTick
+  ) {
+    throw new RangeError(
+      "first aggregate dataset transition context ticks must match the exact authoritative checkpoints",
+    );
+  }
+
   const forecastHorizonTicks = context.targetTick - context.sourceTick;
   if (!Number.isSafeInteger(forecastHorizonTicks) || forecastHorizonTicks < 1) {
     throw new RangeError(
@@ -306,8 +329,16 @@ export function projectFirstAggregateTransition(
     );
   }
 
-  const sourceMetrics = sourceSnapshot.checkpoint.metrics;
-  const targetMetrics = targetSnapshot.checkpoint.metrics;
+  const sourceMetrics = extractAuthoritativeMetricSample({
+    checkpoint: sourceSnapshot.checkpoint,
+    samplingPolicy: FIRST_AGGREGATE_METRIC_SAMPLING_POLICY,
+    resistantGenotypeIds: [],
+  });
+  const targetMetrics = extractAuthoritativeMetricSample({
+    checkpoint: targetSnapshot.checkpoint,
+    samplingPolicy: FIRST_AGGREGATE_METRIC_SAMPLING_POLICY,
+    resistantGenotypeIds: [],
+  });
   return Object.freeze({
     input: Object.freeze({
       sourceSnapshotIndex: context.sourceSnapshotIndex,

@@ -1240,9 +1240,9 @@ function assertTransitionPosition(
       `transition row ${rowIndex} source snapshot must be inside its declared source series`,
     );
   }
-  if (row.targetSnapshotIndex <= row.sourceSnapshotIndex) {
+  if (row.targetSnapshotIndex !== row.sourceSnapshotIndex + 1) {
     throw new RangeError(
-      `transition row ${rowIndex} target snapshot must follow its source snapshot`,
+      `transition row ${rowIndex} target snapshot must be the exact next accepted observation`,
     );
   }
   if (
@@ -1330,7 +1330,13 @@ function validateCompleteTransitionSourceSequence(
       row.sourceSimulationTimeHours <= previous.sourceSimulationTimeHours ||
       row.targetSnapshotIndex <= previous.targetSnapshotIndex ||
       row.targetTick <= previous.targetTick ||
-      row.targetSimulationTimeHours <= previous.targetSimulationTimeHours
+      row.targetSimulationTimeHours <= previous.targetSimulationTimeHours ||
+      previous.targetSnapshotIndex !== row.sourceSnapshotIndex ||
+      previous.targetTick !== row.sourceTick ||
+      !approximatelyEqual(
+        previous.targetSimulationTimeHours,
+        row.sourceSimulationTimeHours,
+      )
     ) {
       throw new RangeError(
         `trajectory ${trajectoryKey} horizon ${horizonId} has regressing transition source/target positions`,

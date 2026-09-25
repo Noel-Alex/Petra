@@ -1,7 +1,5 @@
 import flagshipScenario from "../../data/presets/ecoli_ciprofloxacin_v1.json";
-import {
-  composedConfigurationFingerprint,
-} from "../sim/authoritative";
+import { composedConfigurationFingerprint } from "../sim/authoritative";
 import type { GenotypeAnalysisEvidence } from "../sim/evolution/analysis";
 import type { FlagshipComposedRunPlan } from "../sim/flagshipComposition";
 import {
@@ -12,13 +10,19 @@ import type { RuntimeLineageAnalysisAuthority } from "./runtimeLineageAnalysis";
 
 type UnknownRecord = Record<string, unknown>;
 
+interface FlagshipGenotypeAnalysisRecord {
+  readonly sourceOrder: number;
+  readonly relativeFitness: number;
+  readonly evidence: GenotypeAnalysisEvidence;
+}
+
 const scenario = requireRecord("flagship scenario", flagshipScenario as unknown);
 const scenarioId = requireCanonicalText("flagship scenario id", scenario.id);
 const scenarioVersion = requireCanonicalText(
   "flagship scenario version",
   scenario.version,
 );
-const FLAGSHIP_GENOTYPE_EVIDENCE = parseFlagshipGenotypeEvidence(scenario);
+const FLAGSHIP_GENOTYPE_RECORDS = parseFlagshipGenotypeRecords(scenario);
 
 /**
  * Assemble the exact scientific evidence required by runtime lineage analysis
@@ -71,27 +75,15 @@ export function createFlagshipRuntimeLineageAnalysisAuthority(
     );
   }
 
-  validateEvidenceAgainstRunPlan(plan, FLAGSHIP_GENOTYPE_EVIDENCE);
+  validateEvidenceAgainstRunPlan(plan, FLAGSHIP_GENOTYPE_RECORDS);
 
   return Object.freeze({
     identity: structuredClone(plan.identity),
     configurationFingerprint: fingerprint,
     evolutionGraph: cloneEvolutionGraph(plan.config.evolutionGraph),
     genotypeEvidence: Object.freeze(
-      FLAGSHIP_GENOTYPE_EVIDENCE.map((evidence) =>
-        Object.freeze({
-          genotypeId: evidence.genotypeId,
-          label: evidence.label,
-          ciprofloxacin:
-            evidence.ciprofloxacin === undefined
-              ? undefined
-              : Object.freeze({
-                  micMgPerL: evidence.ciprofloxacin.micMgPerL,
-                  responseShift: null,
-                }),
-          sourceKeys: Object.freeze([...evidence.sourceKeys]),
-          assumptionKeys: Object.freeze([...evidence.assumptionKeys]),
-        }),
+      FLAGSHIP_GENOTYPE_RECORDS.map((record) =>
+        cloneGenotypeEvidence(record.evidence),
       ),
     ),
   });
@@ -99,10 +91,10 @@ export function createFlagshipRuntimeLineageAnalysisAuthority(
 
 function validateEvidenceAgainstRunPlan(
   plan: FlagshipComposedRunPlan,
-  evidence: readonly GenotypeAnalysisEvidence[],
+  records: readonly FlagshipGenotypeAnalysisRecord[],
 ): void {
   const graph = plan.config.evolutionGraph;
-  if (graph.genotypes.length !== evidence.length) {
+  if (graph.genotypes.length !== records.length) {
     throw new Error(
       "flagship lineage-analysis evidence must cover the exact evolution graph",
     );
@@ -111,73 +103,90 @@ function validateEvidenceAgainstRunPlan(
   const graphById = new Map(
     graph.genotypes.map((genotype) => [genotype.id, genotype] as const),
   );
+  if (graphById.size !== graph.genotypes.length) {
+    throw new Error("flagship evolution graph contains duplicate genotype ids");
+  }
+
   const cipro = plan.config.ciprofloxacin;
   if (cipro === null || cipro.concentrationUnit !== "mg/L") {
     throw new Error(
       "flagship lineage-analysis authority requires composed ciprofloxacin MIC authority in mg/L",
     );
   }
-  if (cipro.genotypeMicMgPerL.length !== evidence.length) {
+  if (cipro.genotypeMicMgPerL.length !== records.length) {
     throw new Error(
       "flagship ciprofloxacin MIC authority must cover the exact analysis genotype set",
     );
   }
   const micById = new Map(
-    cipro.genotypeMicMgPerL.map((record) => [record.genotypeId, record.micMgPerL] as const),
+    cipro.genotypeMicMgPerL.map(
+      (record) => [record.genotypeId, record.micMgPerL] as const,
+    ),
   );
   if (micById.size !== cipro.genotypeMicMgPerL.length) {
-    throw new Error("flagship ciprofloxacin MIC authority contains duplicate genotype ids");
+    throw new Error(
+      "flagship ciprofloxacin MIC authority contains duplicate genotype ids",
+    );
   }
 
-  for (let index = 0; index < evidence.length; index += 1) {
-    const record = evidence[index]!;
-    const genotype = graphById.get(record.genotypeId);
+  for (const record of records) {
+    const evidence = record.evidence;
+    const genotype = graphById.get(evidence.genotypeId);
     if (genotype === undefined) {
       throw new Error(
-        `flagship lineage-analysis evidence references genotype outside the evolution graph: ${record.genotypeId}`,
+        `flagship lineage-analysis evidence references genotype outside the evolution graph: ${evidence.genotypeId}`,
       );
     }
-    if (genotype.sourceOrder !== index) {
+    if (genotype.sourceOrder !== record.sourceOrder) {
       throw new Error(
-        `flagship evolution graph source order drifted for genotype ${record.genotypeId}`,
+        `flagship evolution graph source order drifted for genotype ${evidence.genotypeId}`,
       );
     }
-    const mic = micById.get(record.genotypeId);
-    if (mic === undefined || record.ciprofloxacin === undefined) {
+    if (genotype.relativeFitness !== record.relativeFitness) {
       throw new Error(
-        `flagship lineage-analysis MIC authority is missing genotype ${record.genotypeId}`,
+        `flagship lineage-analysis relative fitness drifted from scenario authority for genotype ${evidence.genotypeId}`,
       );
     }
-    if (mic !== record.ciprofloxacin.micMgPerL) {
+
+    const mic = micById.get(evidence.genotypeId);
+    if (mic === undefined || evidence.ciprofloxacin === undefined) {
       throw new Error(
-        `flagship lineage-analysis MIC drifted from composed authority for genotype ${record.genotypeId}`,
+        `flagship lineage-analysis MIC authority is missing genotype ${evidence.genotypeId}`,
+      );
+    }
+    if (mic !== evidence.ciprofloxacin.micMgPerL) {
+      throw new Error(
+        `flagship lineage-analysis MIC drifted from composed authority for genotype ${evidence.genotypeId}`,
       );
     }
   }
 
-  if (graphById.size !== evidence.length || micById.size !== evidence.length) {
+  if (graphById.size !== records.length || micById.size !== records.length) {
     throw new Error(
       "flagship lineage-analysis evidence identity does not exactly match composed genotype authority",
     );
   }
 }
 
-function parseFlagshipGenotypeEvidence(
+function parseFlagshipGenotypeRecords(
   scenarioRecord: UnknownRecord,
-): readonly GenotypeAnalysisEvidence[] {
-  if (!Array.isArray(scenarioRecord.genotypes) || scenarioRecord.genotypes.length === 0) {
+): readonly FlagshipGenotypeAnalysisRecord[] {
+  if (
+    !Array.isArray(scenarioRecord.genotypes) ||
+    scenarioRecord.genotypes.length === 0
+  ) {
     throw new Error("flagship scenario genotypes must be a non-empty array");
   }
 
   const seen = new Set<string>();
   return Object.freeze(
-    scenarioRecord.genotypes.map((value, index) => {
+    scenarioRecord.genotypes.map((value, sourceOrder) => {
       const genotype = requireRecord(
-        `flagship scenario genotype ${index}`,
+        `flagship scenario genotype ${sourceOrder}`,
         value,
       );
       const genotypeId = requireCanonicalText(
-        `flagship scenario genotype ${index} id`,
+        `flagship scenario genotype ${sourceOrder} id`,
         genotype.id,
       );
       if (seen.has(genotypeId)) {
@@ -218,7 +227,7 @@ function parseFlagshipGenotypeEvidence(
         );
       }
 
-      return Object.freeze({
+      const evidence: GenotypeAnalysisEvidence = Object.freeze({
         genotypeId,
         label,
         ciprofloxacin: Object.freeze({
@@ -227,10 +236,37 @@ function parseFlagshipGenotypeEvidence(
         }),
         sourceKeys: Object.freeze([citation]),
         assumptionKeys: Object.freeze([]),
-        __relativeFitness: relativeFitness,
+      });
+
+      return Object.freeze({
+        sourceOrder,
+        relativeFitness,
+        evidence,
       });
     }),
-  ).map(({ __relativeFitness: _unused, ...record }) => Object.freeze(record));
+  );
+}
+
+function cloneGenotypeEvidence(
+  evidence: GenotypeAnalysisEvidence,
+): GenotypeAnalysisEvidence {
+  return Object.freeze({
+    genotypeId: evidence.genotypeId,
+    label: evidence.label,
+    ...(evidence.ciprofloxacin === undefined
+      ? {}
+      : {
+          ciprofloxacin: Object.freeze({
+            micMgPerL: evidence.ciprofloxacin.micMgPerL,
+            responseShift:
+              evidence.ciprofloxacin.responseShift === null
+                ? null
+                : Object.freeze({ ...evidence.ciprofloxacin.responseShift }),
+          }),
+        }),
+    sourceKeys: Object.freeze([...evidence.sourceKeys]),
+    assumptionKeys: Object.freeze([...evidence.assumptionKeys]),
+  });
 }
 
 function cloneEvolutionGraph(

@@ -95,6 +95,30 @@ describe('worker append-only event delta transport', () => {
     expect(materialized.events).not.toBe(ownedBaseline.events)
   })
 
+  it('preserves the core protocol allowance for an empty command id', () => {
+    const engine = new SimulationEngine(identity)
+    const baseline = engine.snapshot()
+    const next = engine.execute({
+      id: '',
+      type: 'advance',
+      ticks: 1,
+    })
+
+    const response = createWorkerSnapshotTransportResponse({
+      commandId: '',
+      previousEvents: baseline.events,
+      snapshot: next,
+    })
+    expect(response.type).toBe('snapshot-delta')
+    if (response.type !== 'snapshot-delta') {
+      throw new Error('expected delta for core-valid empty command id')
+    }
+    expect(parseWorkerSnapshotDeltaResponse(response)).toMatchObject({
+      ok: true,
+    })
+    expect(response.commandId).toBe('')
+  })
+
   it('uses a zero-event delta for snapshot-only commands', () => {
     const engine = new SimulationEngine(identity)
     const baseline = engine.snapshot()

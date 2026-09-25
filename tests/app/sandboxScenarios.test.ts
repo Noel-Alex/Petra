@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   FLAGSHIP_SANDBOX_RUNTIME_ID,
+  SANDBOX_RUNTIME_REGISTRY_VERSION,
   buildSandboxRun,
   listSandboxScenarios,
   planSandboxSelection,
@@ -13,6 +14,7 @@ describe("Sandbox authoritative scenario selection", () => {
   it("lists only the real bundled flagship and preserves shared Science Mode maturity", () => {
     const catalog = listSandboxScenarios();
 
+    expect(SANDBOX_RUNTIME_REGISTRY_VERSION).toBe(1);
     expect(catalog.catalogVersion).toBe(1);
     expect(catalog.scenarios).toHaveLength(1);
     expect(catalog.scenarios[0]).toMatchObject({
@@ -56,6 +58,31 @@ describe("Sandbox authoritative scenario selection", () => {
     ).toEqual({
       kind: "refused",
       scenarioKey: "missing@1",
+      reason: "Unknown or unavailable Sandbox scenario.",
+    });
+  });
+
+  it("refuses a catalog entry that is not backed by an exact executable runtime registration", () => {
+    const scenario = listSandboxScenarios().scenarios[0]!;
+    const catalog = {
+      catalogVersion: 1 as const,
+      scenarios: [
+        {
+          ...scenario,
+          runtimeId: "unregistered-runtime-v1",
+        },
+      ],
+    };
+
+    expect(
+      planSandboxSelection({
+        scenarioKey: scenario.key,
+        seed: 17,
+        catalog,
+      }),
+    ).toEqual({
+      kind: "refused",
+      scenarioKey: scenario.key,
       reason: "Unknown or unavailable Sandbox scenario.",
     });
   });
@@ -135,7 +162,7 @@ describe("Sandbox authoritative scenario selection", () => {
     );
   });
 
-  it("fails closed if a selection is stale or a returned run identity is foreign", () => {
+  it("fails closed if a selection is stale, unregistered, or a returned run identity is foreign", () => {
     const scenario = listSandboxScenarios().scenarios[0]!;
     const selection = planSandboxSelection({
       scenarioKey: scenario.key,
@@ -164,6 +191,26 @@ describe("Sandbox authoritative scenario selection", () => {
         },
       ),
     ).toThrow(/no longer matches/);
+
+    expect(() =>
+      buildSandboxRun(
+        {
+          ...selection,
+          runtimeId: "unregistered-runtime-v1",
+        },
+        {
+          initialResourceLevel: 4,
+          inocula: [
+            {
+              lineageId: "founder-wt",
+              x: 80,
+              y: 80,
+              biomass: 1,
+            },
+          ],
+        },
+      ),
+    ).toThrow(/registered runtime identity/);
 
     const run = buildSandboxRun(selection, {
       initialResourceLevel: 4,

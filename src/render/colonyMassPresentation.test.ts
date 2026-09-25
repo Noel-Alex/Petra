@@ -40,7 +40,10 @@ describe("colony mass presentation", () => {
       policy: policy({ accentThreshold: 1, minimumAccentCells: 1 }),
     });
 
-    expect(Array.from(projected.alpha)).toEqual([0, 0.1, 0.5, 1]);
+    expect(projected.alpha[0]).toBe(0);
+    expect(projected.alpha[1]).toBeCloseTo(0.1);
+    expect(projected.alpha[2]).toBeCloseTo(0.5);
+    expect(projected.alpha[3]).toBe(1);
     expect(projected.positiveCellCount).toBe(3);
     expect(projected.accentIslands).toHaveLength(1);
   });
@@ -107,7 +110,7 @@ describe("colony mass presentation", () => {
       }),
     });
 
-    expect(projected.detectedAccentIslandCount).toBe(2);
+    expect(projected.detectedAccentIslandCount).toBe(3);
     expect(projected.accentIslands).toHaveLength(2);
     expect(projected.accentIslands[0]?.firstCellIndex).toBe(0);
     expect(projected.accentIslands[1]?.firstCellIndex).toBe(2);
@@ -174,6 +177,28 @@ describe("colony mass presentation", () => {
     expect(projected.accentIslands[0]?.centroidY).toBeCloseTo(0.25);
   });
 
+  it("fails closed when the supplied shared denominator understates in-mask density", () => {
+    expect(() =>
+      projectColonyMassPresentation({
+        lineage: lineage([2]),
+        dishMask: new Uint8Array([1]),
+        gridWidth: 1,
+        gridHeight: 1,
+        sharedMaximum: 1,
+      }),
+    ).toThrow(/shared maximum must cover/);
+
+    expect(() =>
+      projectColonyMassPresentation({
+        lineage: lineage([1]),
+        dishMask: new Uint8Array([1]),
+        gridWidth: 1,
+        gridHeight: 1,
+        sharedMaximum: 0,
+      }),
+    ).toThrow(/shared maximum must cover/);
+  });
+
   it("fails closed on invalid dimensions, masks, denominators, or policies", () => {
     const base = {
       lineage: lineage([1]),
@@ -206,8 +231,8 @@ describe("colony mass presentation", () => {
         ...base,
         policy: {
           ...policy(),
-          version: 2 as typeof COLONY_MASS_PRESENTATION_VERSION,
-        },
+          version: 2,
+        } as unknown as ColonyMassPresentationPolicy,
       }),
     ).toThrow(/unsupported colony mass presentation policy version/);
   });

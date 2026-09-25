@@ -24,16 +24,16 @@ const baseline: FlagshipRunInitialization = {
 }
 
 describe('flagship composed run planning', () => {
-  it('projects bundled scenario authority into a provenance-bound protocol-v5 config', () => {
+  it('projects bundled scenario authority into a provenance-bound protocol-v6 config', () => {
     const plan = buildFlagshipComposedRunPlan(baseline)
     const center = 80 * plan.config.width + 80
 
     expect(plan.identity).toMatchObject({
       protocolVersion: PROTOCOL_VERSION,
       scenarioId: 'ecoli-ciprofloxacin-spatial',
-      scenarioVersion: '1.4.0-research',
+      scenarioVersion: '1.5.0-research',
       parameterSetId: 'ecoli-ciprofloxacin-baseline-composed',
-      parameterSetVersion: '1.1.0',
+      parameterSetVersion: '1.2.0',
       seed: baseline.seed,
     })
     expect(plan.parameterSetBinding.authority).toBe('provenance')

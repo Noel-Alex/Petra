@@ -261,7 +261,8 @@ export class ComposedSimulationEngine {
       this.pushEvent({
         type: 'ciprofloxacin-applied',
         commandId: command.id,
-        intervention: structuredClone(command.intervention),
+        // appendSimulationEventHistory owns the one detached/deep-frozen copy.
+        intervention: command.intervention,
       })
       return this.snapshot()
     }

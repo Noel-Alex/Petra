@@ -1,6 +1,7 @@
 import { writeFieldRaster } from "../fieldRaster";
 import { writeDensityRaster } from "../densityRaster";
 import { parseOrganismPresentationIdentity, type OrganismPresentationIdentity } from "../organismPresentationIdentity";
+import { createRevisionMemo } from "./renderDataMemo";
 import { Application, Container, Graphics, Sprite, Texture } from "pixi.js";
 import { petraVisualColor } from "../../design/visualTokens";
 import { extractFieldContourSegments } from "../fieldContours";
@@ -150,11 +151,23 @@ export async function createPixiDishRenderer(
   const fieldTexture = Texture.from(fieldCanvas);
   const fieldSprite = new Sprite(fieldTexture);
   let fieldImage: ImageData | null = null;
+  let lastFieldRasterRevision = -1;
+  let lastFieldRasterId: string | null | undefined;
   const densityCanvas = document.createElement("canvas");
   const densityContext = densityCanvas.getContext("2d")!;
   const densityTexture = Texture.from(densityCanvas);
   const densitySprite = new Sprite(densityTexture);
   let densityImage: ImageData | null = null;
+  let lastDensityRasterRevision = -1;
+  const densityMaximumMemo = createRevisionMemo<"shared", number>();
+  const fieldContourMemo = createRevisionMemo<
+    string,
+    ReturnType<typeof extractFieldContourSegments>
+  >();
+  const lineageContourMemo = createRevisionMemo<
+    string,
+    ReturnType<typeof extractLineageDensityContourSegments>
+  >();
   const glyphLayer = new Graphics();
   const accentLayer = new Graphics();
 
@@ -169,6 +182,13 @@ export async function createPixiDishRenderer(
   let drawableState: DishDrawableState | null = null;
   let visualTransition: DishVisualTransition | null = null;
   let visualElapsedMs = 0;
+  let renderDataRevision = 0;
+  const markRenderDataDirty = () => {
+    renderDataRevision =
+      renderDataRevision === Number.MAX_SAFE_INTEGER
+        ? 0
+        : renderDataRevision + 1;
+  };
   let overlayId = options.overlayId ?? null;
   let motion: RendererMotionMode = options.motion ?? "full";
   let cameraMotion = copyCameraMotionSpec(options.cameraMotion);
@@ -215,6 +235,13 @@ export async function createPixiDishRenderer(
       densitySprite,
       fieldSprite,
       updateFieldTexture(field) {
+        const fieldId = field?.id ?? null;
+        if (
+          lastFieldRasterRevision === renderDataRevision &&
+          lastFieldRasterId === fieldId
+        ) {
+          return;
+        }
         if (fieldImage === null || fieldImage.width !== drawableState!.gridWidth || fieldImage.height !== drawableState!.gridHeight) {
           fieldCanvas.width = drawableState!.gridWidth;
           fieldCanvas.height = drawableState!.gridHeight;
@@ -224,8 +251,18 @@ export async function createPixiDishRenderer(
         writeFieldRaster(drawableState!, field, fieldImage.data);
         fieldContext.putImageData(fieldImage, 0, 0);
         fieldTexture.source.update();
+        lastFieldRasterRevision = renderDataRevision;
+        lastFieldRasterId = fieldId;
+      },
+      resolveDensityMaximum() {
+        return densityMaximumMemo.getOrCompute(
+          renderDataRevision,
+          "shared",
+          () => resolveSharedLineageDensityMaximum(drawableState!),
+        );
       },
       updateDensityTexture(maximum) {
+        if (lastDensityRasterRevision === renderDataRevision) return;
         if (densityImage === null || densityImage.width !== drawableState!.gridWidth || densityImage.height !== drawableState!.gridHeight) {
           densityCanvas.width = drawableState!.gridWidth;
           densityCanvas.height = drawableState!.gridHeight;
@@ -235,6 +272,34 @@ export async function createPixiDishRenderer(
         writeDensityRaster(drawableState!, maximum, densityImage.data);
         densityContext.putImageData(densityImage, 0, 0);
         densityTexture.source.update();
+        lastDensityRasterRevision = renderDataRevision;
+      },
+      resolveFieldContours(field) {
+        return fieldContourMemo.getOrCompute(
+          renderDataRevision,
+          field.id,
+          () =>
+            extractFieldContourSegments({
+              field,
+              dishMask: drawableState!.dishMask,
+              gridWidth: drawableState!.gridWidth,
+              gridHeight: drawableState!.gridHeight,
+            }),
+        );
+      },
+      resolveLineageContours(lineage, maximum) {
+        return lineageContourMemo.getOrCompute(
+          renderDataRevision,
+          lineage.id,
+          () =>
+            extractLineageDensityContourSegments({
+              lineage,
+              dishMask: drawableState!.dishMask,
+              gridWidth: drawableState!.gridWidth,
+              gridHeight: drawableState!.gridHeight,
+              sharedMaximum: maximum,
+            }),
+        );
       },
       organismPresentation,
       selection,
@@ -289,6 +354,7 @@ export async function createPixiDishRenderer(
         drawableState = initial.state;
         visualTransition = initial.complete ? null : plan.transition;
         visualElapsedMs = 0;
+        markRenderDataDirty();
         render();
         return;
       }
@@ -297,6 +363,7 @@ export async function createPixiDishRenderer(
     visualTransition = null;
     visualElapsedMs = 0;
     drawableState = next.snapshot;
+    markRenderDataDirty();
     render();
   };
 
@@ -402,6 +469,7 @@ export async function createPixiDishRenderer(
         visualElapsedMs,
       );
       drawableState = step.state;
+      markRenderDataDirty();
       if (step.complete) {
         visualTransition = null;
         visualElapsedMs = 0;
@@ -697,6 +765,7 @@ export async function createPixiDishRenderer(
         visualTransition = null;
         visualElapsedMs = 0;
         drawableState = snapshot;
+        if (drawableState !== null) markRenderDataDirty();
       }
       render();
     },
@@ -744,7 +813,15 @@ function drawScene(args: {
   readonly densitySprite: Sprite;
   readonly fieldSprite: Sprite;
   readonly updateFieldTexture: (field: RenderField | null) => void;
+  readonly resolveDensityMaximum: () => number;
   readonly updateDensityTexture: (maximum: number) => void;
+  readonly resolveFieldContours: (
+    field: RenderField,
+  ) => ReturnType<typeof extractFieldContourSegments>;
+  readonly resolveLineageContours: (
+    lineage: RenderLineage,
+    maximum: number,
+  ) => ReturnType<typeof extractLineageDensityContourSegments>;
   readonly snapshot: DishDrawableState;
   readonly organismPresentation: OrganismPresentationIdentity | null;
   readonly selection: DishSelectionHighlight | null;
@@ -764,7 +841,10 @@ function drawScene(args: {
     densitySprite,
     fieldSprite,
     updateFieldTexture,
+    resolveDensityMaximum,
     updateDensityTexture,
+    resolveFieldContours,
+    resolveLineageContours,
     snapshot,
     camera,
     overlayId,
@@ -825,11 +905,18 @@ function drawScene(args: {
   fieldSprite.width = dishSize * camera.zoom;
   fieldSprite.height = dishSize * camera.zoom;
   if (overlay !== null) {
-    drawField(fieldLayer, overlay, snapshot, camera, centerX, centerY, dishSize);
+    drawField(
+      fieldLayer,
+      resolveOverlayPresentation(overlay.kind),
+      resolveFieldContours(overlay),
+      camera,
+      centerX,
+      centerY,
+      dishSize,
+    );
   }
 
-  const lineageDensityMaximum =
-    resolveSharedLineageDensityMaximum(snapshot);
+  const lineageDensityMaximum = resolveDensityMaximum();
 
   updateDensityTexture(lineageDensityMaximum);
   densitySprite.position.set(centerX - camera.centerX * dishSize * camera.zoom, centerY - camera.centerY * dishSize * camera.zoom);
@@ -838,14 +925,13 @@ function drawScene(args: {
   snapshot.lineages.forEach((lineage) => {
     drawLineageDensity(
       densityLayer,
-      lineage,
-      snapshot,
+      resolveLineageContours(lineage, lineageDensityMaximum),
+      lineage.patternToken,
       camera,
       centerX,
       centerY,
       dishSize,
       resolveLineageAppearance(lineage.appearanceToken).color,
-      lineageDensityMaximum,
     );
   });
 
@@ -909,20 +995,14 @@ function drawScene(args: {
 
 function drawField(
   graphics: Graphics,
-  field: RenderField,
-  snapshot: DishVisualState,
+  presentation: ReturnType<typeof resolveOverlayPresentation>,
+  contours: ReturnType<typeof extractFieldContourSegments>,
   camera: CameraView,
   centerX: number,
   centerY: number,
   dishSize: number,
 ): void {
-  const presentation = resolveOverlayPresentation(field.kind);
-  const contours = extractFieldContourSegments({
-    field,
-    dishMask: snapshot.dishMask,
-    gridWidth: snapshot.gridWidth,
-    gridHeight: snapshot.gridHeight,
-  });
+  if (contours.length === 0) return;
   const contourWidth = Math.max(0.9, Math.min(1.8, dishSize * 0.0018));
   for (const level of new Set(contours.map(segment => segment.level))) {
     for (const segment of contours) {
@@ -937,29 +1017,20 @@ function drawField(
 
 function drawLineageDensity(
   graphics: Graphics,
-  lineage: RenderLineage,
-  snapshot: DishVisualState,
+  contourSegments: ReturnType<typeof extractLineageDensityContourSegments>,
+  patternToken: LineagePatternToken,
   camera: CameraView,
   centerX: number,
   centerY: number,
   dishSize: number,
   color: number,
-  sharedMaximum: number,
 ): void {
-  if (sharedMaximum <= 0) return;
-
-  const contourSegments = extractLineageDensityContourSegments({
-    lineage,
-    dishMask: snapshot.dishMask,
-    gridWidth: snapshot.gridWidth,
-    gridHeight: snapshot.gridHeight,
-    sharedMaximum,
-  });
+  if (contourSegments.length === 0) return;
   const contourBaseWidth = Math.max(
     0.8,
     Math.min(1.7, dishSize * 0.0016),
   );
-  const contourPattern = resolveLineagePattern(lineage.patternToken);
+  const contourPattern = resolveLineagePattern(patternToken);
   for (const contourLevel of new Set(contourSegments.map(segment => segment.level))) {
     const segments = contourSegments.filter(segment => segment.level === contourLevel);
     const path = () => {

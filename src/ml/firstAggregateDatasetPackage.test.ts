@@ -9,8 +9,11 @@ import {
   FIRST_AGGREGATE_DATASET_VERSION,
   FIRST_AGGREGATE_INPUT_SCHEMA_VERSION,
   FIRST_AGGREGATE_TARGET_SCHEMA_VERSION,
+  projectFirstAggregateTransition,
   resolveNodeMechanisticDatasetTaskDefinition,
 } from "./firstAggregateDatasetPackage";
+import { ComposedSimulationEngine } from "../sim/composedEngine";
+import { createRunIdentity } from "../sim/protocol";
 
 describe("first authoritative aggregate dataset package", () => {
   it("builds a bounded leakage-safe 3x3 held-out sweep with three seed replicas per group", () => {
@@ -127,6 +130,70 @@ describe("first authoritative aggregate dataset package", () => {
     ).toBe(condition.founderBiomass);
     expect(definition.executionDefinition.intervention.commands).toEqual(
       [],
+    );
+  });
+
+  it("pairs the real initial checkpoint with a subsequent authoritative state instead of synthetic zero flux", () => {
+    const datasetPackage = createNodeMechanisticDatasetPackage();
+    const task = datasetPackage.plan.tasks[0]!;
+    const definition = resolveNodeMechanisticDatasetTaskDefinition(
+      task,
+      datasetPackage.executorData,
+    );
+    const binding = definition.executionDefinition.parameterSetBinding;
+    const engine = new ComposedSimulationEngine(
+      createRunIdentity({
+        scenarioId: task.trajectory.group.scenarioId,
+        scenarioVersion: task.trajectory.group.scenarioVersion,
+        parameterSetId: binding.parameterSetId,
+        parameterSetVersion: binding.parameterSetVersion,
+        parameterSetBinding: binding,
+        seed: task.trajectory.seed,
+      }),
+      definition.config,
+    );
+
+    const source = engine.snapshot();
+    const target = engine.execute({
+      id: "first-aggregate-transition-test",
+      type: "advance",
+      ticks: 2,
+    });
+    const projected = projectFirstAggregateTransition(source, target, {
+      task,
+      snapshotIndex: 0,
+      sourceSnapshotIndex: 0,
+      targetSnapshotIndex: 1,
+      sourceTick: 0,
+      targetTick: 2,
+      final: false,
+    });
+
+    expect(projected.input).toEqual({
+      sourceSnapshotIndex: 0,
+      sourceTick: 0,
+      sourceTimeHours: source.checkpoint.simulationTimeHours,
+      totalBiomass: source.checkpoint.metrics.totalBiomass,
+      totalResource: source.checkpoint.metrics.totalResource,
+      occupiedCells: source.checkpoint.metrics.occupiedCells,
+    });
+    expect(projected.target).toEqual({
+      targetSnapshotIndex: 1,
+      targetTick: 2,
+      targetTimeHours: target.checkpoint.simulationTimeHours,
+      forecastHorizonTicks: 2,
+      forecastHorizonHours:
+        target.checkpoint.simulationTimeHours -
+        source.checkpoint.simulationTimeHours,
+      totalBiomass: target.checkpoint.metrics.totalBiomass,
+      totalResource: target.checkpoint.metrics.totalResource,
+      occupiedCells: target.checkpoint.metrics.occupiedCells,
+    });
+    expect(Object.hasOwn(projected.target, "divisionBiomass")).toBe(false);
+    expect(Object.hasOwn(projected.target, "deathBiomass")).toBe(false);
+    expect(Object.hasOwn(projected.target, "resourceConsumed")).toBe(false);
+    expect(projected.target.targetTimeHours).toBeGreaterThan(
+      projected.input.sourceTimeHours,
     );
   });
 

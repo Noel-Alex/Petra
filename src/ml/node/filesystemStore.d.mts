@@ -28,3 +28,5 @@ export class FilesystemMechanisticFinalOutput
 export function readFilesystemFinalization(
   path: string,
 ): MechanisticDatasetFinalization;
+
+export function readFilesystemUtf8Lines(path: string): Iterable<string>;

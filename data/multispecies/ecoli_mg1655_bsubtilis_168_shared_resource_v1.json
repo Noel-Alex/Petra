@@ -1,0 +1,178 @@
+{
+  "kind": "petra-two-bacterium-shared-resource-scenario",
+  "schemaVersion": 1,
+  "id": "ecoli-mg1655-bsubtilis-168-shared-resource",
+  "version": "1.0.0-experimental",
+  "title": "E. coli MG1655 + B. subtilis 168 sigE- shared-resource competition",
+  "status": "experimental",
+  "warning": "Experimental model-unit scenario. Shared-resource and local-capacity competition are authoritative, but model-resource is not glucose and model-biomass is not dry weight or cell count.",
+  "contentPack": {
+    "id": "ecoli-bsubtilis-shared-resource",
+    "version": "1.0.0"
+  },
+  "mechanismScope": "shared-resource-local-capacity-only",
+  "environment": {
+    "resourceContext": {
+      "version": "two-bacterium-unbound-model-resource-v1",
+      "bindingStatus": "unbound",
+      "representation": "dimensionless_model_resource",
+      "concentrationUnit": "model-resource",
+      "limitingSubstrate": null,
+      "medium": null,
+      "referenceTemperatureC": 37,
+      "boundary": "no_flux",
+      "initialCondition": "Caller-supplied uniform model-resource level; no physical glucose concentration is implied.",
+      "biomassMapping": "Model-biomass has no physical gCDW, CFU, cell-count, or biovolume mapping in this scenario.",
+      "provenance": {
+        "classification": "engineering",
+        "context": "Two-bacterium shared-resource execution before a compatible physical glucose/biomass unit bridge is calibrated.",
+        "limitation": "The source studies provide isolated glucose-minimal physiology targets, not a physical mapping for Petra's model-resource/model-biomass fields."
+      }
+    },
+    "engineeringDefaults": {
+      "gridSize": 160,
+      "dishRadiusCells": 76,
+      "cellSize": 1,
+      "cellSizeUnit": "model-grid-cell",
+      "note": "Numerical dish resolution and grid pitch are engineering geometry, not physical plate dimensions."
+    }
+  },
+  "executionProfile": {
+    "schemaVersion": 1,
+    "id": "ecoli-bsubtilis-shared-resource-engineering",
+    "version": "1.0.0",
+    "scenarioId": "ecoli-mg1655-bsubtilis-168-shared-resource",
+    "scenarioVersion": "1.0.0-experimental",
+    "resourceContextVersion": "two-bacterium-unbound-model-resource-v1",
+    "classification": "engineering",
+    "units": {
+      "time": "hour",
+      "resource": "model-resource",
+      "biomass": "model-biomass"
+    },
+    "hoursPerTick": 0.02,
+    "growth": {
+      "maxDivisionRate": 0.8,
+      "halfSaturation": 1,
+      "biomassYield": 1,
+      "localCapacity": 32,
+      "spreadRate": 0.05
+    },
+    "behaviorTargets": [
+      "positive-early-growth",
+      "resource-depletion",
+      "zero-resource-no-growth",
+      "capacity-bound",
+      "conservative-neighbour-spread"
+    ],
+    "provenance": {
+      "classification": "engineering",
+      "context": "Experimental two-bacterium execution in model units using the same stable normalized ecology family as the current flagship.",
+      "calibrationNote": "Run-wide ecology coefficients remain engineering-normalized. Species-specific isolated growth evidence enters only through the explicit founder baseline growth-rate scale ratio.",
+      "limitation": "This profile is not a measured Monod, physical glucose-yield, colony-speed, carrying-capacity, or biomass-unit calibration."
+    }
+  },
+  "parameterSet": {
+    "id": "ecoli-bsubtilis-shared-resource-calibrated",
+    "version": "1.0.0",
+    "provenance": {
+      "classification": "calibrated",
+      "context": "First executable two-bacterium shared-resource parameter set.",
+      "calibrationNote": "E. coli is the relative growth reference at scale 1. Bacillus baseline growth-rate scale is derived as 0.67/0.69 from the isolated source mean growth rates; all other ecology coefficients remain the scenario engineering profile.",
+      "limitation": "The ratio transfers separate-study isolated growth means into Petra model-unit relative growth. It is not a measured coculture competition coefficient or absolute growth-rate fit."
+    }
+  },
+  "taxa": [
+    {
+      "role": "ecoli-mg1655",
+      "taxonId": "taxon:ecoli-k12-mg1655",
+      "contentVersion": "1.0.0",
+      "scientificName": "Escherichia coli",
+      "background": "K-12 MG1655",
+      "microbialGroup": "bacterium",
+      "founderLineageId": "founder-ecoli-mg1655",
+      "genotypeId": "ecoli-mg1655-reference",
+      "growthTarget": {
+        "classification": "measured",
+        "meanPerHour": 0.69,
+        "standardDeviationPerHour": 0.02,
+        "unit": "1/hour",
+        "citation": "lacroix_2015",
+        "context": "Wild-type K-12 MG1655 on glucose minimal medium; separate-study isolated-growth calibration target."
+      },
+      "biomassYieldTarget": {
+        "classification": "measured",
+        "meanGdwPerGGlucose": 0.44,
+        "standardDeviationGdwPerGGlucose": 0.07,
+        "unit": "gDW/g glucose",
+        "citation": "lacroix_2015",
+        "context": "Physical validation target only; not assigned to Petra's dimensionless biomassYield."
+      },
+      "baselineDeathHazard": {
+        "classification": "engineering",
+        "valuePerHour": 0,
+        "unit": "1/hour",
+        "limitation": "Zero means no baseline non-drug death mechanism is enabled in this first scenario; it is not a measured zero death rate."
+      }
+    },
+    {
+      "role": "bacillus-168-trp-plus-sigE-minus",
+      "taxonId": "taxon:bacillus-subtilis-168-trp-plus-sigE-minus",
+      "contentVersion": "1.0.0",
+      "scientificName": "Bacillus subtilis",
+      "background": "168 trp+ sigE-",
+      "microbialGroup": "bacterium",
+      "founderLineageId": "founder-bacillus-168-sigE-minus",
+      "genotypeId": "bacillus-168-trp-plus-sigE-minus",
+      "growthTarget": {
+        "classification": "measured",
+        "meanPerHour": 0.67,
+        "standardDeviationPerHour": 0.01,
+        "unit": "1/hour",
+        "citation": "taennler_decasper_sauer_2008",
+        "context": "B. subtilis 168 trp+ sigE- in aerobic M9 glucose batch culture at 37 C; separate-study isolated-growth calibration target."
+      },
+      "biomassYieldTarget": {
+        "classification": "measured",
+        "meanGdwPerGGlucose": 0.48,
+        "standardDeviationGdwPerGGlucose": 0.06,
+        "unit": "gCDW/g glucose",
+        "citation": "taennler_decasper_sauer_2008",
+        "context": "Physical validation target only; not assigned to Petra's dimensionless biomassYield."
+      },
+      "baselineDeathHazard": {
+        "classification": "engineering",
+        "valuePerHour": 0,
+        "unit": "1/hour",
+        "limitation": "No source-backed baseline non-drug loss law is enabled; zero is an inactive mechanism state, not a measured death rate."
+      }
+    }
+  ],
+  "unsupportedMechanisms": [
+    "direct-antagonism",
+    "cross-feeding",
+    "bacillus-sporulation",
+    "bacillus-ciprofloxacin-response",
+    "bacillus-mutation-evolution",
+    "physical-glucose-transport",
+    "physical-biomass-cell-count-mapping"
+  ],
+  "limitations": [
+    "model-resource-is-not-glucose",
+    "model-biomass-is-not-gcdw",
+    "cross-study-isolated-growth-targets-are-not-coculture-measurements",
+    "no-direct-antagonism-authority",
+    "no-bacillus-ciprofloxacin-authority",
+    "no-bacillus-evolution-authority"
+  ],
+  "citations": {
+    "lacroix_2015": {
+      "doi": "10.1128/AEM.02246-14",
+      "context": "E. coli K-12 MG1655 glucose-minimal isolated growth/yield reference."
+    },
+    "taennler_decasper_sauer_2008": {
+      "doi": "10.1186/1475-2859-7-19",
+      "context": "B. subtilis 168 trp+ sigE- aerobic M9 glucose isolated physiology."
+    }
+  }
+}

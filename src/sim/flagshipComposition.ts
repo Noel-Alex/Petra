@@ -630,6 +630,7 @@ export function buildFlagshipComposedRunPlan(
     },
     ciprofloxacin,
     samplingExecutionPolicy: null,
+  dynamicLineageLossPolicy: null,
     populationAuthority: null,
     hoursPerTick: executionProfile.hoursPerTick,
   }

@@ -23,6 +23,7 @@ This directory is the scientific memory of the project. The rule is simple: **if
 - `phage_t4_mg1655_pack.md` — selected T4 DSM 4505 / MG1655 DSM 18039 life-history calibration, measured domain, transfer boundary, and remaining transport gaps.
 - `horizontal_gene_transfer.md` — plasmid conjugation, cost and density/contact cautions.
 - `competition_consumer_resource.md` — mechanistic competition before arbitrary pairwise coefficients.
+- `bacillus_subtilis_competitor_pack.md` — selected first named bacterial competitor, source physiology, model-unit boundary, and validation contract.
 - `temperature.md` / `environment_temperature_ph.md` — cardinal temperature and pH modeling.
 - `collateral_sensitivity.md` — multiple-drug extension evidence.
 - `machine_learning.md` — scientifically legitimate ML roles.

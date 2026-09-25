@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   ExperimentRuntime,
 } from "../../src/app/experimentRuntime";
+import { createRunBranchIdentity } from "../../src/app/runBranchIdentity";
 import {
   WorkerSession,
   type WorkerPort,
@@ -454,4 +455,106 @@ describe("experiment runtime", () => {
     expect(runtime.start()).toBe(false);
     expect(port.posted).toHaveLength(1);
   });
+  it("keeps one branch identity through ordinary accepted commands", () => {
+    const { port, runtime } = readyRuntime(["advance-branch-stable"]);
+    const branchIdentity = runtime.state.runBranchIdentity;
+
+    expect(branchIdentity).toBe(createRunBranchIdentity(identity, 0));
+    expect(runtime.dispatch({ type: "step", ticks: 2 })).toEqual({
+      accepted: true,
+      reason: null,
+    });
+    expect(runtime.state.runBranchIdentity).toBe(branchIdentity);
+
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "snapshot",
+      commandId: "advance-branch-stable",
+      snapshot: makeSnapshot({
+        tick: 2,
+        commandCount: 1,
+        events: [
+          {
+            sequence: 1,
+            tick: 2,
+            simulationTimeHours: 2 / 60,
+            type: "advanced",
+            commandId: "advance-branch-stable",
+            value: 2,
+          },
+        ],
+      }),
+    });
+
+    expect(runtime.state.runBranchIdentity).toBe(branchIdentity);
+  });
+
+  it("rotates branch identity for each admitted fresh history generation", () => {
+    const { port, runtime } = readyRuntime();
+    const initial = runtime.state.runBranchIdentity;
+    expect(initial).toBe(createRunBranchIdentity(identity, 0));
+
+    expect(runtime.dispatch({ type: "reset" })).toEqual({
+      accepted: true,
+      reason: null,
+    });
+    const resetBranch = runtime.state.runBranchIdentity;
+    expect(resetBranch).toBe(createRunBranchIdentity(identity, 1));
+    expect(resetBranch).not.toBe(initial);
+
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: makeSnapshot({ tick: 0, commandCount: 0 }),
+    });
+
+    const reseededIdentity = { ...identity, seed: 29 };
+    expect(runtime.dispatch({ type: "set-seed", seed: 29 })).toEqual({
+      accepted: true,
+      reason: null,
+    });
+    const reseededBranch = runtime.state.runBranchIdentity;
+    expect(reseededBranch).toBe(createRunBranchIdentity(reseededIdentity, 2));
+    expect(reseededBranch).not.toBe(resetBranch);
+
+    port.emit({
+      protocolVersion: PROTOCOL_VERSION,
+      type: "ready",
+      snapshot: makeSnapshot({
+        identity: reseededIdentity,
+        tick: 0,
+        commandCount: 0,
+      }),
+    });
+
+    expect(runtime.dispatch({ type: "replay" })).toEqual({
+      accepted: true,
+      reason: null,
+    });
+    const replayBranch = runtime.state.runBranchIdentity;
+    expect(replayBranch).toBe(createRunBranchIdentity(reseededIdentity, 3));
+    expect(replayBranch).not.toBe(reseededBranch);
+  });
+
+  it("does not rotate branch identity for a lifecycle action rejected while busy", () => {
+    const { runtime } = readyRuntime(["advance-busy"]);
+    const branchIdentity = runtime.state.runBranchIdentity;
+
+    expect(runtime.dispatch({ type: "step", ticks: 1 }).accepted).toBe(true);
+    expect(runtime.dispatch({ type: "reset" })).toEqual({
+      accepted: false,
+      reason: "worker-busy",
+    });
+    expect(runtime.state.runBranchIdentity).toBe(branchIdentity);
+  });
+
+  it("refuses malformed run-branch generations", () => {
+    expect(() => createRunBranchIdentity(identity, -1)).toThrow(
+      /non-negative safe integer/,
+    );
+    expect(() =>
+      createRunBranchIdentity(identity, Number.MAX_SAFE_INTEGER + 1),
+    ).toThrow(/non-negative safe integer/);
+  });
+
 });

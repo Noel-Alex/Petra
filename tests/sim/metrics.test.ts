@@ -92,8 +92,8 @@ describe('authoritative metrics', () => {
     expect(sample.resistantBiomass).toBe(3)
     expect(sample.resistantFraction).toBeCloseTo(0.75)
     expect(sample.lineages.map((item) => [item.lineageId, item.fraction])).toEqual([
-      ['wt-lineage', 0.25],
-      ['r-lineage', 0.75],
+      ['L1', 0.25],
+      ['L2', 0.75],
     ])
     expect(sample.genotypes.map((item) => [item.genotypeId, item.fraction])).toEqual([
       ['WT', 0.25],
@@ -162,8 +162,8 @@ describe('authoritative metrics', () => {
     expect(sample.biomassUnit).toBe('model-biomass')
     expect(sample.resourceUnit).toBe('model-resource')
     expect(sample.lineages.map((item) => [item.lineageId, item.fraction])).toEqual([
-      ['wt-lineage', 0.25],
-      ['r-lineage', 0.75],
+      ['L1', 0.25],
+      ['L2', 0.75],
     ])
     expect(sample.genotypes.map((item) => [item.genotypeId, item.fraction])).toEqual([
       ['WT', 0.25],

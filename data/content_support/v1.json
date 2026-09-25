@@ -1,7 +1,7 @@
 {
   "kind": "petra-supported-content-matrix",
   "schemaVersion": 1,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "supportedScenarios": [
     {
       "id": "flagship-ecoli-ciprofloxacin",
@@ -73,12 +73,12 @@
     {
       "id": "first-post-ciprofloxacin-antibiotic",
       "kind": "antimicrobial",
-      "availability": "blocked-implementation",
+      "availability": "blocked-validation",
       "issues": [
-        926,
-        928
+        930,
+        938
       ],
-      "reason": "Chloramphenicol/MG1655 candidate and wild-type Greulich growth-inhibition authority are selected under completed #874. Product support remains blocked on #926 numerical/authority implementation and #928 a source-compatible MOPS growth/environment binding; the current dimensionless model-resource flagship cannot choose the glucose or glycerol fit."
+      "reason": "Chloramphenicol/MG1655 model selection is complete and #930 owns the source-backed Greulich numerical authority. #928 resolved the environment question: the current dimensionless model-resource cannot select glucose/glycerol or supply Greulich lambda0. Product spatial support remains fail-closed on #938's source-compatible MOPS-glucose resource→growth calibration/validation bridge."
     },
     {
       "id": "named-microbial-interactions",

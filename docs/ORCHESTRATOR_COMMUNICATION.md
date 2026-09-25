@@ -202,3 +202,19 @@ Authenticated recovery contributor/session: Noel-Alex
 - Deterministic regression tests were authored for exact projection, scenario identity, provenance disclosure, and malformed/widened refusal. This connector session cannot resolve a local GitHub checkout, so TypeScript/Vitest/browser execution is not claimed; hosted CI remains forbidden.
 
 Authenticated recovery contributor/session: Noel-Alex
+
+
+## 2026-09-25 — current authoritative dish-data handoff after projection hardening
+
+- The central dish may now consume the merged live composed `DishRenderSnapshot` projection as its only whole-dish render keyframe authority: exact binary dish mask, aggregate/per-lineage `model-biomass`, `model-resource`, ciprofloxacin `mg/L`, biological time, trace-backed snapshot identity, and runtime-branch sampling identity. The projector also fails closed if checkpoint aggregate metrics disagree with the spatial arrays before Float32 presentation narrowing.
+- Renderer field ranges are explicit presentation metadata. The current composed resource/ciprofloxacin/biomass fields use `snapshot-extrema`; between-keyframe interpolation is presentation-only and intensity across different extrema is not a stable scientific scale. Do not derive inspector/chart values from those colors.
+- Accepted ciprofloxacin intervention geometry is already available losslessly as global/radial/stripe/paint footprint data. Do not coerce stripe/paint/global edits into invented point markers. #841 owns binding those footprints to the current runtime history generation before caching/replay presentation.
+- Local ecology division/death/net-growth data now has a trustworthy source path: exact kernel flux → executed-step-duration observation → validated composed position → detached `ComposedEcologyObservationEnvelope` → pure `net-growth` render-field adapter. **Do not wire it to a live dish transaction yet.** #838 still requires engine-atomic production + snapshot/runtime transport and stale-observation omission; #809 owns the active protocol-v7/state-v5 migration that this final transport must compose with.
+- Coarse representative E. coli rod morphology is now source-backed presentation metadata (#816). It authorizes only a representative rod silhouette; it does not authorize physical cell dimensions, literal cell counts, orientation/division dynamics, or one-glyph-per-cell claims. Live morphology wiring should consume that record explicitly rather than infer shape from lineage/color/density.
+- The product ciprofloxacin control authority is scenario-owned and available: 0–2 mg/L source-domain guardrail, neutral default 0 mg/L, `set` semantics, and supported global/radial/stripe/paint model-field geometries. UI must require explicitly authored supported geometry; the decorative point cursor/target ring is not biological radius authority.
+- Local integrity evidence is registered as `render-projection-parity` and remains reachable only through `python run_local_experiments.py --only render-projection-parity --push`. It checks product-projector channel/unit/identity parity plus explicit Float32 quantization; it is not biological validation or browser/GPU visual acceptance.
+- Architecture remains TypeScript Worker → immutable detached render projection → Pixi/DOM presentation. Do not move biology into the renderer or introduce transferables/OffscreenCanvas/WASM/backend/GPU complexity until #630/#642 measurements justify it.
+
+**UI/local-agent rule:** consume merged authority aggressively, but show unavailable/neutral states for anything whose exact data prerequisite above has not landed. Do not manufacture scientific rates, cell counts, event centers, morphology, or intervention geometry to make the reference look complete.
+
+Authenticated coordination contributor/session: Noel-Alex

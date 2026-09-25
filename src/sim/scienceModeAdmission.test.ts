@@ -80,7 +80,7 @@ describe("Science Mode scenario admission", () => {
     const codes = result.reasons.map((reason) => reason.code);
 
     expect(result.scenarioId).toBe("ecoli-ciprofloxacin-spatial");
-    expect(result.scenarioVersion).toBe("1.4.0-research");
+    expect(result.scenarioVersion).toBe("1.5.0-research");
     expect(result.maturity).toBe("experimental");
     expect(result.admitted).toBe(false);
     expect(result.referenceEligible).toBe(false);

@@ -144,3 +144,20 @@ Contributor: Noel-Alex
 - Local verification: four focused Vitest files passed (10 tests); `python tools/verify.py quick` passed all four registered quick checks; direct `vite build` succeeded. Repository `npm run typecheck` / `npm run build` stop at broad existing TypeScript errors. A separate run including `tests/app/experimentRuntime.test.ts` found 7 failing cases out of 11 on current main; the worker-fixture rejection was reported on #158 and was not changed in this branch. No hosted CI.
 
 Contributor: Noel-Alex
+
+## 2026-09-25 — reference-led laptop shell checkpoint #799
+
+- Draft PR #799 (`Noel/456-shell-illustrations`, head `a584acbe`) carries the local shell follow-up on current main `6a5712bf`: bespoke population/fungi/medicine/nutrient card illustrations, compact inspector/analysis disclosures, focus treatment, and laptop-height shell scrolling. The older dirty `Noel/456-ui-shell` checkout at 5173 was left untouched.
+- Local evidence: five focused Vitest files / 40 tests passed; `vite build` succeeded with the existing ~744.5 kB JavaScript chunk warning; the 5175 local browser preview was reviewed. No hosted CI and no mobile acceptance.
+- This is a shell checkpoint, not completion of #456: the center still waits for authoritative render snapshots, and reference-style populated geometry/causal motion remain separate renderer/runtime acceptance. No fabricated organisms or metrics were added.
+- The latest local preview also surfaces a separate default-run blocker on #42 (protocol-v6 / preset-v5 mismatch); details and source evidence were reported at issue comment `5826750183`. The run is rejected before controls become available.
+
+Contributor: Noel-Alex
+
+## 2026-09-25 — current-main default preset protocol mismatch
+
+- After #562 moved the wire protocol to v6 and #798 exposed the existing authoritative intervention dispatch, `src/sim/protocol.ts` requires protocol 6 while `data/run_presets/ecoli_ciprofloxacin_baseline_v1.json` still declares protocol 5. `src/app/flagshipRunPreset.ts` rejects the mismatch, matching the local 5175 “Experiment preset rejected” state.
+- Reported on the open #42 runtime integration issue. No preset, scientific parameter, or runtime file was changed in the shell branch.
+- Next action: reconcile the versioned preset against protocol-v6 semantics, then verify the default browser Worker starts and advances before treating the local product preview as runnable.
+
+Contributor: Noel-Alex

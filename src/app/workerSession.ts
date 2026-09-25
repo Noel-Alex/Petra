@@ -6,6 +6,10 @@ import {
   type WorkerResponse,
 } from "../sim/protocol";
 import {
+  materializeWorkerSnapshotDelta,
+  type WorkerTransportResponse,
+} from "../worker/eventDeltaTransport";
+import {
   WORKER_PERFORMANCE_DIAGNOSTICS_VERSION,
   estimateStructuredClonePayloadBytes,
   parseInstrumentedWorkerResponse,
@@ -283,7 +287,10 @@ export class WorkerSession {
       return;
     }
 
-    if (response.type !== "snapshot") {
+    if (
+      response.type !== "snapshot" &&
+      response.type !== "snapshot-delta"
+    ) {
       this.recordPerformance(response, "protocol-error");
       this.fail(
         `Expected snapshot for command ${active.command.id}`,
@@ -298,6 +305,22 @@ export class WorkerSession {
         `Worker snapshot command mismatch: expected ${active.command.id}, received ${response.commandId}`,
         response.commandId,
       );
+      return;
+    }
+
+    if (response.type === "snapshot-delta") {
+      let prepared: PreparedSnapshot;
+      try {
+        prepared = this.prepareDeltaSnapshot(response);
+      } catch (error) {
+        this.recordPerformance(response, "protocol-error");
+        this.fail(
+          error instanceof Error ? error.message : String(error),
+          response.commandId,
+        );
+        return;
+      }
+      this.acceptSuccessfulPreparedSnapshot(response, prepared);
       return;
     }
 
@@ -335,15 +358,53 @@ export class WorkerSession {
     };
   }
 
+  private prepareDeltaSnapshot(
+    response: Extract<
+      InstrumentedWorkerResponse,
+      { readonly type: "snapshot-delta" }
+    >,
+  ): PreparedSnapshot {
+    const options = this.performanceOptions;
+    const measurement = this.activePerformance;
+    if (options === null || measurement === null) {
+      return {
+        snapshot: materializeWorkerSnapshotDelta(
+          this.current.latestSnapshot,
+          response,
+        ),
+        cloneDurationMs: null,
+      };
+    }
+
+    const startedAtMs = options.now();
+    const snapshot = materializeWorkerSnapshotDelta(
+      this.current.latestSnapshot,
+      response,
+    );
+    return {
+      snapshot,
+      cloneDurationMs: Math.max(0, options.now() - startedAtMs),
+    };
+  }
+
   private acceptSuccessfulSnapshot(
     response: InstrumentedWorkerResponse,
     snapshot: SimulationSnapshot,
+  ): void {
+    this.acceptSuccessfulPreparedSnapshot(
+      response,
+      this.prepareSnapshot(snapshot),
+    );
+  }
+
+  private acceptSuccessfulPreparedSnapshot(
+    response: InstrumentedWorkerResponse,
+    prepared: PreparedSnapshot,
   ): void {
     const completedAtMs =
       this.performanceOptions !== null && this.activePerformance !== null
         ? this.performanceOptions.now()
         : null;
-    const prepared = this.prepareSnapshot(snapshot);
     this.recordPerformance(response, "success", {
       completedAtMs,
       mainThreadSnapshotCloneMs: prepared.cloneDurationMs,
@@ -380,11 +441,18 @@ export class WorkerSession {
     const authoritativeEventArrayLength =
       response?.type === "ready" || response?.type === "snapshot"
         ? response.snapshot.events.length
+        : response?.type === "snapshot-delta"
+          ? response.currentEventCount
+          : null;
+    const responseCheckpoint =
+      response?.type === "ready" ||
+      response?.type === "snapshot" ||
+      response?.type === "snapshot-delta"
+        ? response.snapshot.checkpoint
         : null;
     const authoritativeActiveLineageCount =
-      (response?.type === "ready" || response?.type === "snapshot") &&
-      response.snapshot.checkpoint.authority === "composed"
-        ? response.snapshot.checkpoint.composedState.lineageIds.length
+      responseCheckpoint?.authority === "composed"
+        ? responseCheckpoint.composedState.lineageIds.length
         : null;
     const sample: WorkerSessionPerformanceSample = {
       version: WORKER_SESSION_PERFORMANCE_SAMPLE_VERSION,
@@ -531,8 +599,15 @@ export function createSimulationWorkerSession(
   return new WorkerSession(createBrowserWorkerPort(worker), performanceOptions);
 }
 
-function responseCommandId(response: WorkerResponse): string | null {
-  if (response.type === "snapshot") return response.commandId;
+function responseCommandId(
+  response: WorkerTransportResponse,
+): string | null {
+  if (
+    response.type === "snapshot" ||
+    response.type === "snapshot-delta"
+  ) {
+    return response.commandId;
+  }
   if (response.type === "error") return response.commandId ?? null;
   return null;
 }

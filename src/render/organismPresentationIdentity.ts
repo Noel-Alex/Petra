@@ -1,14 +1,18 @@
+import rawAspergillusNo10Identity from "../../data/presentation/aspergillus_niger_var_hennebergi_no10_v1.json";
 import rawFlagshipIdentity from "../../data/presentation/ecoli_k12_mg1655_v1.json";
 
 export const ORGANISM_PRESENTATION_IDENTITY_SCHEMA_VERSION = 1 as const;
 export const ORGANISM_PRESENTATION_IDENTITY_KIND =
   "petra-organism-presentation-identity" as const;
 
-export const ORGANISM_PRESENTATION_KINDS = ["bacterium"] as const;
+export const ORGANISM_PRESENTATION_KINDS = ["bacterium", "fungus"] as const;
 export type OrganismPresentationKind =
   (typeof ORGANISM_PRESENTATION_KINDS)[number];
 
-export const ORGANISM_PRESENTATION_MORPHOLOGIES = ["rod"] as const;
+export const ORGANISM_PRESENTATION_MORPHOLOGIES = [
+  "rod",
+  "filamentous-hyphal",
+] as const;
 export type OrganismPresentationMorphology =
   (typeof ORGANISM_PRESENTATION_MORPHOLOGIES)[number];
 
@@ -117,6 +121,15 @@ export function parseOrganismPresentationIdentity(
   ) {
     throw new TypeError("unsupported organism presentation morphology");
   }
+  if (
+    (record.organismKind === "bacterium" && record.morphology !== "rod") ||
+    (record.organismKind === "fungus" &&
+      record.morphology !== "filamentous-hyphal")
+  ) {
+    throw new TypeError(
+      "unsupported organism presentation kind/morphology combination",
+    );
+  }
 
   const rawProvenance = requireRecord(record.provenance, "provenance");
   assertExactKeys(rawProvenance, PROVENANCE_KEYS, "provenance");
@@ -198,6 +211,9 @@ export function parseOrganismPresentationIdentity(
 
 export const FLAGSHIP_ECOLI_ORGANISM_PRESENTATION =
   parseOrganismPresentationIdentity(rawFlagshipIdentity as unknown);
+
+export const ASPERGILLUS_NO10_ORGANISM_PRESENTATION =
+  parseOrganismPresentationIdentity(rawAspergillusNo10Identity as unknown);
 
 function requireRecord(
   value: unknown,

@@ -31,7 +31,7 @@ describe('flagship composed run planning', () => {
     expect(plan.identity).toMatchObject({
       protocolVersion: PROTOCOL_VERSION,
       scenarioId: 'ecoli-ciprofloxacin-spatial',
-      scenarioVersion: '1.4.0-research',
+      scenarioVersion: '1.5.0-research',
       parameterSetId: 'ecoli-ciprofloxacin-baseline-composed',
       parameterSetVersion: '1.1.0',
       seed: baseline.seed,
@@ -71,6 +71,37 @@ describe('flagship composed run planning', () => {
         (entry) => entry.genotypeId === 'WT',
       )?.micMgPerL,
     ).toBe(0.016)
+    expect(plan.ciprofloxacinToolAuthority).toEqual({
+      schemaVersion: 1,
+      tool: 'antibiotic',
+      protocolCommand: 'apply-ciprofloxacin',
+      parameter: {
+        key: 'ciprofloxacin-concentration',
+        label: 'Ciprofloxacin concentration',
+        unit: 'mg/L',
+        minimum: 0,
+        maximum: 2,
+        defaultValue: 0,
+        precision: 3,
+      },
+      supportedGeometries: ['global', 'radial', 'stripe', 'paint'],
+      blendMode: 'set',
+    })
+    expect(plan.ciprofloxacinControlProvenance).toMatchObject({
+      classification: 'transferred',
+      citation: 'regoes_2004',
+      context: 'Escherichia coli CAB1 (O18:K1:H7), LB, 37 C',
+      sourceTestedRangeMgPerL: { minimum: 0, maximum: 2 },
+      defaultClassification: 'engineering',
+    })
+    expect(plan.ciprofloxacinControlProvenance.limitation).toMatch(
+      /genotype MIC values do not widen the 0-2 mg\/L source-domain guardrail/i,
+    )
+    expect(
+      Math.max(...(plan.config.ciprofloxacin?.genotypeMicMgPerL.map((entry) => entry.micMgPerL) ?? [])),
+    ).toBe(32)
+    expect(plan.ciprofloxacinToolAuthority.parameter.maximum).toBe(2)
+
     expect(plan.config.samplingExecutionPolicy).toBeNull()
     expect(plan.config.lineages).toEqual([
       {

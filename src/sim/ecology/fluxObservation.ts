@@ -129,6 +129,11 @@ export function projectEcologyFluxObservation(args: {
   canonicalLabel('biomassUnit', biomassUnit)
   canonicalLabel('timeUnit', timeUnit)
   assertPositiveFinite('stepDuration', stepDuration)
+  assertFiniteNonNegative(
+    'metrics.divisionBiomass',
+    result.metrics.divisionBiomass,
+  )
+  assertFiniteNonNegative('metrics.deathBiomass', result.metrics.deathBiomass)
 
   if (
     result.fluxes.divisionBiomass.length !== lineageIds.length ||

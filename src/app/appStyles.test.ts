@@ -12,6 +12,10 @@ const analysisSurfaceCss = readFileSync(
   fileURLToPath(new URL("./analysisSurface.css", import.meta.url)),
   "utf8",
 );
+const visualThemeCss = readFileSync(
+  fileURLToPath(new URL("./visualTheme.css", import.meta.url)),
+  "utf8",
+);
 
 function ruleBody(selector: string, css = appCss): string {
   const start = css.indexOf(`${selector} {`);
@@ -174,14 +178,50 @@ describe("Analysis shell shared visual theme", () => {
       analysisSurfaceCss,
     );
 
-    expect(summary).toContain("min-height: 4.25rem;");
+    expect(summary).toContain("min-height: 3.3rem;");
     expect(summary).toContain("cursor: pointer;");
     expect(focus).toContain("outline: 3px solid var(--petra-focus-ring);");
     expect(focus).toContain("outline-offset: 3px;");
     expect(panel).toContain("border: 0;");
-    expect(panel).toContain("border-radius: 0 0 20px 20px;");
+    expect(panel).toContain("border-radius: 0 0 16px 16px;");
     expect(analysisSurfaceCss).not.toContain("transition:");
     expect(analysisSurfaceCss).not.toContain("animation:");
+  });
+});
+
+describe("Reference-led inspector shell", () => {
+  it("keeps scientific selection art, activity, and analysis inside the right rail", () => {
+    expect(appSource).toContain('className="inspector-shell petra-panel--inspector"');
+    expect(appSource).toContain('className="inspector-activity"');
+    expect(appSource).toContain("emptyStateAdornment=");
+    expect(appSource).toContain("<AnalysisSurface");
+    expect(visualThemeCss).toContain(".inspector-shell {");
+    expect(visualThemeCss).toContain(".region-inspector-readout__empty-icon");
+    expect(visualThemeCss).toContain('data-no-region-selected="true"');
+  });
+
+  it("keeps laptop tool cards inside the workspace instead of under the timeline", () => {
+    const desktopLayoutStart = visualThemeCss.indexOf("@media (min-width: 1081px) {");
+    const desktopLayoutEnd = visualThemeCss.indexOf(
+      "@media (min-width: 1081px) and (max-height: 760px)",
+      desktopLayoutStart,
+    );
+    const desktopLayout = visualThemeCss.slice(desktopLayoutStart, desktopLayoutEnd);
+
+    expect(desktopLayout).toContain(".petra-panel--tools {");
+    expect(desktopLayout).toContain("overflow-y: auto;");
+    expect(desktopLayout).toContain("overscroll-behavior: contain;");
+  });
+
+  it("tightens the intervention list on short laptop viewports while retaining large controls", () => {
+    const shortLaptop = visualThemeCss.slice(
+      visualThemeCss.indexOf("@media (min-width: 1081px) and (max-height: 760px)"),
+      visualThemeCss.indexOf("@media (max-width: 1080px)"),
+    );
+
+    expect(shortLaptop).toContain("min-height: 4.4rem;");
+    expect(shortLaptop).toContain(".petra-panel--tools");
+    expect(shortLaptop).toContain("padding: 0.75rem;");
   });
 });
 

@@ -40,12 +40,18 @@ describe("chloramphenicol authority record", () => {
     expect(authority.drug.concentrationUnit).toBe("uM");
     expect(authority.model.effectKind).toBe("growth-inhibition");
     expect(authority.model.fitErrorMethod).toMatch(/1000 randomized data sets/);
+    expect(authority.model.fits.find((fit) => fit.id === "mops-glycerol")).toMatchObject({
+      lambda0StarReportedFitErrorPerHour: 0.06,
+      ic50StarReportedFitErrorMicromolar: 0.05,
+    });
+    expect(authority.model.fits.find((fit) => fit.id === "mops-glucose")).toMatchObject({
+      lambda0StarReportedFitErrorPerHour: 0.02,
+      ic50StarReportedFitErrorMicromolar: 0.05,
+    });
     expect(glycerol).toMatchObject({
       id: "mops-glycerol",
       lambda0StarPerHour: 1.83,
-      lambda0StarReportedFitErrorPerHour: 0.06,
       ic50StarMicromolar: 2.49,
-      ic50StarReportedFitErrorMicromolar: 0.05,
       validatedDrugFreeGrowthRateRangePerHour: {
         minimum: 0.4,
         maximum: 1.35,
@@ -54,9 +60,7 @@ describe("chloramphenicol authority record", () => {
     expect(glucose).toMatchObject({
       id: "mops-glucose",
       lambda0StarPerHour: 1.28,
-      lambda0StarReportedFitErrorPerHour: 0.02,
       ic50StarMicromolar: 4.5,
-      ic50StarReportedFitErrorMicromolar: 0.05,
       validatedDrugFreeGrowthRateRangePerHour: {
         minimum: 0.64,
         maximum: 1.68,

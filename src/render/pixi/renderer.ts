@@ -40,6 +40,9 @@ import {
   type RenderLineage,
 } from "../model";
 import {
+  resolvePreparedCameraLayerTransform,
+} from "./cameraLayerTransform";
+import {
   isScreenPointInsideDishAperture,
   panCamera,
   resolveDishViewportGeometry,
@@ -167,6 +170,7 @@ export async function createPixiDishRenderer(
   const plateLayer = new Graphics();
   const dishInteriorMask = new Graphics();
   const dataLayer = new Container();
+  const preparedCameraLayer = new Container();
   const fieldLayer = new Graphics();
   const densityLayer = new Graphics();
   const fieldCanvas = document.createElement("canvas");
@@ -196,7 +200,13 @@ export async function createPixiDishRenderer(
   const glyphLayer = new Graphics();
   const accentLayer = new Graphics();
 
-  dataLayer.addChild(fieldSprite, fieldLayer, densitySprite, densityLayer, glyphLayer);
+  preparedCameraLayer.addChild(
+    fieldSprite,
+    fieldLayer,
+    densitySprite,
+    densityLayer,
+  );
+  dataLayer.addChild(preparedCameraLayer, glyphLayer);
   dataLayer.mask = dishInteriorMask;
   root.addChild(plateLayer, dishInteriorMask, dataLayer, accentLayer);
   app.stage.addChild(root);
@@ -216,6 +226,7 @@ export async function createPixiDishRenderer(
   let cameraMotion = copyCameraMotionSpec(options.cameraMotion);
   let visualMotion = copyDishVisualMotionSpec(options.visualMotion);
   let camera: CameraView = { centerX: 0.5, centerY: 0.5, zoom: 1 };
+  let preparedCamera: CameraView | null = null;
   let transitionStartCamera = camera;
   let targetCamera = camera;
   let cameraElapsedMs = cameraMotion.durationMs;
@@ -239,6 +250,30 @@ export async function createPixiDishRenderer(
   const semanticZoomObserver = createSemanticZoomLevelObserver((level) => {
     options.onSemanticZoomLevelChange?.(level);
   });
+
+  const representativeGlyphsForCamera = (
+    currentCamera: CameraView,
+    maxGlyphs: number,
+    minimumDensity: number,
+  ): readonly GlyphSample[] => {
+    if (drawableState === null) return [];
+    if (
+      preparedRepresentativeGlyphCandidates === null ||
+      preparedRepresentativeGlyphMinimumDensity !== minimumDensity
+    ) {
+      preparedRepresentativeGlyphCandidates =
+        prepareRepresentativeGlyphCandidates(
+          drawableState,
+          minimumDensity,
+        );
+      preparedRepresentativeGlyphMinimumDensity = minimumDensity;
+    }
+    return selectRepresentativeGlyphs(
+      preparedRepresentativeGlyphCandidates,
+      currentCamera,
+      maxGlyphs,
+    );
+  };
 
   // Development-only, bounded local profiling. These timings have no simulation authority.
   const drawTimes: number[] = [];
@@ -268,6 +303,9 @@ export async function createPixiDishRenderer(
       preparedRepresentativeGlyphCandidates = null;
       preparedRepresentativeGlyphMinimumDensity = null;
     }
+
+    preparedCameraLayer.position.set(0, 0);
+    preparedCameraLayer.scale.set(1, 1);
 
     drawScene({
       app,
@@ -326,28 +364,7 @@ export async function createPixiDishRenderer(
         preparedLineageContours.set(lineage.id, contours);
         return contours;
       },
-      representativeGlyphsForCamera(
-        currentCamera,
-        maxGlyphs,
-        minimumDensity,
-      ) {
-        if (
-          preparedRepresentativeGlyphCandidates === null ||
-          preparedRepresentativeGlyphMinimumDensity !== minimumDensity
-        ) {
-          preparedRepresentativeGlyphCandidates =
-            prepareRepresentativeGlyphCandidates(
-              drawableState!,
-              minimumDensity,
-            );
-          preparedRepresentativeGlyphMinimumDensity = minimumDensity;
-        }
-        return selectRepresentativeGlyphs(
-          preparedRepresentativeGlyphCandidates,
-          currentCamera,
-          maxGlyphs,
-        );
-      },
+      representativeGlyphsForCamera,
       organismPresentation,
       selection,
       camera,
@@ -380,11 +397,76 @@ export async function createPixiDishRenderer(
       glyphLayer,
       accentLayer,
     });
+    preparedCamera = { ...camera };
     preparedRevision = renderPreparationRevision;
     if (import.meta.env.DEV) {
       drawTimes.push(performance.now() - drawStartedAt);
       if (drawTimes.length > 600) drawTimes.shift();
     }
+  };
+
+  const renderCameraOnly = () => {
+    const drawStartedAt = import.meta.env.DEV ? performance.now() : 0;
+    if (destroyed) return;
+    syncHostTouchAction();
+    if (
+      drawableState === null ||
+      preparedCamera === null ||
+      !hasPreparedLineageDensityMaximum
+    ) {
+      render();
+      return;
+    }
+
+    semanticZoomObserver.update(semanticZoomLevel(camera.zoom));
+    const viewport = {
+      width: app.screen.width,
+      height: app.screen.height,
+    };
+    const transform = resolvePreparedCameraLayerTransform(
+      preparedCamera,
+      camera,
+      viewport,
+    );
+    preparedCameraLayer.position.set(transform.x, transform.y);
+    preparedCameraLayer.scale.set(transform.scale, transform.scale);
+
+    drawGlyphAndSelectionLayer({
+      app,
+      snapshot: drawableState,
+      representativeGlyphsForCamera,
+      organismPresentation,
+      selection,
+      camera,
+      maxRepresentativeGlyphs,
+      lineageDensityMaximum: preparedLineageDensityMaximum,
+      glyphLayer,
+    });
+
+    if (import.meta.env.DEV) {
+      drawTimes.push(performance.now() - drawStartedAt);
+      if (drawTimes.length > 600) drawTimes.shift();
+    }
+  };
+
+  const renderCameraState = (settleZoomWhenComplete: boolean) => {
+    const zoomNeedsRebake =
+      preparedCamera !== null &&
+      camera.zoom !== preparedCamera.zoom;
+    const transitionComplete = cameraTransitionComplete({
+      elapsedMs: cameraElapsedMs,
+      durationMs: cameraMotion.durationMs,
+    });
+
+    if (
+      settleZoomWhenComplete &&
+      zoomNeedsRebake &&
+      transitionComplete
+    ) {
+      render();
+      return;
+    }
+    renderCameraOnly();
   };
 
   const applySnapshotOverlayUpdate = (

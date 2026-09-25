@@ -201,6 +201,39 @@ describe("lineage origin checkpoint v2", () => {
     ).toThrow(/mutation-child parent/);
   });
 
+  it("refuses a runtime root without a configured-founder genesis prefix", () => {
+    expect(() =>
+      validateLineageOriginCheckpointV2({
+        version: 2,
+        nextId: 2,
+        records: [
+          {
+            lineageId: "L1",
+            originKind: "external-inoculation",
+            parentLineageId: null,
+            genotypeId: "OTHER",
+            createdAtHours: 0,
+            originCellIndex: 3,
+            mutationClass: null,
+            extinctAtHours: null,
+          },
+        ],
+        events: [
+          {
+            kind: "lineage-created",
+            lineageId: "L1",
+            timeHours: 0,
+            originKind: "external-inoculation",
+            parentLineageId: null,
+            genotypeId: "OTHER",
+            originCellIndex: 3,
+            mutationClass: null,
+          },
+        ],
+      }),
+    ).toThrow(/configured-founder genesis prefix/);
+  });
+
   it("keeps mutation creation inside the authoritative parent lifetime", () => {
     const checkpoint = validateLineageOriginCheckpointV2({
       version: 2,

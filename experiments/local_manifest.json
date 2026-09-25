@@ -421,6 +421,29 @@
       "timeout_seconds": 30
     },
     {
+      "id": "chloramphenicol-mops-resource-calibration",
+      "description": "PREPARED; BLOCKED on #938: physical/calibrated MG1655 MOPS-glucose spatial resource→drug-free-growth bridge required before chloramphenicol product-environment validation.",
+      "command": [
+        "python",
+        "experiments/blocked.py",
+        "--experiment-id",
+        "chloramphenicol-mops-resource-calibration",
+        "--blocked-on",
+        "938",
+        "--reason",
+        "Issue #928 established that Greulich 2015 source-curve authority cannot be mapped from Petra's dimensionless model-resource. #938 must define source-compatible MOPS-glucose physical resource units, transport/uptake/yield or another explicit bridge, local pre-drug lambda0 mapping, calibration bounds/targets, and hold-out validation through #657 before a meaningful local sweep can run. Registering arbitrary parameter ranges now would create false calibration evidence."
+      ],
+      "issues": [
+        657,
+        874,
+        879,
+        928,
+        930,
+        938
+      ],
+      "timeout_seconds": 30
+    },
+    {
       "id": "fungal-spatial-growth-validation",
       "description": "PREPARED; BLOCKED on #556/#615: named fungal evidence pack and authoritative fungal spatial state are required before replay/growth validation can run.",
       "command": [

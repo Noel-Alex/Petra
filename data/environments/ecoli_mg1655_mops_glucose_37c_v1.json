@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "recordKind": "physical-environment-evidence",
+  "id": "ecoli-k12-mg1655-mops-glucose-37c-v1",
+  "version": "1.0.0",
+  "organism": {
+    "taxon": "Escherichia coli",
+    "strain": "K-12 MG1655"
+  },
+  "environment": {
+    "mediumFamily": "MOPS minimal medium",
+    "temperatureCelsius": 37,
+    "substrate": {
+      "id": "D-glucose",
+      "concentrationUnit": "mM",
+      "measuredGrowthResponseRange": {
+        "minimum": 0.17,
+        "maximum": 11
+      },
+      "referenceHighConcentration": 11
+    }
+  },
+  "growthResponse": {
+    "classification": "measured-plus-fitted",
+    "modelFamily": "michaelis-menten",
+    "sourceKey": "knapp_2025_mops_glucose_growth",
+    "doi": "10.1038/s41564-024-01841-4",
+    "datasetPersistentId": "doi:10.7910/DVN/SC2KXZ",
+    "replicatesPerConcentration": 3,
+    "responseUnit": "1/h",
+    "fitParameters": {
+      "status": "local-source-extraction-and-calibration-required",
+      "calibrationIssue": 938
+    },
+    "context": "Liquid-culture maximum growth rates for E. coli MG1655 in MOPS minimal medium across D-glucose concentrations at 37 C. The source reports mean growth rates from three biological replicate curves with +/- 1 SD and a weighted Michaelis-Menten fit."
+  },
+  "consumptionAndYieldEvidence": {
+    "classification": "measured",
+    "sourceKey": "baumler_2011_mg1655_mops_glucose_batch",
+    "doi": "10.1186/1752-0509-5-182",
+    "sourceArtifact": "12918_2011_783_MOESM6_ESM.XLS",
+    "substrateConcentrationMillimolar": 11,
+    "temperatureCelsius": 37,
+    "cultureContext": "MOPS minimal medium; aerobic batch cultures used continuous sparging. Additional file 6 contains biomass (g/L), extracellular glucose (g/L), and OD600 time courses for six E. coli strains including K-12 MG1655.",
+    "parameterExtraction": {
+      "status": "local-source-extraction-required",
+      "calibrationIssue": 938
+    }
+  },
+  "spatialTransport": {
+    "status": "unbound",
+    "reason": "The Knapp and Baumler authorities are liquid-culture measurements and do not identify Petra dish/agar glucose diffusion, thickness, boundary conditions, or mass-transfer geometry. Those quantities must be separately sourced/calibrated or the product claim must remain non-spatial/well-mixed."
+  },
+  "provenance": {
+    "classification": "measured-source-envelope",
+    "limitation": "This record is source/context authority and calibration input, not a finished simulation parameter pack. It must not relabel Petra's dimensionless model-resource field as physical glucose, does not provide a fitted lambda_max/K_M pair yet, and provides no spatial glucose transport coefficient."
+  }
+}

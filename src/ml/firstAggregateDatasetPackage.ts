@@ -16,7 +16,10 @@ import {
   planMechanisticSweep,
   type MechanisticSweepTask,
 } from "./sweep";
-import type { ComposedMechanisticTaskDefinition } from "./runner";
+import type {
+  ComposedMechanisticTaskDefinition,
+  ComposedTransitionProjectionContext,
+} from "./runner";
 import {
   NODE_MECHANISTIC_DATASET_PACKAGE_SCHEMA_VERSION,
   type NodeMechanisticDatasetPackage,
@@ -28,21 +31,21 @@ import {
 import type { ComposedSimulationSnapshot } from "../sim/protocol";
 
 export const FIRST_AGGREGATE_DATASET_PACKAGE_ID =
-  "flagship-first-aggregate-no-intervention-v1" as const;
+  "flagship-first-aggregate-no-intervention-v2" as const;
 export const FIRST_AGGREGATE_DATASET_VERSION =
-  "flagship-first-aggregate-mechanistic-v1" as const;
+  "flagship-first-aggregate-mechanistic-v2" as const;
 export const FIRST_AGGREGATE_EXECUTOR_DATA_SCHEMA_VERSION =
-  "petra-first-aggregate-dataset-executor-v1" as const;
+  "petra-first-aggregate-dataset-executor-v2" as const;
 export const FIRST_AGGREGATE_INPUT_SCHEMA_VERSION =
-  "flagship-aggregate-state-input-v1" as const;
+  "flagship-aggregate-transition-source-v2" as const;
 export const FIRST_AGGREGATE_TARGET_SCHEMA_VERSION =
-  "flagship-aggregate-step-flux-target-v1" as const;
+  "flagship-aggregate-future-state-target-v2" as const;
 
 const PARAMETER_POINT_ID = "flagship-established-engineering-parameters-v1";
 const INTERVENTION_FAMILY_ID = "no-intervention";
 const NORMALIZATION_PROFILE_ID = "identity-none-profile-v1";
-const PLAN_VERSION = "flagship-first-heldout-aggregate-plan-v1";
-const OUTPUT_BASE_NAME = "flagship-first-aggregate-mechanistic-v1";
+const PLAN_VERSION = "flagship-first-heldout-aggregate-plan-v2";
+const OUTPUT_BASE_NAME = "flagship-first-aggregate-mechanistic-v2";
 const FOUNDER_LINEAGE_ID = "founder-wt";
 const FOUNDER_X = 80;
 const FOUNDER_Y = 80;
@@ -77,16 +80,23 @@ interface FirstAggregateRunConditionDescriptor {
 }
 
 export interface FirstAggregateDatasetInput {
-  readonly simulationTimeHours: number;
+  readonly sourceSnapshotIndex: number;
+  readonly sourceTick: number;
+  readonly sourceTimeHours: number;
   readonly totalBiomass: number;
   readonly totalResource: number;
   readonly occupiedCells: number;
 }
 
 export interface FirstAggregateDatasetTarget {
-  readonly divisionBiomass: number;
-  readonly deathBiomass: number;
-  readonly resourceConsumed: number;
+  readonly targetSnapshotIndex: number;
+  readonly targetTick: number;
+  readonly targetTimeHours: number;
+  readonly forecastHorizonTicks: number;
+  readonly forecastHorizonHours: number;
+  readonly totalBiomass: number;
+  readonly totalResource: number;
+  readonly occupiedCells: number;
 }
 
 export interface FirstAggregateDatasetExecutorData {
@@ -191,7 +201,7 @@ export function createNodeMechanisticDatasetPackage(): NodeMechanisticDatasetPac
     executorData,
     outputBaseName: OUTPUT_BASE_NAME,
     evidenceBoundary:
-      "Engineering held-out coverage over the repository-owned flagship mechanism and explicit model-unit initial state. It is not physical substrate/CFU calibration, biological validation, learned-model quality evidence, or model-promotion evidence.",
+      "Engineering held-out coverage over exact authoritative 64-tick aggregate state transitions from the repository-owned flagship mechanism and explicit model-unit initial state. Targets are future checkpoint state, not interval-integrated ecology flux. This is not physical substrate/CFU calibration, biological validation, learned-model quality evidence, or model-promotion evidence.",
   });
 }
 
@@ -251,35 +261,71 @@ export function resolveNodeMechanisticDatasetTaskDefinition(
   return Object.freeze({
     executionDefinition,
     config: structuredClone(run.config),
-    project: projectFirstAggregateSnapshot,
+    projectTransition: projectFirstAggregateTransition,
     terminationReason: "first-aggregate-heldout-horizon-complete",
   });
 }
 
-export function projectFirstAggregateSnapshot(
-  snapshot: ComposedSimulationSnapshot,
+export function projectFirstAggregateTransition(
+  sourceSnapshot: ComposedSimulationSnapshot,
+  targetSnapshot: ComposedSimulationSnapshot,
+  context: ComposedTransitionProjectionContext,
 ): {
   readonly input: FirstAggregateDatasetInput;
   readonly target: FirstAggregateDatasetTarget;
 } {
-  if (snapshot.checkpoint.authority !== "composed") {
+  if (
+    sourceSnapshot.checkpoint.authority !== "composed" ||
+    targetSnapshot.checkpoint.authority !== "composed"
+  ) {
     throw new TypeError(
-      "first aggregate dataset projection requires a composed checkpoint",
+      "first aggregate dataset transition requires composed source and target checkpoints",
+    );
+  }
+  if (
+    context.targetSnapshotIndex !== context.sourceSnapshotIndex + 1 ||
+    context.snapshotIndex !== context.sourceSnapshotIndex
+  ) {
+    throw new RangeError(
+      "first aggregate dataset transition requires consecutive authoritative observation identity",
+    );
+  }
+  const forecastHorizonTicks = context.targetTick - context.sourceTick;
+  if (!Number.isSafeInteger(forecastHorizonTicks) || forecastHorizonTicks < 1) {
+    throw new RangeError(
+      "first aggregate dataset transition requires a positive exact tick horizon",
     );
   }
 
-  const metrics = snapshot.checkpoint.metrics;
+  const sourceTimeHours = sourceSnapshot.checkpoint.simulationTimeHours;
+  const targetTimeHours = targetSnapshot.checkpoint.simulationTimeHours;
+  const forecastHorizonHours = targetTimeHours - sourceTimeHours;
+  if (!Number.isFinite(forecastHorizonHours) || forecastHorizonHours <= 0) {
+    throw new RangeError(
+      "first aggregate dataset transition must advance biological time",
+    );
+  }
+
+  const sourceMetrics = sourceSnapshot.checkpoint.metrics;
+  const targetMetrics = targetSnapshot.checkpoint.metrics;
   return Object.freeze({
     input: Object.freeze({
-      simulationTimeHours: snapshot.checkpoint.simulationTimeHours,
-      totalBiomass: metrics.totalBiomass,
-      totalResource: metrics.totalResource,
-      occupiedCells: metrics.occupiedCells,
+      sourceSnapshotIndex: context.sourceSnapshotIndex,
+      sourceTick: context.sourceTick,
+      sourceTimeHours,
+      totalBiomass: sourceMetrics.totalBiomass,
+      totalResource: sourceMetrics.totalResource,
+      occupiedCells: sourceMetrics.occupiedCells,
     }),
     target: Object.freeze({
-      divisionBiomass: metrics.divisionBiomass,
-      deathBiomass: metrics.deathBiomass,
-      resourceConsumed: metrics.resourceConsumed,
+      targetSnapshotIndex: context.targetSnapshotIndex,
+      targetTick: context.targetTick,
+      targetTimeHours,
+      forecastHorizonTicks,
+      forecastHorizonHours,
+      totalBiomass: targetMetrics.totalBiomass,
+      totalResource: targetMetrics.totalResource,
+      occupiedCells: targetMetrics.occupiedCells,
     }),
   });
 }

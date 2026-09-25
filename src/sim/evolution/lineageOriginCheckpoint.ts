@@ -76,7 +76,12 @@ export type LineageOriginV2 =
       readonly mutationClass: null;
     };
 
-export interface AppendLineageOriginV2Result {
+export type RuntimeLineageOriginV2 = Exclude<
+  LineageOriginV2,
+  { readonly originKind: "configured-founder" }
+>;
+
+export interface AppendRuntimeLineageOriginV2Result {
   readonly checkpoint: LineageOriginCheckpointV2;
   readonly record: LineageOriginRecordV2;
 }
@@ -181,11 +186,16 @@ export function migrateLineageRegistryCheckpointV1ToOriginV2(args: {
  * organism, move biomass, append taxon/growth/loss/population channels, or emit
  * a protocol command; those belong to the later atomic composed transaction.
  */
-export function appendLineageOriginV2(
+export function appendRuntimeLineageOriginV2(
   checkpoint: LineageOriginCheckpointV2,
-  origin: LineageOriginV2,
-): AppendLineageOriginV2Result {
+  origin: RuntimeLineageOriginV2,
+): AppendRuntimeLineageOriginV2Result {
   const current = validateLineageOriginCheckpointV2(checkpoint);
+  if ((origin as LineageOriginV2).originKind === "configured-founder") {
+    throw new Error(
+      "configured founders are genesis-only and cannot be appended at runtime",
+    );
+  }
   validateOriginFields(origin);
 
   const previousEvent = current.events.at(-1);
@@ -198,17 +208,7 @@ export function appendLineageOriginV2(
     );
   }
 
-  if (origin.originKind === "configured-founder") {
-    if (
-      current.records.some(
-        (record) => record.originKind !== "configured-founder",
-      )
-    ) {
-      throw new Error(
-        "configured founders must remain the lineage registry genesis prefix",
-      );
-    }
-  } else if (origin.originKind === "mutation-child") {
+  if (origin.originKind === "mutation-child") {
     const parent = current.records.find(
       (record) => record.lineageId === origin.parentLineageId,
     );
@@ -305,6 +305,7 @@ export function validateLineageOriginCheckpointV2(
   const canonical = LineageRegistry.restore(legacyProjection).checkpoint();
 
   let runtimeOriginSeen = false;
+  let configuredFounderCount = 0;
   for (let index = 0; index < records.length; index += 1) {
     const record = records[index]!;
     const canonicalRecord = canonical.records[index]!;
@@ -321,7 +322,13 @@ export function validateLineageOriginCheckpointV2(
           "configured founders must remain the lineage registry genesis prefix",
         );
       }
+      configuredFounderCount += 1;
     } else {
+      if (configuredFounderCount === 0) {
+        throw new Error(
+          "runtime lineage origins require a configured-founder genesis prefix",
+        );
+      }
       runtimeOriginSeen = true;
     }
   }

@@ -8,7 +8,7 @@ describe("flagship provenance presentation projection", () => {
 
     expect(view.scenario).toEqual({
       id: "ecoli-ciprofloxacin-spatial",
-      version: "1.4.0-research",
+      version: "1.5.0-research",
       title: "E. coli / ciprofloxacin spatial evolution",
     });
   });
@@ -80,6 +80,42 @@ describe("flagship provenance presentation projection", () => {
     expect(referencePd?.presentation?.disclosures).toContain(
       "These are fitted source-context parameter estimates, not direct raw measurements and not an MG1655 or Petra resource-ecology calibration.",
     );
+  });
+
+  it("distinguishes the transferred ciprofloxacin control envelope from its engineering reference default", () => {
+    const view = buildFlagshipProvenanceView();
+    const envelope = view.records.find(
+      (record) => record.id === "drug-intervention-envelope:ciprofloxacin",
+    );
+    const defaultSelection = view.records.find(
+      (record) => record.id === "drug-intervention-default:ciprofloxacin",
+    );
+
+    expect(envelope?.status).toBe("complete");
+    expect(envelope?.rawClassification).toBe("transferred");
+    expect(envelope?.sourceKeys).toEqual(["regoes_2004"]);
+    expect(envelope?.presentation?.details).toContainEqual({
+      label: "Value",
+      value: "0–2 mg/L",
+    });
+    expect(
+      envelope?.presentation?.disclosures.some((text) =>
+        text.includes("not a clinical dose range"),
+      ),
+    ).toBe(true);
+
+    expect(defaultSelection?.status).toBe("complete");
+    expect(defaultSelection?.rawClassification).toBe("engineering");
+    expect(defaultSelection?.sourceKeys).toEqual([]);
+    expect(defaultSelection?.presentation?.details).toContainEqual({
+      label: "Value",
+      value: "0.03 mg/L",
+    });
+    expect(
+      defaultSelection?.presentation?.disclosures.some((text) =>
+        text.includes("not a measured optimal dose"),
+      ),
+    ).toBe(true);
   });
 
   it("exposes the runnable ecology profile as engineering rather than measured science", () => {

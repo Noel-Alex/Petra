@@ -169,6 +169,29 @@ describe("composed dynamic lineage authority", () => {
     expect(initial).toEqual(before);
   });
 
+  it("rejects materialization provenance that disagrees with registry parent identity", () => {
+    const initial = initializeDynamicLineageAuthority(FOUNDERS);
+    const materialized = oneChildMaterialization(initial);
+    const forged: ChildLineageMaterializationResult = {
+      ...materialized,
+      children: [
+        {
+          ...materialized.children[0]!,
+          sourceGenotypeId: "FORGED",
+        },
+      ],
+    };
+
+    expect(() =>
+      appendMaterializedMutationLineagesToAuthority(
+        initial,
+        FOUNDERS,
+        policy(),
+        forged,
+      ),
+    ).toThrow(/source genotype does not match registry parent/);
+  });
+
   it("rejects materialization that rewrites prior registry history", () => {
     const initial = initializeDynamicLineageAuthority(FOUNDERS);
     const registry = LineageRegistry.restore(initial.lineageRegistry);

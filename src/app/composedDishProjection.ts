@@ -2,6 +2,7 @@ import { resolveLineageVisualIdentity } from "../design/lineageIdentity";
 import type { RuntimeEcologyObservation } from "./experimentRuntime";
 import { projectRuntimeEcologyNetGrowthField } from "./runtimeEcologyRenderField";
 import { projectAcceptedInterventionFootprint } from "../render/acceptedInterventionFootprint";
+import type { OrganismPresentationIdentity } from "../render/organismPresentationIdentity";
 import {
   validateRenderSnapshot,
   type DishRenderSnapshot,
@@ -12,21 +13,33 @@ import type {
   ComposedSimulationSnapshot,
   SimulationSnapshot,
 } from "../sim/protocol";
+import type { AuthoritativeTaxonRegistry } from "../sim/taxonIdentity";
+import {
+  projectLineageOrganismPresentations,
+  type OrganismPresentationTaxonCatalog,
+} from "./lineageOrganismPresentation";
 
 const BIOMASS_UNIT = "model-biomass";
 const RESOURCE_UNIT = "model-resource";
 const CIPROFLOXACIN_UNIT = "mg/L";
 
+export interface ComposedDishOrganismPresentationAuthority {
+  readonly taxonRegistry: AuthoritativeTaxonRegistry;
+  readonly presentationCatalog: OrganismPresentationTaxonCatalog;
+}
+
 export function projectComposedDishSnapshot(
   snapshot: SimulationSnapshot | null,
   runBranchIdentity: string,
   ecologyObservation: RuntimeEcologyObservation | null = null,
+  organismPresentationAuthority: ComposedDishOrganismPresentationAuthority | null = null,
 ): DishRenderSnapshot | null {
   if (snapshot?.checkpoint.authority !== "composed") return null;
   return projectAuthoritativeComposedDishSnapshot(
     snapshot,
     runBranchIdentity,
     ecologyObservation,
+    organismPresentationAuthority,
   );
 }
 
@@ -34,6 +47,7 @@ export function projectAuthoritativeComposedDishSnapshot(
   snapshot: ComposedSimulationSnapshot,
   runBranchIdentity: string,
   ecologyObservation: RuntimeEcologyObservation | null = null,
+  organismPresentationAuthority: ComposedDishOrganismPresentationAuthority | null = null,
 ): DishRenderSnapshot {
   const state = snapshot.checkpoint.composedState;
   const cells = state.width * state.height;
@@ -82,6 +96,30 @@ export function projectAuthoritativeComposedDishSnapshot(
   const metrics = snapshot.checkpoint.metrics;
   assertMetricLineageIdentity(state.lineageIds, metrics.lineageBiomass);
   const dishMask = Uint8Array.from(state.mask);
+
+  let organismPresentationByLineage: ReadonlyMap<
+    string,
+    OrganismPresentationIdentity | null
+  > | null = null;
+  if (organismPresentationAuthority !== null) {
+    if (state.lineageTaxonMap === undefined) {
+      throw new Error(
+        "composed dish organism presentation requires authoritative runtime lineage taxon identity",
+      );
+    }
+    const presentationProjection = projectLineageOrganismPresentations({
+      taxonRegistry: organismPresentationAuthority.taxonRegistry,
+      lineageTaxonMap: state.lineageTaxonMap,
+      presentationCatalog: organismPresentationAuthority.presentationCatalog,
+      expectedRuntimeLineageIds: state.lineageIds,
+    });
+    organismPresentationByLineage = new Map(
+      presentationProjection.lineages.map((entry) => [
+        entry.lineageId,
+        entry.presentation,
+      ] as const),
+    );
+  }
 
   // Keep authoritative-number consistency checks in the same traversal that
   // creates detached presentation buffers. Float32 narrowing happens only after
@@ -143,11 +181,24 @@ export function projectAuthoritativeComposedDishSnapshot(
       );
 
       const identity = resolveLineageVisualIdentity(lineageId);
+      const organismPresentation =
+        organismPresentationByLineage?.get(lineageId);
+      if (
+        organismPresentationByLineage !== null &&
+        organismPresentation === undefined
+      ) {
+        throw new Error(
+          `composed dish organism presentation is missing authoritative lineage ${JSON.stringify(lineageId)}`,
+        );
+      }
       return {
         id: lineageId,
         label: lineageId,
         appearanceToken: identity.appearanceToken,
         patternToken: identity.patternToken,
+        ...(organismPresentation === undefined
+          ? {}
+          : { organismPresentation }),
         density,
       };
     },

@@ -218,6 +218,14 @@ export function parseSupportedContentMatrix(
         "enabled-science content requires explicit Science-Mode admission",
       );
     }
+    if (
+      entry.availability === "enabled-science" &&
+      entry.environment.resourceBindingStatus === "unbound"
+    ) {
+      throw new RangeError(
+        "enabled-science content cannot use an unbound resource context",
+      );
+    }
   }
 
   return Object.freeze({
@@ -370,27 +378,48 @@ function parseEnvironment(value: unknown, name: string): SupportedEnvironment {
   assertExactKeys(record, ENVIRONMENT_KEYS, name);
 
   const medium =
-    record.medium === null ? null : canonicalText(record.medium, `${name}.medium`);
+    record.medium === null
+      ? null
+      : canonicalText(record.medium, `${name}.medium`);
   const referenceTemperatureC =
     record.referenceTemperatureC === null
       ? null
-      : finiteNumber(record.referenceTemperatureC, `${name}.referenceTemperatureC`);
+      : finiteNumber(
+          record.referenceTemperatureC,
+          `${name}.referenceTemperatureC`,
+        );
+  const resourceBindingStatus = enumValue(
+    record.resourceBindingStatus,
+    RESOURCE_BINDING_STATUSES,
+    `${name}.resourceBindingStatus`,
+  );
+  const resourceRepresentation = enumValue(
+    record.resourceRepresentation,
+    RESOURCE_REPRESENTATIONS,
+    `${name}.resourceRepresentation`,
+  );
+
+  if (
+    resourceBindingStatus === "unbound" &&
+    resourceRepresentation !== "dimensionless_model_resource"
+  ) {
+    throw new RangeError(
+      `${name} cannot label an unbound resource context as physical concentration`,
+    );
+  }
+  if (resourceBindingStatus === "unbound" && medium !== null) {
+    throw new RangeError(
+      `${name} cannot name a physical medium for an unbound resource context`,
+    );
+  }
 
   return Object.freeze({
     resourceContextVersion: canonicalText(
       record.resourceContextVersion,
       `${name}.resourceContextVersion`,
     ),
-    resourceBindingStatus: enumValue(
-      record.resourceBindingStatus,
-      RESOURCE_BINDING_STATUSES,
-      `${name}.resourceBindingStatus`,
-    ),
-    resourceRepresentation: enumValue(
-      record.resourceRepresentation,
-      RESOURCE_REPRESENTATIONS,
-      `${name}.resourceRepresentation`,
-    ),
+    resourceBindingStatus,
+    resourceRepresentation,
     medium,
     referenceTemperatureC,
   });
@@ -492,7 +521,10 @@ function enumValue<const T extends readonly string[]>(
   allowed: T,
   name: string,
 ): T[number] {
-  if (typeof value !== "string" || !allowed.includes(value)) {
+  if (
+    typeof value !== "string" ||
+    !(allowed as readonly string[]).includes(value)
+  ) {
     throw new TypeError(`${name} has an unsupported value`);
   }
   return value as T[number];

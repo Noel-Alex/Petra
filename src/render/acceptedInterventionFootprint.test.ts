@@ -154,6 +154,12 @@ describe("accepted intervention footprint projection", () => {
         version: 999,
       }),
     ).toThrow(/unsupported accepted intervention footprint version/);
+    expect(() =>
+      assertAcceptedInterventionFootprint({
+        ...source,
+        x: 0.5,
+      }),
+    ).toThrow(/contains unknown field "x"/);
   });
 
   it("fails closed if a claimed accepted intervention event lacks authority", () => {

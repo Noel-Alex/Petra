@@ -372,6 +372,11 @@ function parseCheckpoint(
         '.identity.parameterSetBinding is required for composed authority',
       )
     }
+    if (!isRngState(record.rngState)) {
+      return failure(
+        '.rngState must be a dense non-zero four-word uint32 array',
+      )
+    }
 
     const state = parseComposedState(record.composedState)
     if (!state.ok) return failure(`.composedState ${state.error}`)

@@ -250,6 +250,27 @@ describe("authoritative composed dish projection", () => {
     expect(dish.simulationTimeHours).toBe(0);
   });
 
+
+  it("rejects malformed authoritative spatial state instead of rendering it", () => {
+    const simulation = composedEngine().snapshot();
+    if (simulation.checkpoint.authority !== "composed") {
+      throw new Error("expected composed snapshot");
+    }
+
+    const offMaskResource = structuredClone(simulation);
+    offMaskResource.checkpoint.composedState.resource[3] = 1;
+    expect(() =>
+      projectAuthoritativeComposedDishSnapshot(
+        offMaskResource,
+        "fixture-branch-0",
+      ),
+    ).toThrow(/resource must be zero outside the dish mask/);
+
+    expect(() =>
+      projectAuthoritativeComposedDishSnapshot(simulation, " "),
+    ).toThrow(/canonical runtime branch identity/);
+  });
+
   it("fails closed to no dish projection for synthetic or absent authority", () => {
     expect(projectComposedDishSnapshot(null, "fixture-branch-0")).toBeNull();
     expect(

@@ -29,7 +29,14 @@ export interface EcologyState {
 export type SpatialDeathHazard = number | Float32Array | Float64Array
 
 export interface LineageEcologyParameters {
-  /** Dimensionless genotype/lineage fitness multiplier applied to division demand. */
+  /**
+   * Baseline lineage/taxon growth-rate scale applied before genotype fitness.
+   *
+   * This separates organism-level calibrated ecology from within-organism
+   * genotype fitness. Omission is the legacy neutral value 1.
+   */
+  baselineGrowthRateScale?: number
+  /** Dimensionless genotype fitness multiplier applied to division demand. */
   relativeFitness: number
   /**
    * First-order loss hazard (1 / time), either uniform or one value per grid cell.
@@ -108,7 +115,23 @@ function validate(
 
   for (let lineageIndex = 0; lineageIndex < lineageParameters.length; lineageIndex += 1) {
     const parameters = lineageParameters[lineageIndex]!
+    finiteNonNegative(
+      `baselineGrowthRateScale[${lineageIndex}]`,
+      parameters.baselineGrowthRateScale ?? 1,
+    )
     finiteNonNegative(`relativeFitness[${lineageIndex}]`, parameters.relativeFitness)
+    if (
+      !Number.isFinite(
+        p.maxDivisionRate *
+          (parameters.baselineGrowthRateScale ?? 1) *
+          parameters.relativeFitness *
+          dt,
+      )
+    ) {
+      throw new Error(
+        `growth-rate product[${lineageIndex}] must be finite for the accepted step`,
+      )
+    }
     const hazard = parameters.deathHazardPerTime
     if (typeof hazard === 'number') {
       finiteNonNegative(`deathHazardPerTime[${lineageIndex}]`, hazard)
@@ -274,8 +297,15 @@ export function beginEcologyStep(
     let potential = 0
     for (let lineageIndex = 0; lineageIndex < lineageCount; lineageIndex += 1) {
       const amount = state.lineages[lineageIndex]![index]!
-      const relativeFitness = lineageParameters[lineageIndex]!.relativeFitness
-      const produced = amount * p.maxDivisionRate * relativeFitness * response * dt
+      const parameters = lineageParameters[lineageIndex]!
+      const baselineGrowthRateScale = parameters.baselineGrowthRateScale ?? 1
+      const produced =
+        amount *
+        p.maxDivisionRate *
+        baselineGrowthRateScale *
+        parameters.relativeFitness *
+        response *
+        dt
       if (!Number.isFinite(produced) || produced < 0) throw new Error('division demand became invalid')
       divisionBiomass[lineageIndex]![index] = produced
       potential += produced

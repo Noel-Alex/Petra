@@ -9,6 +9,7 @@ import {
   assertComposedParameterSetBindingRecord,
 } from './parameterSetBinding'
 import { assertCiprofloxacinIntervention } from './ciprofloxacinIntervention'
+import { assertModelResourceIntervention } from './resourceIntervention'
 import { createComposedStepObservationPosition } from './composedObservationTransaction'
 import {
   assertComposedEcologyObservationEnvelopeMatchesPosition,
@@ -51,12 +52,13 @@ export type ProtocolParseResult<T> =
 const SYNTHETIC_HOURS_PER_TICK = 1 / 60
 const UINT32_MAX = 0xffff_ffff
 const CIPROFLOXACIN_COMMAND_KEYS = new Set(['id', 'type', 'intervention'])
+const MODEL_RESOURCE_COMMAND_KEYS = new Set(['id', 'type', 'intervention'])
 
 /**
  * Runtime promotion boundary for successfully deserialized Worker requests.
  *
  * The returned object is the original payload after validation rather than a
- * reconstructed subset, so protocol-v8 composed configuration/binding fields
+ * reconstructed subset, so protocol-v9 composed configuration/binding fields
  * cannot be silently stripped by an older parser.
  */
 export function parseWorkerRequest(
@@ -266,6 +268,25 @@ function parseSimulationCommand(
     }
     try {
       assertCiprofloxacinIntervention(record.intervention)
+    } catch (error) {
+      return failure(
+        '.intervention ' +
+          (error instanceof Error ? error.message : 'is invalid'),
+      )
+    }
+    return { ok: true, value: value as SimulationCommand }
+  }
+
+  if (record.type === 'apply-model-resource') {
+    for (const key of Object.keys(record)) {
+      if (!MODEL_RESOURCE_COMMAND_KEYS.has(key)) {
+        return failure(
+          '. contains unsupported field ' + JSON.stringify(key),
+        )
+      }
+    }
+    try {
+      assertModelResourceIntervention(record.intervention)
     } catch (error) {
       return failure(
         '.intervention ' +
@@ -710,6 +731,7 @@ function parseSimulationEvent(
     record.type !== 'initialized' &&
     record.type !== 'advanced' &&
     record.type !== 'ciprofloxacin-applied' &&
+    record.type !== 'model-resource-applied' &&
     record.type !== 'synthetic-pulse' &&
     record.type !== 'restored'
   ) {
@@ -733,9 +755,18 @@ function parseSimulationEvent(
           (error instanceof Error ? error.message : 'is invalid'),
       )
     }
+  } else if (record.type === 'model-resource-applied') {
+    try {
+      assertModelResourceIntervention(record.intervention)
+    } catch (error) {
+      return failure(
+        '.intervention ' +
+          (error instanceof Error ? error.message : 'is invalid'),
+      )
+    }
   } else if (record.intervention !== undefined) {
     return failure(
-      '.intervention is supported only for ciprofloxacin-applied events',
+      '.intervention is supported only for accepted intervention events',
     )
   }
 

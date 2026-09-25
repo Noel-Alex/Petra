@@ -1,4 +1,5 @@
 import rawAspergillusNo10Identity from "../../data/presentation/aspergillus_niger_var_hennebergi_no10_v1.json";
+import rawBacillus168SigEIdentity from "../../data/presentation/bacillus_subtilis_168_sige_v1.json";
 import rawFlagshipIdentity from "../../data/presentation/ecoli_k12_mg1655_v1.json";
 
 export const ORGANISM_PRESENTATION_IDENTITY_SCHEMA_VERSION = 1 as const;
@@ -214,6 +215,9 @@ export const FLAGSHIP_ECOLI_ORGANISM_PRESENTATION =
 
 export const ASPERGILLUS_NO10_ORGANISM_PRESENTATION =
   parseOrganismPresentationIdentity(rawAspergillusNo10Identity as unknown);
+
+export const BACILLUS_168_SIGE_ORGANISM_PRESENTATION =
+  parseOrganismPresentationIdentity(rawBacillus168SigEIdentity as unknown);
 
 function requireRecord(
   value: unknown,

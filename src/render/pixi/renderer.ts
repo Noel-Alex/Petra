@@ -85,6 +85,11 @@ import {
   rendererTouchActionForNextGesture,
 } from "./touchOwnership";
 import { resolveDishActivationPoint } from "./dishActivation";
+import {
+  indexLineageGlyphPresentations,
+  lineageGlyphPresentationContractEqual,
+  organismPresentationIdentityEqual,
+} from "./lineagePresentation";
 
 export type RendererMotionMode = "full" | "reduced" | "off";
 
@@ -334,13 +339,28 @@ export async function createPixiDishRenderer(
     nextSnapshot: DishRenderSnapshot,
     requestedOverlayId: string | null,
   ) => {
-    const previousSnapshotId = snapshot?.snapshotId ?? null;
-    const previousSamplingIdentity = snapshot?.samplingIdentity ?? null;
+    const previousSnapshot = snapshot;
+    const previousSnapshotId = previousSnapshot?.snapshotId ?? null;
+    const previousSamplingIdentity =
+      previousSnapshot?.samplingIdentity ?? null;
     const next = resolveSnapshotOverlayUpdate(
       { snapshot, overlayId },
       nextSnapshot,
       requestedOverlayId,
     );
+    const lineagePresentationChanged =
+      previousSnapshot !== null &&
+      !lineageGlyphPresentationContractEqual(
+        previousSnapshot.lineages,
+        next.snapshot.lineages,
+      );
+    if (lineagePresentationChanged) {
+      renderPreparationRevision =
+        advanceDishRenderPreparationRevision(
+          renderPreparationRevision,
+          "organism-presentation",
+        );
+    }
     snapshot = next.snapshot;
     if (overlayId !== next.overlayId) {
       renderPreparationRevision =
@@ -355,6 +375,11 @@ export async function createPixiDishRenderer(
       previousSnapshotId === next.snapshot.snapshotId &&
       previousSamplingIdentity === next.snapshot.samplingIdentity
     ) {
+      if (lineagePresentationChanged) {
+        visualTransition = null;
+        visualElapsedMs = 0;
+        drawableState = next.snapshot;
+      }
       render();
       return;
     }
@@ -748,7 +773,12 @@ export async function createPixiDishRenderer(
         presentation === null
           ? null
           : parseOrganismPresentationIdentity(presentation);
-      if (organismPresentation !== nextOrganismPresentation) {
+      if (
+        !organismPresentationIdentityEqual(
+          organismPresentation,
+          nextOrganismPresentation,
+        )
+      ) {
         renderPreparationRevision =
           advanceDishRenderPreparationRevision(
             renderPreparationRevision,
@@ -987,17 +1017,25 @@ function drawScene(args: {
     );
   });
 
-  if (organismPresentation !== null || level !== "dish") {
+  const lineagePresentations = indexLineageGlyphPresentations(
+    snapshot.lineages,
+    organismPresentation,
+  );
+  if (
+    lineagePresentations.hasAnySupportedDishGlyphPresentation ||
+    level !== "dish"
+  ) {
     const glyphs = sampleRepresentativeGlyphs(snapshot, camera, level === "dish" ? "colony" : level, {
       maxGlyphs: Math.min(maxRepresentativeGlyphs, level === "dish" ? 140 : 260),
       minimumDensity: lineageDensityMaximum * 0.12,
     });
     const occupiedGlyphPositions: ScreenPoint[] = [];
     for (const glyph of glyphs) {
-      const lineage = snapshot.lineages.find(
-        (candidate) => candidate.id === glyph.lineageId,
+      const indexedLineage = lineagePresentations.byLineageId.get(
+        glyph.lineageId,
       );
-      if (lineage === undefined) continue;
+      if (indexedLineage === undefined) continue;
+      const { lineage, presentation } = indexedLineage;
       const color = resolveLineageAppearance(lineage.appearanceToken).color;
       const point = dishToScreen(
         glyph.x,
@@ -1012,7 +1050,7 @@ function drawScene(args: {
       occupiedGlyphPositions.push(point);
       const strength = Math.sqrt(glyph.weight / Math.max(lineageDensityMaximum, Number.EPSILON));
       const glyphRadius = Math.max(2.2, (level === "dish" ? 4.3 : 5.2) * Math.min(camera.zoom, 3)) * (0.55 + strength * 0.45);
-      if (organismPresentation?.morphology === "rod") {
+      if (presentation?.morphology === "rod") {
         // Stable illustration pose, NOT orientation, motility, cell size, or a cell count.
         const angle = (glyph.cellIndex * 2.399963 + glyph.lineageId.length) % Math.PI;
         const dx = Math.cos(angle) * glyphRadius;

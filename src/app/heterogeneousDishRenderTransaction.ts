@@ -84,11 +84,6 @@ export function createHeterogeneousDishRenderTransaction(
   args: CreateHeterogeneousDishRenderTransactionArgs,
 ): HeterogeneousDishRenderTransaction {
   const checkpoint = args.simulationSnapshot.checkpoint;
-  if (checkpoint.authority !== "composed") {
-    throw new Error(
-      "heterogeneous dish render transaction requires composed simulation authority",
-    );
-  }
 
   const position = cloneAndValidatePosition({
     runBranchIdentity: args.runBranchIdentity,

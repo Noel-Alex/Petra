@@ -2290,6 +2290,121 @@ def profile_authoritative_playback(
         },
     }
 
+
+def profile_post_growth_camera_redraw(
+    cdp: CDP,
+    target_accepted_commands: int = 16,
+) -> dict[str, Any]:
+    """Measure renderer-owned camera redraws after real authoritative progress.
+
+    The browser surface currently proves accepted-command and biological-time
+    progress, not biomass/occupancy. Keep this evidence labelled post-growth or
+    later-run until source-owned occupancy authority is exposed.
+    """
+    current = run_control_state(cdp)
+    if current and current.get("playing") is True:
+        pause = click_run_control(cdp, "Pause")
+        paused = wait_run_status(cdp, "ready")
+        if pause.get("clicked") is not True or paused is None:
+            raise RuntimeError(
+                f"Could not pause authoritative runtime before post-growth profile: "
+                f"{pause}, {paused}"
+            )
+
+    reset_action = click_run_control(cdp, "Reset")
+    reset_state = wait_run_status(cdp, "ready")
+    camera_reset_action = click_overview_reset(cdp)
+    speed_action = click_run_control(cdp, "16×")
+    time.sleep(0.03)
+    before = run_control_state(cdp)
+    before_count = before.get("acceptedCommandCount") if before else None
+    before_hours = before.get("simulationTimeHours") if before else None
+
+    if (
+        reset_action.get("clicked") is not True
+        or reset_state is None
+        or reset_state.get("status") != "ready"
+        or camera_reset_action is not True
+        or speed_action.get("clicked") is not True
+        or not isinstance(before_count, int)
+        or not isinstance(before_hours, (int, float))
+    ):
+        raise RuntimeError(
+            "Could not prepare authoritative post-growth camera workload: "
+            f"reset={reset_action}, reset_state={reset_state}, camera_reset="
+            f"{camera_reset_action}, speed={speed_action}, before={before}"
+        )
+
+    play_action = click_run_control(cdp, "Play")
+    reached = wait_playback_accepted_command_count(
+        cdp,
+        before_count + target_accepted_commands,
+        timeout=30.0,
+    )
+    pause_action = click_run_control(cdp, "Pause")
+    after = wait_run_status(cdp, "ready")
+    if pause_action.get("clicked") is not True or after is None:
+        raise RuntimeError(
+            f"Could not pause authoritative post-growth state: {pause_action}, {after}"
+        )
+
+    after_count = after.get("acceptedCommandCount")
+    after_hours = after.get("simulationTimeHours")
+    accepted_delta = (
+        int(after_count) - before_count
+        if isinstance(after_count, (int, float))
+        else None
+    )
+    biological_delta = (
+        round(float(after_hours) - float(before_hours), 6)
+        if isinstance(after_hours, (int, float))
+        else None
+    )
+
+    camera_reset_after_growth = click_overview_reset(cdp)
+    time.sleep(0.1)
+    whole_png = capture_browser_png(cdp, "performance-post-growth-whole-dish.png")
+    whole_samples = renderer_frame_samples(cdp)
+    whole = frame_metrics(whole_samples, "post-growth-whole-dish")
+
+    zoom_ok = dispatch_renderer_wheel(cdp, -650)
+    time.sleep(0.1)
+    zoom_png = capture_browser_png(cdp, "performance-post-growth-colony-zoom.png")
+    zoom_samples = renderer_frame_samples(cdp)
+    zoomed = frame_metrics(zoom_samples, "post-growth-colony-camera-zoom")
+
+    return {
+        "targetAcceptedCommandAdvance": target_accepted_commands,
+        "resetAction": reset_action,
+        "cameraResetAction": camera_reset_action,
+        "speedAction": speed_action,
+        "playAction": play_action,
+        "pauseAction": pause_action,
+        "reached": reached,
+        "before": before,
+        "after": after,
+        "acceptedCommandAdvance": accepted_delta,
+        "biologicalTimeAdvanceHours": biological_delta,
+        "cameraResetAfterGrowth": camera_reset_after_growth,
+        "wholeDish": whole,
+        "colonyZoom": zoomed,
+        "zoomApplied": zoom_ok,
+        "wholeDishArtifact": str(
+            ARTIFACT_DIR / "performance-post-growth-whole-dish.png"
+        ),
+        "colonyZoomArtifact": str(
+            ARTIFACT_DIR / "performance-post-growth-colony-zoom.png"
+        ),
+        "wholeDishSha256": hashlib.sha256(whole_png).hexdigest(),
+        "colonyZoomSha256": hashlib.sha256(zoom_png).hexdigest(),
+        "limitation": (
+            "This workload proves a later accepted authoritative state by "
+            "command/time progress. It does not label that state dense or "
+            "high-biomass because the product DOM does not expose a source-owned "
+            "occupancy measurement."
+        ),
+    }
+
 def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
     checks: list[dict[str, Any]] = []
     cdp.call(
@@ -2324,6 +2439,22 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
     zoom_png = capture_browser_png(cdp, "performance-colony-zoom.png")
     zoom_samples = renderer_frame_samples(cdp)
     zoomed = frame_metrics(zoom_samples, "colony-camera-zoom")
+
+    try:
+        post_growth = profile_post_growth_camera_redraw(cdp)
+    except Exception as exc:
+        post_growth = {
+            "error": repr(exc),
+            "wholeDish": {"sampleCount": 0, "rendererOwnedRedraws": 0},
+            "colonyZoom": {"sampleCount": 0, "rendererOwnedRedraws": 0},
+        }
+
+    # Return subsequent profiled workloads to the reset initial scientific state
+    # so the established baseline semantics remain unchanged.
+    post_growth_restore_action = click_run_control(cdp, "Reset")
+    post_growth_restore_state = wait_run_status(cdp, "ready")
+    click_overview_reset(cdp)
+    time.sleep(0.1)
 
     cdp.call("Performance.enable")
     install_browser_performance_probes(cdp)
@@ -2372,6 +2503,52 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
     gpu_context = gpu_proxy.get("contextKind") if gpu_proxy else None
     whole_runtime_delta = numeric_metric_delta(whole_runtime_before, whole_runtime_after)
     zoom_runtime_delta = numeric_metric_delta(zoom_runtime_before, zoom_runtime_after)
+    post_growth_whole = (
+        post_growth.get("wholeDish")
+        if isinstance(post_growth.get("wholeDish"), dict)
+        else {}
+    )
+    post_growth_zoom = (
+        post_growth.get("colonyZoom")
+        if isinstance(post_growth.get("colonyZoom"), dict)
+        else {}
+    )
+    post_growth_after = (
+        post_growth.get("after")
+        if isinstance(post_growth.get("after"), dict)
+        else {}
+    )
+    post_growth_progress_ok = (
+        post_growth.get("error") is None
+        and isinstance(post_growth.get("acceptedCommandAdvance"), int)
+        and post_growth["acceptedCommandAdvance"]
+        >= post_growth.get("targetAcceptedCommandAdvance", 16)
+        and isinstance(post_growth.get("biologicalTimeAdvanceHours"), (int, float))
+        and post_growth["biologicalTimeAdvanceHours"] > 0
+        and post_growth_after.get("renderSource") == "authoritative"
+        and post_growth_after.get("rendererStatus") == "ready"
+    )
+    initial_whole_p95 = whole.get("p95FrameMs")
+    initial_zoom_p95 = zoomed.get("p95FrameMs")
+    post_growth_whole_p95 = post_growth_whole.get("p95FrameMs")
+    post_growth_zoom_p95 = post_growth_zoom.get("p95FrameMs")
+    post_growth_ratios = {
+        "wholeDishP95RatioToInitial": (
+            round(post_growth_whole_p95 / initial_whole_p95, 6)
+            if isinstance(post_growth_whole_p95, (int, float))
+            and isinstance(initial_whole_p95, (int, float))
+            and initial_whole_p95 > 0
+            else None
+        ),
+        "colonyZoomP95RatioToInitial": (
+            round(post_growth_zoom_p95 / initial_zoom_p95, 6)
+            if isinstance(post_growth_zoom_p95, (int, float))
+            and isinstance(initial_zoom_p95, (int, float))
+            and initial_zoom_p95 > 0
+            else None
+        ),
+    }
+
     checks.extend(
         [
             check(
@@ -2492,6 +2669,58 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
                     "gcSupported": zoom_probe.get("gcSupported") if zoom_probe else False,
                     "gcEventCount": zoom_probe.get("gcEventCount") if zoom_probe else None,
                     "gcTotalMs": zoom_probe.get("gcTotalMs") if zoom_probe else None,
+                },
+            ),
+            check(
+                "performance post-growth: authoritative frontier reached",
+                post_growth_progress_ok,
+                post_growth,
+                "blocked" if not post_growth_progress_ok else None,
+            ),
+            check(
+                "performance post-growth whole-dish: renderer-owned redraw samples captured",
+                post_growth_progress_ok
+                and post_growth.get("cameraResetAfterGrowth") is True
+                and post_growth_whole.get("sampleCount", 0) >= 175
+                and post_growth_whole.get("rendererOwnedRedraws")
+                == post_growth_whole.get("sampleCount"),
+                {
+                    **post_growth_whole,
+                    "initialP95FrameMs": initial_whole_p95,
+                    "p95RatioToInitial": post_growth_ratios[
+                        "wholeDishP95RatioToInitial"
+                    ],
+                    "artifact": post_growth.get("wholeDishArtifact"),
+                    "limitation": post_growth.get("limitation"),
+                },
+                "blocked" if not post_growth_progress_ok else None,
+            ),
+            check(
+                "performance post-growth colony zoom: renderer-owned redraw samples captured",
+                post_growth_progress_ok
+                and post_growth.get("zoomApplied") is True
+                and post_growth_zoom.get("sampleCount", 0) >= 175
+                and post_growth_zoom.get("rendererOwnedRedraws")
+                == post_growth_zoom.get("sampleCount"),
+                {
+                    **post_growth_zoom,
+                    "initialP95FrameMs": initial_zoom_p95,
+                    "p95RatioToInitial": post_growth_ratios[
+                        "colonyZoomP95RatioToInitial"
+                    ],
+                    "artifact": post_growth.get("colonyZoomArtifact"),
+                    "limitation": post_growth.get("limitation"),
+                },
+                "blocked" if not post_growth_progress_ok else None,
+            ),
+            check(
+                "performance post-growth: initial scientific state restored before profiled workload",
+                post_growth_restore_action.get("clicked") is True
+                and post_growth_restore_state is not None
+                and post_growth_restore_state.get("status") == "ready",
+                {
+                    "resetAction": post_growth_restore_action,
+                    "resetState": post_growth_restore_state,
                 },
             ),
             check(

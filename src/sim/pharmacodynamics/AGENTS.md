@@ -13,6 +13,8 @@
 - Spatial concentration input must come from authoritative simulation state. Renderer/UI state cannot influence PD output.
 - Drug concentration/PD may alter survival or growth, but must never directly instruct mutation generation.
 - Prepared/hot-loop evaluators must be numerically equivalent to the validated reference function.
+- Generic antimicrobial composition keeps growth/division suppression and incremental loss as independent effect axes. Never force a bacteriostatic/source growth-inhibition model through a death-hazard API merely for drug UI uniformity.
+- The Greulich chloramphenicol authority is the exact versioned `data/pharmacodynamics/chloramphenicol_mg1655_greulich_v1.json` record plus `chloramphenicol.ts`. It is restricted to wild-type E. coli K-12 MG1655 in the reviewed MOPS glucose/glycerol families, uses explicit `uM`, and must fail closed on unknown environment/background/unit identity. The current `model-resource` flagship is not either family; product/runtime binding remains blocked on #928.
 
 ## Provenance
 Every versioned composition policy must expose a stable ID, classification, source keys, and limitation text suitable for the later Why?/Sources/Assumptions UI.

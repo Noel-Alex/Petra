@@ -1,4 +1,8 @@
-import { ECOLOGY_NET_GROWTH_RENDER_FIELD_ID } from '../src/render/ecologyFluxField'
+import {
+  ECOLOGY_DEATH_RATE_RENDER_FIELD_ID,
+  ECOLOGY_DIVISION_RATE_RENDER_FIELD_ID,
+  ECOLOGY_NET_GROWTH_RENDER_FIELD_ID,
+} from '../src/render/ecologyFluxField'
 import { gridCellCenter } from '../src/render/gridGeometry'
 import type { DishRenderSnapshot, RenderEvent, RenderField } from '../src/render/model'
 import type { CiprofloxacinIntervention } from '../src/sim/ciprofloxacinIntervention'
@@ -12,7 +16,7 @@ import type {
   SimulationEvent,
 } from '../src/sim/protocol'
 
-export const RENDER_PROJECTION_PARITY_SCHEMA_VERSION = 2 as const
+export const RENDER_PROJECTION_PARITY_SCHEMA_VERSION = 3 as const
 export const RENDER_FLOAT32_STORAGE_POLICY =
   'math-fround-source-channels-and-fround-lineage-aggregate-v1' as const
 
@@ -103,11 +107,24 @@ export interface RenderProjectionParityEvidence {
   ]
 }
 
-export interface RuntimeEcologyNetGrowthParityEvidence {
+export type RuntimeEcologyRateFieldId =
+  | typeof ECOLOGY_NET_GROWTH_RENDER_FIELD_ID
+  | typeof ECOLOGY_DIVISION_RATE_RENDER_FIELD_ID
+  | typeof ECOLOGY_DEATH_RATE_RENDER_FIELD_ID
+
+export type RuntimeEcologyRateQuantity =
+  | 'pre-spread-interval-average-net-local-biomass-rate'
+  | 'pre-spread-interval-average-division-biomass-rate'
+  | 'pre-spread-interval-average-death-biomass-rate'
+
+export interface RuntimeEcologyRateParityEvidence<
+  FieldId extends RuntimeEcologyRateFieldId = RuntimeEcologyRateFieldId,
+  Quantity extends RuntimeEcologyRateQuantity = RuntimeEcologyRateQuantity,
+> {
   readonly schemaVersion: typeof RENDER_PROJECTION_PARITY_SCHEMA_VERSION
   readonly classification: 'render-projection-integrity-not-biological-validation'
-  readonly fieldId: typeof ECOLOGY_NET_GROWTH_RENDER_FIELD_ID
-  readonly quantity: 'pre-spread-interval-average-net-local-biomass-rate'
+  readonly fieldId: FieldId
+  readonly quantity: Quantity
   readonly unit: string
   readonly grid: {
     readonly width: number
@@ -124,6 +141,24 @@ export interface RuntimeEcologyNetGrowthParityEvidence {
     readonly sourceUnits: true
   }
 }
+
+export type RuntimeEcologyNetGrowthParityEvidence =
+  RuntimeEcologyRateParityEvidence<
+    typeof ECOLOGY_NET_GROWTH_RENDER_FIELD_ID,
+    'pre-spread-interval-average-net-local-biomass-rate'
+  >
+
+export type RuntimeEcologyDivisionRateParityEvidence =
+  RuntimeEcologyRateParityEvidence<
+    typeof ECOLOGY_DIVISION_RATE_RENDER_FIELD_ID,
+    'pre-spread-interval-average-division-biomass-rate'
+  >
+
+export type RuntimeEcologyDeathRateParityEvidence =
+  RuntimeEcologyRateParityEvidence<
+    typeof ECOLOGY_DEATH_RATE_RENDER_FIELD_ID,
+    'pre-spread-interval-average-death-biomass-rate'
+  >
 
 export const LINEAGE_ORIGIN_RENDER_EVENT_PARITY_SCHEMA_VERSION = 1 as const
 
@@ -623,45 +658,57 @@ export function verifyRenderProjectionParity(
   }
 }
 
-export function verifyRuntimeEcologyNetGrowthParity(
+interface RuntimeEcologyRateParitySpec<
+  FieldId extends RuntimeEcologyRateFieldId,
+  Quantity extends RuntimeEcologyRateQuantity,
+> {
+  readonly fieldId: FieldId
+  readonly kind: RenderField['kind']
+  readonly label: string
+  readonly quantity: Quantity
+  readonly sourceName: string
+  readonly source: (observation: EcologyFluxObservation) => readonly number[]
+  readonly requireNonNegative: boolean
+}
+
+function verifyRuntimeEcologyRateParity<
+  FieldId extends RuntimeEcologyRateFieldId,
+  Quantity extends RuntimeEcologyRateQuantity,
+>(
   observation: EcologyFluxObservation,
   projected: RenderField,
-): RuntimeEcologyNetGrowthParityEvidence {
+  spec: RuntimeEcologyRateParitySpec<FieldId, Quantity>,
+): RuntimeEcologyRateParityEvidence<FieldId, Quantity> {
+  requireEqual(spec.sourceName + ' field id', projected.id, spec.fieldId)
+  requireEqual(spec.sourceName + ' field kind', projected.kind, spec.kind)
+  requireEqual(spec.sourceName + ' field label', projected.label, spec.label)
   requireEqual(
-    'net-growth field id',
-    projected.id,
-    ECOLOGY_NET_GROWTH_RENDER_FIELD_ID,
-  )
-  requireEqual('net-growth field kind', projected.kind, 'net-growth')
-  requireEqual(
-    'net-growth field label',
-    projected.label,
-    'Net local biomass rate (pre-spread)',
-  )
-  requireEqual(
-    'net-growth field unit',
+    spec.sourceName + ' field unit',
     projected.unit,
     observation.biomassUnit + '/' + observation.timeUnit,
   )
-  requireEqual('net-growth field width', projected.width, observation.width)
-  requireEqual('net-growth field height', projected.height, observation.height)
-  requireEqual('net-growth field range mode', projected.rangeMode ?? '', 'snapshot-extrema')
+  requireEqual(spec.sourceName + ' field width', projected.width, observation.width)
+  requireEqual(spec.sourceName + ' field height', projected.height, observation.height)
+  requireEqual(
+    spec.sourceName + ' field range mode',
+    projected.rangeMode ?? '',
+    'snapshot-extrema',
+  )
 
   const cells = observation.width * observation.height
+  const source = spec.source(observation)
   if (
     !Number.isSafeInteger(cells) ||
     cells <= 0 ||
     observation.mask.length !== cells ||
-    observation.averageNetLocalBiomassRateByCell.length !== cells
+    source.length !== cells
   ) {
-    throw new Error('net-growth source channels must match a positive safe grid')
+    throw new Error(spec.sourceName + ' source channels must match a positive safe grid')
   }
 
-  const quantization = assertProjectedSignedFloat32Channel(
-    'net-growth rate',
-    observation.averageNetLocalBiomassRateByCell,
-    projected.values,
-  )
+  const quantization = spec.requireNonNegative
+    ? assertProjectedFloat32Channel(spec.sourceName + ' rate', source, projected.values)
+    : assertProjectedSignedFloat32Channel(spec.sourceName + ' rate', source, projected.values)
 
   let minimum = Number.POSITIVE_INFINITY
   let maximum = Number.NEGATIVE_INFINITY
@@ -669,34 +716,37 @@ export function verifyRuntimeEcologyNetGrowthParity(
   for (let index = 0; index < cells; index += 1) {
     const mask = observation.mask[index]
     if (mask !== 0 && mask !== 1) {
-      throw new Error('net-growth source mask must be binary at index ' + index)
+      throw new Error(spec.sourceName + ' source mask must be binary at index ' + index)
     }
-    const source = observation.averageNetLocalBiomassRateByCell[index]
-    if (source === undefined || !Number.isFinite(source)) {
-      throw new Error('net-growth source rate must be finite at index ' + index)
+    const sourceValue = source[index]
+    if (sourceValue === undefined || !Number.isFinite(sourceValue)) {
+      throw new Error(spec.sourceName + ' source rate must be finite at index ' + index)
     }
-    if (mask === 0 && source !== 0) {
-      throw new Error('net-growth source rate must be zero off-mask at index ' + index)
+    if (spec.requireNonNegative && sourceValue < 0) {
+      throw new Error(spec.sourceName + ' source rate must be non-negative at index ' + index)
+    }
+    if (mask === 0 && sourceValue !== 0) {
+      throw new Error(spec.sourceName + ' source rate must be zero off-mask at index ' + index)
     }
     if (mask === 1) {
       inMask += 1
-      const displayed = Math.fround(source)
+      const displayed = Math.fround(sourceValue)
       minimum = Math.min(minimum, displayed)
       maximum = Math.max(maximum, displayed)
     }
   }
   if (inMask === 0) {
-    throw new Error('net-growth parity requires at least one in-mask cell')
+    throw new Error(spec.sourceName + ' parity requires at least one in-mask cell')
   }
 
-  requireEqual('net-growth minimum', projected.minimum, minimum)
-  requireEqual('net-growth maximum', projected.maximum, maximum)
+  requireEqual(spec.sourceName + ' minimum', projected.minimum, minimum)
+  requireEqual(spec.sourceName + ' maximum', projected.maximum, maximum)
 
   return {
     schemaVersion: RENDER_PROJECTION_PARITY_SCHEMA_VERSION,
     classification: 'render-projection-integrity-not-biological-validation',
-    fieldId: ECOLOGY_NET_GROWTH_RENDER_FIELD_ID,
-    quantity: 'pre-spread-interval-average-net-local-biomass-rate',
+    fieldId: spec.fieldId,
+    quantity: spec.quantity,
     unit: projected.unit,
     grid: {
       width: projected.width,
@@ -713,6 +763,51 @@ export function verifyRuntimeEcologyNetGrowthParity(
       sourceUnits: true,
     },
   }
+}
+
+export function verifyRuntimeEcologyNetGrowthParity(
+  observation: EcologyFluxObservation,
+  projected: RenderField,
+): RuntimeEcologyNetGrowthParityEvidence {
+  return verifyRuntimeEcologyRateParity(observation, projected, {
+    fieldId: ECOLOGY_NET_GROWTH_RENDER_FIELD_ID,
+    kind: 'net-growth',
+    label: 'Net local biomass rate (pre-spread)',
+    quantity: 'pre-spread-interval-average-net-local-biomass-rate',
+    sourceName: 'net-growth',
+    source: (source) => source.averageNetLocalBiomassRateByCell,
+    requireNonNegative: false,
+  })
+}
+
+export function verifyRuntimeEcologyDivisionRateParity(
+  observation: EcologyFluxObservation,
+  projected: RenderField,
+): RuntimeEcologyDivisionRateParityEvidence {
+  return verifyRuntimeEcologyRateParity(observation, projected, {
+    fieldId: ECOLOGY_DIVISION_RATE_RENDER_FIELD_ID,
+    kind: 'division-rate',
+    label: 'Division biomass rate (pre-spread)',
+    quantity: 'pre-spread-interval-average-division-biomass-rate',
+    sourceName: 'division-biomass',
+    source: (source) => source.averageDivisionBiomassRateByCell,
+    requireNonNegative: true,
+  })
+}
+
+export function verifyRuntimeEcologyDeathRateParity(
+  observation: EcologyFluxObservation,
+  projected: RenderField,
+): RuntimeEcologyDeathRateParityEvidence {
+  return verifyRuntimeEcologyRateParity(observation, projected, {
+    fieldId: ECOLOGY_DEATH_RATE_RENDER_FIELD_ID,
+    kind: 'death-rate',
+    label: 'Death biomass rate (pre-spread)',
+    quantity: 'pre-spread-interval-average-death-biomass-rate',
+    sourceName: 'death-biomass',
+    source: (source) => source.averageDeathBiomassRateByCell,
+    requireNonNegative: true,
+  })
 }
 
 function acceptedInterventionAuthority(

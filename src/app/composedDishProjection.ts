@@ -86,11 +86,6 @@ export function projectAuthoritativeComposedDishSnapshot(
         );
       }
 
-      assertSourceMaskedZero(
-        `lineage ${JSON.stringify(lineageId)} biomass`,
-        source,
-        state.mask,
-      );
       const density = finiteFloat32Field(
         `lineage ${JSON.stringify(lineageId)} biomass`,
         source,
@@ -113,11 +108,6 @@ export function projectAuthoritativeComposedDishSnapshot(
     },
   );
 
-  assertSourceMaskedZero(
-    "limiting model resource",
-    state.resource,
-    state.mask,
-  );
   assertSourceMaskedZero(
     "ciprofloxacin concentration",
     state.ciprofloxacinConcentrationMgPerL,

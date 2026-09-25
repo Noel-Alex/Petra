@@ -445,9 +445,10 @@ def summarize_render_publication_samples(
             [float(value) for value in backing_bytes]
         ),
         "limitation": (
-            "Advance-only browser observations. Projection timing excludes the payload-estimator "
-            "duration; payload bytes are renderer-facing application estimates, not Worker framing, "
-            "bandwidth, heap, GPU memory, or proof that coalescing/transferables are beneficial."
+            "Reset-bounded browser publication observations. Projection timing excludes the "
+            "payload-estimator duration; payload bytes are renderer-facing application estimates, "
+            "not Worker framing, bandwidth, heap, GPU memory, or proof that "
+            "coalescing/transferables are beneficial."
         ),
     }
 

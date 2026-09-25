@@ -403,6 +403,17 @@ export async function createPixiDishRenderer(
     gestureState = moved.state;
     if (!moved.accepted || moved.intent.kind === "none") return;
 
+    // Keep click/tap slop exclusive: while the first pointer is still a valid
+    // activation candidate, sub-threshold motion must not also pan the camera.
+    // Crossing the activation threshold clears the candidate above, after
+    // which normal camera gesture ownership resumes.
+    if (
+      activationCandidate?.pointerId === event.pointerId &&
+      moved.intent.kind === "pan"
+    ) {
+      return;
+    }
+
     if (
       !rendererOwnsGestureIntent(
         moved.intent.kind,

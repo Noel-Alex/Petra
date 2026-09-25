@@ -13,6 +13,11 @@ import {
   COMPOSED_PARAMETER_SET_BINDING_SCHEMA_VERSION,
   type ComposedParameterSetBinding,
 } from './parameterSetBinding'
+import {
+  parameterCompatibilityDecisionIdentity,
+  type ParameterCompatibilityComposition,
+  type ParameterCompatibilityField,
+} from './parameterCompatibility'
 import { CIPROFLOXACIN_RESOURCE_COMPOSITION_POLICY } from './pharmacodynamics/composition'
 import {
   assertSimulationSeed,
@@ -55,6 +60,7 @@ export interface FlagshipComposedRunPlan {
   readonly parameterSetBinding: ComposedParameterSetBinding
   readonly executionProfile: EcologyExecutionProjection
   readonly resourceContext: ScenarioResourceContext
+  readonly parameterCompatibilityDecisionIdentity: string
 }
 
 interface BaselineLineageRecord {
@@ -528,6 +534,150 @@ function projectFlagshipCiprofloxacinAuthority(
   })
 }
 
+const FLAGSHIP_UNBOUND_RESOURCE_COMPATIBILITY_MEDIUM =
+  'UNBOUND physical medium; dimensionless model-resource' as const
+
+const FLAGSHIP_REQUIRED_PARAMETER_COMPATIBILITY_FIELDS: readonly ParameterCompatibilityField[] = [
+  'organismBackground',
+  'mediumSubstrate',
+  'temperatureC',
+  'assayConvention',
+  'modelConvention',
+]
+
+function projectFlagshipParameterCompatibility(args: {
+  scenario: UnknownRecord
+  resourceContext: ScenarioResourceContext
+  taxonAuthority: FlagshipTaxonAuthority
+}): string {
+  const organism = requireRecord('scenario.organism', args.scenario.organism)
+  const drug = requireRecord('scenario.drug', args.scenario.drug)
+  const policy = requireRecord(
+    'scenario.drug.resourceDrugCompositionPolicy',
+    drug.resourceDrugCompositionPolicy,
+  )
+  const reference = requireRecord(
+    'scenario.drug.referencePharmacodynamics',
+    drug.referencePharmacodynamics,
+  )
+  const declaration = requireRecord(
+    'scenario.drug.resourceDrugCompositionPolicy.parameterCompatibility',
+    policy.parameterCompatibility,
+  ) as unknown as ParameterCompatibilityComposition
+
+  const decisionIdentity = parameterCompatibilityDecisionIdentity(declaration)
+
+  if (
+    declaration.requiredFields.length !==
+      FLAGSHIP_REQUIRED_PARAMETER_COMPATIBILITY_FIELDS.length ||
+    FLAGSHIP_REQUIRED_PARAMETER_COMPATIBILITY_FIELDS.some(
+      (field) => !declaration.requiredFields.includes(field),
+    )
+  ) {
+    throw new Error(
+      'flagship ciprofloxacin compatibility declaration must require organism, medium, temperature, assay, and model conventions',
+    )
+  }
+
+  const target = declaration.target.context
+  if (target.organismBackground !== args.taxonAuthority.taxon.background) {
+    throw new Error(
+      'flagship compatibility target organism must match authoritative taxon background',
+    )
+  }
+  if (
+    args.resourceContext.bindingStatus !== 'unbound' ||
+    args.resourceContext.medium !== null ||
+    target.mediumSubstrate !== FLAGSHIP_UNBOUND_RESOURCE_COMPATIBILITY_MEDIUM
+  ) {
+    throw new Error(
+      'flagship compatibility target must preserve the unbound physical-medium resource boundary',
+    )
+  }
+
+  const referenceTemperatureC = requirePositiveFinite(
+    'scenario.organism.referenceTemperatureC',
+    organism.referenceTemperatureC,
+  )
+  if (
+    target.temperatureC !== referenceTemperatureC ||
+    target.temperatureC !== args.resourceContext.referenceTemperatureC
+  ) {
+    throw new Error(
+      'flagship compatibility target temperature must match scenario/resource authority',
+    )
+  }
+
+  const policyId = requireCanonicalText(
+    'scenario.drug.resourceDrugCompositionPolicy.id',
+    policy.id,
+  )
+  if (target.modelConvention !== policyId) {
+    throw new Error(
+      'flagship compatibility target model convention must match the active loss policy',
+    )
+  }
+
+  if (declaration.records.length !== 1) {
+    throw new Error(
+      'flagship ciprofloxacin compatibility declaration must contain exactly one transferred reference-PD record',
+    )
+  }
+  const sourceRecord = declaration.records[0]!
+  if (
+    sourceRecord.sourceKey !==
+    requireCanonicalText(
+      'scenario.drug.referencePharmacodynamics.citation',
+      reference.citation,
+    )
+  ) {
+    throw new Error(
+      'flagship compatibility source key must match reference pharmacodynamics citation',
+    )
+  }
+  if (
+    sourceRecord.context.organismBackground !==
+    requireCanonicalText(
+      'scenario.drug.referencePharmacodynamics.sourceOrganism',
+      reference.sourceOrganism,
+    )
+  ) {
+    throw new Error(
+      'flagship compatibility source organism must match reference pharmacodynamics',
+    )
+  }
+  if (
+    requireCanonicalText(
+      'scenario.drug.referencePharmacodynamics.sourceCondition',
+      reference.sourceCondition,
+    ) !== 'LB, 37 C' ||
+    sourceRecord.context.mediumSubstrate !== 'LB' ||
+    sourceRecord.context.temperatureC !== 37
+  ) {
+    throw new Error(
+      'flagship compatibility source context must match the reviewed Regoes CAB1/LB/37 C authority',
+    )
+  }
+
+  if (declaration.transfers.length !== 1) {
+    throw new Error(
+      'flagship ciprofloxacin compatibility declaration must contain exactly one transfer decision',
+    )
+  }
+  const transfer = declaration.transfers[0]!
+  if (
+    transfer.recordId !== sourceRecord.recordId ||
+    transfer.policyId !== policyId ||
+    transfer.classification !== 'transferred'
+  ) {
+    throw new Error(
+      'flagship compatibility transfer must bind the reference PD record to the active loss policy',
+    )
+  }
+
+  return decisionIdentity
+}
+
 function assertFlagshipReferences(args: {
   scenario: UnknownRecord
   resourceContext: ScenarioResourceContext
@@ -732,6 +882,12 @@ export function buildFlagshipComposedRunPlan(
     scenarioRecord.composedParameterSet,
   )
   const ciprofloxacin = projectFlagshipCiprofloxacinAuthority(scenarioRecord)
+  const parameterCompatibilityDecisionIdentity =
+    projectFlagshipParameterCompatibility({
+      scenario: scenarioRecord,
+      resourceContext,
+      taxonAuthority,
+    })
   assertFlagshipReferences({
     scenario: scenarioRecord,
     resourceContext,
@@ -821,5 +977,6 @@ export function buildFlagshipComposedRunPlan(
     parameterSetBinding,
     executionProfile,
     resourceContext,
+    parameterCompatibilityDecisionIdentity,
   })
 }

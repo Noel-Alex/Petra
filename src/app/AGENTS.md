@@ -212,3 +212,9 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 ## Flagship ciprofloxacin tool authority
 - `flagshipRunPreset.ts` returns the scenario-projected ciprofloxacin tool authority and its provenance alongside the composed run plan. It must validate the simulation-owned projection through `ciprofloxacinToolAuthority.ts`; React must not hard-code concentration bounds/defaults or infer them from MIC/renderer state.
 - The current flagship guardrail is a source-domain model-field edit contract, not clinical dosing or physical delivery authority. Missing/malformed authority keeps Apply unavailable rather than falling back to demo numbers.
+
+
+## Runtime intervention footprint history binding
+- `runtimeInterventionFootprintFrame.ts` is the presentation-only bridge from the current `ExperimentRuntimeState` transaction to accepted ciprofloxacin footprint render data. It derives footprints only from that exact current `SimulationSnapshot.events`; callers must not cache raw event-local geometry and later attach it to a different runtime branch.
+- Every frame binds the exact `RunIdentity`, runtime-owned `runBranchIdentity`, checkpoint tick/biological time/`commandCount`, and snapshot `traceHash`. Missing current authority returns no frame; foreign run identity, malformed branch/order identity, non-canonical trace identity, non-monotone event order, or an event beyond the enclosing checkpoint frontier fails closed.
+- This frame is not simulation/checkpoint/replay authority and does not estimate affected population, diffusion, clearance, efficacy, or a representative point. Reset/replay/restore generation changes remain visible even when accepted footprint payloads are otherwise byte-equivalent.

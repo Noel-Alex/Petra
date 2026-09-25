@@ -156,6 +156,31 @@ describe('resource-limited ecology step', () => {
     expect(s.lineages[0]).toEqual(new Float32Array([0, 9, 0]))
   })
 
+  it('does not turn a large child-lineage count into biomass-conservation slack', () => {
+    const s: EcologyState = {
+      width: 1,
+      height: 1,
+      mask: new Uint8Array([1]),
+      resource: new Float32Array([0]),
+      lineages: [new Float32Array([10])],
+    }
+    const phase = beginEcologyStep(
+      s,
+      { ...params, maxDivisionRate: 0, spreadRate: 0 },
+      neutral(1),
+      1,
+    )
+
+    for (let index = 0; index < 2_000; index += 1) {
+      s.lineages.push(new Float32Array([0]))
+    }
+    s.lineages.push(new Float32Array([0.001]))
+
+    expect(() => completeEcologyStep(s, phase)).toThrow(
+      /interphase must conserve total biomass/,
+    )
+  })
+
   it('keeps pre-step capacity reserved across the interphase despite same-step deaths', () => {
     const s: EcologyState = {
       width: 2,

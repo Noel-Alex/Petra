@@ -1,5 +1,6 @@
 import rawMatrix from "../data/content_support/v1.json";
 import {
+  AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION,
   createAuthoritativeTaxonRegistry,
   type AuthoritativeTaxonRegistry,
 } from "./sim/taxonIdentity";
@@ -276,6 +277,11 @@ export function validateSupportedScenarioTaxonAuthority(
   scenario: SupportedScenario,
   registry: AuthoritativeTaxonRegistry,
 ): void {
+  if (
+    registry.schemaVersion !== AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION
+  ) {
+    throw new Error("unsupported authoritative taxon registry schema version");
+  }
   const validatedRegistry = createAuthoritativeTaxonRegistry(registry.taxa);
   const taxaById = new Map(
     validatedRegistry.taxa.map((taxon) => [taxon.id, taxon] as const),

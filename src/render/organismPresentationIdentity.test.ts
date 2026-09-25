@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import rawAspergillusNo10Identity from "../../data/presentation/aspergillus_niger_var_hennebergi_no10_v1.json";
 import rawFlagshipIdentity from "../../data/presentation/ecoli_k12_mg1655_v1.json";
 import {
+  ASPERGILLUS_NO10_ORGANISM_PRESENTATION,
   FLAGSHIP_ECOLI_ORGANISM_PRESENTATION,
   parseOrganismPresentationIdentity,
 } from "./organismPresentationIdentity";
@@ -34,6 +36,47 @@ describe("organism presentation identity", () => {
     expect(Object.isFrozen(identity.provenance)).toBe(true);
     expect(Object.isFrozen(identity.provenance.sources)).toBe(true);
     expect(identity.provenance.sources.every(Object.isFrozen)).toBe(true);
+  });
+
+  it("promotes the named Aspergillus no. 10 record as measured fungus + filamentous-hyphal presentation evidence", () => {
+    const identity = ASPERGILLUS_NO10_ORGANISM_PRESENTATION;
+
+    expect(identity).toMatchObject({
+      kind: "petra-organism-presentation-identity",
+      schemaVersion: 1,
+      scientificName: "Aspergillus niger",
+      background: "var. hennebergi no. 10; ORSTOM fungal collection",
+      organismKind: "fungus",
+      morphology: "filamentous-hyphal",
+      provenance: {
+        classification: "measured",
+      },
+    });
+    expect(identity.provenance.sources.map((source) => source.doi)).toEqual([
+      "10.1002/(SICI)1097-0290(19971105)56:3<287::AID-BIT6>3.0.CO;2-F",
+    ]);
+    expect(identity.provenance.limitation).toMatch(/representative filamentous\/hyphal/i);
+    expect(Object.isFrozen(identity)).toBe(true);
+  });
+
+  it("accepts only reviewed organism-kind/morphology pairs", () => {
+    expect(() =>
+      parseOrganismPresentationIdentity(rawAspergillusNo10Identity),
+    ).not.toThrow();
+
+    const fungusAsRod = structuredClone(
+      rawAspergillusNo10Identity,
+    ) as Record<string, unknown>;
+    fungusAsRod.morphology = "rod";
+    expect(() => parseOrganismPresentationIdentity(fungusAsRod)).toThrow(
+      /kind\/morphology combination/,
+    );
+
+    const bacteriumAsHyphae = cloneRecord();
+    bacteriumAsHyphae.morphology = "filamentous-hyphal";
+    expect(() => parseOrganismPresentationIdentity(bacteriumAsHyphae)).toThrow(
+      /kind\/morphology combination/,
+    );
   });
 
   it("rejects unsupported morphology and organism-kind claims instead of inferring them", () => {

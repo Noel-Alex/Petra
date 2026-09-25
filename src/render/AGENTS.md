@@ -33,6 +33,8 @@ LOD is deterministic for a fixed render snapshot + view request where practical.
 
 Prefer aggregate density/texture at dish scale and bounded representative glyphs at colony scale. Never create one render object per biological cell.
 
+- `colonyMassPresentation.ts` is the renderer-neutral preparation contract for sparse filled colony masses. It consumes one lineage density channel plus the caller-owned snapshot-wide shared denominator, preserves exact zero intensity at zero source density, uses the existing square-root comparable-density compression, and groups only presentation-threshold support into deterministic eight-neighbour accent islands. The continuous alpha field preserves all positive support; accent summaries are bounded visual placement hints only, never CFU/cell counts or physical colony boundaries. A supplied shared denominator that understates any positive in-mask density fails closed instead of visually inflating that lineage.
+
 ## Accessibility
 
 Critical lineage/state distinctions require a non-color cue. Reduced-motion mode suppresses decorative movement/camera sweeps while preserving state changes and scientific information.

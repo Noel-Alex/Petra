@@ -12,7 +12,7 @@ describe("scenario discovery Science Mode admission", () => {
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({
       id: "ecoli-ciprofloxacin-spatial",
-      version: "1.4.0-research",
+      version: "1.5.0-research",
       catalogStatus: "research",
       scienceMode: {
         maturity: "experimental",

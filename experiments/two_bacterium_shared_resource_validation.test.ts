@@ -6,6 +6,7 @@ import {
   TWO_BACTERIUM_MECHANISM_SCOPE,
   TWO_BACTERIUM_SHARED_RESOURCE_VALIDATION_EXPERIMENT_ID,
   TWO_BACTERIUM_SHARED_RESOURCE_VALIDATION_SCHEMA_VERSION,
+  UNBOUND_TWO_BACTERIUM_CONTENT_PACK_LIMITATION,
   assessTwoBacteriumSharedResourceValidationEvidence,
   validateTwoBacteriumSharedResourceValidationEvidence,
   type TwoBacteriumSharedResourceValidationEvidence,
@@ -20,10 +21,11 @@ function validEvidence(): TwoBacteriumSharedResourceValidationEvidence {
       id: 'fixture:two-bacterium-shared-resource',
       version: '1.0.0',
     },
-    contentPack: {
+    parameterSet: {
       id: 'fixture:ecoli-bacillus-shared-resource',
       version: '1.0.0',
     },
+    contentPackManifest: null,
     configurationFingerprint: 'fixture-config-fingerprint',
     taxa: [
       {
@@ -65,7 +67,10 @@ function validEvidence(): TwoBacteriumSharedResourceValidationEvidence {
       status: 'passed' as const,
       detail: `${id} fixture evidence`,
     })),
-    limitations: [...REQUIRED_TWO_BACTERIUM_LIMITATIONS],
+    limitations: [
+      ...REQUIRED_TWO_BACTERIUM_LIMITATIONS,
+      UNBOUND_TWO_BACTERIUM_CONTENT_PACK_LIMITATION,
+    ],
     runtime: {
       status: 'completed',
       durationSeconds: 12.5,
@@ -89,6 +94,23 @@ describe('two-bacterium shared-resource validation evidence contract', () => {
       structuralErrors: [],
       rejectionReasons: [],
     })
+  })
+
+  it('fails closed when a null standalone content-pack manifest omits its limitation', () => {
+    const evidence = validEvidence()
+    const candidate = {
+      ...evidence,
+      limitations: evidence.limitations.filter(
+        (limitation) =>
+          limitation !== UNBOUND_TWO_BACTERIUM_CONTENT_PACK_LIMITATION,
+      ),
+    }
+
+    expect(
+      validateTwoBacteriumSharedResourceValidationEvidence(candidate),
+    ).toContain(
+      `missing required limitation: ${UNBOUND_TWO_BACTERIUM_CONTENT_PACK_LIMITATION}`,
+    )
   })
 
   it('treats a failed required control as valid evidence but not passing evidence', () => {

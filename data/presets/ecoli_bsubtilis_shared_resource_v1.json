@@ -90,13 +90,13 @@
       "id": "bsubtilis-168-trp-plus-sige-minus",
       "contentVersion": "tannler-2008-growth-context-v1",
       "scientificName": "Bacillus subtilis",
-      "background": "168 trp+ sigE-",
+      "background": "168 trp+ sigE-; sporulation-deficient laboratory derivative",
       "microbialGroup": "bacterium",
       "provenance": {
         "sourceKeys": [
           "doi:10.1186/1475-2859-7-19"
         ],
-        "context": "B. subtilis 168 trp+ sigE- M9 glucose, aerobic 37 C physiology; sigE- is used to avoid silently modeling unsupported later sporulation.",
+        "context": "B. subtilis 168 trp+ sigE- sporulation-deficient laboratory derivative in M9 glucose, aerobic 37 C physiology; sigE- is used to avoid silently modeling unsupported later sporulation.",
         "limitation": "This taxon identity does not authorize sporulation, ciprofloxacin response, mutation/evolution, direct antagonism, physical Monod parameters, or a co-culture interaction coefficient."
       }
     }

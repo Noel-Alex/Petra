@@ -42,6 +42,7 @@ RESULT_JSON = Path(
 DEFAULT_ADVANCE_TICKS = (1, 4, 16, 64, 64, 64, 64, 64)
 PROFILE_SEED = 0x00630630
 HISTORY_AGE_FRONTIERS = (1, 64, 256, 625)
+HISTORY_AGE_PROBE_REPEATS = 5
 
 
 def parse_advance_ticks(raw: str | None) -> list[int]:
@@ -138,8 +139,15 @@ def profile_expression(advance_ticks: list[int]) -> str:
   const historyAgeFrontiers = __HISTORY_AGE_FRONTIERS__;
 
   const runHistoryAgeProfile = async () => {
+    const probeRepeatCount = __HISTORY_AGE_PROBE_REPEATS__;
     const probeIds = new Set(
-      historyAgeFrontiers.map((frontier) => "history-probe-" + String(frontier)),
+      historyAgeFrontiers.flatMap((frontier) =>
+        Array.from(
+          { length: probeRepeatCount },
+          (_, repeat) =>
+            "history-probe-" + String(frontier) + "-" + String(repeat),
+        ),
+      ),
     );
     const probeSamples = new Map();
     const warmup = {
@@ -243,11 +251,32 @@ def profile_expression(advance_ticks: list[int]) -> str:
           );
         }
 
-        const commandId = "history-probe-" + String(frontier);
-        await command(
-          { id: commandId, type: "snapshot" },
-          "history probe " + String(frontier),
-        );
+        const frontierSamples = [];
+        for (let repeat = 0; repeat < probeRepeatCount; repeat += 1) {
+          const commandId =
+            "history-probe-" + String(frontier) + "-" + String(repeat);
+          await command(
+            { id: commandId, type: "snapshot" },
+            "history probe " + String(frontier) + " repeat " + String(repeat),
+          );
+
+          const sample = probeSamples.get(commandId);
+          if (sample === undefined) {
+            throw new Error(
+              "history-age probe is missing WorkerSession performance evidence",
+            );
+          }
+          frontierSamples.push({
+            responsePayloadBytes: sample.responsePayloadBytes,
+            senderPostMessageCallMs: sample.senderPostMessageCallMs,
+            mainThreadSnapshotCloneMs: sample.mainThreadSnapshotCloneMs,
+            roundTripMs: sample.roundTripMs,
+            workerExecutionMs: sample.workerExecutionMs,
+            nonWorkerRoundTripMs: sample.nonWorkerRoundTripMs,
+            authoritativeEventArrayLength:
+              sample.authoritativeEventArrayLength,
+          });
+        }
 
         const snapshot = historySession.state.latestSnapshot;
         if (
@@ -278,13 +307,6 @@ def profile_expression(advance_ticks: list[int]) -> str:
           );
         }
 
-        const sample = probeSamples.get(commandId);
-        if (sample === undefined) {
-          throw new Error(
-            "history-age probe is missing WorkerSession performance evidence",
-          );
-        }
-
         probes.push({
           eventCount: snapshot.events.length,
           eventPayloadBytes: instrumentationModule.estimateStructuredClonePayloadBytes(
@@ -297,16 +319,7 @@ def profile_expression(advance_ticks: list[int]) -> str:
             simulationTimeHours: snapshot.checkpoint.simulationTimeHours,
             commandCount: snapshot.checkpoint.commandCount,
           },
-          performance: {
-            responsePayloadBytes: sample.responsePayloadBytes,
-            senderPostMessageCallMs: sample.senderPostMessageCallMs,
-            mainThreadSnapshotCloneMs: sample.mainThreadSnapshotCloneMs,
-            roundTripMs: sample.roundTripMs,
-            workerExecutionMs: sample.workerExecutionMs,
-            nonWorkerRoundTripMs: sample.nonWorkerRoundTripMs,
-            authoritativeEventArrayLength:
-              sample.authoritativeEventArrayLength,
-          },
+          performanceSamples: frontierSamples,
         });
       }
 
@@ -320,6 +333,7 @@ def profile_expression(advance_ticks: list[int]) -> str:
           "snapshot.traceHash",
         ],
         probeCommand: "snapshot",
+        probeRepeatCount,
         historyGrowthCommand: {
           type: "advance",
           ticks: 0,
@@ -513,6 +527,7 @@ def profile_expression(advance_ticks: list[int]) -> str:
         source.replace("__ADVANCE_TICKS__", json.dumps(advance_ticks))
         .replace("__PROFILE_SEED__", str(PROFILE_SEED))
         .replace("__HISTORY_AGE_FRONTIERS__", json.dumps(HISTORY_AGE_FRONTIERS))
+        .replace("__HISTORY_AGE_PROBE_REPEATS__", str(HISTORY_AGE_PROBE_REPEATS))
     )
 
 
@@ -636,6 +651,17 @@ def main() -> int:
         if not isinstance(probes, list) or len(probes) != len(HISTORY_AGE_FRONTIERS):
             raise RuntimeError("history-age workload returned an incomplete probe set")
         observed_frontiers = [item.get("eventCount") for item in probes if isinstance(item, dict)]
+        for item in probes:
+            if not isinstance(item, dict):
+                raise RuntimeError("history-age workload returned a malformed probe")
+            performance_samples = item.get("performanceSamples")
+            if (
+                not isinstance(performance_samples, list)
+                or len(performance_samples) != HISTORY_AGE_PROBE_REPEATS
+            ):
+                raise RuntimeError(
+                    "history-age workload returned an incomplete repeated probe"
+                )
         if observed_frontiers != list(HISTORY_AGE_FRONTIERS):
             raise RuntimeError(
                 "history-age workload frontiers do not match the registered workload: {}".format(
@@ -694,6 +720,7 @@ def main() -> int:
                         "totalResponsePayloadBytes"
                     ),
                     "history_age_frontiers": list(HISTORY_AGE_FRONTIERS),
+                    "history_age_probe_repeats": HISTORY_AGE_PROBE_REPEATS,
                 },
                 sort_keys=True,
             )

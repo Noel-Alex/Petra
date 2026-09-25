@@ -678,6 +678,8 @@ def continuous_render_publication_pass(
             and dropped == 0
             and isinstance(transaction_count, int)
             and transaction_count > 0
+            and isinstance(complete, int)
+            and complete > 0
             and isinstance(runtime_count, int)
             and runtime_count > 0
             and isinstance(projection_count, int)

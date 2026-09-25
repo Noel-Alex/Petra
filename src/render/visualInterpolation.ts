@@ -6,6 +6,7 @@ import {
   type RenderField,
   type RenderLineage,
 } from "./model";
+import { parseOrganismPresentationIdentity } from "./organismPresentationIdentity";
 import {
   cubicBezierProgress,
   type MotionEasing,
@@ -201,6 +202,9 @@ export function planDishVisualTransition(
           label: metadata.label,
           appearanceToken: metadata.appearanceToken,
           patternToken: metadata.patternToken,
+          ...(metadata.organismPresentation === undefined
+            ? {}
+            : { organismPresentation: metadata.organismPresentation }),
           density: new Float32Array(to.gridWidth * to.gridHeight),
         },
       };
@@ -405,8 +409,54 @@ function lineageMetadataEqual(
     left.id === right.id &&
     left.label === right.label &&
     left.appearanceToken === right.appearanceToken &&
-    left.patternToken === right.patternToken
+    left.patternToken === right.patternToken &&
+    organismPresentationMetadataEqual(
+      left.organismPresentation,
+      right.organismPresentation,
+    )
   );
+}
+
+function organismPresentationMetadataEqual(
+  left: RenderLineage["organismPresentation"],
+  right: RenderLineage["organismPresentation"],
+): boolean {
+  const normalizedLeft = left ?? null;
+  const normalizedRight = right ?? null;
+  if (normalizedLeft === null || normalizedRight === null) {
+    return normalizedLeft === normalizedRight;
+  }
+
+  if (
+    normalizedLeft.kind !== normalizedRight.kind ||
+    normalizedLeft.schemaVersion !== normalizedRight.schemaVersion ||
+    normalizedLeft.id !== normalizedRight.id ||
+    normalizedLeft.scientificName !== normalizedRight.scientificName ||
+    normalizedLeft.background !== normalizedRight.background ||
+    normalizedLeft.organismKind !== normalizedRight.organismKind ||
+    normalizedLeft.morphology !== normalizedRight.morphology ||
+    normalizedLeft.provenance.classification !==
+      normalizedRight.provenance.classification ||
+    normalizedLeft.provenance.context !== normalizedRight.provenance.context ||
+    normalizedLeft.provenance.transferNote !==
+      normalizedRight.provenance.transferNote ||
+    normalizedLeft.provenance.limitation !==
+      normalizedRight.provenance.limitation ||
+    normalizedLeft.provenance.sources.length !==
+      normalizedRight.provenance.sources.length
+  ) {
+    return false;
+  }
+
+  return normalizedLeft.provenance.sources.every((source, index) => {
+    const other = normalizedRight.provenance.sources[index];
+    return (
+      other !== undefined &&
+      source.key === other.key &&
+      source.doi === other.doi &&
+      source.context === other.context
+    );
+  });
 }
 
 function arraysEqual(
@@ -486,6 +536,14 @@ function assertVisualState(state: DishVisualState): void {
       throw new RangeError("visual state lineage IDs must be unique");
     }
     lineageIds.add(lineage.id);
+    if (
+      lineage.organismPresentation !== undefined &&
+      lineage.organismPresentation !== null
+    ) {
+      parseOrganismPresentationIdentity(
+        structuredClone(lineage.organismPresentation),
+      );
+    }
     if (lineage.density.length !== cells) {
       throw new RangeError("visual state lineage density must match grid");
     }

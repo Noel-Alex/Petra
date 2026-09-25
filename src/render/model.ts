@@ -4,6 +4,10 @@ import {
 } from "./acceptedInterventionFootprint";
 import { isLineageAppearanceToken, type LineageAppearanceToken } from "./lineageAppearance";
 import { isLineagePatternToken, type LineagePatternToken } from "./lineagePatterns";
+import {
+  parseOrganismPresentationIdentity,
+  type OrganismPresentationIdentity,
+} from "./organismPresentationIdentity";
 
 export type SemanticZoomLevel = "dish" | "colony" | "representative-cell";
 
@@ -67,7 +71,19 @@ export interface RenderField {
   readonly minimum: number;
   readonly maximum: number;
 }
-export interface RenderLineage { readonly id: string; readonly label: string; readonly appearanceToken: LineageAppearanceToken; readonly patternToken: LineagePatternToken; readonly density: Float32Array; }
+export interface RenderLineage {
+  readonly id: string;
+  readonly label: string;
+  readonly appearanceToken: LineageAppearanceToken;
+  readonly patternToken: LineagePatternToken;
+  /**
+   * Optional source-backed presentation evidence for representative organism
+   * morphology. Null/omitted is intentionally morphology-neutral; this record
+   * is presentation-only and never simulation/checkpoint authority.
+   */
+  readonly organismPresentation?: OrganismPresentationIdentity | null;
+  readonly density: Float32Array;
+}
 export interface RenderEvent { readonly id: string; readonly kind: string; readonly simulationTimeHours: number; readonly x: number; readonly y: number; readonly lineageId?: string; readonly label: string; }
 export interface DishRenderSnapshot { readonly snapshotId: string; /** Stable presentation-only domain for deterministic representative-glyph sampling across related snapshots. */ readonly samplingIdentity: string; readonly simulationTimeHours: number; readonly gridWidth: number; readonly gridHeight: number; readonly dishMask: Uint8Array; readonly biomass: Float32Array; readonly fields: readonly RenderField[]; readonly lineages: readonly RenderLineage[]; /** Accepted non-point intervention geometry. Authoritative composed projections emit this explicitly; omission is retained only for older presentation fixtures. */ readonly acceptedInterventionFootprints?: readonly AcceptedInterventionFootprint[]; readonly events: readonly RenderEvent[]; }
 export interface CameraView { readonly centerX: number; readonly centerY: number; readonly zoom: number; }
@@ -116,6 +132,9 @@ export function validateRenderSnapshot(snapshot: DishRenderSnapshot): void {
     if (!lineage.id || !lineage.label) throw new TypeError("render lineages require identity and presentation metadata");
     if (!isLineageAppearanceToken(lineage.appearanceToken)) throw new RangeError(`unsupported lineage appearance token: ${String(lineage.appearanceToken)}`);
     if (!isLineagePatternToken(lineage.patternToken)) throw new RangeError(`unsupported lineage pattern token: ${String(lineage.patternToken)}`);
+    if (lineage.organismPresentation !== undefined && lineage.organismPresentation !== null) {
+      parseOrganismPresentationIdentity(structuredClone(lineage.organismPresentation));
+    }
     if (lineageIds.has(lineage.id)) throw new RangeError(`duplicate lineage id: ${lineage.id}`); lineageIds.add(lineage.id);
     assertLength(`lineage ${lineage.id}`, lineage.density.length, cells); assertFiniteNonNegativeArray(`lineage ${lineage.id}`, lineage.density);
   }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { sampleRepresentativeGlyphs } from "./lod";
+import { FLAGSHIP_ECOLI_ORGANISM_PRESENTATION } from "./organismPresentationIdentity";
 import {
   ACCEPTED_INTERVENTION_FOOTPRINT_VERSION,
   type AcceptedInterventionFootprint,
@@ -139,6 +140,37 @@ describe("validateRenderSnapshot", () => {
     expect(() =>
       validateRenderSnapshot({ ...snapshot, lineages: [invalid] }),
     ).toThrow(/unsupported lineage appearance token/i);
+  });
+
+  it("accepts validated source-backed lineage morphology evidence", () => {
+    const snapshot = fixture();
+    expect(() =>
+      validateRenderSnapshot({
+        ...snapshot,
+        lineages: [
+          {
+            ...snapshot.lineages[0]!,
+            organismPresentation: FLAGSHIP_ECOLI_ORGANISM_PRESENTATION,
+          },
+          snapshot.lineages[1]!,
+        ],
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects malformed or incompatible lineage morphology evidence", () => {
+    const snapshot = fixture();
+    const invalid = {
+      ...snapshot.lineages[0]!,
+      organismPresentation: {
+        ...FLAGSHIP_ECOLI_ORGANISM_PRESENTATION,
+        morphology: "filamentous-hyphal",
+      },
+    } as unknown as DishRenderSnapshot["lineages"][number];
+
+    expect(() =>
+      validateRenderSnapshot({ ...snapshot, lineages: [invalid] }),
+    ).toThrow(/kind\/morphology combination/i);
   });
 
   it("requires a supported color-independent lineage pattern", () => {

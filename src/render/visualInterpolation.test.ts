@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 import visualInterpolationSource from "./visualInterpolation.ts?raw";
+import {
+  ASPERGILLUS_NO10_ORGANISM_PRESENTATION,
+  FLAGSHIP_ECOLI_ORGANISM_PRESENTATION,
+  type OrganismPresentationIdentity,
+} from "./organismPresentationIdentity";
 
 import type {
   DishRenderSnapshot,
@@ -26,12 +31,16 @@ function lineage(
   appearanceToken:
     | "lineage-cyan"
     | "lineage-coral" = "lineage-cyan",
+  organismPresentation?: OrganismPresentationIdentity | null,
 ): RenderLineage {
   return {
     id,
     label: id,
     appearanceToken,
     patternToken: "solid-ring",
+    ...(organismPresentation === undefined
+      ? {}
+      : { organismPresentation }),
     density: new Float32Array(density),
   };
 }
@@ -294,6 +303,79 @@ describe("dish visual continuity", () => {
       biomass: [2, 2],
       field: [1, 1],
       lineages: [lineage("same-id", [2, 2], "lineage-coral")],
+    });
+
+    expect(planDishVisualTransition(from, to, LINEAR)).toEqual({
+      kind: "snap",
+      reason: "lineage-metadata-mismatch",
+    });
+  });
+
+  it("preserves stable organism presentation evidence on interpolated lineage frames", () => {
+    const from = snapshot({
+      id: "a",
+      biomass: [1, 1],
+      field: [1, 1],
+      lineages: [
+        lineage(
+          "same-id",
+          [1, 1],
+          "lineage-cyan",
+          FLAGSHIP_ECOLI_ORGANISM_PRESENTATION,
+        ),
+      ],
+    });
+    const to = snapshot({
+      id: "b",
+      biomass: [2, 2],
+      field: [1, 1],
+      lineages: [
+        lineage(
+          "same-id",
+          [2, 2],
+          "lineage-cyan",
+          FLAGSHIP_ECOLI_ORGANISM_PRESENTATION,
+        ),
+      ],
+    });
+
+    const plan = planDishVisualTransition(from, to, LINEAR);
+    expect(plan.kind).toBe("interpolate");
+    if (plan.kind !== "interpolate") return;
+
+    const half = advanceDishVisualTransition(plan.transition, 50);
+    expect(half.complete).toBe(false);
+    expect(
+      (half.state as DishPresentationFrame).lineages[0]?.organismPresentation,
+    ).toBe(FLAGSHIP_ECOLI_ORGANISM_PRESENTATION);
+  });
+
+  it("refuses to morph one lineage between different organism presentation identities", () => {
+    const from = snapshot({
+      id: "a",
+      biomass: [1, 1],
+      field: [1, 1],
+      lineages: [
+        lineage(
+          "same-id",
+          [1, 1],
+          "lineage-cyan",
+          FLAGSHIP_ECOLI_ORGANISM_PRESENTATION,
+        ),
+      ],
+    });
+    const to = snapshot({
+      id: "b",
+      biomass: [2, 2],
+      field: [1, 1],
+      lineages: [
+        lineage(
+          "same-id",
+          [2, 2],
+          "lineage-cyan",
+          ASPERGILLUS_NO10_ORGANISM_PRESENTATION,
+        ),
+      ],
     });
 
     expect(planDishVisualTransition(from, to, LINEAR)).toEqual({

@@ -1,6 +1,6 @@
 import type { DishRenderSnapshot } from "./model";
 
-export const DISH_RENDER_PAYLOAD_ESTIMATE_VERSION = 1 as const;
+export const DISH_RENDER_PAYLOAD_ESTIMATE_VERSION = 2 as const;
 
 export interface DishRenderPayloadEstimate {
   readonly version: typeof DISH_RENDER_PAYLOAD_ESTIMATE_VERSION;
@@ -109,6 +109,7 @@ export function estimateDishRenderSnapshotPayload(
       label: lineage.label,
       appearanceToken: lineage.appearanceToken,
       patternToken: lineage.patternToken,
+      organismPresentation: lineage.organismPresentation ?? null,
     })),
     acceptedInterventionFootprints:
       snapshot.acceptedInterventionFootprints ?? null,

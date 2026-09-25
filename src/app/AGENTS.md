@@ -182,6 +182,8 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Stable shell/source-badge chrome must not reintroduce blur-heavy `backdrop-filter` glass. Dish ambient `filter: blur(...)` is a separate decorative halo treatment governed by motion policy and is not this glass-material ban.
 - Runtime status color is reinforcement only: ready uses shared mint, pending/starting amber, error coral, while visible status text remains authoritative.
 - Theme cleanup must not change focus geometry, touch targets, dish-first focus-mode layout, intervention-placement semantics, semantic zoom, timeline ordering/content, or renderer scientific mapping.
+- InterventionIllustration.tsx owns the app-shell inline vector artwork for the explicitly selected intervention tool kind. Its geometry is decorative control art only; it never represents live population or simulation state and uses the shared Petra color tokens.
+- The secondary AnalysisSurface is nested inside Colony Details as a native collapsed disclosure so an unavailable chart does not reserve a full-width row in the primary dish workspace. Preserve the unavailable explanation and exact authoritative records when expanded; do not fabricate a preview trace.
 
 - `scenarioDiscovery.ts` must consume the shared `scienceModeAdmission.ts` result. Bundled/discoverable/runnable and grounded Science Mode are distinct product states; React/catalog code must not invent a second maturity label or promote an experimental scenario from display metadata.
 

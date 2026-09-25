@@ -53,6 +53,9 @@ describe("AnalysisSurface", () => {
     );
 
     expect(html).toContain('data-analysis-status="unavailable"');
+    expect(html).toContain('<details');
+    expect(html).not.toContain('<details open');
+    expect(html).toContain("not connected");
     expect(html).toContain("Authoritative analysis unavailable");
     expect(html).toContain(
       "Petra will not substitute synthetic or visual-demo data",
@@ -98,6 +101,9 @@ describe("AnalysisSurface", () => {
     const html = renderToStaticMarkup(<App />);
 
     expect(html).toContain('data-analysis-status="unavailable"');
+    expect(html).toContain('<details');
+    expect(html).not.toContain('<details open');
+    expect(html).toContain("not connected");
     expect(html).toContain("Authoritative analysis unavailable");
     expect(html).not.toContain("Scientific time series");
   });

@@ -174,12 +174,12 @@ describe("Analysis shell shared visual theme", () => {
       analysisSurfaceCss,
     );
 
-    expect(summary).toContain("min-height: 4.25rem;");
+    expect(summary).toContain("min-height: 3.3rem;");
     expect(summary).toContain("cursor: pointer;");
     expect(focus).toContain("outline: 3px solid var(--petra-focus-ring);");
     expect(focus).toContain("outline-offset: 3px;");
     expect(panel).toContain("border: 0;");
-    expect(panel).toContain("border-radius: 0 0 20px 20px;");
+    expect(panel).toContain("border-radius: 0 0 16px 16px;");
     expect(analysisSurfaceCss).not.toContain("transition:");
     expect(analysisSurfaceCss).not.toContain("animation:");
   });

@@ -22,7 +22,16 @@ describe("InterventionPalette", () => {
     expect(html).toContain('data-intervention-tool="fungus"');
     expect(html).toContain('data-intervention-tool="antibiotic"');
     expect(html).toContain('data-intervention-tool="nutrient"');
-    expect(html.match(/place preview/g)).toHaveLength(4);
+    expect(html.match(/class="intervention-illustration"/g)).toHaveLength(4);
+    expect(html).toContain("Add population");
+    expect(html).toContain("Bacteria and other microbes");
+    expect(html).toContain("Add fungi");
+    expect(html).toContain("Yeasts and filamentous fungi");
+    expect(html).toContain("Add medicine");
+    expect(html).toContain("Antibiotics and antifungals");
+    expect(html).toContain("Add nutrient");
+    expect(html).toContain("Change the environment");
+    expect(html).not.toContain("place preview");
     expect(html).not.toContain(">Inspect</button>");
     expect(html).not.toContain(' disabled=""');
     expect(html).toContain('role="status"');
@@ -44,7 +53,7 @@ describe("InterventionPalette", () => {
     );
 
     expect(html).toContain('data-placement-active="true"');
-    expect(html).toContain("Fungi target");
+    expect(html).toContain("Add fungi target");
     expect(html).toContain("Preview only");
     expect(html).toContain('aria-label="Horizontal dish target position"');
     expect(html).toContain('value="35"');
@@ -77,6 +86,9 @@ describe("InterventionPalette", () => {
       "Authoritative simulation is not connected. Intervention tools remain unavailable.",
     );
     expect(html).toContain('data-intervention-tool="fungus"');
+    expect(html).toContain('aria-label="Display preferences"');
+    expect(html).toContain("No colony selected");
+    expect(html).toContain('data-analysis-status="unavailable"');
     expect(html).not.toContain(
       "Controls are shell-only in this checkpoint",
     );

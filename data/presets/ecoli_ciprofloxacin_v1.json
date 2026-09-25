@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "id": "ecoli-ciprofloxacin-spatial",
-  "version": "1.4.0-research",
+  "version": "1.5.0-research",
   "title": "E. coli / ciprofloxacin spatial evolution",
   "status": "research",
   "warning": "Educational mechanistic research scenario, not clinical guidance or a quantitative prediction of an arbitrary laboratory culture. The selected ecology execution profile uses engineering model-unit values, not a measured MG1655 physical Monod parameter pack.",
@@ -80,7 +80,50 @@
         "limitation": "Resource-by-ciprofloxacin interaction under starvation is a model composition policy, not a complete stationary-phase killing model."
       }
     },
-    "classification": "transferred_mechanistic_approximation"
+    "classification": "transferred_mechanistic_approximation",
+    "interventionControl": {
+      "schemaVersion": 1,
+      "toolAuthority": {
+        "schemaVersion": 1,
+        "tool": "antibiotic",
+        "protocolCommand": "apply-ciprofloxacin",
+        "parameter": {
+          "key": "concentration",
+          "label": "Ciprofloxacin concentration",
+          "unit": "mg/L",
+          "minimum": 0,
+          "maximum": 2,
+          "defaultValue": 0.03,
+          "precision": 3
+        },
+        "supportedGeometries": [
+          "global",
+          "radial",
+          "stripe",
+          "paint"
+        ],
+        "blendMode": "set"
+      },
+      "sourceTestedDomain": {
+        "minimumMgPerL": 0,
+        "maximumMgPerL": 2,
+        "provenance": {
+          "classification": "transferred",
+          "citation": "regoes_2004",
+          "context": "Regoes et al. 2004 E. coli CAB1 ciprofloxacin time-kill experiments in LB at 37 C tested concentrations from 0 to 2 micrograms/mL, numerically equal to 0 to 2 mg/L.",
+          "transferNote": "Petra uses the source-tested CAB1/LB concentration domain only as the research-expo intervention control envelope for the MG1655-based flagship; it is not a source-matched MG1655 exposure range.",
+          "limitation": "This envelope is not a clinical dose range, a physical delivery calibration, a diffusion/clearance model, or evidence that the same bounds are optimal for MG1655."
+        }
+      },
+      "defaultSelection": {
+        "valueMgPerL": 0.03,
+        "provenance": {
+          "classification": "engineering",
+          "context": "Initial research-expo UI reference value anchored to the Regoes CAB1 conventional ciprofloxacin MIC of 0.03 mg/L so the default is explicit and reproducible.",
+          "limitation": "This is an engineering reference choice, not a measured optimal dose, clinical recommendation, or measured MG1655 default."
+        }
+      }
+    }
   },
   "genotypes": [
     {
@@ -571,7 +614,8 @@
     "Resource-by-ciprofloxacin interaction under starvation is a model composition policy, not a complete stationary-phase killing model.",
     "The current limiting-resource field is explicitly dimensionless/model-scale; physical substrate identity, concentration units, and model-biomass mapping remain unbound pending a compatible calibration.",
     "The research-stage ecology execution profile uses explicit engineering model-unit values only to make the mechanistic loop executable; it is not a measured MG1655 Monod parameter pack.",
-    "The baseline composed parameter set fixes mechanism/geometry/founder-channel identity but deliberately leaves initial model-resource level and inoculum placement as explicit run-state inputs."
+    "The baseline composed parameter set fixes mechanism/geometry/founder-channel identity but deliberately leaves initial model-resource level and inoculum placement as explicit run-state inputs.",
+    "The ciprofloxacin intervention control envelope 0-2 mg/L is transferred from the Regoes CAB1/LB/37 C tested time-kill domain; the 0.03 mg/L initial UI value is an engineering reference anchored to the source conventional MIC, not an MG1655 or clinical dose recommendation."
   ],
   "citations": {
     "regoes_2004": {
@@ -598,9 +642,9 @@
   "executionProfile": {
     "schemaVersion": 1,
     "id": "ecoli-ciprofloxacin-ecology-engineering",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "scenarioId": "ecoli-ciprofloxacin-spatial",
-    "scenarioVersion": "1.4.0-research",
+    "scenarioVersion": "1.5.0-research",
     "resourceContextVersion": "unbound-model-resource-v1",
     "classification": "engineering",
     "units": {
@@ -633,11 +677,11 @@
   "composedParameterSet": {
     "schemaVersion": 1,
     "id": "ecoli-ciprofloxacin-baseline-composed",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "scenarioId": "ecoli-ciprofloxacin-spatial",
-    "scenarioVersion": "1.4.0-research",
+    "scenarioVersion": "1.5.0-research",
     "executionProfileId": "ecoli-ciprofloxacin-ecology-engineering",
-    "executionProfileVersion": "1.1.0",
+    "executionProfileVersion": "1.2.0",
     "resourceContextVersion": "unbound-model-resource-v1",
     "geometrySource": "environment.engineeringDefaults",
     "lineages": [

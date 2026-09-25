@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "ecoli-k12-mg1655-representative-morphology",
+  "version": "1.0.0",
+  "scientificName": "Escherichia coli",
+  "background": "K-12 MG1655",
+  "organismKind": "bacterium",
+  "morphology": "rod",
+  "scope": "representative-cell",
+  "provenance": {
+    "classification": "transferred",
+    "sourceKey": "nanninga_1998_ecoli_morphogenesis",
+    "doi": "10.1128/MMBR.62.1.110-129.1998",
+    "context": "Species-level E. coli morphogenesis evidence used only to choose a coarse representative-cell silhouette for Petra's K-12 MG1655 flagship.",
+    "transferNote": "The species-level rod-shape claim is transferred to the K-12 MG1655 flagship only as presentation evidence.",
+    "limitation": "This record does not authorize physical cell dimensions, aspect ratio, orientation dynamics, division geometry, individual identity, literal cell counts, or any simulation mechanism."
+  }
+}

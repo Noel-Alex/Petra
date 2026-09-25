@@ -27,6 +27,19 @@ export type {
   StratifiedRegressionMetrics,
 } from "./evaluation";
 
+export {
+  TRAJECTORY_BALANCED_TRANSITION_SERIES_EVALUATION_POLICY_VERSION,
+  TRANSITION_SERIES_EVALUATION_ROW_SCHEMA_VERSION,
+  computeTrajectoryBalancedTransitionSeriesBenchmark,
+} from "./transitionSeriesEvaluation";
+export type {
+  TrajectoryBalancedTransitionSeriesBenchmark,
+  TransitionSeriesEvaluationCoverage,
+  TransitionSeriesEvaluationHorizon,
+  TransitionSeriesEvaluationRow,
+  TransitionSeriesHorizonCoverage,
+} from "./transitionSeriesEvaluation";
+
 export interface RegressionTargetMetrics {
   readonly mae: number;
   readonly rmse: number;

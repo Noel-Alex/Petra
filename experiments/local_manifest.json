@@ -419,6 +419,31 @@
         542
       ],
       "timeout_seconds": 30
+    },
+    {
+      "id": "fungal-spatial-growth-validation",
+      "description": "PREPARED; BLOCKED on #556/#615: named fungal evidence pack and authoritative fungal spatial state are required before replay/growth validation can run.",
+      "command": [
+        "python",
+        "experiments/blocked.py",
+        "--experiment-id",
+        "fungal-spatial-growth-validation",
+        "--blocked-on",
+        "556",
+        "--blocked-on",
+        "615",
+        "--reason",
+        "Issue #556 must approve one named fungal pack with exact transferable parameters/validation targets and #615 must provide authoritative fungal state, checkpoint/replay, events, and metrics. Running a generic or synthetic fungus before those gates would create invalid scientific evidence."
+      ],
+      "issues": [
+        530,
+        542,
+        556,
+        586,
+        615,
+        895
+      ],
+      "timeout_seconds": 30
     }
   ]
 }

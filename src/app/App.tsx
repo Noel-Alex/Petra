@@ -177,6 +177,8 @@ export function App({
   const runtimeSnapshot = experiment.state?.snapshot ?? null;
   const runBranchIdentity = experiment.state?.runBranchIdentity ?? null;
   const ecologyObservation = experiment.state?.ecologyObservation ?? null;
+  const lineageDensityPresentationScale =
+    experiment.lineageDensityPresentationScale;
   const organismPresentationAuthority =
     resolveComposedDishOrganismPresentationAuthority(
       runtimeSnapshot?.checkpoint.identity ?? null,
@@ -194,10 +196,12 @@ export function App({
                 runBranchIdentity,
                 ecologyObservation,
                 organismPresentationAuthority,
+                lineageDensityPresentationScale,
               ),
           ),
     [
       ecologyObservation,
+      lineageDensityPresentationScale,
       organismPresentationAuthority,
       runBranchIdentity,
       runtimeSnapshot,
@@ -704,6 +708,7 @@ export function App({
             motion={motionPreference}
             snapshot={dishSnapshot}
             runIdentity={runtimeSnapshot?.checkpoint.identity ?? null}
+            lineageDensityPresentationScale={lineageDensityPresentationScale}
             placement={
               interventionPlacement.phase === "placing"
                 ? interventionPlacement

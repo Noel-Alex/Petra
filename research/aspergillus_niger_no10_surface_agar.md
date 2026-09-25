@@ -35,6 +35,24 @@ Favela-Torres E, Córdova J, García-Rivero M, Gutiérrez-Rojas M. “Kinetics o
 
 This same-strain study is contextual evidence that kinetic values depend strongly on culture format. It must not be pooled with the 1997 agar-plate rows into one universal parameter set.
 
+### Plate-total surface glucose budget context
+
+Favela-Torres E, García-Rivero M, Córdova-López J, Roussos S, Viniegra-González G, Gutiérrez-Rojas M, Saucedo-Castañeda G, Gunasekaran P, Huerta-Ochoa S. “Kinetics of *Aspergillus niger* growth at high glucose concentrations in different types of the cultures.” In *Advances in Solid State Fermentation*, chapter 5, pp. 49–58 (1997), ISBN `0-7923-4732-3`.
+
+The accessible primary proceedings chapter names the organism *A. niger* 10, includes the ORSTOM laboratory in the author affiliations, and reports the surface-culture methods and source table directly. Because its microorganism methods do not repeat the full `var. hennebergi / ORSTOM fungal collection` wording used by Larralde-Corona, Petra classifies this as a **same-named-strain context transfer**, not as a join inferred from the short strain label alone.
+
+For the surface culture the chapter reports 100-mm Petri dishes with 30 mL of 1.5% agar medium at 35 °C and pH 5.0. Surface biomass was measured by dissolving the agar, filtering/washing the solids, and dry weighing at 60 °C; glucose was measured with a YSI Model 2000 enzymatic analyzer.
+
+The surface rows are:
+
+| initial glucose (g/L) | source-reported μ (h⁻¹) | source-reported Yx/s (g/g) | substrate conversion (%) |
+|---:|---:|---:|---:|
+| 50 | 0.222 | 0.366 | 96 |
+| 100 | 0.232 | 0.272 | 96 |
+| 200 | 0.170 | 0.154 | 64 |
+
+The narrative says the 100 g/L surface culture completely utilized substrate within 70 h, while Table 1 reports 96% conversion. Petra preserves that source-level discrepancy instead of rewriting 96% as 100%. The 200 g/L surface culture retained substantial substrate. These are plate-total/source-summary observations, not local cell-wise glucose kinetics.
+
 ## 1997 source context
 
 ### Strain and inoculum
@@ -160,6 +178,25 @@ Therefore:
 - the current E. coli `model-resource` field must **not** be relabelled glucose for this fungus;
 - no glucose diffusion coefficient, uptake `K_s`, biomass yield, or local resource-consumption coefficient enters #615 from this pack;
 - #657 may later fit explicitly eligible engineering parameters against the source-table targets, but fitted values must remain calibrated/engineering, not measured.
+
+### #974 primary-source resource decision
+
+The Favela-Torres primary chapter resolves the earlier C28B25/C28eco3-13 ambiguity enough to **exclude those later-strain coefficients from this pack** and to curate a bounded no. 10 surface-culture glucose budget dataset. It does **not** clear an executable depletion mechanism.
+
+What is now source-backed:
+- exact surface-culture context and glucose assay;
+- source-reported surface `mu`, aggregate `Yx/s`, and substrate-conversion summaries at 50/100/200 g/L;
+- a plate-total endpoint/summary validation target showing strong high-glucose context dependence.
+
+What remains missing for an honest runtime law:
+- no exact zero-glucose/near-zero source control;
+- no exact tabulated glucose-consumption time series or reusable uptake-rate equation for this no. 10 surface setup;
+- no evidence that aggregate source `Yx/s` is constant instantaneously, so Petra must not use `dS = dX/Y` as measured biology without a separately reviewed calibration/model assumption;
+- the accessible chapter does not fully specify an inoculation geometry that can be equated to the current central-point front state;
+- the current fungal source-validation runtime owns a colony front/radius, not a source-backed biomass state, so turning front advance directly into glucose consumption would require an unsourced biomass↔front mapping;
+- no local glucose diffusion/permeability coefficient for this exact strain/geometry.
+
+Therefore **RESEARCH_NEEDED turns OFF only for the Favela plate-total endpoint evidence curation, and remains ON for executable no. 10 resource coupling**. The existing `fungal-spatial-growth-validation` registration must remain blocked for its zero/exhausted-resource control. The next useful evidence is an exact no. 10-compatible zero-resource/near-zero control plus either source-tabulated biomass/glucose time courses sufficient to fit a declared model or another primary source that directly estimates the required no. 10 surface uptake/maintenance law.
 
 ## Hyphal-state decision
 

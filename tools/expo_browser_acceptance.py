@@ -336,15 +336,16 @@ def authoritative_load_for_command(
         runtime = phases.get("runtime-snapshot-published", [])
         projection = phases.get("dish-projection", [])
         react = phases.get("react-dish-committed", [])
-        if len(runtime) != 1 or len(projection) != 1 or len(react) != 1:
+        if not runtime or not projection or not react:
             continue
 
+        phase_samples = [*runtime, *projection, *react]
         loads = [
             (
                 sample.get("authoritativeTotalBiomass"),
                 sample.get("authoritativeOccupiedCells"),
             )
-            for sample in (runtime[0], projection[0], react[0])
+            for sample in phase_samples
         ]
         total_biomass, occupied_cells = loads[0]
         valid = (
@@ -2453,7 +2454,15 @@ def profile_post_growth_camera_redraw(
 
     install_render_publication_probe(cdp)
     reset_render_publication_probe(cdp)
+    cdp.eval(
+        """(() => {
+          const state = globalThis.__petraRenderPublicationPerformanceState;
+          if (state) state.maxSamples = 4096;
+          return state?.maxSamples ?? null;
+        })()"""
+    )
     probe_removed_before_camera = False
+    publication_probe_snapshot: dict[str, Any] | None = None
     try:
         reset_action = click_run_control(cdp, "Reset")
         reset_state = wait_run_status(cdp, "ready")
@@ -2511,6 +2520,7 @@ def profile_post_growth_camera_redraw(
             if isinstance(after_count, (int, float))
             else None
         )
+        publication_probe_snapshot = render_publication_probe_snapshot(cdp)
     finally:
         probe_removed_before_camera = remove_render_publication_probe(cdp)
 
@@ -2566,6 +2576,11 @@ def profile_post_growth_camera_redraw(
             "before": before_load,
             "after": after_load,
             "deltaAndRatio": load_delta,
+            "probeDroppedSamples": (
+                publication_probe_snapshot.get("dropped")
+                if publication_probe_snapshot
+                else None
+            ),
             "probeRemovedBeforeCameraTiming": probe_removed_before_camera,
         },
         "cameraResetAfterGrowth": camera_reset_after_growth,
@@ -2728,6 +2743,7 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
     )
     post_growth_load_ok = (
         post_growth_load.get("probeRemovedBeforeCameraTiming") is True
+        and post_growth_load.get("probeDroppedSamples") == 0
         and post_growth_before_load is not None
         and post_growth_after_load is not None
         and post_growth_before_load.get("commandCount")

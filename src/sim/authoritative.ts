@@ -1050,7 +1050,6 @@ export function stepComposedStateDetailed(
   }
 
   const ecology = asEcologyState(state)
-  const originalLineageCount = state.lineageIds.length
   const lineageParameters = preparedLineageParameters(state, config)
   const interphase = beginEcologyStep(
     ecology,

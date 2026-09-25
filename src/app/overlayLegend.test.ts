@@ -44,7 +44,7 @@ describe("overlay legend projection", () => {
       field("antibiotic", "mg/L", "snapshot-extrema"),
     );
 
-    expect(legend.rangeText).toBe("Current-snapshot range 0 to 2 mg/L");
+    expect(legend.rangeText).toBe("Current snapshot range 0 to 2 mg/L");
     expect(legend.ariaLabel).toMatch(/current snapshot range/i);
     expect(legend.ariaLabel).toMatch(
       /not temporally comparable by color intensity alone/i,

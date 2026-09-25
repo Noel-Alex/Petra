@@ -94,8 +94,6 @@ That event is audit/timeline evidence; replay authority still comes from the
 ordered `apply-ciprofloxacin` command itself. Synthetic bundles cannot carry
 ciprofloxacin events. Accepted `model-resource-applied` events analogously carry a separate exact `resourceIntervention` payload; they never relabel model-resource as a physical nutrient or concentration, and replay authority comes from the ordered `apply-model-resource` command. Synthetic bundles cannot carry model-resource events.
 
-that event or command.
-
 Provenance source IDs are compact references only. The bundle does not embed
 whole papers, raw datasets or presentation assets.
 
@@ -114,7 +112,8 @@ Deterministic fixtures should cover at minimum:
 - synthetic checkpoint + command round-trip;
 - composed checkpoint/config + command round-trip;
 - composed ciprofloxacin command + intervention-bearing event round-trip;
-- protocol-v8/state-v5 composed population count/residual checkpoint round-trip when explicit calibration authority is enabled;
+- composed model-resource command + resource-intervention-bearing event round-trip;
+- protocol-v9/state-v5 composed population count/residual checkpoint round-trip when explicit calibration authority is enabled;
 - canonical serialize/parse stability;
 - configuration drift refusal;
 - old/unsupported runtime refusal;

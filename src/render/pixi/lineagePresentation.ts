@@ -56,3 +56,64 @@ export function indexLineageGlyphPresentations(
     byLineageId,
   };
 }
+
+export function lineageGlyphPresentationContractEqual(
+  left: readonly RenderLineage[],
+  right: readonly RenderLineage[],
+): boolean {
+  if (left.length !== right.length) return false;
+  for (let index = 0; index < left.length; index += 1) {
+    const leftLineage = left[index]!;
+    const rightLineage = right[index]!;
+    if (leftLineage.id !== rightLineage.id) return false;
+    if (
+      (leftLineage.organismPresentation === undefined) !==
+      (rightLineage.organismPresentation === undefined)
+    ) {
+      return false;
+    }
+    if (
+      !organismPresentationIdentityEqual(
+        leftLineage.organismPresentation ?? null,
+        rightLineage.organismPresentation ?? null,
+      )
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export function organismPresentationIdentityEqual(
+  left: OrganismPresentationIdentity | null,
+  right: OrganismPresentationIdentity | null,
+): boolean {
+  if (left === right) return true;
+  if (left === null || right === null) return false;
+  if (
+    left.kind !== right.kind ||
+    left.schemaVersion !== right.schemaVersion ||
+    left.id !== right.id ||
+    left.scientificName !== right.scientificName ||
+    left.background !== right.background ||
+    left.organismKind !== right.organismKind ||
+    left.morphology !== right.morphology ||
+    left.provenance.classification !== right.provenance.classification ||
+    left.provenance.context !== right.provenance.context ||
+    left.provenance.transferNote !== right.provenance.transferNote ||
+    left.provenance.limitation !== right.provenance.limitation ||
+    left.provenance.sources.length !== right.provenance.sources.length
+  ) {
+    return false;
+  }
+
+  return left.provenance.sources.every((source, index) => {
+    const other = right.provenance.sources[index];
+    return (
+      other !== undefined &&
+      source.key === other.key &&
+      source.doi === other.doi &&
+      source.context === other.context
+    );
+  });
+}

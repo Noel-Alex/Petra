@@ -9,6 +9,7 @@ import {
   createDiscretePopulationAuthorityState,
   discretePopulationConfigurationIdentity,
   planDiscreteHostRemoval,
+  parseOptionalCellEquivalentCalibration,
   restoreDiscretePopulationAuthorityState,
   type CellEquivalentCalibration,
   type DiscretePopulationAuthorityConfig,
@@ -45,6 +46,49 @@ function config(
 }
 
 describe('shared discrete population authority', () => {
+  it('parses explicit nullable scenario calibration without inventing a default', () => {
+    expect(parseOptionalCellEquivalentCalibration(null)).toBeNull()
+
+    expect(
+      parseOptionalCellEquivalentCalibration({
+        schemaVersion: CELL_EQUIVALENT_CALIBRATION_SCHEMA_VERSION,
+        id: 'scenario-cell-scale-v1',
+        modelBiomassPerCellEquivalent: 0.25,
+        provenance: {
+          classification: 'calibrated',
+          sourceKeys: ['population-scale-study'],
+          limitation: 'Fixture calibration for parser coverage only.',
+        },
+      }),
+    ).toEqual({
+      schemaVersion: CELL_EQUIVALENT_CALIBRATION_SCHEMA_VERSION,
+      id: 'scenario-cell-scale-v1',
+      modelBiomassPerCellEquivalent: 0.25,
+      provenance: {
+        classification: 'calibrated',
+        sourceKeys: ['population-scale-study'],
+        limitation: 'Fixture calibration for parser coverage only.',
+      },
+    })
+
+    expect(() =>
+      parseOptionalCellEquivalentCalibration(undefined),
+    ).toThrow(/object or explicit null/)
+    expect(() =>
+      parseOptionalCellEquivalentCalibration({
+        schemaVersion: CELL_EQUIVALENT_CALIBRATION_SCHEMA_VERSION,
+        id: 'scenario-cell-scale-v1',
+        modelBiomassPerCellEquivalent: 0.25,
+        provenance: {
+          classification: 'engineering',
+          sourceKeys: [],
+          limitation: 'Fixture only.',
+        },
+        hiddenDefault: true,
+      }),
+    ).toThrow(/unsupported field/)
+  })
+
   it('decomposes standing biomass into integer hosts plus explicit residuals', () => {
     const state = createDiscretePopulationAuthorityState(
       config({ lineageIds: ['L1', 'L2'] }),

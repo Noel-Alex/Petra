@@ -15,6 +15,11 @@ import {
 } from './parameterSetBinding'
 import { CIPROFLOXACIN_RESOURCE_COMPOSITION_POLICY } from './pharmacodynamics/composition'
 import {
+  FRACTIONAL_CARRY_POPULATION_POLICY,
+  parseOptionalCellEquivalentCalibration,
+  type CellEquivalentCalibration,
+} from './populationAuthority'
+import {
   assertSimulationSeed,
   createRunIdentity,
   type RunIdentity,
@@ -49,6 +54,7 @@ export interface FlagshipComposedRunPlan {
   readonly parameterSetBinding: ComposedParameterSetBinding
   readonly executionProfile: EcologyExecutionProjection
   readonly resourceContext: ScenarioResourceContext
+  readonly populationCalibration: CellEquivalentCalibration | null
 }
 
 interface BaselineLineageRecord {
@@ -571,6 +577,9 @@ export function buildFlagshipComposedRunPlan(
     scenarioRecord.composedParameterSet,
   )
   const ciprofloxacin = projectFlagshipCiprofloxacinAuthority(scenarioRecord)
+  const populationCalibration = parseOptionalCellEquivalentCalibration(
+    scenarioRecord.populationCalibration,
+  )
   assertFlagshipReferences({
     scenario: scenarioRecord,
     resourceContext,
@@ -630,7 +639,13 @@ export function buildFlagshipComposedRunPlan(
     },
     ciprofloxacin,
     samplingExecutionPolicy: null,
-    populationAuthority: null,
+    populationAuthority:
+      populationCalibration === null
+        ? null
+        : {
+            calibration: populationCalibration,
+            policy: FRACTIONAL_CARRY_POPULATION_POLICY,
+          },
     hoursPerTick: executionProfile.hoursPerTick,
   }
 
@@ -657,5 +672,6 @@ export function buildFlagshipComposedRunPlan(
     parameterSetBinding,
     executionProfile,
     resourceContext,
+    populationCalibration,
   })
 }

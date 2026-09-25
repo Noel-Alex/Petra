@@ -21,6 +21,172 @@ export interface CellEquivalentCalibration {
   }>
 }
 
+type UnknownPopulationCalibrationRecord = Record<string, unknown>
+
+const CELL_EQUIVALENT_CALIBRATION_KEYS = new Set([
+  'schemaVersion',
+  'id',
+  'modelBiomassPerCellEquivalent',
+  'provenance',
+])
+
+const CELL_EQUIVALENT_CALIBRATION_PROVENANCE_KEYS = new Set([
+  'classification',
+  'sourceKeys',
+  'limitation',
+])
+
+/**
+ * Promote scenario/data input into population calibration authority.
+ *
+ * Null is the only unbound state. Undefined, unknown fields, malformed source
+ * keys, or unsupported evidence classes fail closed rather than acquiring an
+ * implicit population scale.
+ */
+export function parseOptionalCellEquivalentCalibration(
+  value: unknown,
+): CellEquivalentCalibration | null {
+  if (value === null) return null
+  return parseCellEquivalentCalibration(value)
+}
+
+export function parseCellEquivalentCalibration(
+  value: unknown,
+): CellEquivalentCalibration {
+  const record = requirePopulationCalibrationRecord(
+    'cell-equivalent calibration',
+    value,
+  )
+  assertPopulationCalibrationKeys(
+    'cell-equivalent calibration',
+    record,
+    CELL_EQUIVALENT_CALIBRATION_KEYS,
+  )
+  if (record.schemaVersion !== CELL_EQUIVALENT_CALIBRATION_SCHEMA_VERSION) {
+    throw new Error('unsupported cell-equivalent calibration version')
+  }
+
+  const provenance = requirePopulationCalibrationRecord(
+    'cell-equivalent calibration provenance',
+    record.provenance,
+  )
+  assertPopulationCalibrationKeys(
+    'cell-equivalent calibration provenance',
+    provenance,
+    CELL_EQUIVALENT_CALIBRATION_PROVENANCE_KEYS,
+  )
+
+  const classification = provenance.classification
+  if (
+    classification !== 'transferred' &&
+    classification !== 'calibrated' &&
+    classification !== 'engineering'
+  ) {
+    throw new Error('unsupported cell-equivalent calibration evidence class')
+  }
+
+  const sourceKeys = parsePopulationCalibrationSourceKeys(
+    provenance.sourceKeys,
+  )
+  const calibration: CellEquivalentCalibration = {
+    schemaVersion: CELL_EQUIVALENT_CALIBRATION_SCHEMA_VERSION,
+    id: requirePopulationCalibrationText(
+      'cell-equivalent calibration id',
+      record.id,
+    ),
+    modelBiomassPerCellEquivalent:
+      requirePopulationCalibrationPositiveFinite(
+        'modelBiomassPerCellEquivalent',
+        record.modelBiomassPerCellEquivalent,
+      ),
+    provenance: {
+      classification,
+      sourceKeys,
+      limitation: requirePopulationCalibrationText(
+        'cell-equivalent calibration limitation',
+        provenance.limitation,
+      ),
+    },
+  }
+
+  validateCellEquivalentCalibration(calibration)
+  return Object.freeze({
+    ...calibration,
+    provenance: Object.freeze({
+      ...calibration.provenance,
+      sourceKeys: Object.freeze([...calibration.provenance.sourceKeys]),
+    }),
+  })
+}
+
+function requirePopulationCalibrationRecord(
+  name: string,
+  value: unknown,
+): UnknownPopulationCalibrationRecord {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`${name} must be an object or explicit null`)
+  }
+  return value as UnknownPopulationCalibrationRecord
+}
+
+function assertPopulationCalibrationKeys(
+  name: string,
+  record: UnknownPopulationCalibrationRecord,
+  allowed: ReadonlySet<string>,
+): void {
+  for (const key of Object.keys(record)) {
+    if (!allowed.has(key)) {
+      throw new Error(`${name} contains unsupported field: ${key}`)
+    }
+  }
+}
+
+function requirePopulationCalibrationText(
+  name: string,
+  value: unknown,
+): string {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new Error(`${name} must be a non-empty string`)
+  }
+  if (value !== value.trim()) {
+    throw new Error(
+      `${name} must be canonical text without surrounding whitespace`,
+    )
+  }
+  return value
+}
+
+function requirePopulationCalibrationPositiveFinite(
+  name: string,
+  value: unknown,
+): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+    throw new Error(`${name} must be positive and finite`)
+  }
+  return value
+}
+
+function parsePopulationCalibrationSourceKeys(
+  value: unknown,
+): readonly string[] {
+  if (!Array.isArray(value)) {
+    throw new Error('cell-equivalent calibration source keys must be an array')
+  }
+  const sourceKeys: string[] = []
+  for (let index = 0; index < value.length; index += 1) {
+    if (!Object.prototype.hasOwnProperty.call(value, index)) {
+      throw new Error('cell-equivalent calibration source keys must be dense')
+    }
+    sourceKeys.push(
+      requirePopulationCalibrationText(
+        `cell-equivalent calibration source key[${index}]`,
+        value[index],
+      ),
+    )
+  }
+  return sourceKeys
+}
+
 export interface DiscretePopulationPolicy {
   readonly schemaVersion: typeof DISCRETE_POPULATION_POLICY_SCHEMA_VERSION
   readonly id: typeof FRACTIONAL_CARRY_POPULATION_POLICY_ID

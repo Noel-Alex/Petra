@@ -31,12 +31,6 @@ export interface NodeMechanisticDatasetPackage<TExecutorData = unknown> {
    */
   readonly packageId: string;
   readonly plan: MechanisticSweepPlan;
-  /**
-   * Local bundled worker module exporting executeMechanisticTask(task, data).
-   * The package module owns the scientific projection code; the generic runtime
-   * only executes the already-declared plan.
-   */
-  readonly executorModuleUrl: string;
   readonly executorData: TExecutorData;
   readonly outputBaseName: string;
   readonly evidenceBoundary: string;
@@ -45,6 +39,7 @@ export interface NodeMechanisticDatasetPackage<TExecutorData = unknown> {
 export interface NodeMechanisticDatasetRuntimeOptions {
   readonly artifactDirectory: string;
   readonly maxWorkers: number;
+  readonly executorModuleUrl: string;
 }
 
 export interface NodeMechanisticDatasetRunMetrics {
@@ -104,18 +99,6 @@ export function validateNodeMechanisticDatasetPackage(
   requireCanonicalText("evidenceBoundary", candidate.evidenceBoundary);
   validatePlanForCollection(candidate.plan);
 
-  let executorUrl: URL;
-  try {
-    executorUrl = new URL(candidate.executorModuleUrl);
-  } catch {
-    throw new TypeError("executorModuleUrl must be an absolute URL");
-  }
-  if (executorUrl.protocol !== "file:") {
-    throw new TypeError(
-      "executorModuleUrl must be a local file: URL; dataset generation cannot require network worker code",
-    );
-  }
-
   try {
     structuredClone(candidate.executorData);
   } catch (error) {
@@ -154,7 +137,7 @@ export async function runNodeMechanisticDatasetPackage(
 
   const executor = new WorkerThreadMechanisticExecutor({
     maxWorkers: workerCount,
-    executorModuleUrl: candidate.executorModuleUrl,
+    executorModuleUrl: options.executorModuleUrl,
     executorData: structuredClone(candidate.executorData),
   });
 
@@ -248,6 +231,17 @@ function validateRuntimeOptions(
   requireCanonicalText("artifactDirectory", options.artifactDirectory);
   if (!Number.isSafeInteger(options.maxWorkers) || options.maxWorkers < 1) {
     throw new RangeError("maxWorkers must be a positive safe integer");
+  }
+  let executorUrl: URL;
+  try {
+    executorUrl = new URL(options.executorModuleUrl);
+  } catch {
+    throw new TypeError("executorModuleUrl must be an absolute URL");
+  }
+  if (executorUrl.protocol !== "file:") {
+    throw new TypeError(
+      "executorModuleUrl must be a local file: URL; dataset generation cannot require network worker code",
+    );
   }
 }
 

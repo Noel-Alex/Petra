@@ -120,6 +120,18 @@ function validate(
       parameters.baselineGrowthRateScale ?? 1,
     )
     finiteNonNegative(`relativeFitness[${lineageIndex}]`, parameters.relativeFitness)
+    if (
+      !Number.isFinite(
+        p.maxDivisionRate *
+          (parameters.baselineGrowthRateScale ?? 1) *
+          parameters.relativeFitness *
+          dt,
+      )
+    ) {
+      throw new Error(
+        `growth-rate product[${lineageIndex}] must be finite for the accepted step`,
+      )
+    }
     const hazard = parameters.deathHazardPerTime
     if (typeof hazard === 'number') {
       finiteNonNegative(`deathHazardPerTime[${lineageIndex}]`, hazard)

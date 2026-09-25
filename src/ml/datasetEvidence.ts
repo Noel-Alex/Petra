@@ -22,7 +22,7 @@ import {
 } from "./sweep";
 
 export const MECHANISTIC_DATASET_EVIDENCE_SCHEMA_VERSION =
-  "petra-ml-generation-evidence-v1" as const;
+  "petra-ml-generation-evidence-v2" as const;
 
 const DATASET_SPLITS = ["train", "validation", "test"] as const;
 const MAX_NUMERIC_RANGE_PATHS = 256;
@@ -85,6 +85,8 @@ export interface MechanisticDatasetGenerationEvidence {
     readonly splitGroupCounts: Readonly<Record<DatasetSplit, number>>;
     readonly splitTrajectoryCounts: Readonly<Record<DatasetSplit, number>>;
     readonly parameterSetHashes: readonly string[];
+    readonly runConditionIds: readonly string[];
+    readonly runConditionFingerprints: readonly string[];
     readonly interventionFingerprints: readonly string[];
   };
   readonly run: {
@@ -225,6 +227,12 @@ export function buildMechanisticDatasetGenerationEvidence(
   const parameterSetHashes = uniqueSorted(
     args.plan.tasks.map((task) => task.trajectory.group.parameterSetHash),
   );
+  const runConditionIds = uniqueSorted(
+    args.plan.tasks.map((task) => task.runConditionId),
+  );
+  const runConditionFingerprints = uniqueSorted(
+    args.plan.tasks.map((task) => task.trajectory.group.runConditionFingerprint),
+  );
   const interventionFingerprints = uniqueSorted(
     args.plan.tasks.map((task) => task.trajectory.interventionFingerprint),
   );
@@ -305,6 +313,8 @@ export function buildMechanisticDatasetGenerationEvidence(
       splitGroupCounts: Object.freeze({ ...manifest.splitGroupCounts }),
       splitTrajectoryCounts: Object.freeze({ ...manifest.splitCounts }),
       parameterSetHashes: Object.freeze(parameterSetHashes),
+      runConditionIds: Object.freeze(runConditionIds),
+      runConditionFingerprints: Object.freeze(runConditionFingerprints),
       interventionFingerprints: Object.freeze(interventionFingerprints),
     }),
     run: Object.freeze({
@@ -490,6 +500,7 @@ function scanFinalDataset(
     }
     const rowIdentity: ReadonlyArray<readonly [string, unknown, string]> = [
       ["parameterPointId", row.parameterPointId, task.parameterPointId],
+      ["runConditionId", row.runConditionId, task.runConditionId],
       ["interventionFamilyId", row.interventionFamilyId, task.interventionFamilyId],
       ["splitGroupKey", row.splitGroupKey, task.splitGroupKey],
       ["trajectoryKey", row.trajectoryKey, task.trajectoryKey],

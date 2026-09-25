@@ -6,7 +6,7 @@ function sample(
   overrides: Partial<WorkerSessionPerformanceSample>,
 ): WorkerSessionPerformanceSample {
   return {
-    version: 2,
+    version: 3,
     completedAtMs: 110,
     requestType: "command",
     commandType: "advance",
@@ -22,6 +22,7 @@ function sample(
     workerExecutionMsPerTick: 1.5,
     nonWorkerRoundTripMs: 4,
     authoritativeEventArrayLength: 3,
+    authoritativeActiveLineageCount: 3,
     outcome: "success",
     ...overrides,
   };
@@ -41,12 +42,13 @@ describe("worker performance summary", () => {
         workerExecutionMsPerTick: 1,
         nonWorkerRoundTripMs: 3,
         authoritativeEventArrayLength: 5,
+        authoritativeActiveLineageCount: 5,
         queuedRequestsBehindAtDispatch: 2,
       }),
     ]);
 
     expect(summary).toEqual({
-      version: 2,
+      version: 3,
       sampleCount: 2,
       successfulSampleCount: 2,
       advanceSampleCount: 2,
@@ -66,6 +68,8 @@ describe("worker performance summary", () => {
       totalNonWorkerRoundTripMs: 7,
       maxQueuedRequestsBehindAtDispatch: 2,
       maxAuthoritativeEventArrayLength: 5,
+      measuredAuthoritativeActiveLineageSampleCount: 2,
+      maxAuthoritativeActiveLineageCount: 5,
       observationWindowMs: 30,
       observedPayloadBytesPerSecond: 700 / 0.03,
     });
@@ -76,6 +80,8 @@ describe("worker performance summary", () => {
       sampleCount: 0,
       observationWindowMs: 0,
       workerExecutionMsPerAdvanceTick: null,
+      measuredAuthoritativeActiveLineageSampleCount: 0,
+      maxAuthoritativeActiveLineageCount: null,
       observedPayloadBytesPerSecond: null,
     });
   });

@@ -73,7 +73,7 @@ function projectReadyCapability(
   if (ciprofloxacinMetadata === null || ciprofloxacinMetadata === undefined) {
     return unavailable(
       "authoritative-metadata-unavailable",
-      "Protocol v5 supports authoritative ciprofloxacin application, but the active scenario has not supplied exact intervention bounds, default, and geometry metadata. Placement preview remains available; Petra will not infer dose controls from MIC values or test fixtures.",
+      "The active protocol supports authoritative ciprofloxacin application, but the scenario has not supplied exact intervention bounds, default, and geometry metadata. Placement preview remains available; Petra will not infer dose controls from MIC values or test fixtures.",
       true,
     );
   }

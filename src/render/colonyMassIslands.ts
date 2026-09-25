@@ -211,6 +211,14 @@ function validateField(field: ColonyMassAlphaField): void {
   }
   assertPositiveSafeInteger("colony mass island width", field.width);
   assertPositiveSafeInteger("colony mass island height", field.height);
+  if (
+    !Number.isFinite(field.sharedDensityMaximum) ||
+    field.sharedDensityMaximum < 0
+  ) {
+    throw new RangeError(
+      "colony mass alpha field shared density maximum must be finite and non-negative",
+    );
+  }
 
   const cells = field.width * field.height;
   if (!Number.isSafeInteger(cells) || field.alpha.length !== cells) {

@@ -102,9 +102,9 @@ interface CubicCoefficients {
  * Greulich et al. (2015), equation 7, expressed in x = lambda / lambda_0:
  *
  * x^3 - x^2
- * + x * [ 1/4 (lambda_0*/lambda_0)^2
- *       + a_ex/(2 IC50*) (lambda_0*/lambda_0) ]
- * - 1/4 (lambda_0*/lambda_0)^2 = 0.
+ * + x * [ 1/4 (lambda0Star / lambda0)^2
+ *       + a_ex/(2 IC50Star) (lambda0Star / lambda0) ]
+ * - 1/4 (lambda0Star / lambda0)^2 = 0.
  */
 function cubicCoefficients(
   concentrationMicromolar: number,

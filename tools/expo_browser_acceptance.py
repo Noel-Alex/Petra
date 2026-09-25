@@ -1390,6 +1390,379 @@ def frame_metrics(workload: dict[str, Any] | None, view: str) -> dict[str, Any]:
     }
 
 
+
+def run_control_state(cdp: CDP) -> dict[str, Any] | None:
+    state = cdp.eval(
+        """(() => {
+          const controls = document.querySelector(
+            'section[aria-label="Run controls"]'
+          );
+          const timeNode = document.querySelector('.timeline-summary strong');
+          const statusNode = document.querySelector('.runtime-status');
+          const identityNode = document.querySelector(
+            '.experiment-run-controls__identity'
+          );
+          if (!controls || !timeNode || !statusNode) return null;
+
+          const buttons = [...controls.querySelectorAll('button')];
+          const selectedSpeed = buttons.find(
+            (button) =>
+              button.getAttribute('aria-pressed') === 'true' &&
+              /^[0-9]+×$/.test(button.textContent?.trim() ?? '')
+          )?.textContent?.trim() ?? null;
+          const playing = buttons.some(
+            (button) => button.textContent?.trim() === 'Pause'
+          );
+          const timeText = timeNode.textContent?.trim() ?? '';
+          const timeMatch = /^Simulation time ([0-9]+(?:\.[0-9]+)?) h$/.exec(
+            timeText
+          );
+          const identityText = identityNode?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+          const commandMatch = /Replay history ([0-9]+) accepted command/.exec(
+            identityText
+          );
+
+          return {
+            status: controls.dataset.runControlsStatus ?? null,
+            statusText: statusNode.textContent?.trim() ?? '',
+            simulationTimeLabel: timeText,
+            simulationTimeHours: timeMatch ? Number(timeMatch[1]) : null,
+            acceptedCommandCount: commandMatch ? Number(commandMatch[1]) : null,
+            selectedSpeed,
+            playing,
+            dishFocus:
+              document.querySelector('.petra-app')?.dataset.dishFocus ?? null
+          };
+        })()"""
+    )
+    return state if isinstance(state, dict) else None
+
+
+def click_run_control(cdp: CDP, label: str) -> dict[str, Any]:
+    result = cdp.eval(
+        """(() => {
+          const controls = document.querySelector(
+            'section[aria-label="Run controls"]'
+          );
+          if (!controls) return {clicked:false, reason:'run-controls-missing'};
+          const button = [...controls.querySelectorAll('button')].find(
+            (candidate) => candidate.textContent?.trim() === __LABEL__
+          );
+          if (!(button instanceof HTMLButtonElement)) {
+            return {clicked:false, reason:'button-missing'};
+          }
+          if (button.disabled) {
+            return {clicked:false, reason:'button-disabled'};
+          }
+          button.click();
+          return {clicked:true, reason:null};
+        })()""".replace("__LABEL__", json.dumps(label))
+    )
+    return result if isinstance(result, dict) else {
+        "clicked": False,
+        "reason": "invalid-browser-result",
+    }
+
+
+def wait_run_status(
+    cdp: CDP,
+    expected: str = "ready",
+    timeout: float = 30.0,
+) -> dict[str, Any] | None:
+    deadline = time.monotonic() + timeout
+    latest = run_control_state(cdp)
+    while time.monotonic() < deadline:
+        latest = run_control_state(cdp)
+        if latest and latest.get("status") == expected:
+            return latest
+        if latest and latest.get("status") == "error":
+            return latest
+        time.sleep(0.05)
+    return latest
+
+
+def playback_window_samples(
+    cdp: CDP,
+    duration_ms: int,
+) -> dict[str, Any] | None:
+    expression = """new Promise(resolve => {
+      const probe = globalThis.__petraPerformanceProbe;
+      if (!probe) {
+        resolve({error: 'performance-probe-unavailable'});
+        return;
+      }
+
+      const frameIntervalsMs = [];
+      const drawCallsByFrame = [];
+      const geometrySamples = [];
+      const start = performance.now();
+      let lastFrame = start;
+      let lastDrawCalls = probe.drawCalls;
+      let frameIndex = 0;
+
+      const rectOf = (selector) => {
+        const element = document.querySelector(selector);
+        if (!(element instanceof HTMLElement)) return null;
+        const rect = element.getBoundingClientRect();
+        return {
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height
+        };
+      };
+
+      const geometry = () => ({
+        dishFocus:
+          document.querySelector('.petra-app')?.dataset.dishFocus ?? null,
+        root: rectOf('.petra-app'),
+        workspace: rectOf('.petra-workspace'),
+        dish: rectOf('.dish-stage'),
+        timeline: rectOf('.timeline-shell'),
+        controls: rectOf('section[aria-label="Run controls"]')
+      });
+
+      function step(now) {
+        const drawCalls = probe.drawCalls;
+        if (frameIndex >= 5) {
+          frameIntervalsMs.push(now - lastFrame);
+          drawCallsByFrame.push(drawCalls - lastDrawCalls);
+          if (frameIndex % 10 === 0) {
+            geometrySamples.push(geometry());
+          }
+        }
+        lastFrame = now;
+        lastDrawCalls = drawCalls;
+        frameIndex += 1;
+
+        if (now - start >= __DURATION_MS__) {
+          geometrySamples.push(geometry());
+          resolve({
+            durationMs: now - start,
+            frameIntervalsMs,
+            drawCallsByFrame,
+            rendererActiveFrames: drawCallsByFrame.filter(
+              (value) => value > 0
+            ).length,
+            totalDrawCallsDuringFrames: drawCallsByFrame.reduce(
+              (sum, value) => sum + value,
+              0
+            ),
+            geometrySamples
+          });
+          return;
+        }
+        requestAnimationFrame(step);
+      }
+
+      requestAnimationFrame(step);
+    })""".replace("__DURATION_MS__", str(int(duration_ms)))
+    result = cdp.eval(expression, await_promise=True)
+    return result if isinstance(result, dict) else None
+
+
+def percentile(values: list[float], fraction: float) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    index = min(len(ordered) - 1, int(len(ordered) * fraction))
+    return round(float(ordered[index]), 3)
+
+
+def playback_frame_metrics(
+    workload: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if not workload or workload.get("error"):
+        return {
+            "sampleCount": 0,
+            "rendererActiveFrames": 0,
+            "frameTimingEvidenceValid": False,
+            "averageFrameMs": None,
+            "p95FrameMs": None,
+            "maxFrameMs": None,
+            "activeFrameP95Ms": None,
+            "totalDrawCallsDuringFrames": None,
+            "error": workload.get("error") if workload else "missing-workload",
+        }
+
+    intervals_raw = workload.get("frameIntervalsMs")
+    draw_calls_raw = workload.get("drawCallsByFrame")
+    if (
+        not isinstance(intervals_raw, list)
+        or not isinstance(draw_calls_raw, list)
+        or len(intervals_raw) != len(draw_calls_raw)
+    ):
+        return {
+            "sampleCount": 0,
+            "rendererActiveFrames": 0,
+            "frameTimingEvidenceValid": False,
+            "averageFrameMs": None,
+            "p95FrameMs": None,
+            "maxFrameMs": None,
+            "activeFrameP95Ms": None,
+            "totalDrawCallsDuringFrames": None,
+            "error": "malformed-workload",
+        }
+
+    intervals = [float(value) for value in intervals_raw]
+    draw_calls = [int(value) for value in draw_calls_raw]
+    active_intervals = [
+        interval
+        for interval, draws in zip(intervals, draw_calls)
+        if draws > 0
+    ]
+    average = (
+        round(sum(intervals) / len(intervals), 3)
+        if intervals
+        else None
+    )
+    active_count = len(active_intervals)
+    return {
+        "sampleCount": len(intervals),
+        "rendererActiveFrames": active_count,
+        "frameTimingEvidenceValid": bool(intervals) and active_count > 0,
+        "averageFrameMs": average,
+        "p95FrameMs": percentile(intervals, 0.95),
+        "maxFrameMs": round(max(intervals), 3) if intervals else None,
+        "activeFrameP95Ms": percentile(active_intervals, 0.95),
+        "totalDrawCallsDuringFrames": sum(draw_calls),
+        "error": None,
+    }
+
+
+def geometry_drift(
+    samples: Any,
+) -> dict[str, Any]:
+    if not isinstance(samples, list) or not samples:
+        return {
+            "sampleCount": 0,
+            "dishFocusValues": [],
+            "maxAbsoluteRectDeltaPx": {},
+        }
+
+    selectors = ("root", "workspace", "dish", "timeline", "controls")
+    focus_values = sorted(
+        {
+            sample.get("dishFocus")
+            for sample in samples
+            if isinstance(sample, dict)
+            and isinstance(sample.get("dishFocus"), str)
+        }
+    )
+    deltas: dict[str, float | None] = {}
+    for selector in selectors:
+        rects = [
+            sample.get(selector)
+            for sample in samples
+            if isinstance(sample, dict)
+            and isinstance(sample.get(selector), dict)
+        ]
+        if not rects:
+            deltas[selector] = None
+            continue
+        first = rects[0]
+        max_delta = 0.0
+        for rect in rects[1:]:
+            for key in ("x", "y", "width", "height"):
+                left = first.get(key)
+                right = rect.get(key)
+                if isinstance(left, (int, float)) and isinstance(
+                    right, (int, float)
+                ):
+                    max_delta = max(max_delta, abs(float(right) - float(left)))
+        deltas[selector] = round(max_delta, 3)
+
+    return {
+        "sampleCount": len(samples),
+        "dishFocusValues": focus_values,
+        "maxAbsoluteRectDeltaPx": deltas,
+    }
+
+
+def profile_authoritative_playback(
+    cdp: CDP,
+    speed: int,
+    duration_ms: int = 2500,
+) -> dict[str, Any]:
+    speed_label = f"{speed}×"
+
+    paused = run_control_state(cdp)
+    if paused and paused.get("playing") is True:
+        click_run_control(cdp, "Pause")
+        wait_run_status(cdp, "ready")
+
+    reset = click_run_control(cdp, "Reset")
+    reset_state = wait_run_status(cdp, "ready")
+    selected = click_run_control(cdp, speed_label)
+    time.sleep(0.05)
+    before = run_control_state(cdp)
+
+    reset_browser_performance_probe(cdp)
+    runtime_before = chromium_runtime_metrics(cdp)
+    play = click_run_control(cdp, "Play")
+    time.sleep(0.05)
+    running = run_control_state(cdp)
+
+    workload = playback_window_samples(cdp, duration_ms)
+    during = run_control_state(cdp)
+    pause = click_run_control(cdp, "Pause")
+    after = wait_run_status(cdp, "ready")
+    runtime_after = chromium_runtime_metrics(cdp)
+    probe = browser_performance_probe_snapshot(cdp)
+
+    before_hours = before.get("simulationTimeHours") if before else None
+    after_hours = after.get("simulationTimeHours") if after else None
+    biological_delta = (
+        round(float(after_hours) - float(before_hours), 6)
+        if isinstance(before_hours, (int, float))
+        and isinstance(after_hours, (int, float))
+        else None
+    )
+    before_commands = before.get("acceptedCommandCount") if before else None
+    after_commands = after.get("acceptedCommandCount") if after else None
+    command_delta = (
+        int(after_commands) - int(before_commands)
+        if isinstance(before_commands, (int, float))
+        and isinstance(after_commands, (int, float))
+        else None
+    )
+
+    return {
+        "speed": speed,
+        "requestedSpeedLabel": speed_label,
+        "diagnosticWindowRequestedMs": duration_ms,
+        "resetAction": reset,
+        "speedAction": selected,
+        "playAction": play,
+        "pauseAction": pause,
+        "resetState": reset_state,
+        "before": before,
+        "running": running,
+        "during": during,
+        "after": after,
+        "biologicalTimeAdvanceHours": biological_delta,
+        "acceptedCommandAdvance": command_delta,
+        "frame": playback_frame_metrics(workload),
+        "geometry": geometry_drift(
+            workload.get("geometrySamples") if workload else None
+        ),
+        "runtimeBefore": runtime_before,
+        "runtimeAfter": runtime_after,
+        "runtimeDelta": numeric_metric_delta(runtime_before, runtime_after),
+        "browserProbe": probe,
+        "workerSessionPerformance": {
+            "status": "not-exposed-by-product-dom",
+            "followupExperiment": "worker-transport-profile",
+            "limitation": (
+                "This browser acceptance window observes main-thread/runtime "
+                "effects only. Worker execution/transport timing remains a "
+                "separate registered measurement rather than being inferred "
+                "from UI wall time."
+            ),
+        },
+    }
+
+
 def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
     checks: list[dict[str, Any]] = []
     cdp.call(

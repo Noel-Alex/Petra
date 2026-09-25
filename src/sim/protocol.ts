@@ -15,7 +15,7 @@ import { assertSimulationSeed } from './seed'
 export { assertSimulationSeed, MAX_SIMULATION_SEED } from './seed'
 
 export const ENGINE_VERSION = 'petra-ts-core/0.1.0' as const
-export const PROTOCOL_VERSION = 7 as const
+export const PROTOCOL_VERSION = 8 as const
 
 export interface RunIdentity {
   engineVersion: typeof ENGINE_VERSION
@@ -52,6 +52,8 @@ export interface SyntheticSimulationCheckpoint extends SimulationCheckpointBase 
  */
 export interface ComposedSimulationCheckpoint extends SimulationCheckpointBase {
   readonly authority: 'composed'
+  /** Replay-critical stochastic continuation state for composed authority. */
+  readonly rngState: RngState
   readonly composedState: ComposedSimulationState
   readonly metrics: ComposedMetrics
 }

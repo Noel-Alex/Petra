@@ -19,8 +19,12 @@ import {
 } from "../lod";
 import { resolveLineageAppearance } from "../lineageAppearance";
 import {
-  resolveSharedLineageDensityMaximum,
+  resolveDeclaredLineageDensityPresentationMaximum,
 } from "../lineageDensityPresentation";
+import {
+  validateLineageDensityPresentationScale,
+  type LineageDensityPresentationScale,
+} from "../lineageDensityScale";
 import { extractLineageDensityContourSegments } from "../lineageDensityContours";
 import {
   resolveOverlayPresentation,
@@ -110,11 +114,15 @@ export interface PixiDishOptions {
 }
 
 export interface PixiDishRenderer {
-  update(snapshot: DishRenderSnapshot): void;
+  update(
+    snapshot: DishRenderSnapshot,
+    lineageDensityPresentationScale: LineageDensityPresentationScale,
+  ): void;
   updatePresentation(
     snapshot: DishRenderSnapshot,
     overlayId: string | null,
-    organismPresentation?: OrganismPresentationIdentity | null,
+    organismPresentation: OrganismPresentationIdentity | null,
+    lineageDensityPresentationScale: LineageDensityPresentationScale,
   ): void;
   setSelection(selection: DishSelectionHighlight | null): void;
   setOverlay(overlayId: string | null): void;
@@ -195,6 +203,7 @@ export async function createPixiDishRenderer(
 
   let selection: DishSelectionHighlight | null = null;
   let organismPresentation: OrganismPresentationIdentity | null = null;
+  let lineageDensityPresentationScale: LineageDensityPresentationScale | null = null;
   let snapshot: DishRenderSnapshot | null = null;
   let drawableState: DishDrawableState | null = null;
   let visualTransition: DishVisualTransition | null = null;
@@ -350,8 +359,16 @@ export async function createPixiDishRenderer(
           invalidation.densityRaster ||
           !hasPreparedLineageDensityMaximum
         ) {
+          if (lineageDensityPresentationScale === null) {
+            throw new Error(
+              "Pixi density preparation requires an explicit lineage density presentation scale",
+            );
+          }
           preparedLineageDensityMaximum =
-            resolveSharedLineageDensityMaximum(drawableState!);
+            resolveDeclaredLineageDensityPresentationMaximum(
+              drawableState!,
+              lineageDensityPresentationScale,
+            );
           hasPreparedLineageDensityMaximum = true;
         }
         return preparedLineageDensityMaximum;
@@ -373,7 +390,28 @@ export async function createPixiDishRenderer(
   const applySnapshotOverlayUpdate = (
     nextSnapshot: DishRenderSnapshot,
     requestedOverlayId: string | null,
+    nextLineageDensityPresentationScale: LineageDensityPresentationScale,
   ) => {
+    validateLineageDensityPresentationScale(
+      nextLineageDensityPresentationScale,
+    );
+    const isolatedDensityScale = structuredClone(
+      nextLineageDensityPresentationScale,
+    );
+    if (
+      !lineageDensityPresentationScaleEqual(
+        lineageDensityPresentationScale,
+        isolatedDensityScale,
+      )
+    ) {
+      renderPreparationRevision =
+        advanceDishRenderPreparationRevision(
+          renderPreparationRevision,
+          "scientific-frame",
+        );
+    }
+    lineageDensityPresentationScale = isolatedDensityScale;
+
     const previousSnapshot = snapshot;
     const previousSnapshotId = previousSnapshot?.snapshotId ?? null;
     const previousSamplingIdentity =
@@ -799,11 +837,20 @@ export async function createPixiDishRenderer(
   host.addEventListener("keydown", onKeyDown);
 
   return {
-    update(nextSnapshot) {
-      applySnapshotOverlayUpdate(nextSnapshot, overlayId);
+    update(nextSnapshot, nextLineageDensityPresentationScale) {
+      applySnapshotOverlayUpdate(
+        nextSnapshot,
+        overlayId,
+        nextLineageDensityPresentationScale,
+      );
     },
 
-    updatePresentation(nextSnapshot, nextOverlayId, presentation = null) {
+    updatePresentation(
+      nextSnapshot,
+      nextOverlayId,
+      presentation,
+      nextLineageDensityPresentationScale,
+    ) {
       const nextOrganismPresentation =
         presentation === null
           ? null
@@ -821,7 +868,11 @@ export async function createPixiDishRenderer(
           );
       }
       organismPresentation = nextOrganismPresentation;
-      applySnapshotOverlayUpdate(nextSnapshot, nextOverlayId);
+      applySnapshotOverlayUpdate(
+        nextSnapshot,
+        nextOverlayId,
+        nextLineageDensityPresentationScale,
+      );
     },
 
     setSelection(nextSelection) {
@@ -923,6 +974,34 @@ export async function createPixiDishRenderer(
       app.destroy({ removeView: true }, { children: true });
     },
   };
+}
+
+function lineageDensityPresentationScaleEqual(
+  left: LineageDensityPresentationScale | null,
+  right: LineageDensityPresentationScale,
+): boolean {
+  if (
+    left === null ||
+    left.schemaVersion !== right.schemaVersion ||
+    left.mode !== right.mode ||
+    left.unit !== right.unit ||
+    left.maximum !== right.maximum
+  ) {
+    return false;
+  }
+
+  if (left.mode === "source-owned-fixed") {
+    return (
+      right.mode === "source-owned-fixed" &&
+      left.sourceIdentity === right.sourceIdentity &&
+      left.overflowTolerance === right.overflowTolerance
+    );
+  }
+
+  return (
+    right.mode === "snapshot-extrema" &&
+    left.snapshotId === right.snapshotId
+  );
 }
 
 function drawScene(args: {

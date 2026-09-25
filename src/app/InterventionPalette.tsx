@@ -1,8 +1,7 @@
 import { useId } from "react";
 
 import { PetraCompactAction } from "../ui/PetraCompactAction";
-import { PetraIcon } from "../ui/icons/PetraIcon";
-import type { PetraIconName } from "../ui/icons/spec";
+import { InterventionIllustration } from "./InterventionIllustration";
 import type {
   InterventionTool,
   NormalizedDishPoint,
@@ -12,12 +11,26 @@ import type { MotionPreference } from "../ui/motion/policy";
 import { projectInterventionCapability } from "./interventionCapability";
 import type { RuntimeUiStatus } from "./runtimeView";
 
-const INTERVENTION_ICONS = {
-  inoculate: "inoculate",
-  fungus: "fungus",
-  antibiotic: "antibiotic",
-  nutrient: "nutrient",
-} as const satisfies Readonly<Record<InterventionTool, PetraIconName>>;
+const TOOL_COPY = {
+  inoculate: {
+    title: "Add population",
+    detail: "Bacteria and other microbes",
+  },
+  fungus: {
+    title: "Add fungi",
+    detail: "Yeasts and filamentous fungi",
+  },
+  antibiotic: {
+    title: "Add medicine",
+    detail: "Antibiotics and antifungals",
+  },
+  nutrient: {
+    title: "Add nutrient",
+    detail: "Change the environment",
+  },
+} as const satisfies Readonly<
+  Record<InterventionTool, { readonly title: string; readonly detail: string }>
+>;
 
 export interface InterventionPaletteProps {
   readonly motion: MotionPreference;
@@ -44,7 +57,7 @@ export function InterventionPalette({
   const activeToolLabel =
     activeTool === null
       ? null
-      : view.tools.find(({ tool }) => tool === activeTool)?.label ?? activeTool;
+      : TOOL_COPY[activeTool].title;
 
   const updateAxis = (axis: "x" | "y", percentage: number) => {
     if (placement?.phase !== "placing") return;
@@ -68,7 +81,7 @@ export function InterventionPalette({
       </p>
 
       <div className="tool-stack" aria-describedby={reasonId}>
-        {view.tools.map(({ tool, label }) => (
+        {view.tools.map(({ tool }) => (
           <PetraCompactAction
             key={tool}
             motionPreference={motion}
@@ -80,15 +93,11 @@ export function InterventionPalette({
             onClick={() => onBeginPlacement?.(tool)}
           >
             <span className="tool-action__icon" aria-hidden="true">
-              <PetraIcon
-                name={INTERVENTION_ICONS[tool]}
-                decorative
-                size={28}
-              />
+              <InterventionIllustration tool={tool} />
             </span>
             <span className="tool-action__copy">
-              <strong>{label}</strong>
-              <small>place preview</small>
+              <strong>{TOOL_COPY[tool].title}</strong>
+              <small>{TOOL_COPY[tool].detail}</small>
             </span>
             <span className="tool-action__arrow" aria-hidden="true">
               ›

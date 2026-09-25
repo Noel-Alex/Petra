@@ -155,3 +155,14 @@ Contributor: Noel-Alex
 
 Contributor/session: Noel-Alex
 
+
+
+## 2026-09-25 — #799 fresh-main shell recovery
+
+- Recovered released draft PR #799 from head `ddc79bb4ff89c4bff3f6d9a5a178609209f4e8e3` onto fresh current main rather than merging its stale branch. The donor's fourteen UI/source/test files had no upstream path overlap and were transplanted verbatim; current App/UI DOX was reconciled additively instead of overwritten.
+- The recovered slice remains presentation-only: bespoke intervention-card vector artwork, compact inspector/analysis disclosures, laptop-height shell scrolling, and focus treatment. It does not create dish organisms, simulation measurements, renderer authority, or scientific state.
+- Verification provenance is preserved exactly: the original #799 author reported five focused Vitest files / 40 passing tests, a successful Vite build with the existing large-chunk warning, and local laptop browser review. This connector recovery did not rerun those checks and does not claim them as new evidence.
+- #799's recorded protocol-v6 / preset-v5 startup failure was a valid historical finding at the time of that preview, but subsequent main work repaired the preset protocol alignment. Do not treat that old preview note as a current runtime diagnosis.
+- The remaining #456 critical path is still the central dish: authoritative composed snapshot projection, organism geometry/LOD, evidence-gated causal motion, and browser/expo visual acceptance against the approved references.
+
+Authenticated recovery contributor/session: sting-raider

@@ -1,11 +1,13 @@
 import {
   createAuthoritativeHistoryIndex,
   type AuthoritativeHistoryIndex,
+  type AuthoritativeHistoryKeyframe,
 } from "./historicalState";
 import {
   createDishReplayPresenter,
   type DishReplayPresenter,
 } from "../render/replayPresentation";
+import type { AuthoritativeDishReplayKeyframe } from "../render/replayIdentity";
 import type { RuntimeHistoricalKeyframeTransaction } from "./runtimeHistoricalKeyframe";
 
 export interface RuntimeHistoricalPresentationAuthority {
@@ -35,8 +37,8 @@ export function createRuntimeHistoricalPresentationAuthority(
     );
   }
 
-  const scientificKeyframes = [];
-  const dishKeyframes = [];
+  const scientificKeyframes: AuthoritativeHistoryKeyframe[] = [];
+  const dishKeyframes: AuthoritativeDishReplayKeyframe[] = [];
   let runBranchIdentity: string | null = null;
 
   for (let index = 0; index < transactions.length; index += 1) {
@@ -62,17 +64,24 @@ export function createRuntimeHistoricalPresentationAuthority(
     dishKeyframes.push(transaction.dish);
   }
 
+  const resolvedRunBranchIdentity = runBranchIdentity;
+  if (resolvedRunBranchIdentity === null) {
+    throw new Error(
+      "runtime historical presentation branch identity is unavailable",
+    );
+  }
+
   const historyIndex = createAuthoritativeHistoryIndex(scientificKeyframes);
   const dishPresenter = createDishReplayPresenter(dishKeyframes);
 
-  if (historyIndex.runBranchIdentity !== runBranchIdentity) {
+  if (historyIndex.runBranchIdentity !== resolvedRunBranchIdentity) {
     throw new Error(
       "runtime historical presentation branch identity failed reconciliation",
     );
   }
 
   return Object.freeze({
-    runBranchIdentity,
+    runBranchIdentity: resolvedRunBranchIdentity,
     firstAcceptedCommandCount: historyIndex.firstCommandCount,
     lastAcceptedCommandCount: historyIndex.lastCommandCount,
     keyframeCount: historyIndex.keyframeCount,

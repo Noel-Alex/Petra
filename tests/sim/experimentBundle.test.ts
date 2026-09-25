@@ -21,6 +21,10 @@ import {
   type ComposedParameterSetBinding,
 } from '../../src/sim/parameterSetBinding'
 import { createRunIdentity } from '../../src/sim/protocol'
+import {
+  CELL_EQUIVALENT_CALIBRATION_SCHEMA_VERSION,
+  FRACTIONAL_CARRY_POPULATION_POLICY,
+} from '../../src/sim/populationAuthority'
 
 const evolutionGraph: CuratedMutationGraph = {
   scenarioId: 'experiment-bundle-fixture',
@@ -53,6 +57,7 @@ const config: ComposedSimulationConfig = {
   },
   ciprofloxacin: null,
   samplingExecutionPolicy: null,
+  populationAuthority: null,
   lineages: [
     { id: 'ancestor', genotypeId: 'WT', deathHazardPerHour: 0 },
     { id: 'variant', genotypeId: 'VAR', deathHazardPerHour: 0.1 },
@@ -66,6 +71,34 @@ const binding: ComposedParameterSetBinding = {
   parameterSetId: 'experiment-bundle-fixture-parameters',
   parameterSetVersion: '1',
   configurationFingerprint: composedConfigurationFingerprint(config),
+}
+
+
+const populationConfig: ComposedSimulationConfig = {
+  ...config,
+  populationAuthority: {
+    calibration: {
+      schemaVersion: CELL_EQUIVALENT_CALIBRATION_SCHEMA_VERSION,
+      id: 'fixture-bundle-cell-scale-v1',
+      modelBiomassPerCellEquivalent: 0.01,
+      provenance: {
+        classification: 'engineering',
+        sourceKeys: [],
+        limitation:
+          'Test-only engineering scale for experiment bundle population replay.',
+      },
+    },
+    policy: FRACTIONAL_CARRY_POPULATION_POLICY,
+  },
+}
+
+const populationBinding: ComposedParameterSetBinding = {
+  schemaVersion: COMPOSED_PARAMETER_SET_BINDING_SCHEMA_VERSION,
+  authority: 'provenance',
+  parameterSetId: 'experiment-bundle-population-parameters',
+  parameterSetVersion: '1',
+  configurationFingerprint:
+    composedConfigurationFingerprint(populationConfig),
 }
 
 
@@ -210,6 +243,60 @@ describe('experiment export bundle', () => {
     const replayed = replayExperimentBundle(bundle)
     expect(replayed.checkpoint).toEqual(expected.checkpoint)
     expect(replayed.checkpoint.identity.parameterSetBinding).toEqual(binding)
+  })
+
+  it('round-trips state-v4 discrete population checkpoint residuals under bundle v2', () => {
+    const identity = createRunIdentity({
+      scenarioId: evolutionGraph.scenarioId,
+      scenarioVersion: evolutionGraph.scenarioVersion,
+      parameterSetId: populationBinding.parameterSetId,
+      parameterSetVersion: populationBinding.parameterSetVersion,
+      parameterSetBinding: populationBinding,
+      seed: 31,
+    })
+    const originEngine = new ComposedSimulationEngine(
+      identity,
+      populationConfig,
+    )
+    originEngine.execute({ id: 'population-prefix', type: 'advance', ticks: 1 })
+    const origin = originEngine.snapshot()
+    expect(origin.checkpoint.composedState.discretePopulation).not.toBeNull()
+    expect(
+      origin.checkpoint.composedState.discretePopulation?.revision,
+    ).toBe(1)
+
+    const commands = [
+      { id: 'population-suffix', type: 'advance' as const, ticks: 7 },
+    ]
+    const expectedEngine = new ComposedSimulationEngine(
+      identity,
+      populationConfig,
+    )
+    expectedEngine.execute({
+      id: 'expected-population-restore',
+      type: 'restore',
+      checkpoint: structuredClone(origin.checkpoint),
+    })
+    for (const command of commands) expectedEngine.execute(command)
+    const expected = expectedEngine.snapshot()
+
+    const bundle = createExperimentBundle({
+      originCheckpoint: origin.checkpoint,
+      commands,
+      composedConfig: populationConfig,
+      events: origin.events,
+    })
+    const serialized = serializeExperimentBundle(bundle)
+    const parsed = parseExperimentBundle(serialized)
+    const replayed = replayExperimentBundle(parsed)
+
+    expect(
+      parsed.replay.originCheckpoint.authority === 'composed'
+        ? parsed.replay.originCheckpoint.composedState.discretePopulation
+        : null,
+    ).toEqual(origin.checkpoint.composedState.discretePopulation)
+    expect(replayed.checkpoint).toEqual(expected.checkpoint)
+    expect(serializeExperimentBundle(parsed)).toBe(serialized)
   })
 
   it('round-trips composed ciprofloxacin intervention commands in bundle v2', () => {

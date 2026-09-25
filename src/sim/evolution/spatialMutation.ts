@@ -1,4 +1,4 @@
-import type { DiscretePopulationAdvanceResult } from '../populationAuthority'
+import type { DiscreteDivisionOpportunityResult } from '../populationAuthority'
 import { SimulationRng } from '../rng'
 import {
   runSamplingTransaction,
@@ -66,7 +66,7 @@ interface LineageMutationPlan {
  * consumed after earlier cells.
  */
 export function sampleSpatialDivisionMutations(args: {
-  readonly population: DiscretePopulationAdvanceResult
+  readonly population: DiscreteDivisionOpportunityResult
   readonly genotypeIds: readonly string[]
   readonly graph: CuratedMutationGraph
   readonly rng: SimulationRng
@@ -203,7 +203,7 @@ export function sampleSpatialDivisionMutations(args: {
 }
 
 function buildLineagePlans(
-  population: DiscretePopulationAdvanceResult,
+  population: DiscreteDivisionOpportunityResult,
   genotypeIds: readonly string[],
   graph: CuratedMutationGraph,
 ): readonly LineageMutationPlan[] {
@@ -227,7 +227,7 @@ function buildLineagePlans(
 }
 
 function validatePopulationOpportunityResult(
-  population: DiscretePopulationAdvanceResult,
+  population: DiscreteDivisionOpportunityResult,
   genotypeIds: readonly string[],
 ): void {
   const state = population.state
@@ -271,11 +271,6 @@ function validatePopulationOpportunityResult(
     'reported total division opportunities',
     population.totalDivisionOpportunities,
   )
-  nonNegativeSafeInteger(
-    'reported total standing hosts',
-    population.totalStandingHosts,
-  )
-
   let computedDivisionTotal = 0
   const seenLineageIds = new Set<string>()
   for (

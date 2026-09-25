@@ -5,6 +5,7 @@ import {
   parseCiprofloxacinToolAuthority,
   toCiprofloxacinIntentAuthority,
 } from "./ciprofloxacinToolAuthority";
+import { buildDefaultFlagshipRun } from "./flagshipRunPreset";
 
 const metadata = {
   schemaVersion: CIPROFLOXACIN_TOOL_AUTHORITY_SCHEMA_VERSION,
@@ -84,6 +85,30 @@ describe("ciprofloxacin tool authority", () => {
         parameter: { ...metadata.parameter, defaultValue: Number.NaN },
       }),
     ).toThrow(/default must be finite and non-negative/);
+  });
+
+  it("accepts the exact scenario-projected flagship control authority", () => {
+    const { plan } = buildDefaultFlagshipRun();
+    const authority = parseCiprofloxacinToolAuthority(
+      plan.ciprofloxacinToolAuthority,
+    );
+
+    expect(authority.parameter).toEqual({
+      key: "ciprofloxacin-concentration",
+      label: "Ciprofloxacin concentration",
+      unit: "mg/L",
+      minimum: 0,
+      maximum: 2,
+      defaultValue: 0,
+      precision: 3,
+    });
+    expect(authority.supportedGeometries).toEqual([
+      "global",
+      "radial",
+      "stripe",
+      "paint",
+    ]);
+    expect(authority.blendMode).toBe("set");
   });
 
   it("requires canonical labels/keys, mg/L, bounded precision, and explicit blend semantics", () => {

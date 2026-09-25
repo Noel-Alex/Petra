@@ -44,6 +44,10 @@ const DATASET_SCHEMA = {
   inputSchemaVersion: "aggregate-input-v1",
   targetSchemaVersion: "aggregate-target-v1",
 };
+const RUN_CONDITION = Object.freeze({
+  id: "fixture-run-condition",
+  fingerprint: "fixture:run-condition-v1",
+});
 
 function splitParameterPoints(): SweepParameterPoint[] {
   const family = createNoInterventionSweepFamily("untreated");
@@ -58,6 +62,7 @@ function splitParameterPoints(): SweepParameterPoint[] {
       parameterSetHash,
       scenarioId: SCENARIO,
       scenarioVersion: SCENARIO_VERSION,
+      runConditionFingerprint: RUN_CONDITION.fingerprint,
       groupId,
     });
     if (!wanted.has(split)) continue;
@@ -84,6 +89,7 @@ function plan(seeds: readonly number[] = [11, 22]): MechanisticSweepPlan {
     normalizationProfileId: "none-v1",
     datasetSchema: DATASET_SCHEMA,
     parameterPoints: splitParameterPoints(),
+    runConditions: [RUN_CONDITION],
     interventionFamilies: [createNoInterventionSweepFamily("untreated")],
     seeds,
     maxTrajectories: 32,
@@ -261,7 +267,12 @@ describe("first aggregate dataset evidence", () => {
       datasetLines: () => lines,
     });
 
+    expect(evidence.schemaVersion).toBe("petra-ml-generation-evidence-v2");
     expect(evidence.status).toBe("complete");
+    expect(evidence.plan.runConditionIds).toEqual([RUN_CONDITION.id]);
+    expect(evidence.plan.runConditionFingerprints).toEqual([
+      RUN_CONDITION.fingerprint,
+    ]);
     expect(evidence.artifactIntegrityVerified).toBe(true);
     expect(evidence.promotionEvidence).toBe(false);
     expect(evidence.dataset?.sampleCount).toBe(12);
@@ -314,7 +325,7 @@ describe("first aggregate dataset evidence", () => {
     const { finalization, lines } = completeDataset(currentPlan);
     const first = JSON.parse(lines[0]!) as Record<string, unknown>;
     const tampered = [
-      JSON.stringify({ ...first, trajectoryKey: "foreign-trajectory" }),
+      JSON.stringify({ ...first, runConditionId: "foreign-condition" }),
       ...lines.slice(1),
     ];
 
@@ -327,7 +338,7 @@ describe("first aggregate dataset evidence", () => {
         finalization,
         datasetLines: () => tampered,
       }),
-    ).toThrow(/wrong trajectoryKey/);
+    ).toThrow(/wrong runConditionId/);
   });
 
   it("keeps failed or unfinalized generation explicitly incomplete and integrity-unverified", () => {

@@ -8,6 +8,7 @@ import {
   advanceDiscretePopulationAuthority,
   createDiscretePopulationAuthorityState,
   discretePopulationConfigurationIdentity,
+  extendDiscretePopulationAuthorityLineages,
   planDiscreteHostRemoval,
   restoreDiscretePopulationAuthorityState,
   type CellEquivalentCalibration,
@@ -151,6 +152,92 @@ describe('shared discrete population authority', () => {
     expect(moved.state.standingHostCounts).toEqual([[1, 1]])
     expect(moved.totalStandingHosts).toBe(2)
     expect(moved.totalDivisionOpportunities).toBe(0)
+  })
+
+  it('keeps static population identity stable while extending ordered runtime lineage channels', () => {
+    const initialConfig = config({ width: 1, mask: [1], lineageIds: ['L1'] })
+    const extendedConfig = config({
+      width: 1,
+      mask: [1],
+      lineageIds: ['L1', 'L2'],
+    })
+
+    expect(
+      discretePopulationConfigurationIdentity(extendedConfig),
+    ).toBe(discretePopulationConfigurationIdentity(initialConfig))
+
+    const initial = createDiscretePopulationAuthorityState(
+      initialConfig,
+      [[2]],
+    )
+    const advanced = advanceDiscretePopulationAuthority(
+      initial,
+      initialConfig,
+      {
+        currentLineageBiomass: [[2.5]],
+        divisionBiomass: [new Float64Array([0.5])],
+      },
+    )
+    expect(advanced.state.divisionResidualCellEquivalents).toEqual([[0.25]])
+
+    const extended = extendDiscretePopulationAuthorityLineages(
+      advanced.state,
+      extendedConfig,
+      [[2.5], [1]],
+    )
+
+    expect(extended.configurationIdentity).toBe(
+      advanced.state.configurationIdentity,
+    )
+    expect(extended.revision).toBe(advanced.state.revision + 1)
+    expect(extended.lineageIds).toEqual(['L1', 'L2'])
+    expect(extended.standingHostCounts).toEqual([[1], [0]])
+    expect(extended.standingResidualCellEquivalents).toEqual([[0.25], [0.5]])
+    expect(extended.divisionResidualCellEquivalents).toEqual([[0.25], [0]])
+
+    expect(
+      restoreDiscretePopulationAuthorityState(
+        extended,
+        extendedConfig,
+        [[2.5], [1]],
+      ),
+    ).toEqual(extended)
+  })
+
+  it('refuses lineage reordering or static authority drift during runtime extension', () => {
+    const initialConfig = config({ width: 1, mask: [1], lineageIds: ['L1'] })
+    const initial = createDiscretePopulationAuthorityState(
+      initialConfig,
+      [[2]],
+    )
+
+    expect(() =>
+      extendDiscretePopulationAuthorityLineages(
+        initial,
+        config({
+          width: 1,
+          mask: [1],
+          lineageIds: ['L2', 'L1'],
+        }),
+        [[0], [2]],
+      ),
+    ).toThrow(/preserve existing ordered lineage prefix/)
+
+    expect(() =>
+      extendDiscretePopulationAuthorityLineages(
+        initial,
+        config({
+          width: 1,
+          mask: [1],
+          lineageIds: ['L1', 'L2'],
+          calibration: calibration({
+            id: 'different-scale',
+            modelBiomassPerCellEquivalent: 1,
+          }),
+        }),
+        [[2], [0]],
+      ),
+    ).toThrow(/configuration identity mismatch/)
   })
 
   it('replays the same future division opportunities after checkpoint restore', () => {

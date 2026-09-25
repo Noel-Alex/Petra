@@ -502,6 +502,30 @@
       "timeout_seconds": 30
     },
     {
+      "id": "persistence-tolerance-validation",
+      "description": "PREPARED; BLOCKED on #549/#550: the named hipA7/MGYA7 tolerance context and source-independent N/Q foundation exist as active work, but replay-critical composed persistence authority must land before source-parity validation can run.",
+      "command": [
+        "python",
+        "experiments/blocked.py",
+        "--experiment-id",
+        "persistence-tolerance-validation",
+        "--blocked-on",
+        "549",
+        "--blocked-on",
+        "550",
+        "--reason",
+        "Issue #549 must publish the exact named hipA7 persistence/tolerance pack and issue #550 must integrate replay-critical executable N/Q phenotype state without conflating tolerance with genotype mutation. Until both land, Petra must not invent a stationary-phase trigger, initial persister fraction, ampicillin transport/response law, or synthetic survival mechanism."
+      ],
+      "issues": [
+        528,
+        542,
+        549,
+        550,
+        1066
+      ],
+      "timeout_seconds": 30
+    },
+    {
       "id": "two-bacterium-shared-resource-validation",
       "description": "Authoritative E. coli MG1655 + B. subtilis 168 trp+ sigE- shared-resource validation: isolated controls, symmetry/order, resource-capacity accounting, replay/restore, exact taxa, calibration-distance reporting, and unsupported-path refusal.",
       "command": [

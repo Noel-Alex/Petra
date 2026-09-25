@@ -211,6 +211,22 @@ describe('authoritative analysis metric series', () => {
     ).toThrow(/mixes sampling policies/)
   })
 
+  it('rejects samples whose ticks are off the declared sampling cadence', () => {
+    const offCadence = sample({
+      tick: 3,
+      time: 0.3,
+      biomass: 1,
+      resource: 10,
+      resistantFraction: 0,
+      diversity: 0,
+      genotypes: [{ genotypeId: 'WT', fraction: 1 }],
+    })
+
+    expect(() => buildAuthoritativeMetricSeries([offCadence], config)).toThrow(
+      /off the declared sampling cadence/,
+    )
+  })
+
   it('fails closed on corrupted authoritative scalar and resistance values', () => {
     const base = sample({
       tick: 0,

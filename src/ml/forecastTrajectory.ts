@@ -93,6 +93,16 @@ function assertTaskIdentity(task: MechanisticSweepTask): void {
     throw new TypeError("mechanistic forecast taskId must be canonical text");
   }
 
+  if (
+    typeof task.runConditionId !== "string" ||
+    task.runConditionId.length === 0 ||
+    task.runConditionId !== task.runConditionId.trim()
+  ) {
+    throw new TypeError(
+      "mechanistic forecast runConditionId must be canonical text",
+    );
+  }
+
   const expectedGroupKey = splitGroupKey(task.trajectory.group);
   if (task.splitGroupKey !== expectedGroupKey) {
     throw new TypeError(

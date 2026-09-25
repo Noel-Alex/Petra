@@ -102,7 +102,6 @@ export function projectEcologyFluxObservation(args: {
   readonly biomassUnit: string
   /** Exact caller/scenario-owned time unit label; this layer never assumes hours. */
   readonly timeUnit: string
-  readonly stepDuration: number
   readonly result: EcologyStepResult
 }): EcologyFluxObservation {
   const {
@@ -110,7 +109,6 @@ export function projectEcologyFluxObservation(args: {
     lineageIds,
     biomassUnit,
     timeUnit,
-    stepDuration,
     result,
   } = args
 
@@ -128,7 +126,7 @@ export function projectEcologyFluxObservation(args: {
 
   canonicalLabel('biomassUnit', biomassUnit)
   canonicalLabel('timeUnit', timeUnit)
-  assertPositiveFinite('stepDuration', stepDuration)
+  assertPositiveFinite('result.stepDuration', result.stepDuration)
   assertFiniteNonNegative(
     'metrics.divisionBiomass',
     result.metrics.divisionBiomass,
@@ -226,9 +224,9 @@ export function projectEcologyFluxObservation(args: {
     const division = divisionByCell[cell]!
     const death = deathByCell[cell]!
     const net = division - death
-    const divisionRate = division / stepDuration
-    const deathRate = death / stepDuration
-    const netRate = net / stepDuration
+    const divisionRate = division / result.stepDuration
+    const deathRate = death / result.stepDuration
+    const netRate = net / result.stepDuration
 
     if (
       !Number.isFinite(net) ||
@@ -272,7 +270,7 @@ export function projectEcologyFluxObservation(args: {
     lineageIds: Object.freeze([...lineageIds]),
     biomassUnit,
     timeUnit,
-    stepDuration,
+    stepDuration: result.stepDuration,
     divisionBiomassByLineage: Object.freeze(
       divisionByLineage.map((channel) => freezeChannel(channel)),
     ),

@@ -71,6 +71,28 @@
       "timeout_seconds": 900
     },
     {
+      "id": "flagship-ciprofloxacin-validation",
+      "description": "Deterministic integrated flagship ciprofloxacin validation: zero-drug equivalence plus strict 0/1x/2x WT-MIC response through the authoritative protocol-v5 intervention path.",
+      "command": [
+        "npm",
+        "exec",
+        "--offline",
+        "--",
+        "vitest",
+        "run",
+        "--config",
+        "experiments/vitest.flagship_ciprofloxacin_validation.config.ts"
+      ],
+      "issues": [
+        37,
+        521,
+        542,
+        626,
+        749
+      ],
+      "timeout_seconds": 900
+    },
+    {
       "id": "flagship-long-soak",
       "description": "Multi-seed authoritative composed-engine soak with invariant, replay-continuation, memory, event-growth, and throughput evidence.",
       "command": [

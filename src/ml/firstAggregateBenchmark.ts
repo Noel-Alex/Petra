@@ -16,6 +16,7 @@ import {
 } from "./generator";
 import {
   createNodeMechanisticDatasetPackage,
+  resolveNodeMechanisticDatasetTaskDefinition,
   FIRST_AGGREGATE_DATASET_VERSION,
   FIRST_AGGREGATE_INPUT_SCHEMA_VERSION,
   FIRST_AGGREGATE_TARGET_SCHEMA_VERSION,
@@ -244,6 +245,15 @@ function validateFirstAggregateBenchmarkDataset(
   }
 
   const taskById = new Map(plan.tasks.map((task) => [task.taskId, task]));
+  const hoursPerTickByTask = new Map(
+    plan.tasks.map((task) => [
+      task.taskId,
+      resolveNodeMechanisticDatasetTaskDefinition(
+        task,
+        datasetPackage.executorData,
+      ).config.hoursPerTick,
+    ] as const),
+  );
   const rowsBySplit: Record<
     DatasetSplit,
     MechanisticDatasetRow<
@@ -302,7 +312,15 @@ function validateFirstAggregateBenchmarkDataset(
         `first aggregate benchmark row ${row.taskId} has foreign sample identity`,
       );
     }
-    validateAggregateTransition(row);
+    const hoursPerTick = hoursPerTickByTask.get(row.taskId);
+    if (hoursPerTick === undefined) {
+      throw new Error("first aggregate task timing authority is missing");
+    }
+    validateAggregateTransition(
+      row,
+      plan.executionSchedule.snapshotEveryTicks,
+      hoursPerTick,
+    );
 
     rowsBySplit[row.split].push(row);
     const bucket = rowsByTask.get(row.taskId) ?? [];
@@ -400,6 +418,8 @@ function validateAggregateTransition(
     FirstAggregateDatasetInput,
     FirstAggregateDatasetTarget
   >,
+  snapshotEveryTicks: number,
+  hoursPerTick: number,
 ): void {
   const input = row.sample.input;
   const target = row.sample.target;
@@ -430,15 +450,19 @@ function validateAggregateTransition(
     "first aggregate target",
   );
 
-  const schedule = createNodeMechanisticDatasetPackage().plan.executionSchedule;
   if (
     input.sourceSnapshotIndex !== row.sample.snapshotIndex ||
-    input.sourceTick !==
-      input.sourceSnapshotIndex * schedule.snapshotEveryTicks ||
+    input.sourceTick !== input.sourceSnapshotIndex * snapshotEveryTicks ||
     target.targetSnapshotIndex !== input.sourceSnapshotIndex + 1 ||
-    target.targetTick - input.sourceTick !== schedule.snapshotEveryTicks ||
-    target.forecastHorizonTicks !== schedule.snapshotEveryTicks ||
-    row.sample.simulationTimeHours !== input.sourceTimeHours
+    target.targetTick - input.sourceTick !== snapshotEveryTicks ||
+    target.forecastHorizonTicks !== snapshotEveryTicks ||
+    row.sample.simulationTimeHours !== input.sourceTimeHours ||
+    !numbersAgree(input.sourceTimeHours, input.sourceTick * hoursPerTick) ||
+    !numbersAgree(target.targetTimeHours, target.targetTick * hoursPerTick) ||
+    !numbersAgree(
+      target.forecastHorizonHours,
+      snapshotEveryTicks * hoursPerTick,
+    )
   ) {
     throw new RangeError(
       "first aggregate transition position does not match authoritative schedule",

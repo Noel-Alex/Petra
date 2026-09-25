@@ -13,7 +13,7 @@ describe("default flagship run preset", () => {
     expect(preset.classification).toBe("engineering");
     expect(preset.usageScope).toBe("research-expo-engineering-default");
     expect(plan.identity.scenarioId).toBe("ecoli-ciprofloxacin-spatial");
-    expect(plan.identity.scenarioVersion).toBe("1.4.0-research");
+    expect(plan.identity.scenarioVersion).toBe("1.5.0-research");
     expect(plan.identity.parameterSetId).toBe(
       "ecoli-ciprofloxacin-baseline-composed",
     );

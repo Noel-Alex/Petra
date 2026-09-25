@@ -1,4 +1,8 @@
 import type { DishRenderSnapshot } from "../render/model";
+import {
+  parseOrganismPresentationIdentity,
+  type OrganismPresentationIdentity,
+} from "../render/organismPresentationIdentity";
 
 export type DishRenderSourceKind =
   | "authoritative-snapshot"
@@ -13,6 +17,11 @@ export interface DishRenderSourceState {
 export interface DishRenderSource {
   readonly kind: DishRenderSourceKind;
   readonly snapshot: DishRenderSnapshot | null;
+  /**
+   * Presentation evidence bound to this exact rendered source. This is not
+   * checkpoint/replay authority and may be absent even for authoritative data.
+   */
+  readonly organismPresentation: OrganismPresentationIdentity | null;
 }
 
 export interface DishRenderSourceResolution {
@@ -22,6 +31,11 @@ export interface DishRenderSourceResolution {
 
 export interface DishRenderSourceInput {
   readonly authoritativeSnapshot?: DishRenderSnapshot | null;
+  /**
+   * Untrusted presentation metadata supplied alongside authoritative state.
+   * It is parsed only when an authoritative snapshot is actually selected.
+   */
+  readonly authoritativeOrganismPresentation?: unknown;
   readonly demoMode: boolean;
 }
 
@@ -62,11 +76,20 @@ export function resolveDishRenderSource(
   const authoritativeSnapshot = input.authoritativeSnapshot ?? null;
 
   if (authoritativeSnapshot !== null) {
+    const organismPresentation =
+      input.authoritativeOrganismPresentation === undefined ||
+      input.authoritativeOrganismPresentation === null
+        ? null
+        : parseOrganismPresentationIdentity(
+            input.authoritativeOrganismPresentation,
+          );
+
     return {
       state,
       source: {
         kind: "authoritative-snapshot",
         snapshot: authoritativeSnapshot,
+        organismPresentation,
       },
     };
   }
@@ -77,6 +100,7 @@ export function resolveDishRenderSource(
       source: {
         kind: "awaiting-authoritative-snapshot",
         snapshot: null,
+        organismPresentation: null,
       },
     };
   }
@@ -92,6 +116,7 @@ export function resolveDishRenderSource(
     source: {
       kind: "visual-demo",
       snapshot: demoSnapshot,
+      organismPresentation: null,
     },
   };
 }

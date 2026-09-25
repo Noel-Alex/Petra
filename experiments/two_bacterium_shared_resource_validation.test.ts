@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest'
 import {
   REQUIRED_TWO_BACTERIUM_CONTROL_IDS,
   REQUIRED_TWO_BACTERIUM_LIMITATIONS,
+  TWO_BACTERIUM_CONTENT_PACK_ID,
+  TWO_BACTERIUM_CONTENT_PACK_UNBOUND_LIMITATION,
+  TWO_BACTERIUM_CONTENT_PACK_VERSION,
   TWO_BACTERIUM_MECHANISM_SCOPE,
   TWO_BACTERIUM_SHARED_RESOURCE_VALIDATION_EXPERIMENT_ID,
   TWO_BACTERIUM_SHARED_RESOURCE_VALIDATION_SCHEMA_VERSION,
@@ -21,8 +24,12 @@ function validEvidence(): TwoBacteriumSharedResourceValidationEvidence {
       version: '1.0.0',
     },
     contentPack: {
-      id: 'fixture:ecoli-bacillus-shared-resource',
-      version: '1.0.0',
+      id: TWO_BACTERIUM_CONTENT_PACK_ID,
+      version: TWO_BACTERIUM_CONTENT_PACK_VERSION,
+    },
+    contentPackBinding: {
+      status: 'bound',
+      limitation: null,
     },
     configurationFingerprint: 'fixture-config-fingerprint',
     taxa: [
@@ -86,8 +93,11 @@ describe('two-bacterium shared-resource validation evidence contract', () => {
       assessTwoBacteriumSharedResourceValidationEvidence(evidence),
     ).toEqual({
       accepted: true,
+      mechanisticAccepted: true,
+      provenanceComplete: true,
       structuralErrors: [],
       rejectionReasons: [],
+      promotionBlockers: [],
     })
   })
 
@@ -107,9 +117,81 @@ describe('two-bacterium shared-resource validation evidence contract', () => {
       assessTwoBacteriumSharedResourceValidationEvidence(candidate),
     ).toEqual({
       accepted: false,
+      mechanisticAccepted: false,
+      provenanceComplete: true,
       structuralErrors: [],
       rejectionReasons: ['required control failed: same-seed-replay'],
+      promotionBlockers: [],
     })
+  })
+
+  it('keeps mechanistic evidence usable while an exact content pack is explicitly unbound', () => {
+    const evidence = validEvidence()
+    const candidate: TwoBacteriumSharedResourceValidationEvidence = {
+      ...evidence,
+      contentPack: null,
+      contentPackBinding: {
+        status: 'unbound',
+        limitation: TWO_BACTERIUM_CONTENT_PACK_UNBOUND_LIMITATION,
+      },
+    }
+
+    expect(
+      validateTwoBacteriumSharedResourceValidationEvidence(candidate),
+    ).toEqual([])
+    expect(
+      assessTwoBacteriumSharedResourceValidationEvidence(candidate),
+    ).toEqual({
+      accepted: false,
+      mechanisticAccepted: true,
+      provenanceComplete: false,
+      structuralErrors: [],
+      rejectionReasons: [],
+      promotionBlockers: ['content pack manifest is unbound'],
+    })
+  })
+
+  it('refuses scenario-as-content-pack aliases and inconsistent binding states', () => {
+    const evidence = validEvidence()
+    const aliased = {
+      ...evidence,
+      contentPack: { ...evidence.scenario },
+    }
+    expect(
+      validateTwoBacteriumSharedResourceValidationEvidence(aliased),
+    ).toContain('contentPack identity must not alias scenario identity')
+
+    const unboundWithPack = {
+      ...evidence,
+      contentPackBinding: {
+        status: 'unbound',
+        limitation: TWO_BACTERIUM_CONTENT_PACK_UNBOUND_LIMITATION,
+      },
+    }
+    expect(
+      validateTwoBacteriumSharedResourceValidationEvidence(unboundWithPack),
+    ).toContain('unbound contentPackBinding requires contentPack to be null')
+
+    const boundWithoutPack = {
+      ...evidence,
+      contentPack: null,
+    }
+    expect(
+      validateTwoBacteriumSharedResourceValidationEvidence(boundWithoutPack),
+    ).toContain('contentPack must be an object')
+
+    const wrongBoundPack = {
+      ...evidence,
+      contentPack: {
+        id: TWO_BACTERIUM_CONTENT_PACK_ID,
+        version: '9.9.9',
+      },
+    }
+    expect(
+      validateTwoBacteriumSharedResourceValidationEvidence(wrongBoundPack),
+    ).toContain(
+      `bound contentPack must equal ${TWO_BACTERIUM_CONTENT_PACK_ID}@${TWO_BACTERIUM_CONTENT_PACK_VERSION}`,
+    )
   })
 
   it('fails structurally when a required control or non-claim limitation is missing', () => {

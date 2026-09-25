@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "recordKind": "multispecies-interaction-evidence",
+  "id": "serratia-marcescens-aspergillus-niger-soil-carbon-competition-rosenzweig-stotzky-v1",
+  "authorityStatus": "validation-and-mechanism-evidence-only",
+  "organisms": {
+    "bacterium": {
+      "taxon": "Serratia marcescens",
+      "strain": null,
+      "strainStatus": "UNBOUND_FROM_CURRENT_EXTRACT"
+    },
+    "fungus": {
+      "taxon": "Aspergillus niger",
+      "strain": null,
+      "strainStatus": "UNBOUND_FROM_CURRENT_EXTRACT"
+    }
+  },
+  "sourceContexts": [
+    {
+      "sourceKey": "rosenzweig_stotzky_1980_nutrient_levels",
+      "doi": "10.1128/aem.39.2.354-360.1980",
+      "environment": "soil replica-plating system",
+      "soilLabels": [
+        "K",
+        "K6K",
+        "K6M"
+      ],
+      "clayAmendments": {
+        "K6K": "6% kaolinite",
+        "K6M": "6% montmorillonite"
+      },
+      "inoculationGeometry": [
+        "same-site",
+        "separate-site"
+      ],
+      "categoricalControls": [
+        {
+          "intervention": "glucose amendment",
+          "levelsPercent": [
+            0.25,
+            0.5,
+            1
+          ],
+          "reportedOutcome": "eliminated A. niger inhibition by S. marcescens in K/K6K/K6M under the stated tests, regardless of same-site or separate-site inoculation"
+        },
+        {
+          "intervention": "C/N adjustment with NH4NO3",
+          "fromRatio": "23/1",
+          "toRatio": "10/1",
+          "reportedOutcome": "eliminated inhibition in the stated soils/tests"
+        },
+        {
+          "intervention": "C/N adjustment with NH4NO3",
+          "toRatio": "15/1",
+          "reportedOutcome": "did not eliminate antagonism"
+        },
+        {
+          "intervention": "C/P adjustment with KH2PO4",
+          "fromRatio": "1000/1",
+          "toRatio": "100/1",
+          "reportedOutcome": "did not eliminate antagonism"
+        }
+      ],
+      "confoundersAndContext": [
+        "At higher glucose and NH4NO3 amendments, S. marcescens died out in K and K6K but not K6M; source attributes this apparently to pH reduction associated with increased metabolism.",
+        "With CaCO3 buffering, glucose still eliminated or reduced inhibition while NH4NO3 did not, supporting carbon competition rather than a generic nutrient-addition effect.",
+        "At CaCO3-adjusted pH above 6, NH4NO3 could inhibit A. niger even without bacteria through ammonia volatilization.",
+        "Degree of inhibition correlated directly with bacterial glucose-utilization rate across the tested bacteria."
+      ],
+      "sourceConclusion": "A. niger antagonism by some bacteria in this soil system was primarily attributable to competition for carbon, modulated by environmental factors including pH and clay mineralogy."
+    },
+    {
+      "sourceKey": "rosenzweig_stotzky_1979_clay_ph",
+      "doi": "10.1128/aem.38.6.1120-1126.1979",
+      "environment": "soil replica-plating system",
+      "categoricalControls": [
+        {
+          "condition": "separate-site inoculation with montmorillonite",
+          "clayLevelsPercentVolVol": [
+            3,
+            6,
+            9,
+            12
+          ],
+          "reportedOutcome": "S. marcescens inhibition of A. niger spread was maintained"
+        },
+        {
+          "condition": "separate-site inoculation with kaolinite",
+          "clayLevelsPercentVolVol": [
+            3
+          ],
+          "reportedOutcome": "antagonism was reduced"
+        },
+        {
+          "condition": "separate-site inoculation with kaolinite",
+          "clayLevelsPercentVolVol": [
+            6,
+            9,
+            12
+          ],
+          "reportedOutcome": "antagonism was eliminated"
+        },
+        {
+          "condition": "same-site inoculation",
+          "reportedOutcome": "A. niger was inhibited in all tested soils; inhibition increased with montmorillonite concentration"
+        },
+        {
+          "condition": "fungal propagule form",
+          "reportedOutcome": "A. niger was inhibited more when inoculated as spores than as mycelial fragments"
+        },
+        {
+          "condition": "fungus inoculated 96 h after S. marcescens",
+          "reportedOutcome": "inhibition increased; 1% glucose reduced the inhibition"
+        }
+      ],
+      "environmentalDependence": [
+        "Antagonism usually increased as pH increased.",
+        "Source associates antagonism with cation-exchange capacity and pH of soil-clay mixtures."
+      ]
+    }
+  ],
+  "implementationDecision": {
+    "supportedMechanismClass": "shared-carbon competition with explicit environment/context dependence",
+    "prohibitedShortcut": "generic pairwise attack or killing coefficient",
+    "engineReadyQuantitativeParameterPack": false,
+    "rationale": [
+      "The source supports a carbon-competition interpretation and qualitative/categorical intervention controls.",
+      "It does not provide a directly reusable Petra glucose uptake law, uptake coefficients, yield, shared physical resource field calibration, or compatible strain-resolved growth parameter pack in this record.",
+      "pH, clay mineralogy, bacterial survival and inoculation geometry materially alter the observed outcome."
+    ]
+  },
+  "validationTargets": [
+    "Under source-compatible soil conditions, adding 0.25%, 0.5% or 1.0% glucose should remove the competition-associated fungal inhibition phenotype in the tested setup.",
+    "A C/N shift to 10/1 with NH4NO3 removed inhibition in the reported unbuffered conditions, whereas a shift to 15/1 did not; this is a contextual validation target, not a portable nitrogen rule.",
+    "Clay identity must change the phenotype in the direction reported by the 1979 study; a model insensitive to kaolinite versus montmorillonite would not reproduce the source system.",
+    "Same-site versus separate-site placement and fungal inoculum form/timing are distinct validation strata."
+  ],
+  "unresolvedRuntimeAuthority": {
+    "exactBacterialStrain": "UNBOUND",
+    "exactFungalStrain": "UNBOUND",
+    "completeSoilComposition": "UNBOUND_IN_THIS_RECORD",
+    "glucoseDiffusionTransport": "UNBOUND",
+    "serratiaGlucoseUptakeKinetics": "UNBOUND",
+    "aspergillusGlucoseUptakeKinetics": "UNBOUND",
+    "organismSpecificBiomassYields": "UNBOUND",
+    "pHStateEquation": "UNBOUND",
+    "clayCationExchangeMechanism": "UNBOUND",
+    "continuousInteractionEffectLaw": "UNBOUND"
+  },
+  "rendererBoundary": {
+    "rule": "Renderer overlap/contact has no causal authority.",
+    "allowedPresentation": "Visualize authoritative organism density/resource depletion and source-backed interaction observables only after simulator state exists."
+  },
+  "provenance": {
+    "classification": "measured-qualitative-and-contextual",
+    "primarySources": [
+      {
+        "key": "rosenzweig_stotzky_1980_nutrient_levels",
+        "doi": "10.1128/aem.39.2.354-360.1980"
+      },
+      {
+        "key": "rosenzweig_stotzky_1979_clay_ph",
+        "doi": "10.1128/aem.38.6.1120-1126.1979"
+      }
+    ],
+    "limitation": "The record is a named interaction/control evidence pack, not a portable kinetic parameterization. Quantitative shared-resource execution remains fail-closed until unit-compatible uptake/growth/resource authority is curated."
+  }
+}

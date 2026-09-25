@@ -268,7 +268,7 @@ describe("multi-antimicrobial field foundation", () => {
     const set = createAntimicrobialFieldSet([source], grid);
 
     source.values[4] = 99;
-    (source.authority.effectChannels as string[])[0] = "incremental-loss-hazard";
+    (source.authority.effectChannels as unknown as string[])[0] = "incremental-loss-hazard";
 
     expect(set.fields[0]!.values[4]).toBe(4);
     expect(set.fields[0]!.authority.effectChannels).toEqual([

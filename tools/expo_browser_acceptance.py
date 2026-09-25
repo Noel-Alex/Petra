@@ -682,7 +682,8 @@ def render_publication_pass(cdp: CDP, steps: int = 6) -> list[dict[str, Any]]:
             and complete == steps
             and phase_counts.get("runtime-snapshot-published") == steps
             and phase_counts.get("dish-projection") == steps
-            and phase_counts.get("react-dish-committed") == steps,
+            and phase_counts.get("react-dish-committed") == steps
+            and summary.get("authoritativeLoadConsistentTransactionCount") == steps,
             {
                 **summary,
                 "requestedAdvanceTransactions": steps,
@@ -853,6 +854,8 @@ def continuous_render_publication_pass(
             and projection_count > 0
             and isinstance(react_count, int)
             and react_count > 0
+            and summary.get("authoritativeLoadConsistentTransactionCount")
+            == complete
         )
 
         checks.append(

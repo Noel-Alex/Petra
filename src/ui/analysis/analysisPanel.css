@@ -221,6 +221,24 @@
   stroke-linejoin: round;
 }
 
+ .analysis-lineage__node[data-selected="true"] .analysis-lineage__node-shape {
+  fill: rgb(var(--petra-rgb-mint) / 0.16);
+  stroke-width: calc(3px * var(--analysis-lineage-stroke-scale, 1));
+}
+
+.analysis-lineage__node[role="button"] {
+  cursor: pointer;
+}
+
+.analysis-lineage__node[role="button"]:focus-visible {
+  outline: none;
+}
+
+.analysis-lineage__node[role="button"]:focus-visible .analysis-lineage__node-shape {
+  stroke: var(--petra-focus-ring);
+  stroke-width: calc(3px * var(--analysis-lineage-stroke-scale, 1));
+}
+
 .analysis-lineage__node-shape {
   fill: var(--analysis-surface-strong);
   stroke: var(--analysis-lineage-color, var(--analysis-accent));
@@ -390,6 +408,20 @@
 .analysis-data__table code {
   color: inherit;
   font-size: inherit;
+}
+
+.analysis-lineage__select {
+  min-height: 2.75rem;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--analysis-border);
+  border-radius: 0.65rem;
+  background: var(--analysis-surface-strong);
+  color: rgb(var(--petra-rgb-cream) / 0.94);
+}
+
+.analysis-lineage__select[aria-pressed="true"] {
+  border-color: var(--analysis-accent);
+  color: var(--analysis-accent);
 }
 
 @media (max-width: 920px) {

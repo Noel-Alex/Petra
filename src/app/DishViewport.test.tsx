@@ -112,6 +112,20 @@ describe("DishViewport render-source truth boundary", () => {
   });
 
 
+  it("refuses an authoritative snapshot without its stable source-owned density scale", () => {
+    const authoritative = {
+      ...createRendererDemoSnapshot(12),
+      snapshotId: "authoritative-missing-density-scale",
+      samplingIdentity: "authoritative-missing-density-scale",
+    };
+
+    expect(() =>
+      renderToStaticMarkup(
+        <DishViewport motion="off" snapshot={authoritative} />,
+      ),
+    ).toThrow(/authoritative dish snapshots require a source-owned lineage density presentation scale/);
+  });
+
   it("projects live dish continuity through the shared app motion adapter", () => {
     expect(dishViewportSource).toContain(
       'import { resolveDishVisualMotion } from "./dishVisualMotion";',

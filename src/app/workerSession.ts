@@ -64,8 +64,10 @@ export interface WorkerSessionPerformanceSample {
    */
   readonly senderPostMessageCallMs: number | null;
   /**
-   * Main-thread cost of cloning the accepted authoritative snapshot into
-   * WorkerSession-owned immutable state. This is local copy cost only.
+   * Main-thread cost of materializing the accepted authoritative snapshot into
+   * WorkerSession-owned immutable state. Full baselines clone all events once;
+   * delta responses clone/freeze only the new suffix plus current snapshot
+   * state. This is local ownership/materialization cost only.
    */
   readonly mainThreadSnapshotCloneMs: number | null;
   readonly roundTripMs: number;

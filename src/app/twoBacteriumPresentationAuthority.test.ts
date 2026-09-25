@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { composedConfigurationFingerprint } from "../sim/authoritative";
 import { ComposedSimulationEngine } from "../sim/composedEngine";
 import { buildTwoBacteriumSharedResourceRunPlan } from "../sim/twoBacteriumComposition";
 import { projectAuthoritativeComposedDishSnapshot } from "./composedDishProjection";
@@ -69,6 +70,34 @@ describe("two-bacterium organism presentation authority", () => {
     );
   });
 
+  it("fails closed when exact-looking run identity is paired with drifted composed config authority", () => {
+    const plan = mixedPlan();
+    const driftedConfig = {
+      ...plan.config,
+      growth: {
+        ...plan.config.growth,
+        localCapacity: plan.config.growth.localCapacity + 1,
+      },
+    };
+
+    expect(() =>
+      createTwoBacteriumDishOrganismPresentationAuthority({
+        ...plan,
+        config: driftedConfig,
+      }),
+    ).toThrow(/configuration fingerprint does not match parameter-set binding/i);
+
+    expect(() =>
+      createTwoBacteriumDishOrganismPresentationAuthority({
+        ...plan,
+        parameterSetBinding: {
+          ...plan.parameterSetBinding,
+          configurationFingerprint: "foreign-configuration-fingerprint",
+        },
+      }),
+    ).toThrow(/plan parameter-set binding to match run identity/i);
+  });
+
   it("fails closed on foreign run identity or a taxon revision that has not been rebound", () => {
     const plan = mixedPlan();
     const foreign = {
@@ -93,11 +122,21 @@ describe("two-bacterium organism presentation authority", () => {
           : taxon,
       ),
     };
+    const staleConfig = {
+      ...plan.config,
+      taxonRegistry: staleTaxonRegistry,
+    };
+    const staleParameterSetBinding = {
+      ...plan.parameterSetBinding,
+      configurationFingerprint: composedConfigurationFingerprint(staleConfig),
+    };
     const stale = {
       ...plan,
-      config: {
-        ...plan.config,
-        taxonRegistry: staleTaxonRegistry,
+      config: staleConfig,
+      parameterSetBinding: staleParameterSetBinding,
+      identity: {
+        ...plan.identity,
+        parameterSetBinding: staleParameterSetBinding,
       },
     };
 

@@ -71,7 +71,6 @@ import {
   planDishVisualTransition,
   type DishDrawableState,
   type DishVisualMotionSpec,
-  type DishVisualState,
   type DishVisualTransition,
 } from "../visualInterpolation";
 import {

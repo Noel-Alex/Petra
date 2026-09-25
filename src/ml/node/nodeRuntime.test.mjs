@@ -196,6 +196,22 @@ describe("Node mechanistic sweep adapters", () => {
       logicalCpuCount: 4,
       workerCount: 2,
     });
+    expect(() =>
+      buildNodeMechanisticDatasetGenerationEvidence({
+        artifactDirectory: root,
+        plan,
+        result: {
+          ...first,
+          dataset: {
+            ...first.dataset,
+            datasetRelativePath: "../outside.jsonl",
+          },
+        },
+        engineCommit: "0123456789abcdef0123456789abcdef01234567",
+        repositoryDirty: false,
+        logicalCpuCount: 4,
+      }),
+    ).toThrow(/escapes the artifact directory/);
 
     const unfinalizedEvidence =
       buildNodeMechanisticDatasetGenerationEvidence({

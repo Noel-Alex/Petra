@@ -22,6 +22,7 @@ import { ProvenancePanel } from "../ui/provenance/ProvenancePanel";
 import { RegionInspectorPanel } from "../ui/RegionInspectorPanel";
 import { DishViewport } from "./DishViewport";
 import { projectComposedDishSnapshot } from "./composedDishProjection";
+import { resolveComposedDishOrganismPresentationAuthority } from "./organismPresentationBinding";
 import {
   measureDishProjectionPublication,
   observeDishReactCommit,
@@ -176,6 +177,10 @@ export function App({
   const runtimeSnapshot = experiment.state?.snapshot ?? null;
   const runBranchIdentity = experiment.state?.runBranchIdentity ?? null;
   const ecologyObservation = experiment.state?.ecologyObservation ?? null;
+  const organismPresentationAuthority =
+    resolveComposedDishOrganismPresentationAuthority(
+      runtimeSnapshot?.checkpoint.identity ?? null,
+    );
   const dishSnapshot = useMemo(
     () =>
       runBranchIdentity === null
@@ -188,9 +193,15 @@ export function App({
                 runtimeSnapshot,
                 runBranchIdentity,
                 ecologyObservation,
+                organismPresentationAuthority,
               ),
           ),
-    [ecologyObservation, runBranchIdentity, runtimeSnapshot],
+    [
+      ecologyObservation,
+      organismPresentationAuthority,
+      runBranchIdentity,
+      runtimeSnapshot,
+    ],
   );
 
   useEffect(() => {

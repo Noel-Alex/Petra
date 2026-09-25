@@ -370,7 +370,7 @@ describe('worker protocol runtime validation', () => {
 
   it('rejects malformed composed RNG continuation before authority promotion', () => {
     const corrupt = structuredClone(composedSnapshot)
-    ;(corrupt.checkpoint.rngState as number[]).fill(0)
+    ;(corrupt.checkpoint.rngState as unknown as number[]).fill(0)
 
     const response = parseWorkerResponse({
       protocolVersion: PROTOCOL_VERSION,

@@ -1,11 +1,18 @@
 export const TWO_BACTERIUM_SHARED_RESOURCE_VALIDATION_SCHEMA_VERSION =
-  'petra-two-bacterium-shared-resource-validation-v1' as const
+  'petra-two-bacterium-shared-resource-validation-v2' as const
 
 export const TWO_BACTERIUM_SHARED_RESOURCE_VALIDATION_EXPERIMENT_ID =
   'two-bacterium-shared-resource-validation' as const
 
 export const TWO_BACTERIUM_MECHANISM_SCOPE =
   'shared-resource-local-capacity-only' as const
+
+export const TWO_BACTERIUM_CONTENT_PACK_ID =
+  'ecoli-bsubtilis-shared-resource-pack' as const
+export const TWO_BACTERIUM_CONTENT_PACK_VERSION = '1.0.0' as const
+
+export const TWO_BACTERIUM_CONTENT_PACK_UNBOUND_LIMITATION =
+  'standalone-content-pack-manifest-not-yet-bound' as const
 
 export const TWO_BACTERIUM_TAXON_ROLES = Object.freeze([
   'ecoli-mg1655',
@@ -84,6 +91,12 @@ export interface TwoBacteriumSharedResourceValidationEvidence {
   readonly contentPack: {
     readonly id: string
     readonly version: string
+  } | null
+  readonly contentPackBinding: {
+    readonly status: 'bound' | 'unbound'
+    readonly limitation:
+      | typeof TWO_BACTERIUM_CONTENT_PACK_UNBOUND_LIMITATION
+      | null
   }
   readonly configurationFingerprint: string
   readonly taxa: readonly TwoBacteriumTaxonEvidenceIdentity[]
@@ -102,9 +115,15 @@ export interface TwoBacteriumSharedResourceValidationEvidence {
 }
 
 export interface TwoBacteriumEvidenceAssessment {
+  /** True only when both mechanistic controls and provenance are promotion-ready. */
   readonly accepted: boolean
+  /** Scientific/runtime controls passed independently of packaging completeness. */
+  readonly mechanisticAccepted: boolean
+  /** Exact standalone content-pack id/version is bound rather than inferred. */
+  readonly provenanceComplete: boolean
   readonly structuralErrors: readonly string[]
   readonly rejectionReasons: readonly string[]
+  readonly promotionBlockers: readonly string[]
 }
 
 type UnknownRecord = Record<string, unknown>
@@ -153,6 +172,68 @@ function validateCanonicalIdentity(
     errors.push(`${label}.version must be a non-empty canonical string`)
   }
   return isCanonicalString(value.id) && isCanonicalString(value.version)
+}
+
+function validateContentPackBinding(
+  contentPack: unknown,
+  bindingValue: unknown,
+  scenarioValue: unknown,
+  errors: string[],
+): void {
+  if (!isRecord(bindingValue)) {
+    errors.push('contentPackBinding must be an object')
+    return
+  }
+
+  if (bindingValue.status === 'bound') {
+    if (bindingValue.limitation !== null) {
+      errors.push('bound contentPackBinding.limitation must be null')
+    }
+    const packValid = validateCanonicalIdentity(
+      contentPack,
+      'contentPack',
+      errors,
+    )
+    if (packValid) {
+      if (
+        contentPack.id !== TWO_BACTERIUM_CONTENT_PACK_ID ||
+        contentPack.version !== TWO_BACTERIUM_CONTENT_PACK_VERSION
+      ) {
+        errors.push(
+          `bound contentPack must equal ${TWO_BACTERIUM_CONTENT_PACK_ID}@${TWO_BACTERIUM_CONTENT_PACK_VERSION}`,
+        )
+      }
+      if (
+        isRecord(scenarioValue) &&
+        isCanonicalString(scenarioValue.id) &&
+        isCanonicalString(scenarioValue.version) &&
+        contentPack.id === scenarioValue.id &&
+        contentPack.version === scenarioValue.version
+      ) {
+        errors.push(
+          'contentPack identity must not alias scenario identity',
+        )
+      }
+    }
+    return
+  }
+
+  if (bindingValue.status === 'unbound') {
+    if (contentPack !== null) {
+      errors.push('unbound contentPackBinding requires contentPack to be null')
+    }
+    if (
+      bindingValue.limitation !==
+      TWO_BACTERIUM_CONTENT_PACK_UNBOUND_LIMITATION
+    ) {
+      errors.push(
+        `unbound contentPackBinding.limitation must be ${TWO_BACTERIUM_CONTENT_PACK_UNBOUND_LIMITATION}`,
+      )
+    }
+    return
+  }
+
+  errors.push('contentPackBinding.status must be bound or unbound')
 }
 
 function validateTaxa(
@@ -448,7 +529,12 @@ export function validateTwoBacteriumSharedResourceValidationEvidence(
   }
 
   validateCanonicalIdentity(value.scenario, 'scenario', errors)
-  validateCanonicalIdentity(value.contentPack, 'contentPack', errors)
+  validateContentPackBinding(
+    value.contentPack,
+    value.contentPackBinding,
+    value.scenario,
+    errors,
+  )
 
   if (!isCanonicalString(value.configurationFingerprint)) {
     errors.push(
@@ -503,8 +589,13 @@ export function assessTwoBacteriumSharedResourceValidationEvidence(
   if (structuralErrors.length > 0 || !isRecord(value)) {
     return Object.freeze({
       accepted: false,
+      mechanisticAccepted: false,
+      provenanceComplete: false,
       structuralErrors,
       rejectionReasons: Object.freeze([
+        'evidence failed structural validation',
+      ]),
+      promotionBlockers: Object.freeze([
         'evidence failed structural validation',
       ]),
     })
@@ -531,9 +622,19 @@ export function assessTwoBacteriumSharedResourceValidationEvidence(
     rejectionReasons.push('runtime reported one or more failures')
   }
 
+  const contentPackBinding = value.contentPackBinding as UnknownRecord
+  const mechanisticAccepted = rejectionReasons.length === 0
+  const provenanceComplete = contentPackBinding.status === 'bound'
+  const promotionBlockers = provenanceComplete
+    ? []
+    : ['content pack manifest is unbound']
+
   return Object.freeze({
-    accepted: rejectionReasons.length === 0,
+    accepted: mechanisticAccepted && provenanceComplete,
+    mechanisticAccepted,
+    provenanceComplete,
     structuralErrors,
     rejectionReasons: Object.freeze(rejectionReasons),
+    promotionBlockers: Object.freeze(promotionBlockers),
   })
 }

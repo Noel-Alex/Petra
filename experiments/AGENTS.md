@@ -32,6 +32,7 @@ Experiment readiness is project work, not an end-of-project cleanup step.
 - Dataset generation, statistical replicates, calibration, model training/benchmarking, profiling, soak runs, browser acceptance, offline rehearsal, and release performance runs all belong in this queue when they require local capability.
 - Do not discover a known expensive experiment for the first time during final release hours.
 - Render-projection parity evidence is an integrity check, not biological validation. When authoritative JS-number channels are intentionally projected into Float32 renderer storage, verify exact equality to the declared `Math.fround` storage/aggregation policy and report quantization separately; preserve source units and caller-supplied runtime branch/sampling identity, and never reconstruct branch identity from checkpoint fields.
+- The `render-projection-parity` experiment also covers newly authoritative transaction-bound presentation inputs when those contracts exist: accepted intervention footprints must match their accepted source events exactly (including non-point geometry and blend semantics), and runtime ecology net-growth must preserve the exact accepted step-local signed rate field, units, mask, and displayed Float32 extrema. These checks prove transport/projection integrity only; they do not establish biological efficacy, Pixi visibility, browser correctness, or performance.
 
 ## Registration contract
 Each manifest experiment must include:

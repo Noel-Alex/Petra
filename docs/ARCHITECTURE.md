@@ -15,14 +15,14 @@ The frontend explains and controls the model. It does not become the model.
 
 ## Current implementation boundary
 
-Current `main` already contains a real composed-worker capability alongside the narrow synthetic infrastructure fixture path. `src/sim/protocol.ts` is protocol v8, `src/worker/simulation.worker.ts` selects `ComposedSimulationEngine` when an explicit `composedConfig` is supplied, and composed checkpoints/snapshots carry `authority: 'composed'`.
+Current `main` already contains a real composed-worker capability alongside the narrow synthetic infrastructure fixture path. `src/sim/protocol.ts` is protocol v9, `src/worker/simulation.worker.ts` selects `ComposedSimulationEngine` when an explicit `composedConfig` is supplied, and composed checkpoints/snapshots carry `authority: 'composed'`.
 
 That does **not** mean the flagship product path is complete. Issue #37 now owns the remaining product/flagship activation and integration work rather than the existence of a composed worker loop:
 
-- protocol v6 keeps synthetic and composed authority explicitly distinct; omitted `composedConfig` is the infrastructure/test fixture path, not product biology;
+- protocol v9 keeps synthetic and composed authority explicitly distinct; omitted `composedConfig` is the infrastructure/test fixture path, not product biology;
 - composed runs require a validated parameter-set binding in `RunIdentity`, tying the friendly parameter-set ID/version to the exact deterministic composed-configuration fingerprint;
 - `syntheticPopulation` and `synthetic-pulse` remain explicitly synthetic fixtures and must never be presented or adapted as real biology/interventions;
-- protocol v6 now supplies one real flagship intervention mutation, `apply-ciprofloxacin`; reviewed continuous-biomass → discrete evolution authority, remaining intervention families, and product-default flagship activation remain separate #37/#626 gates;
+- protocol v9 supplies replayable `apply-ciprofloxacin` plus engineering-unit `apply-model-resource`; reviewed continuous-biomass → discrete evolution authority, physical resource calibration, product resource-control metadata, remaining intervention families, and product-default flagship activation remain separate gates;
 - product UI must not invent scientific readouts when the active runtime does not supply the required authoritative records;
 - renderer demo fixtures remain presentation-only and visibly disclosed.
 
@@ -34,7 +34,7 @@ Grid resolution is **scenario/engineering configuration**, not a biological cons
 
 Target authoritative fields include:
 
-- limiting resource / nutrient;
+- limiting `model-resource` field (physical substrate/nutrient identity remains separately provenance-bound and may be UNBOUND);
 - ciprofloxacin concentration;
 - optional future mechanism fields such as phage.
 
@@ -42,7 +42,7 @@ Lineages use compact metadata plus aggregate spatial biomass/density channels. A
 
 ## Worker protocol
 
-### Implemented protocol v6 on current main
+### Implemented protocol v9 on current main
 
 The current versioned types in `src/sim/protocol.ts` define:
 
@@ -52,6 +52,7 @@ Main → worker:
 - `command` carrying one of:
   - `advance`;
   - `apply-ciprofloxacin` with schema-versioned exact `mg/L`, `set|add`, and global/radial/stripe/paint geometry (**composed authority only**);
+  - `apply-model-resource` with schema-versioned exact `model-resource`, `set|add`, and global/radial/stripe/paint geometry (**composed authority only; not a physical nutrient claim**);
   - `synthetic-pulse` (**infrastructure fixture only**);
   - `restore`;
   - `snapshot`.
@@ -64,11 +65,11 @@ Worker → main:
 - `snapshot`;
 - `error`.
 
-Protocol v8 checkpoints are a tagged union: `SyntheticSimulationCheckpoint` is infrastructure-only, while `ComposedSimulationCheckpoint` carries real composed state plus metrics, exact biological `rngState`, and `authority: 'composed'`. Composed state v5 checkpoints dynamic lineage identity, population authority when enabled, and the mutable ciprofloxacin concentration landscape; the config retains the fingerprinted initial landscape and source-backed PD/MIC policy. Composed authority validates its parameter-set/configuration binding, accepts only the typed ciprofloxacin mutation it implements, and rejects synthetic fixture commands. Do not translate inoculation, nutrient, phage, competitor, or other unsupported interactions into `synthetic-pulse` or `apply-ciprofloxacin`.
+Protocol v9 checkpoints are a tagged union: `SyntheticSimulationCheckpoint` is infrastructure-only, while `ComposedSimulationCheckpoint` carries real composed state plus metrics, exact biological `rngState`, and `authority: 'composed'`. Composed state v5 checkpoints dynamic lineage identity, population authority when enabled, and the mutable ciprofloxacin concentration landscape; the config retains the fingerprinted initial landscape and source-backed PD/MIC policy. Composed authority validates its parameter-set/configuration binding, accepts the typed ciprofloxacin and model-resource mutations it implements, and rejects synthetic fixture commands. `apply-model-resource` edits only the existing dimensionless engineering resource field; do not translate physical nutrient/media delivery, inoculation, phage, competitor, or other unsupported interactions into `synthetic-pulse`, `apply-ciprofloxacin`, or `apply-model-resource`.
 
 ### Remaining flagship protocol/product integration
 
-The composed worker substrate and first real ciprofloxacin mutation are implemented. #37/#626 may still evolve/version the protocol where the flagship needs additional intervention families, authoritative product records, or other wire-shape changes. The exact message names and payloads must come from the merged versioned source types, not from this planning document.
+The composed worker substrate plus typed ciprofloxacin and model-resource mutations are implemented. #37/#626 may still evolve/version the protocol where the flagship needs additional intervention families, authoritative product records, physical resource calibration, or other wire-shape changes. The exact message names and payloads must come from the merged versioned source types, not from this planning document.
 
 Required target properties:
 
@@ -105,7 +106,7 @@ Therefore:
 
 - never round, scale, or pass `divisionBiomass` directly into the exact mutation sampler;
 - do not invent a convenience biomass→birth conversion inside composition code;
-- protocol v8/state v5 may enable the reviewed shared population authority only with an explicit calibration/policy; `stepComposedStateDetailed(...)` then exposes its safe-integer per-lineage/per-cell division opportunities while checkpointing carry residuals;
+- protocol v9/state v5 may enable the reviewed shared population authority only with an explicit calibration/policy; `stepComposedStateDetailed(...)` then exposes its safe-integer per-lineage/per-cell division opportunities while checkpointing carry residuals;
 - the bundled flagship remains uncalibrated for cell-equivalents (`populationAuthority: null`), so product/evolution code must not claim discrete cells/divisions for that run until scenario authority supplies the calibration;
 - antibiotic concentration does not directly instruct mutation probability in the current model;
 - any accelerated mutation sampler must be statistically validated against the exact bounded reference path.

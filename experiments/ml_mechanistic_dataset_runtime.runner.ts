@@ -9,6 +9,7 @@ import {
   runNodeMechanisticDatasetPackage,
   type NodeMechanisticDatasetPackage,
 } from "../src/ml/node/datasetRuntime";
+import { buildNodeMechanisticDatasetGenerationEvidence } from "../src/ml/node/datasetEvidenceRuntime";
 
 const EXPERIMENT_ID = "ml-mechanistic-dataset";
 
@@ -46,7 +47,7 @@ function sourceState(): {
 } {
   const commit = execFileSync("git", ["rev-parse", "HEAD"], {
     encoding: "utf8",
-  }).trim();
+  }).trim().toLowerCase();
   const dirty =
     execFileSync("git", ["status", "--porcelain"], {
       encoding: "utf8",
@@ -153,15 +154,24 @@ async function main(): Promise<void> {
       workerHostModuleUrl,
     });
     const source = sourceState();
-    writeJsonAtomically(resultPath, {
-      experiment_id: EXPERIMENT_ID,
-      source: {
-        commit: source.commit,
-        repository_dirty: source.dirty,
+    const generationEvidence = buildNodeMechanisticDatasetGenerationEvidence(
+      datasetPackage,
+      result,
+      {
+        artifactDirectory,
+        engineCommit: source.commit,
+        repositoryDirty: source.dirty,
+        logicalCpuCount: cpuCount,
       },
-      ...result,
+    );
+    writeJsonAtomically(resultPath, {
+      schema_version: 1,
+      experiment_id: EXPERIMENT_ID,
+      package_id: result.packageId,
+      evidence_boundary: result.evidenceBoundary,
+      generation_evidence: generationEvidence,
     });
-    if (result.status !== "completed") {
+    if (generationEvidence.status !== "complete") {
       process.exitCode = 1;
     }
   } catch (error) {

@@ -177,11 +177,13 @@ export function biologicalContentPackManifestIdentity(value: unknown): string {
   const sortedReferences = (
     references: readonly ContentPackRecordReference[],
   ): readonly ContentPackRecordReference[] =>
-    [...references].sort(
-      (left, right) =>
-        left.id.localeCompare(right.id) ||
-        left.version.localeCompare(right.version),
-    );
+    [...references].sort((left, right) => {
+      if (left.id < right.id) return -1;
+      if (left.id > right.id) return 1;
+      if (left.version < right.version) return -1;
+      if (left.version > right.version) return 1;
+      return 0;
+    });
 
   return JSON.stringify({
     schemaVersion: CONTENT_PACK_MANIFEST_SCHEMA_VERSION,

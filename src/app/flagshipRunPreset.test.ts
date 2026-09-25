@@ -11,7 +11,7 @@ describe("default flagship run preset", () => {
   it("binds the current composed flagship authority without upgrading engineering run state", () => {
     const { preset, plan, ciprofloxacinToolAuthority, ciprofloxacinControlProvenance } = buildDefaultFlagshipRun();
 
-    expect(preset.version).toBe("1.0.4");
+    expect(preset.version).toBe("1.0.5");
     expect(preset.protocolVersion).toBe(PROTOCOL_VERSION);
     expect(preset.classification).toBe("engineering");
     expect(preset.usageScope).toBe("research-expo-engineering-default");
@@ -20,7 +20,7 @@ describe("default flagship run preset", () => {
     expect(plan.identity.parameterSetId).toBe(
       "ecoli-ciprofloxacin-baseline-composed",
     );
-    expect(plan.identity.parameterSetVersion).toBe("1.1.0");
+    expect(plan.identity.parameterSetVersion).toBe("1.2.0");
     expect(plan.identity.protocolVersion).toBe(PROTOCOL_VERSION);
     expect(plan.identity.seed).toBe(preset.seed);
     expect(plan.config.ciprofloxacinConcentrationMgPerL.every((value) => value === 0)).toBe(true);

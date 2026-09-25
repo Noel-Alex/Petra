@@ -74,6 +74,16 @@ describe("organism presentation identity", () => {
     );
   });
 
+  it("rejects sparse source arrays at the parser boundary", () => {
+    const sparse = cloneRecord();
+    const provenance = sparse.provenance as Record<string, unknown>;
+    const sources = provenance.sources as Array<Record<string, unknown>>;
+    delete sources[0];
+    expect(() => parseOrganismPresentationIdentity(sparse)).toThrow(
+      /sources must be dense/,
+    );
+  });
+
   it("requires canonical source DOIs and canonical strings", () => {
     const badDoi = cloneRecord();
     const provenance = badDoi.provenance as Record<string, unknown>;

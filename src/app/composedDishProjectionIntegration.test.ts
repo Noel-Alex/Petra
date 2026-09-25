@@ -19,8 +19,13 @@ describe("App authoritative dish projection integration", () => {
       "const runBranchIdentity = experiment.state?.runBranchIdentity ?? null;",
     );
     expect(appSource).toContain(
-      "projectComposedDishSnapshot(runtimeSnapshot, runBranchIdentity)",
+      "const ecologyObservation = experiment.state?.ecologyObservation ?? null;",
     );
+    expect(appSource).toContain("measureDishProjectionPublication(");
+    expect(appSource).toContain(
+      "projectComposedDishSnapshot(\n                runtimeSnapshot,\n                runBranchIdentity,\n                ecologyObservation,",
+    );
+    expect(appSource).toContain("observeDishReactCommit(");
     expect(appSource).toContain("snapshot={dishSnapshot}");
   });
 });

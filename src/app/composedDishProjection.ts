@@ -8,6 +8,11 @@ import { projectLineageOriginRenderEvents } from "./lineageRenderEvents";
 import { projectRuntimeEcologyRateFields } from "./runtimeEcologyRenderField";
 import { projectAcceptedInterventionFootprint } from "../render/acceptedInterventionFootprint";
 import {
+  assertLineageDensityWithinPresentationScale,
+  validateLineageDensityPresentationScale,
+  type SourceOwnedFixedLineageDensityPresentationScale,
+} from "../render/lineageDensityScale";
+import {
   validateRenderSnapshot,
   type DishRenderSnapshot,
   type RenderField,
@@ -36,6 +41,7 @@ export function projectComposedDishSnapshot(
   runBranchIdentity: string,
   ecologyObservation: RuntimeEcologyObservation | null = null,
   organismPresentationAuthority: ComposedDishOrganismPresentationAuthority | null = null,
+  lineageDensityPresentationScale: SourceOwnedFixedLineageDensityPresentationScale | null = null,
 ): DishRenderSnapshot | null {
   if (snapshot?.checkpoint.authority !== "composed") return null;
   return projectAuthoritativeComposedDishSnapshot(
@@ -43,6 +49,7 @@ export function projectComposedDishSnapshot(
     runBranchIdentity,
     ecologyObservation,
     organismPresentationAuthority,
+    lineageDensityPresentationScale,
   );
 }
 
@@ -51,7 +58,20 @@ export function projectAuthoritativeComposedDishSnapshot(
   runBranchIdentity: string,
   ecologyObservation: RuntimeEcologyObservation | null = null,
   organismPresentationAuthority: ComposedDishOrganismPresentationAuthority | null = null,
+  lineageDensityPresentationScale: SourceOwnedFixedLineageDensityPresentationScale | null = null,
 ): DishRenderSnapshot {
+  if (lineageDensityPresentationScale !== null) {
+    validateLineageDensityPresentationScale(lineageDensityPresentationScale);
+    if (
+      lineageDensityPresentationScale.mode !== "source-owned-fixed" ||
+      lineageDensityPresentationScale.unit !== BIOMASS_UNIT
+    ) {
+      throw new Error(
+        "composed dish projection requires source-owned-fixed model-biomass lineage density scale",
+      );
+    }
+  }
+
   const state = snapshot.checkpoint.composedState;
   const cells = state.width * state.height;
 
@@ -134,6 +154,12 @@ export function projectAuthoritativeComposedDishSnapshot(
           `lineage ${JSON.stringify(lineageId)} biomass`,
           value,
         );
+        if (lineageDensityPresentationScale !== null) {
+          assertLineageDensityWithinPresentationScale(
+            value,
+            lineageDensityPresentationScale,
+          );
+        }
         if (state.mask[cell] === 0 && value !== 0) {
           throw new Error(
             `lineage ${JSON.stringify(lineageId)} biomass must be zero outside the dish mask`,

@@ -117,7 +117,7 @@ export function createTimelineBookmark(
 }
 
 /**
- * Protocol v5 exposes generic lifecycle/fixture events plus the exact
+ * Protocol v6 exposes generic lifecycle/fixture events plus the exact
  * `ciprofloxacin-applied` command-acceptance event.
  *
  * That event proves an intervention command was accepted, but it does not prove

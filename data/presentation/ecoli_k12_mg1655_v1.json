@@ -1,0 +1,27 @@
+{
+  "kind": "petra-organism-presentation-identity",
+  "schemaVersion": 1,
+  "id": "ecoli-k12-mg1655-representative-morphology-v1",
+  "scientificName": "Escherichia coli",
+  "background": "K-12 MG1655",
+  "organismKind": "bacterium",
+  "morphology": "rod",
+  "provenance": {
+    "classification": "transferred",
+    "sources": [
+      {
+        "key": "nanninga_1998_ecoli_cell_morphology",
+        "doi": "10.1128/MMBR.62.1.110-129.1998",
+        "context": "E. coli cell-cycle and shape review supporting a coarse rod/cylindrical representative silhouette."
+      },
+      {
+        "key": "van_teeffelen_renner_2018_bacterial_cell_shape",
+        "doi": "10.12688/f1000research.12663.1",
+        "context": "Bacterial cell-size and shape review supporting rod-like E. coli morphology."
+      }
+    ],
+    "context": "Coarse representative morphology for Petra's E. coli K-12 MG1655 flagship background.",
+    "transferNote": "General E. coli and bacterial morphology evidence is transferred only to the coarse representative silhouette class for MG1655 presentation.",
+    "limitation": "Authorizes only a rod-shaped representative glyph. It does not authorize physical cell length, width, aspect ratio, orientation dynamics, division geometry, one-glyph-per-cell identity, literal cell counts, or any simulation parameter."
+  }
+}

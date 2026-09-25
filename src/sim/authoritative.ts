@@ -1,5 +1,5 @@
 import { assertEcologyLocalCapacity } from './ecology/capacity'
-import { stepEcology } from './ecology/growth'
+import { beginEcologyStep, completeEcologyStep } from './ecology/growth'
 import type {
   EcologyState,
   GrowthParameters,
@@ -19,20 +19,26 @@ import {
   type BaselineNonDrugLossPolicy,
 } from './evolution/baselineLossPolicy'
 import {
+  appendMaterializedMutationLineagesToAuthority,
   initializeDynamicLineageAuthority,
   validateDynamicLineageAuthorityState,
   type ComposedFounderLineageAuthority,
+  type DynamicLineageAuthorityState,
 } from './evolution/composedLineageAuthority'
+import { materializeSpatialMutationLineages } from './evolution/materializeMutationLineages'
+import { sampleSpatialDivisionMutations } from './evolution/spatialMutation'
 import type { LineageRegistryCheckpoint } from './evolution/lineage'
 import {
   samplingExecutionPolicyIdentity,
   type SamplingExecutionPolicy,
 } from './samplingPolicy'
 import {
-  advanceDiscretePopulationAuthority,
+  beginDiscretePopulationAuthorityAdvance,
   cloneDiscretePopulationAuthorityState,
   createDiscretePopulationAuthorityState,
   discretePopulationConfigurationIdentity,
+  extendDiscretePopulationAuthorityLineages,
+  reconcileDiscretePopulationStandingAuthority,
   restoreDiscretePopulationAuthorityState,
   type CellEquivalentCalibration,
   type DiscretePopulationAuthorityConfig,
@@ -40,6 +46,7 @@ import {
   type DiscretePopulationPolicy,
 } from './populationAuthority'
 import { requireFiniteNonNegativeFloat32 } from './spatial/field'
+import { SimulationRng } from './rng'
 import {
   CIPROFLOXACIN_RESOURCE_COMPOSITION_POLICY,
   composeSpatialCiprofloxacinLoss,
@@ -137,12 +144,12 @@ export interface ComposedSimulationState {
   readonly width: number
   readonly height: number
   readonly mask: number[]
-  readonly lineageIds: string[]
-  readonly genotypeIds: string[]
-  readonly baselineDeathHazardPerHour: number[]
+  lineageIds: string[]
+  genotypeIds: string[]
+  baselineDeathHazardPerHour: number[]
   /** Exact ordered lineage→taxon authority when configured for this run. */
-  readonly lineageTaxonMap?: RuntimeLineageTaxonMap
-  readonly lineageRegistry: LineageRegistryCheckpoint
+  lineageTaxonMap?: RuntimeLineageTaxonMap
+  lineageRegistry: LineageRegistryCheckpoint
   resource: number[]
   ciprofloxacinConcentrationMgPerL: number[]
   lineageBiomass: number[][]
@@ -169,6 +176,15 @@ export interface ComposedStepResult {
    */
   readonly divisionOpportunities: readonly (readonly number[])[] | null
   readonly totalDivisionOpportunities: number | null
+}
+
+export interface ComposedEvolutionStepContext {
+  /** Detached biological RNG owned by the higher-level accepted transaction. */
+  readonly rng: SimulationRng
+  /** End-of-step biological time assigned to mutation-created lineage records. */
+  readonly createdAtHours: number
+  /** Runtime-only work ceiling; it does not alter mutation probabilities. */
+  readonly maxMaterializedChildren: number
 }
 
 function finiteNonNegative(name: string, value: number): void {
@@ -1056,23 +1072,129 @@ function preparedLineageParameters(
 export function stepComposedStateDetailed(
   state: ComposedSimulationState,
   config: ComposedSimulationConfig,
+  evolution: ComposedEvolutionStepContext | null = null,
 ): ComposedStepResult {
   validateComposedStateAgainstConfig(state, config)
+  if (evolution !== null) {
+    finiteNonNegative('mutation child creation time', evolution.createdAtHours)
+    if (
+      !Number.isSafeInteger(evolution.maxMaterializedChildren) ||
+      evolution.maxMaterializedChildren < 1
+    ) {
+      throw new RangeError(
+        'maxMaterializedChildren must be a positive safe integer',
+      )
+    }
+  }
 
   const ecology = asEcologyState(state)
   const lineageParameters = preparedLineageParameters(state, config)
-  const result = stepEcology(
+  const interphase = beginEcologyStep(
     ecology,
     config.growth,
     lineageParameters,
     config.hoursPerTick,
   )
+
+  const populationConfig = composedDiscretePopulationAuthorityConfig(
+    config,
+    state.lineageIds,
+  )
+  let populationDivision: ReturnType<
+    typeof beginDiscretePopulationAuthorityAdvance
+  > | null = null
+  if (populationConfig !== null) {
+    if (state.discretePopulation === null) {
+      throw new Error(
+        'composed population authority configuration requires checkpoint state',
+      )
+    }
+    populationDivision = beginDiscretePopulationAuthorityAdvance(
+      state.discretePopulation,
+      populationConfig,
+      interphase.fluxes.divisionBiomass,
+    )
+  }
+
+  let nextLineageAuthority: DynamicLineageAuthorityState = {
+    lineageIds: [...state.lineageIds],
+    genotypeIds: [...state.genotypeIds],
+    baselineDeathHazardPerHour: [...state.baselineDeathHazardPerHour],
+    ...(state.lineageTaxonMap === undefined
+      ? {}
+      : { lineageTaxonMap: structuredClone(state.lineageTaxonMap) }),
+    lineageRegistry: structuredClone(state.lineageRegistry),
+  }
+  let materializedChildren = 0
+  let transactionRng: SimulationRng | null = null
+
+  if (
+    evolution !== null &&
+    populationDivision !== null &&
+    config.samplingExecutionPolicy !== null
+  ) {
+    transactionRng = new SimulationRng(evolution.rng.snapshot())
+    const mutationBatch = sampleSpatialDivisionMutations({
+      population: populationDivision,
+      genotypeIds: state.genotypeIds,
+      graph: config.evolutionGraph,
+      rng: transactionRng,
+      policy: config.samplingExecutionPolicy,
+    })
+
+    if (mutationBatch.totalMutantBirths > 0) {
+      const materialization = materializeSpatialMutationLineages({
+        lineageCheckpoint: state.lineageRegistry,
+        mutationBatch,
+        createdAtHours: evolution.createdAtHours,
+        maxMaterializedChildren: evolution.maxMaterializedChildren,
+      })
+      nextLineageAuthority = appendMaterializedMutationLineagesToAuthority(
+        nextLineageAuthority,
+        composedFounderAuthority(config),
+        config.dynamicLineageLossPolicy,
+        materialization,
+        config.taxonRegistry,
+      )
+      materializedChildren = materialization.children.length
+      reassignMutationChildBiomass(
+        ecology,
+        state.lineageIds,
+        materialization.children,
+        config.populationAuthority!.calibration.modelBiomassPerCellEquivalent,
+      )
+    }
+  }
+
+  const result = completeEcologyStep(ecology, interphase)
+  const ecologyResultForObservation =
+    materializedChildren === 0
+      ? result
+      : {
+          ...result,
+          fluxes: {
+            divisionBiomass: [
+              ...result.fluxes.divisionBiomass,
+              ...Array.from(
+                { length: materializedChildren },
+                () => new Float64Array(state.width * state.height),
+              ),
+            ],
+            deathBiomass: [
+              ...result.fluxes.deathBiomass,
+              ...Array.from(
+                { length: materializedChildren },
+                () => new Float64Array(state.width * state.height),
+              ),
+            ],
+          },
+        }
   const ecologyObservation = projectEcologyFluxObservation({
     state: ecology,
-    lineageIds: state.lineageIds,
+    lineageIds: nextLineageAuthority.lineageIds,
     biomassUnit: 'model-biomass',
     timeUnit: 'hour',
-    result,
+    result: ecologyResultForObservation,
   })
 
   const nextResource = Array.from(ecology.resource)
@@ -1080,50 +1202,84 @@ export function stepComposedStateDetailed(
     Array.from(channel),
   )
 
-  const populationConfig = composedDiscretePopulationAuthorityConfig(
-    config,
-    state.lineageIds,
-  )
   let nextDiscretePopulation: DiscretePopulationAuthorityState | null = null
   let divisionOpportunities: readonly (readonly number[])[] | null = null
   let totalDivisionOpportunities: number | null = null
 
-  if (populationConfig !== null) {
-    if (state.discretePopulation === null) {
-      throw new Error(
-        'composed population authority configuration requires checkpoint state',
-      )
-    }
-    const populationAdvance = advanceDiscretePopulationAuthority(
-      state.discretePopulation,
-      populationConfig,
-      {
-        currentLineageBiomass: nextLineageBiomass,
-        divisionBiomass: result.fluxes.divisionBiomass,
-      },
-    )
-    nextDiscretePopulation = populationAdvance.state
-    divisionOpportunities = populationAdvance.divisionOpportunities.map(
+  if (populationDivision !== null && populationConfig !== null) {
+    divisionOpportunities = populationDivision.divisionOpportunities.map(
       (channel) => Array.from(channel),
     )
     totalDivisionOpportunities =
-      populationAdvance.totalDivisionOpportunities
+      populationDivision.totalDivisionOpportunities
+
+    if (materializedChildren === 0) {
+      nextDiscretePopulation = reconcileDiscretePopulationStandingAuthority(
+        populationDivision.state,
+        populationConfig,
+        nextLineageBiomass,
+      )
+    } else {
+      const extendedPopulationConfig =
+        composedDiscretePopulationAuthorityConfig(
+          config,
+          nextLineageAuthority.lineageIds,
+        )!
+      nextDiscretePopulation = extendDiscretePopulationAuthorityLineages(
+        populationDivision.state,
+        extendedPopulationConfig,
+        nextLineageBiomass,
+      )
+    }
   }
 
-  // Publish the continuous ecology and discrete authority together only after
-  // every downstream validation/advance has succeeded. A refusal is therefore
-  // an exact composed-state no-op for direct callers as well as engine commands.
-  state.resource = nextResource
-  state.lineageBiomass = nextLineageBiomass
-  state.discretePopulation = nextDiscretePopulation
+  const candidateState: ComposedSimulationState = {
+    ...cloneComposedState(state),
+    lineageIds: [...nextLineageAuthority.lineageIds],
+    genotypeIds: [...nextLineageAuthority.genotypeIds],
+    baselineDeathHazardPerHour: [
+      ...nextLineageAuthority.baselineDeathHazardPerHour,
+    ],
+    ...(nextLineageAuthority.lineageTaxonMap === undefined
+      ? {}
+      : {
+          lineageTaxonMap: structuredClone(
+            nextLineageAuthority.lineageTaxonMap,
+          ),
+        }),
+    lineageRegistry: structuredClone(nextLineageAuthority.lineageRegistry),
+    resource: nextResource,
+    lineageBiomass: nextLineageBiomass,
+    discretePopulation: nextDiscretePopulation,
+  }
+  validateComposedStateAgainstConfig(candidateState, config)
 
   const lineageBiomass: Record<string, number> = {}
-  state.lineageIds.forEach((lineageId, index) => {
+  candidateState.lineageIds.forEach((lineageId, index) => {
     lineageBiomass[lineageId] = sumInMask(
-      state.lineageBiomass[index]!,
-      state.mask,
+      candidateState.lineageBiomass[index]!,
+      candidateState.mask,
     )
   })
+
+  // Publish only after ecology completion, dynamic-lineage expansion, population
+  // reconciliation and full composed-state validation have all succeeded.
+  state.lineageIds = candidateState.lineageIds
+  state.genotypeIds = candidateState.genotypeIds
+  state.baselineDeathHazardPerHour =
+    candidateState.baselineDeathHazardPerHour
+  if (candidateState.lineageTaxonMap === undefined) {
+    delete state.lineageTaxonMap
+  } else {
+    state.lineageTaxonMap = structuredClone(candidateState.lineageTaxonMap)
+  }
+  state.lineageRegistry = candidateState.lineageRegistry
+  state.resource = candidateState.resource
+  state.lineageBiomass = candidateState.lineageBiomass
+  state.discretePopulation = candidateState.discretePopulation
+  if (transactionRng !== null && evolution !== null) {
+    evolution.rng.restore(transactionRng.snapshot())
+  }
 
   return {
     ecologyObservation,
@@ -1138,6 +1294,68 @@ export function stepComposedStateDetailed(
     },
     divisionOpportunities,
     totalDivisionOpportunities,
+  }
+}
+
+function reassignMutationChildBiomass(
+  ecology: EcologyState,
+  sourceLineageIds: readonly string[],
+  children: readonly {
+    readonly lineageId: string
+    readonly parentLineageId: string
+    readonly originCellIndex: number
+  }[],
+  modelBiomassPerCellEquivalent: number,
+): void {
+  positiveFinite(
+    'mutation modelBiomassPerCellEquivalent',
+    modelBiomassPerCellEquivalent,
+  )
+  const representedChildBiomass = Math.fround(
+    modelBiomassPerCellEquivalent,
+  )
+  if (
+    !Number.isFinite(representedChildBiomass) ||
+    representedChildBiomass <= 0
+  ) {
+    throw new RangeError(
+      'mutation cell-equivalent biomass must be representable as positive Float32',
+    )
+  }
+
+  const parentIndexById = new Map(
+    sourceLineageIds.map((lineageId, index) => [lineageId, index] as const),
+  )
+  const cellCount = ecology.width * ecology.height
+
+  for (const child of children) {
+    const parentIndex = parentIndexById.get(child.parentLineageId)
+    if (parentIndex === undefined) {
+      throw new Error(
+        'mutation child parent must be an active source lineage for this step',
+      )
+    }
+    if (
+      !Number.isSafeInteger(child.originCellIndex) ||
+      child.originCellIndex < 0 ||
+      child.originCellIndex >= cellCount
+    ) {
+      throw new RangeError('mutation child origin cell is outside ecology grid')
+    }
+
+    const parent = ecology.lineages[parentIndex]!
+    const available = parent[child.originCellIndex]!
+    if (available < representedChildBiomass) {
+      throw new RangeError(
+        'mutation child biomass cannot exceed source lineage biomass in origin cell',
+      )
+    }
+
+    const childChannel = new Float32Array(cellCount)
+    childChannel[child.originCellIndex] = representedChildBiomass
+    parent[child.originCellIndex] =
+      available - childChannel[child.originCellIndex]!
+    ecology.lineages.push(childChannel)
   }
 }
 

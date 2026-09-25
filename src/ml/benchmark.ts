@@ -3,7 +3,10 @@ import {
   type DatasetSplit,
   type MechanisticDatasetSchemaIdentity,
 } from "./dataset";
-import type { MechanisticDatasetSummary } from "./generator";
+import {
+  MECHANISTIC_DATASET_ARTIFACT_SCHEMA_VERSION,
+  type MechanisticDatasetSummary,
+} from "./generator";
 import {
   GROUP_HORIZON_BALANCED_EVALUATION_POLICY_VERSION,
   assessStratifiedRegressionEvidence,
@@ -120,7 +123,7 @@ export function buildSurrogateBenchmarkEvidence(args: {
   requireCompatibilityText("modelVersion", args.modelVersion);
   requireCompatibilityText("baselineId", args.baselineId);
 
-  if (args.dataset.schemaVersion !== "petra-ml-dataset-artifact-v4") {
+  if (args.dataset.schemaVersion !== MECHANISTIC_DATASET_ARTIFACT_SCHEMA_VERSION) {
     throw new RangeError("unsupported mechanistic dataset artifact schema version");
   }
 

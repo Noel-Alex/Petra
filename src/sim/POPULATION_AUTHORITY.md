@@ -27,6 +27,8 @@ The policy requires one explicit `CellEquivalentCalibration`:
 There is no default conversion. #139's phage spatial-unit bridge can project its exact biomass-per-cell parameter into this shared calibration through
 `cellEquivalentCalibrationFromPhageSpatialUnitBridge(...)`.
 
+The composed runtime therefore requires `populationAuthority` to be either one explicit `{calibration, policy}` record or explicit `null`. The bundled flagship currently uses `null`: no scenario-owned biomass↔cell-equivalent calibration has been curated, so standing-host/division-event authority is not silently invented for that scenario.
+
 ## Standing host authority
 
 For every authoritative lineage × simulation cell, committed continuous biomass is decomposed as:
@@ -98,7 +100,7 @@ within the repository's deterministic floating comparison tolerance.
 
 Malformed counts, residuals, lineage order, mask use, biomass mismatch, or calibration/policy mismatch fail closed before state is returned.
 
-The full `discretePopulationConfigurationIdentity(...)` is replay-critical. Before this authority is enabled inside `ComposedSimulationEngine`, that identity must join the composed configuration fingerprint and its state must join composed checkpoints.
+The full `discretePopulationConfigurationIdentity(...)` is replay-critical. Protocol v6 / composed-state v4 bind that identity into `composedConfigurationFingerprint(...)` whenever `ComposedSimulationConfig.populationAuthority` is enabled, and checkpoint the full discrete state beside continuous ecology state. `validateComposedStateAgainstConfig(...)` revalidates standing count/residual consistency against the exact committed lineage biomass on direct continuation and restore. `stepComposedStateDetailed(...)` advances residual/count authority from the ecology kernel's spatial division-flux ledger only after the continuous ecology transition succeeds, then publishes continuous and discrete state together; a refusal publishes neither. `stepComposedState(...)` remains the compatibility metrics wrapper.
 
 ## Authority boundaries
 

@@ -25,9 +25,18 @@ describe("App authoritative dish projection integration", () => {
     expect(appSource).toContain(
       "const ecologyObservation = experiment.state?.ecologyObservation ?? null;",
     );
+    expect(appSource).toContain(
+      'import { RuntimeInterventionFootprintAccumulator } from "./runtimeInterventionFootprints";',
+    );
+    expect(appSource).toContain(
+      "new RuntimeInterventionFootprintAccumulator()",
+    );
+    expect(appSource).toContain(
+      "interventionFootprintAccumulatorRef.current!.projectSnapshot(",
+    );
     expect(appSource).toContain("measureDishProjectionPublication(");
     expect(appSource).toContain(
-      "projectComposedDishSnapshot(\n                runtimeSnapshot,\n                runBranchIdentity,\n                ecologyObservation,",
+      "projectComposedDishSnapshot(\n          runtimeSnapshot,\n          runBranchIdentity,\n          ecologyObservation,",
     );
     expect(appSource).toContain("observeDishReactCommit(");
     expect(appSource).toContain("snapshot={dishSnapshot}");

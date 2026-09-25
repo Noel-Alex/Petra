@@ -51,6 +51,8 @@ Biological fit values remain data-owned in `data/antimicrobials/chloramphenicol_
 - `mops-glycerol`: `lambda0* = 1.83 ± 0.06 h^-1`, `IC50* = 2.49 ± 0.05 µM`, measured drug-free growth strata `0.40 / 0.85 / 1.35 h^-1`;
 - `mops-glucose`: `lambda0* = 1.28 ± 0.02 h^-1`, `IC50* = 4.50 ± 0.05 µM`, measured drug-free growth strata `0.64 / 1.09 / 1.68 h^-1`.
 
+The fitted-parameter `±` values above are stored as **reported fit errors**, not standard deviations. Greulich et al. obtained the fit error bars by refitting 1,000 randomized data sets sampled within the experimental error ranges of the measured growth-inhibition data. This is distinct from the repeated-measurement standard deviations described for the raw Figure 1 data; Petra must not transfer that SD label onto the fitted parameters.
+
 The equation evaluator refuses drug-free growth rates outside the selected carbon-family envelope. It also checks the cubic discriminant and refuses a multiple-real-root regime instead of choosing a branch by numerical accident. Zero chloramphenicol is the exact no-op response `divisionMultiplier = 1`.
 
 The current flagship `model-resource` context does **not** identify either MOPS family. Therefore this numerical authority is reusable engine capability, not permission to expose a grounded chloramphenicol product control. Scenario composition must later bind a compatible environment and preserve the source `µM` concentration unit.

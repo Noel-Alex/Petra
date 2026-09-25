@@ -38,6 +38,7 @@ const config: ComposedSimulationConfig = {
   },
   ciprofloxacin: null,
   samplingExecutionPolicy: null,
+  dynamicLineageLossPolicy: null,
   lineages: [{ id: "lineage-a", genotypeId: "WT", deathHazardPerHour: 0 }],
   hoursPerTick: 0.01,
 };

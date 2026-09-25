@@ -65,3 +65,4 @@
 ## ML/surrogates
 - Bridging the gap between mechanistic biological models and machine learning surrogates (2023). DOI `10.1371/journal.pcbi.1010988`.
 - Using Emulation to Engineer and Understand Simulations of Biological Systems (2020). DOI `10.1109/TCBB.2018.2843339`.
+- Neidhardt, F.C., Bloch, P.L., Smith, D.F. (1974). Culture Medium for Enterobacteria. DOI `10.1128/jb.119.3.736-747.1974`.

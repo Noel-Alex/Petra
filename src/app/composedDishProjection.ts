@@ -9,21 +9,10 @@ import type {
   ComposedSimulationSnapshot,
   SimulationSnapshot,
 } from "../sim/protocol";
-import type { ExperimentRuntimeState } from "./experimentRuntime";
 
 const BIOMASS_UNIT = "model-biomass";
 const RESOURCE_UNIT = "model-resource";
 const CIPROFLOXACIN_UNIT = "mg/L";
-
-export function projectRuntimeComposedDishSnapshot(
-  runtimeState: ExperimentRuntimeState | null,
-): DishRenderSnapshot | null {
-  if (runtimeState === null) return null;
-  return projectComposedDishSnapshot(
-    runtimeState.snapshot,
-    runtimeState.runBranchIdentity,
-  );
-}
 
 export function projectComposedDishSnapshot(
   snapshot: SimulationSnapshot | null,

@@ -1,4 +1,5 @@
 import flagshipScenario from "../../data/presets/ecoli_ciprofloxacin_v1.json";
+import twoBacteriumScenario from "../../data/presets/ecoli_bsubtilis_shared_resource_v1.json";
 import {
   evaluateScienceModeAdmission,
   type ScienceModeAdmission,
@@ -35,7 +36,10 @@ export function buildScenarioDiscoveryEntry(
 
 /** Current bundled scenario catalog. Add future packs here only after their data contract lands. */
 export function listBundledScenarioDiscovery(): readonly ScenarioDiscoveryEntry[] {
-  return [buildScenarioDiscoveryEntry(flagshipScenario)];
+  return Object.freeze([
+    buildScenarioDiscoveryEntry(flagshipScenario),
+    buildScenarioDiscoveryEntry(twoBacteriumScenario),
+  ]);
 }
 
 /** Scenarios that the product may truthfully present as grounded Science Mode. */

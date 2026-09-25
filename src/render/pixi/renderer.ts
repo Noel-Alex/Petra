@@ -650,7 +650,8 @@ export async function createPixiDishRenderer(
     }
     if (destroyed || motion !== "full") return;
 
-    let changed = false;
+    let cameraChanged = false;
+    let visualChanged = false;
     if (
       !cameraTransitionComplete({
         elapsedMs: cameraElapsedMs,
@@ -664,7 +665,7 @@ export async function createPixiDishRenderer(
         elapsedMs: cameraElapsedMs,
         motion: cameraMotion,
       });
-      changed = true;
+      cameraChanged = true;
     }
 
     if (visualTransition !== null) {
@@ -683,10 +684,14 @@ export async function createPixiDishRenderer(
         visualTransition = null;
         visualElapsedMs = 0;
       }
-      changed = true;
+      visualChanged = true;
     }
 
-    if (changed) render();
+    if (visualChanged) {
+      render();
+    } else if (cameraChanged) {
+      renderCameraState(true);
+    }
   };
   app.ticker.add(ticker);
 
@@ -781,7 +786,7 @@ export async function createPixiDishRenderer(
       applyDirectCamera(
         panCamera(camera, moved.intent.deltaScreen, viewport),
       );
-      render();
+      renderCameraOnly();
       return;
     }
 
@@ -798,7 +803,7 @@ export async function createPixiDishRenderer(
     applyDirectCamera(
       panCamera(zoomed, moved.intent.centroidDelta, viewport),
     );
-    render();
+    renderCameraOnly();
   };
 
   const finishPointer = (
@@ -830,6 +835,12 @@ export async function createPixiDishRenderer(
     }
     if (gestureState.active.length === 0) {
       onePointerPanOwned = false;
+      if (
+        preparedCamera !== null &&
+        camera.zoom !== preparedCamera.zoom
+      ) {
+        render();
+      }
     }
     if (app.canvas.hasPointerCapture(event.pointerId)) {
       app.canvas.releasePointerCapture(event.pointerId);
@@ -865,7 +876,7 @@ export async function createPixiDishRenderer(
         },
       }),
     );
-    render();
+    renderCameraState(true);
   };
 
   const onDoubleClick = (event: MouseEvent) => {
@@ -879,7 +890,7 @@ export async function createPixiDishRenderer(
       camera,
     );
     beginCameraTransition({ centerX: anchor.x, centerY: anchor.y, zoom: 3.2 });
-    render();
+    renderCameraState(true);
   };
 
   const onKeyDown = (event: KeyboardEvent) => {
@@ -905,7 +916,7 @@ export async function createPixiDishRenderer(
 
     event.preventDefault();
     beginCameraTransition(result.camera);
-    render();
+    renderCameraState(true);
   };
 
   app.canvas.addEventListener("pointerdown", onPointerDown);
@@ -959,7 +970,7 @@ export async function createPixiDishRenderer(
 
     setSelection(nextSelection) {
       selection = nextSelection;
-      render();
+      renderCameraOnly();
     },
 
     setOverlay(nextOverlayId) {
@@ -993,7 +1004,7 @@ export async function createPixiDishRenderer(
 
       cameraMotion = update.state.spec;
       writeCameraTransitionState(update.state.transition);
-      render();
+      renderCameraState(true);
     },
 
     setVisualMotion(nextSpec) {
@@ -1022,17 +1033,17 @@ export async function createPixiDishRenderer(
 
     setCamera(nextCamera) {
       beginCameraTransition(nextCamera);
-      render();
+      renderCameraState(true);
     },
 
     focusDishPoint(point, zoom = 3.2) {
       beginCameraTransition({ centerX: point.x, centerY: point.y, zoom });
-      render();
+      renderCameraState(true);
     },
 
     resetCamera() {
       beginCameraTransition({ centerX: 0.5, centerY: 0.5, zoom: 1 });
-      render();
+      renderCameraState(true);
     },
 
     destroy() {

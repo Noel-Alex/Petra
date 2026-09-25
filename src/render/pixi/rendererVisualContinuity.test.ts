@@ -101,6 +101,27 @@ describe("Pixi dish visual continuity integration", () => {
     expect(tickerSource).toContain("if (changed) render();");
   });
 
+  it("invalidates cached scientific render products on every interpolated frame", () => {
+    expect(rendererSource).toContain("let renderDataRevision = 0;");
+    expect(rendererSource).toContain("const markRenderDataDirty = () => {");
+    expect(rendererSource).not.toContain("densityTextureSource === drawableState");
+    expect(rendererSource).not.toContain("fieldTextureSource === drawableState");
+
+    const tickerStart = rendererSource.indexOf("const ticker = () => {");
+    const listenerStart = rendererSource.indexOf(
+      "app.ticker.add(ticker);",
+      tickerStart,
+    );
+    const tickerSource = rendererSource.slice(tickerStart, listenerStart);
+    const frameWrite = tickerSource.indexOf("drawableState = step.state;");
+    const revisionBump = tickerSource.indexOf(
+      "markRenderDataDirty();",
+      frameWrite,
+    );
+    expect(frameWrite).toBeGreaterThanOrEqual(0);
+    expect(revisionBump).toBeGreaterThan(frameWrite);
+  });
+
   it("collapses reduced/off state transitions to the exact authoritative snapshot", () => {
     const modeStart = rendererSource.indexOf("setMotionMode(nextMode) {");
     const cameraStart = rendererSource.indexOf(

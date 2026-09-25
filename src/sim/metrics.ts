@@ -1,6 +1,7 @@
 import type { ComposedSimulationCheckpoint, RunIdentity } from './protocol'
 
 export const AUTHORITATIVE_METRIC_SCHEMA_VERSION = 1 as const
+export const AUTHORITATIVE_LOCAL_METRIC_SCHEMA_VERSION = 1 as const
 export const METRIC_SAMPLING_POLICY_VERSION = 1 as const
 
 export interface MetricSamplingPolicy {
@@ -37,6 +38,39 @@ export interface AuthoritativeMetricSample {
   readonly lineages: readonly LineageMetricSample[]
   readonly genotypes: readonly GenotypeMetricSample[]
 }
+
+interface AuthoritativeLocalMetricSampleBase {
+  readonly schemaVersion: typeof AUTHORITATIVE_LOCAL_METRIC_SCHEMA_VERSION
+  readonly samplingPolicy: MetricSamplingPolicy
+  readonly selectionId: string
+  readonly stateVersion: number
+  readonly configurationFingerprint: string
+  readonly identity: RunIdentity
+  readonly tick: number
+  readonly simulationTimeHours: number
+  readonly commandCount: number
+}
+
+export interface MeasuredAuthoritativeLocalMetricSample
+  extends AuthoritativeLocalMetricSampleBase {
+  readonly kind: 'measured'
+  readonly selectedCellCount: number
+  readonly totalBiomass: number
+  readonly totalResource: number
+  readonly biomassUnit: 'model-biomass'
+  readonly resourceUnit: 'model-resource'
+  readonly lineages: readonly LineageMetricSample[]
+  readonly genotypes: readonly GenotypeMetricSample[]
+}
+
+export interface NoGridCoverageAuthoritativeLocalMetricSample
+  extends AuthoritativeLocalMetricSampleBase {
+  readonly kind: 'no-grid-coverage'
+}
+
+export type AuthoritativeLocalMetricSample =
+  | MeasuredAuthoritativeLocalMetricSample
+  | NoGridCoverageAuthoritativeLocalMetricSample
 
 function finiteNonNegative(name: string, value: number): void {
   if (!Number.isFinite(value) || value < 0) {
@@ -77,6 +111,145 @@ export function shouldSampleAuthoritativeMetrics(
     throw new Error('metric tick must be a non-negative safe integer')
   }
   return tick >= policy.offsetTicks && (tick - policy.offsetTicks) % policy.everyTicks === 0
+}
+
+
+export function extractAuthoritativeLocalMetricSample(args: {
+  readonly inspection: import('./regionInspector').AuthoritativeRegionInspection
+  readonly samplingPolicy: MetricSamplingPolicy
+}): AuthoritativeLocalMetricSample {
+  const { inspection } = args
+  validateMetricSamplingPolicy(args.samplingPolicy)
+  if (!shouldSampleAuthoritativeMetrics(inspection.tick, args.samplingPolicy)) {
+    throw new Error('local metric inspection tick is off the declared sampling cadence')
+  }
+  if (!Number.isSafeInteger(inspection.stateVersion) || inspection.stateVersion <= 0) {
+    throw new Error('local metric stateVersion must be a positive safe integer')
+  }
+  canonicalText('local metric configuration fingerprint', inspection.configurationFingerprint)
+  if (
+    !Number.isSafeInteger(inspection.commandCount) ||
+    inspection.commandCount < 0
+  ) {
+    throw new Error('local metric commandCount must be a non-negative safe integer')
+  }
+  finiteNonNegative(
+    'local metric simulationTimeHours',
+    inspection.simulationTimeHours,
+  )
+  if (
+    inspection.runIdentity.parameterSetBinding === undefined ||
+    inspection.runIdentity.parameterSetBinding.configurationFingerprint !==
+      inspection.configurationFingerprint
+  ) {
+    throw new Error(
+      'local metric run binding does not match inspection configuration',
+    )
+  }
+
+  const base = {
+    schemaVersion: AUTHORITATIVE_LOCAL_METRIC_SCHEMA_VERSION,
+    samplingPolicy: { ...args.samplingPolicy },
+    selectionId: inspection.selectionId,
+    stateVersion: inspection.stateVersion,
+    configurationFingerprint: inspection.configurationFingerprint,
+    identity: structuredClone(inspection.runIdentity),
+    tick: inspection.tick,
+    simulationTimeHours: inspection.simulationTimeHours,
+    commandCount: inspection.commandCount,
+  } as const
+
+  if (inspection.kind === 'no-grid-coverage') {
+    return {
+      ...base,
+      kind: 'no-grid-coverage',
+    }
+  }
+
+  if (
+    !Number.isSafeInteger(inspection.selectedCellCount) ||
+    inspection.selectedCellCount <= 0
+  ) {
+    throw new Error('local metric selectedCellCount must be a positive safe integer')
+  }
+  finiteNonNegative('local metric totalBiomass', inspection.totalBiomass)
+  finiteNonNegative('local metric totalResource', inspection.totalResource)
+
+  const lineages: LineageMetricSample[] = []
+  const genotypeTotals = new Map<string, number>()
+  const seenLineages = new Set<string>()
+  let lineageTotal = 0
+
+  for (let index = 0; index < inspection.lineageBiomass.length; index += 1) {
+    if (!(index in inspection.lineageBiomass)) {
+      throw new Error('local metric lineage rows must be a dense array')
+    }
+    const row = inspection.lineageBiomass[index]!
+    canonicalText(`local metric lineage id at index ${index}`, row.lineageId)
+    canonicalText(`local metric genotype id at index ${index}`, row.genotypeId)
+    if (seenLineages.has(row.lineageId)) {
+      throw new Error(`duplicate local metric lineage id: ${row.lineageId}`)
+    }
+    seenLineages.add(row.lineageId)
+    finiteNonNegative(
+      `local metric lineage biomass for ${row.lineageId}`,
+      row.biomass,
+    )
+
+    const expectedFraction =
+      inspection.totalBiomass === 0 ? 0 : row.biomass / inspection.totalBiomass
+    if (
+      !Number.isFinite(row.fractionOfRegionBiomass) ||
+      row.fractionOfRegionBiomass < 0 ||
+      row.fractionOfRegionBiomass > 1 + 1e-12 ||
+      Math.abs(row.fractionOfRegionBiomass - expectedFraction) >
+        1e-12 * Math.max(1, Math.abs(expectedFraction))
+    ) {
+      throw new Error(
+        `local metric lineage fraction for ${row.lineageId} is inconsistent with biomass`,
+      )
+    }
+
+    lineageTotal += row.biomass
+    genotypeTotals.set(
+      row.genotypeId,
+      (genotypeTotals.get(row.genotypeId) ?? 0) + row.biomass,
+    )
+    lineages.push({
+      lineageId: row.lineageId,
+      genotypeId: row.genotypeId,
+      biomass: row.biomass,
+      fraction: row.fractionOfRegionBiomass,
+    })
+  }
+
+  const totalTolerance =
+    1e-12 *
+    Math.max(1, Math.abs(inspection.totalBiomass), Math.abs(lineageTotal))
+  if (Math.abs(lineageTotal - inspection.totalBiomass) > totalTolerance) {
+    throw new Error('local metric lineage biomass does not sum to totalBiomass')
+  }
+
+  const genotypes = [...genotypeTotals.entries()].map(([genotypeId, biomass]) => ({
+    genotypeId,
+    biomass,
+    fraction:
+      inspection.totalBiomass === 0
+        ? 0
+        : Math.min(1, biomass / inspection.totalBiomass),
+  }))
+
+  return {
+    ...base,
+    kind: 'measured',
+    selectedCellCount: inspection.selectedCellCount,
+    totalBiomass: inspection.totalBiomass,
+    totalResource: inspection.totalResource,
+    biomassUnit: inspection.biomassUnit,
+    resourceUnit: inspection.resourceUnit,
+    lineages,
+    genotypes,
+  }
 }
 
 export function extractAuthoritativeMetricSample(args: {

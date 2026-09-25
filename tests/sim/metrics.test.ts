@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  extractAuthoritativeLocalMetricSample,
   extractAuthoritativeMetricSample,
   METRIC_SAMPLING_POLICY_VERSION,
   shouldSampleAuthoritativeMetrics,
@@ -9,6 +10,7 @@ import type { ComposedSimulationConfig } from '../../src/sim/authoritative'
 import type { CuratedMutationGraph } from '../../src/sim/evolution/graph'
 import { createFixtureComposedParameterSetBinding } from '../../src/sim/parameterSetBinding'
 import { createRunIdentity } from '../../src/sim/protocol'
+import { inspectAuthoritativeRegion } from '../../src/sim/regionInspector'
 
 const graph: CuratedMutationGraph = {
   scenarioId: 'metric-fixture',
@@ -132,4 +134,106 @@ describe('authoritative metrics', () => {
       }),
     ).toThrow(/positive safe integer/)
   })
+
+  it('projects selected authoritative regions on the same biological sampling cadence', () => {
+    const checkpoint = new ComposedSimulationEngine(identity, config).snapshot().checkpoint
+    const inspection = inspectAuthoritativeRegion(checkpoint, {
+      id: 'local-focus',
+      centerX: 0.25,
+      centerY: 0.5,
+      radius: 0.1,
+    })
+    const sample = extractAuthoritativeLocalMetricSample({
+      inspection,
+      samplingPolicy: policy,
+    })
+
+    if (sample.kind !== 'measured') {
+      throw new Error('expected measured local metric sample')
+    }
+    expect(sample.selectionId).toBe('local-focus')
+    expect(sample.tick).toBe(0)
+    expect(sample.simulationTimeHours).toBe(0)
+    expect(sample.commandCount).toBe(0)
+    expect(sample.selectedCellCount).toBe(1)
+    expect(sample.totalBiomass).toBe(4)
+    expect(sample.totalResource).toBe(4)
+    expect(sample.biomassUnit).toBe('model-biomass')
+    expect(sample.resourceUnit).toBe('model-resource')
+    expect(sample.lineages.map((item) => [item.lineageId, item.fraction])).toEqual([
+      ['wt-lineage', 0.25],
+      ['r-lineage', 0.75],
+    ])
+    expect(sample.genotypes.map((item) => [item.genotypeId, item.fraction])).toEqual([
+      ['WT', 0.25],
+      ['R', 0.75],
+    ])
+    expect(sample.identity).toEqual(checkpoint.identity)
+    expect(sample.identity).not.toBe(checkpoint.identity)
+  })
+
+  it('preserves no-grid-coverage instead of manufacturing a measured zero', () => {
+    const checkpoint = new ComposedSimulationEngine(identity, config).snapshot().checkpoint
+    const inspection = inspectAuthoritativeRegion(checkpoint, {
+      id: 'between-cells',
+      centerX: 0.5,
+      centerY: 0.5,
+      radius: 0.1,
+    })
+    const sample = extractAuthoritativeLocalMetricSample({
+      inspection,
+      samplingPolicy: policy,
+    })
+
+    expect(sample.kind).toBe('no-grid-coverage')
+    expect(sample.selectionId).toBe('between-cells')
+    expect('totalBiomass' in sample).toBe(false)
+    expect('totalResource' in sample).toBe(false)
+    expect('lineages' in sample).toBe(false)
+  })
+
+  it('refuses an authoritative local inspection that is off the declared cadence', () => {
+    const engine = new ComposedSimulationEngine(identity, config)
+    engine.execute({ id: 'advance-local-metric', type: 'advance', ticks: 1 })
+    const inspection = inspectAuthoritativeRegion(engine.snapshot().checkpoint, {
+      id: 'off-cadence',
+      centerX: 0.25,
+      centerY: 0.5,
+      radius: 0.1,
+    })
+
+    expect(() =>
+      extractAuthoritativeLocalMetricSample({
+        inspection,
+        samplingPolicy: policy,
+      }),
+    ).toThrow(/off the declared sampling cadence/)
+  })
+
+  it('fails closed when local lineage fractions are inconsistent with authoritative biomass', () => {
+    const checkpoint = new ComposedSimulationEngine(identity, config).snapshot().checkpoint
+    const inspection = inspectAuthoritativeRegion(checkpoint, {
+      id: 'tampered-local',
+      centerX: 0.25,
+      centerY: 0.5,
+      radius: 0.1,
+    })
+    if (inspection.kind !== 'measured') {
+      throw new Error('expected measured region')
+    }
+    const tampered = {
+      ...inspection,
+      lineageBiomass: inspection.lineageBiomass.map((row, index) =>
+        index === 0 ? { ...row, fractionOfRegionBiomass: 0.5 } : row,
+      ),
+    }
+
+    expect(() =>
+      extractAuthoritativeLocalMetricSample({
+        inspection: tampered,
+        samplingPolicy: policy,
+      }),
+    ).toThrow(/fraction.*inconsistent/)
+  })
+
 })

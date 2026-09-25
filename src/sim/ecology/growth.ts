@@ -352,11 +352,6 @@ function validateEcologyInterphase(
     throw new Error('lineage arrays must match grid dimensions during interphase')
   }
 
-  const representationTolerance = ecologyCapacityRepresentationTolerance(
-    internal.localCapacity,
-    Math.max(internal.originalLineageCount, state.lineages.length),
-  )
-
   for (let index = 0; index < n; index += 1) {
     if (state.mask[index] !== internal.maskAfterLocal[index]) {
       throw new Error(`ecology mask cannot change during interphase at cell ${index}`)
@@ -383,6 +378,16 @@ function validateEcologyInterphase(
     )
 
     const expected = internal.postLocalBiomass[index]!
+    const channels = Math.max(
+      1,
+      internal.originalLineageCount,
+      state.lineages.length,
+    )
+    const referenceMagnitude = Math.max(expected, totalBiomass)
+    const representationTolerance = Math.max(
+      referenceMagnitude * FLOAT32_RELATIVE_SPACING * channels,
+      FLOAT32_MIN_SUBNORMAL * channels,
+    )
     if (Math.abs(totalBiomass - expected) > representationTolerance) {
       throw new Error(
         `ecology interphase must conserve total biomass at cell ${index} within Float32 representation tolerance`,

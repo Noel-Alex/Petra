@@ -16,6 +16,7 @@ import {
   createFixtureComposedParameterSetBinding,
 } from '../../src/sim/parameterSetBinding'
 import { createRunIdentity } from '../../src/sim/protocol'
+import { SimulationRng } from '../../src/sim/rng'
 
 const evolutionGraph: CuratedMutationGraph = {
   scenarioId: 'composed-worker-fixture',
@@ -199,6 +200,46 @@ describe('ComposedSimulationEngine', () => {
     expect(advanced.simulationTimeHours).toBeCloseTo(0.25)
     expect(advanced.metrics.totalBiomass).toBeGreaterThan(3)
     expect(advanced.metrics.totalResource).toBeLessThan(16)
+  })
+
+  it('checkpoints seed-derived composed RNG authority without deterministic ecology consuming it', () => {
+    const expectedInitialRng = new SimulationRng(identity.seed).snapshot()
+    const engine = new ComposedSimulationEngine(identity, config)
+
+    expect(engine.snapshot().checkpoint.rngState).toEqual(expectedInitialRng)
+
+    const advanced = engine.execute({
+      id: 'rng-stable-advance',
+      type: 'advance',
+      ticks: 3,
+    })
+    expect(advanced.checkpoint.rngState).toEqual(expectedInitialRng)
+
+    const restored = new ComposedSimulationEngine(identity, config)
+    restored.execute({
+      id: 'restore-rng-authority',
+      type: 'restore',
+      checkpoint: advanced.checkpoint,
+    })
+    expect(restored.snapshot().checkpoint.rngState).toEqual(expectedInitialRng)
+  })
+
+  it('refuses malformed composed RNG checkpoints atomically', () => {
+    const source = new ComposedSimulationEngine(identity, config)
+    source.execute({ id: 'advance-before-rng-corruption', type: 'advance', ticks: 2 })
+    const checkpoint = source.snapshot().checkpoint
+    ;(checkpoint.rngState as unknown as number[]).splice(0, 4, 0, 0, 0, 0)
+
+    const target = new ComposedSimulationEngine(identity, config)
+    const before = target.snapshot()
+    expect(() =>
+      target.execute({
+        id: 'restore-bad-composed-rng',
+        type: 'restore',
+        checkpoint,
+      }),
+    ).toThrow(/RNG state/)
+    expect(target.snapshot()).toEqual(before)
   })
 
   it('applies authoritative ciprofloxacin without advancing biological time', () => {

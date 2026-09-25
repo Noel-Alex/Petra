@@ -204,6 +204,31 @@
       "timeout_seconds": 1800
     },
     {
+      "id": "fungal-spatial-growth-validation",
+      "description": "PREPARED; BLOCKED on #556/#615: named fungal spatial-growth, replay, control, and source-target validation using only approved pack authority.",
+      "command": [
+        "python",
+        "experiments/blocked.py",
+        "--experiment-id",
+        "fungal-spatial-growth-validation",
+        "--blocked-on",
+        "556",
+        "--blocked-on",
+        "615",
+        "--reason",
+        "Issue #556 must turn fungal research OFF with one approved named pack and explicit transferable validation targets, and #615 must provide authoritative fungal state/checkpoint/events/metrics. Until both land, running a generic or synthetic fungus would be scientifically invalid. The stable evidence/control contract is prepared in experiments/fungal_spatial_growth_validation.contract.json."
+      ],
+      "issues": [
+        530,
+        542,
+        556,
+        586,
+        615,
+        895
+      ],
+      "timeout_seconds": 30
+    },
+    {
       "id": "evolution-replicate-statistics",
       "description": "PREPARED; BLOCKED on #5/#37 composed evolution integration: #562 discrete population/opportunity authority is on main, but truthful end-to-end emergence still requires replay-critical child-lineage mutation state and flagship exposure.",
       "command": [

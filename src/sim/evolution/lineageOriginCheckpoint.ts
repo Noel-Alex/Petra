@@ -297,6 +297,9 @@ export function validateLineageOriginCheckpointV2(
     }
 
     if (record.originKind === "mutation-child") {
+      if (record.parentLineageId === null) {
+        throw new Error("mutation child requires a parent lineage");
+      }
       const parent = byId.get(record.parentLineageId);
       if (parent === undefined) {
         throw new Error(
@@ -393,13 +396,15 @@ export function validateLineageOriginCheckpointV2(
           `lineage-created event does not match record: ${event.lineageId}`,
         );
       }
-      if (
-        record.originKind === "mutation-child" &&
-        !created.has(record.parentLineageId)
-      ) {
-        throw new Error(
-          `parent creation event must precede mutation child: ${record.parentLineageId}`,
-        );
+      if (record.originKind === "mutation-child") {
+        if (record.parentLineageId === null) {
+          throw new Error("mutation child requires a parent lineage");
+        }
+        if (!created.has(record.parentLineageId)) {
+          throw new Error(
+            `parent creation event must precede mutation child: ${record.parentLineageId}`,
+          );
+        }
       }
       created.add(event.lineageId);
       events.push(freezeEvent(event));

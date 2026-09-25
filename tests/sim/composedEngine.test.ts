@@ -184,7 +184,7 @@ describe('ComposedSimulationEngine', () => {
     const initial = source.snapshot().checkpoint
     expect(initial.rngState).toEqual(new SimulationRng(identity.seed).snapshot())
 
-    ;(initial.rngState as number[])[0] = 0
+    ;(initial.rngState as unknown as number[])[0] = 0
     expect(source.snapshot().checkpoint.rngState).toEqual(
       new SimulationRng(identity.seed).snapshot(),
     )
@@ -195,7 +195,7 @@ describe('ComposedSimulationEngine', () => {
     expect(restored.snapshot().checkpoint.rngState).toEqual(checkpoint.rngState)
 
     const corrupt = structuredClone(checkpoint)
-    ;(corrupt.rngState as number[]).fill(0)
+    ;(corrupt.rngState as unknown as number[]).fill(0)
     const target = new ComposedSimulationEngine(identity, config)
     const before = target.snapshot()
     expect(() =>
@@ -397,7 +397,7 @@ describe('ComposedSimulationEngine', () => {
     const engine = new ComposedSimulationEngine(identity, config)
     const exported = engine.snapshot()
 
-    ;(exported.checkpoint.rngState as number[])[0] = 0
+    ;(exported.checkpoint.rngState as unknown as number[])[0] = 0
     exported.checkpoint.composedState.resource[0] = 999
     exported.checkpoint.composedState.ciprofloxacinConcentrationMgPerL[0] = 999
     exported.checkpoint.composedState.genotypeIds[0] = 'CORRUPT'

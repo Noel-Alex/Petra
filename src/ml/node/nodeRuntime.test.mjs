@@ -49,6 +49,7 @@ function definition() {
       { id: "point-b", parameterSetHash: "params-b" },
       { id: "point-c", parameterSetHash: "params-11" },
     ],
+    runConditions: [{ id: "condition-a", fingerprint: "cond-1" }],
     interventionFamilies: [
       { id: "untreated", fingerprint: "none" },
       { id: "pulse", fingerprint: "dose-family-v1" },

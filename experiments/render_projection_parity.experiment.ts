@@ -9,7 +9,11 @@ import { createDishSceneTransaction } from '../src/app/dishSceneTransaction'
 import { projectLineageOriginRenderEvents } from '../src/app/lineageRenderEvents'
 import type { RuntimeEcologyObservation } from '../src/app/experimentRuntime'
 import { projectRuntimeEcologyNetGrowthField } from '../src/app/runtimeEcologyRenderField'
-import { ECOLOGY_NET_GROWTH_RENDER_FIELD_ID } from '../src/render/ecologyFluxField'
+import {
+  ECOLOGY_DEATH_RATE_RENDER_FIELD_ID,
+  ECOLOGY_DIVISION_RATE_RENDER_FIELD_ID,
+  ECOLOGY_NET_GROWTH_RENDER_FIELD_ID,
+} from '../src/render/ecologyFluxField'
 import type { DishRenderSnapshot, RenderField } from '../src/render/model'
 import {
   CIPROFLOXACIN_INTERVENTION_SCHEMA_VERSION,
@@ -26,6 +30,8 @@ import {
   renderProjectionAuthorityFromComposedSnapshot,
   verifyLineageOriginRenderEventParity,
   verifyRenderProjectionParity,
+  verifyRuntimeEcologyDeathRateParity,
+  verifyRuntimeEcologyDivisionRateParity,
   verifyRuntimeEcologyNetGrowthParity,
   type RenderProjectionParityContract,
 } from './render_projection_parity'
@@ -377,20 +383,42 @@ describe('authoritative composed-to-dish render projection parity', () => {
     const netGrowthField = projected.fields.find(
       (field) => field.id === ECOLOGY_NET_GROWTH_RENDER_FIELD_ID,
     )
+    const divisionRateField = projected.fields.find(
+      (field) => field.id === ECOLOGY_DIVISION_RATE_RENDER_FIELD_ID,
+    )
+    const deathRateField = projected.fields.find(
+      (field) => field.id === ECOLOGY_DEATH_RATE_RENDER_FIELD_ID,
+    )
     assert.ok(
-      netGrowthField !== undefined,
-      'combined product projection must include the runtime-bound net-growth field',
+      netGrowthField !== undefined &&
+        divisionRateField !== undefined &&
+        deathRateField !== undefined,
+      'combined product projection must include the complete runtime-bound ecology rate bundle',
     )
     assert.ok(
       snapshot.ecologyObservation !== undefined,
-      'net-growth parity requires the accepted ecology observation',
+      'ecology rate parity requires the accepted ecology observation',
     )
     const netGrowthEvidence = verifyRuntimeEcologyNetGrowthParity(
       snapshot.ecologyObservation.observation,
       netGrowthField,
     )
-    expect(netGrowthEvidence.unit).toBe('model-biomass/hour')
-    expect(netGrowthEvidence.rangeMode).toBe('snapshot-extrema')
+    const divisionRateEvidence = verifyRuntimeEcologyDivisionRateParity(
+      snapshot.ecologyObservation.observation,
+      divisionRateField,
+    )
+    const deathRateEvidence = verifyRuntimeEcologyDeathRateParity(
+      snapshot.ecologyObservation.observation,
+      deathRateField,
+    )
+    for (const rateEvidence of [
+      netGrowthEvidence,
+      divisionRateEvidence,
+      deathRateEvidence,
+    ]) {
+      expect(rateEvidence.unit).toBe('model-biomass/hour')
+      expect(rateEvidence.rangeMode).toBe('snapshot-extrema')
+    }
 
     const lineageOriginFixture = buildLineageOriginEventParityFixture()
     const lineageOriginEventEvidence = verifyLineageOriginFixture(
@@ -421,6 +449,8 @@ describe('authoritative composed-to-dish render projection parity', () => {
       renderBranchIdentity: RUN_BRANCH_IDENTITY,
       evidence,
       netGrowthEvidence,
+      divisionRateEvidence,
+      deathRateEvidence,
       lineageOriginEventEvidence,
       dishSceneAuthorityEvidence,
       negativeCases: [
@@ -435,6 +465,8 @@ describe('authoritative composed-to-dish render projection parity', () => {
         'accepted-intervention-geometry-drift',
         'runtime-ecology-cross-branch-drift',
         'net-growth-one-cell-drift',
+        'division-rate-one-cell-drift',
+        'death-rate-one-cell-drift',
         'lineage-origin-event-count-drift',
         'lineage-origin-event-order-drift',
         'lineage-origin-event-identity-drift',
@@ -450,7 +482,7 @@ describe('authoritative composed-to-dish render projection parity', () => {
         'Renderer Float32 quantization is explicit evidence and is not fed back into simulation authority.',
         'Render transfer-domain semantics remain owned by the renderer range contract and are not redefined here.',
         'Accepted intervention footprint parity proves exact event-to-render geometry transport; it does not prove biological efficacy beyond the authoritative simulator state.',
-        'Runtime net-growth parity proves the product adapter preserves the accepted step-local rate field; it does not prove that the current Pixi/UI selection visibly displays that overlay.',
+        'Runtime ecology-rate parity proves the product adapter preserves the accepted step-local net, division-biomass, and death-biomass rate fields; it does not prove that the current Pixi/UI selection visibly displays those overlays.',
         'Lineage-origin event parity proves exact registry-to-point-event transport for the deterministic fixture; it does not validate mutation probability, fitness, selection, or Pixi marker visibility.',
         'DishSceneTransaction@v1 authority parity proves source-mode separation only; it does not authorize a live mixed bacteria+fungus runtime.',
         'Browser/GPU visual correctness and performance remain separate local acceptance gates.',
@@ -595,26 +627,58 @@ describe('authoritative composed-to-dish render projection parity', () => {
 
     assert.ok(
       snapshot.ecologyObservation !== undefined,
-      'net-growth drift test requires ecology observation authority',
+      'ecology rate drift tests require ecology observation authority',
     )
+    const sourceObservation = snapshot.ecologyObservation.observation
+    const inMaskCell = sourceObservation.mask.findIndex(
+      (value) => value === 1,
+    )
+    assert.ok(inMaskCell >= 0, 'ecology rate source mask must contain cells')
+
     const netGrowth = projected.fields.find(
       (field) => field.id === ECOLOGY_NET_GROWTH_RENDER_FIELD_ID,
     )
     assert.ok(netGrowth !== undefined, 'net-growth field must exist')
-    const driftedValues = Float32Array.from(netGrowth.values)
-    const inMaskCell = snapshot.ecologyObservation.observation.mask.findIndex(
-      (value) => value === 1,
-    )
-    assert.ok(inMaskCell >= 0, 'net-growth source mask must contain cells')
-    driftedValues[inMaskCell] = Math.fround(
-      driftedValues[inMaskCell]! + 0.001,
+    const driftedNetValues = Float32Array.from(netGrowth.values)
+    driftedNetValues[inMaskCell] = Math.fround(
+      driftedNetValues[inMaskCell]! + 0.001,
     )
     expect(() =>
       verifyRuntimeEcologyNetGrowthParity(
-        snapshot.ecologyObservation!.observation,
-        { ...netGrowth, values: driftedValues },
+        sourceObservation,
+        { ...netGrowth, values: driftedNetValues },
       ),
     ).toThrow(/net-growth rate differs/i)
+
+    const divisionRate = projected.fields.find(
+      (field) => field.id === ECOLOGY_DIVISION_RATE_RENDER_FIELD_ID,
+    )
+    assert.ok(divisionRate !== undefined, 'division-rate field must exist')
+    const driftedDivisionValues = Float32Array.from(divisionRate.values)
+    driftedDivisionValues[inMaskCell] = Math.fround(
+      driftedDivisionValues[inMaskCell]! + 0.001,
+    )
+    expect(() =>
+      verifyRuntimeEcologyDivisionRateParity(
+        sourceObservation,
+        { ...divisionRate, values: driftedDivisionValues },
+      ),
+    ).toThrow(/division-biomass rate differs/i)
+
+    const deathRate = projected.fields.find(
+      (field) => field.id === ECOLOGY_DEATH_RATE_RENDER_FIELD_ID,
+    )
+    assert.ok(deathRate !== undefined, 'death-rate field must exist')
+    const driftedDeathValues = Float32Array.from(deathRate.values)
+    driftedDeathValues[inMaskCell] = Math.fround(
+      driftedDeathValues[inMaskCell]! + 0.001,
+    )
+    expect(() =>
+      verifyRuntimeEcologyDeathRateParity(
+        sourceObservation,
+        { ...deathRate, values: driftedDeathValues },
+      ),
+    ).toThrow(/death-biomass rate differs/i)
   })
 
   it('rejects lineage-origin event identity, order, time, point, label, live-link and registry drift', () => {

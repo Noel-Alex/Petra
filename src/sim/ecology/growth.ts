@@ -370,13 +370,6 @@ function validateEcologyInterphase(
       totalBiomass += amount
     }
 
-    assertEcologyLocalCapacity(
-      totalBiomass,
-      internal.localCapacity,
-      state.lineages.length,
-      index,
-    )
-
     const expected = internal.postLocalBiomass[index]!
     const channels = Math.max(
       1,

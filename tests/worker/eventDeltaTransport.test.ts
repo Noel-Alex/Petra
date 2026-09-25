@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest'
 
 import { SimulationEngine } from '../../src/sim/engine'
 import {
+  EMPTY_SIMULATION_EVENT_HISTORY,
+  appendSimulationEventHistory,
+} from '../../src/sim/eventHistory'
+import {
   PROTOCOL_VERSION,
   createRunIdentity,
   type SimulationEvent,
@@ -14,6 +18,7 @@ import {
   parseWorkerSnapshotDeltaResponse,
   type WorkerSnapshotDeltaResponse,
 } from '../../src/worker/eventDeltaTransport'
+import { estimateStructuredClonePayloadBytes } from '../../src/worker/performanceInstrumentation'
 
 const identity = createRunIdentity({
   scenarioId: 'worker-event-delta-fixture',
@@ -149,69 +154,79 @@ describe('worker append-only event delta transport', () => {
     })
   })
 
-  it('keeps a 1000-event retained prefix out of the delta payload', () => {
-    const previousEvents: SimulationEvent[] = Array.from(
-      { length: 1000 },
-      (_, sequence) =>
-        sequence === 0
-          ? {
-              sequence,
-              tick: 0,
-              simulationTimeHours: 0,
-              type: 'initialized' as const,
-            }
+  it('keeps a 1000-event retained prefix out of the actual Worker delta payload', () => {
+    let previousEvents = EMPTY_SIMULATION_EVENT_HISTORY
+    for (let sequence = 0; sequence < 1000; sequence += 1) {
+      previousEvents = appendSimulationEventHistory(previousEvents, {
+        sequence,
+        tick: sequence,
+        simulationTimeHours: sequence / 60,
+        type: sequence === 0 ? 'initialized' : 'advanced',
+        ...(sequence === 0
+          ? {}
           : {
-              sequence,
-              tick: sequence,
-              simulationTimeHours: sequence / 60,
-              type: 'advanced' as const,
               commandId: `advance-${sequence}`,
               value: 1,
-            },
-    )
+            }),
+      })
+    }
     const previous = syntheticSnapshot({
       tick: 999,
       commandCount: 999,
       events: previousEvents,
     })
-    const appended: SimulationEvent = {
+    const currentEvents = appendSimulationEventHistory(previousEvents, {
       sequence: 1000,
       tick: 1000,
       simulationTimeHours: 1000 / 60,
       type: 'advanced',
       commandId: 'advance-1000',
       value: 1,
-    }
-    const response: WorkerSnapshotDeltaResponse = {
-      protocolVersion: PROTOCOL_VERSION,
-      transportVersion: WORKER_EVENT_DELTA_TRANSPORT_VERSION,
-      type: 'snapshot-delta',
+    })
+    const current = syntheticSnapshot({
+      tick: 1000,
+      commandCount: 1000,
+      events: currentEvents,
+      traceHash: 'trace-1000',
+    })
+
+    const response = createWorkerSnapshotTransportResponse({
       commandId: 'advance-1000',
-      previousEventCount: 1000,
-      previousTerminalEvent: previousEvents[999]!,
-      currentEventCount: 1001,
-      appendedEvents: [appended],
-      snapshot: {
-        checkpoint: {
-          identity,
-          tick: 1000,
-          simulationTimeHours: 1000 / 60,
-          syntheticPopulation: 1000,
-          rngState: [1, 2, 3, 4],
-          commandCount: 1000,
-        },
-        traceHash: 'trace-1000',
-      },
+      previousEvents,
+      snapshot: current,
+    })
+    expect(response.type).toBe('snapshot-delta')
+    if (response.type !== 'snapshot-delta') {
+      throw new Error('expected 1000-event append-only delta')
     }
 
     expect(parseWorkerSnapshotDeltaResponse(response).ok).toBe(true)
     expect(response.appendedEvents).toHaveLength(1)
+    expect(response.previousEventCount).toBe(1000)
+    expect(response.currentEventCount).toBe(1001)
     expect(response.previousTerminalEvent?.sequence).toBe(999)
+
+    const fullResponse = {
+      protocolVersion: PROTOCOL_VERSION,
+      type: 'snapshot' as const,
+      commandId: 'advance-1000',
+      snapshot: current,
+    }
+    expect(
+      estimateStructuredClonePayloadBytes(response),
+    ).toBeLessThan(
+      estimateStructuredClonePayloadBytes(fullResponse) / 5,
+    )
 
     const materialized = materializeWorkerSnapshotDelta(previous, response)
     expect(materialized.events).toHaveLength(1001)
     expect(materialized.events[999]).toBe(previous.events[999])
-    expect(materialized.events[1000]).toEqual(appended)
+    expect(materialized.events[1000]).toMatchObject({
+      sequence: 1000,
+      commandId: 'advance-1000',
+    })
+    expect(Object.isFrozen(materialized.events)).toBe(true)
+    expect(Object.isFrozen(materialized.events[1000])).toBe(true)
   })
 
   it('fails closed on a dropped/reordered suffix or mismatched retained frontier', () => {

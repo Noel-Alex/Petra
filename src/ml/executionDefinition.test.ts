@@ -307,8 +307,6 @@ describe("mechanistic execution-definition provenance", () => {
     const executor = createComposedMechanisticTaskExecutor(() => ({
       executionDefinition: executionDefinition(),
       config: driftedInitialState,
-      totalTicks: 0,
-      snapshotEveryTicks: 1,
       project: () => {
         projected = true;
         return {
@@ -360,8 +358,6 @@ describe("mechanistic execution-definition provenance", () => {
     const executor = createComposedMechanisticTaskExecutor(() => ({
       executionDefinition: executionDefinition(),
       config,
-      totalTicks: 0,
-      snapshotEveryTicks: 1,
       project: () => {
         projected = true;
         return {
@@ -383,8 +379,6 @@ describe("mechanistic execution-definition provenance", () => {
     const executor = createComposedMechanisticTaskExecutor(() => ({
       executionDefinition: executionDefinition(),
       config,
-      totalTicks: 0,
-      snapshotEveryTicks: 1,
       project: (snapshot) => ({
         input: { biomass: snapshot.checkpoint.metrics.totalBiomass },
         target: { resource: snapshot.checkpoint.metrics.totalResource },

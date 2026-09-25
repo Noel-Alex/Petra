@@ -60,7 +60,7 @@ export function projectLineageOriginRenderEvents(
   const records = new Map(
     registry.list().map((record) => [record.lineageId, record] as const),
   );
-  const renderLineageIds = validateActiveLineageIds(
+  const renderLineageIds = validateRenderLineageIds(
     input.renderLineageIds,
     records,
   );
@@ -130,11 +130,11 @@ export function projectLineageOriginRenderEvents(
   return Object.freeze(projected);
 }
 
-function validateActiveLineageIds(
+function validateRenderLineageIds(
   lineageIds: readonly string[],
   records: ReadonlyMap<string, unknown>,
 ): ReadonlySet<string> {
-  const active = new Set<string>();
+  const renderLineages = new Set<string>();
   for (const lineageId of lineageIds) {
     if (
       typeof lineageId !== "string" ||
@@ -145,7 +145,7 @@ function validateActiveLineageIds(
         "lineage origin render projection render lineage ids must be canonical non-empty strings",
       );
     }
-    if (active.has(lineageId)) {
+    if (renderLineages.has(lineageId)) {
       throw new RangeError(
         `lineage origin render projection render lineage ids must be unique: ${lineageId}`,
       );
@@ -155,9 +155,9 @@ function validateActiveLineageIds(
         `lineage origin render projection render lineage is absent from registry: ${lineageId}`,
       );
     }
-    active.add(lineageId);
+    renderLineages.add(lineageId);
   }
-  return active;
+  return renderLineages;
 }
 
 function assertGrid(width: number, height: number): void {

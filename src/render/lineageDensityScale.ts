@@ -97,6 +97,26 @@ export function assertLineageDensityArrayWithinPresentationScale(
   }
 }
 
+export function copyLineageDensityPresentationScale(
+  scale: LineageDensityPresentationScale,
+): LineageDensityPresentationScale {
+  assertLineageDensityPresentationScale(scale);
+  if (scale.mode === "snapshot-extrema") {
+    return Object.freeze({
+      version: LINEAGE_DENSITY_PRESENTATION_SCALE_VERSION,
+      mode: "snapshot-extrema",
+    });
+  }
+  return Object.freeze({
+    version: LINEAGE_DENSITY_PRESENTATION_SCALE_VERSION,
+    mode: "stable-source",
+    unit: scale.unit,
+    maximum: scale.maximum,
+    maximumTolerance: scale.maximumTolerance,
+    sourceIdentity: scale.sourceIdentity,
+  });
+}
+
 export function lineageDensityPresentationScaleEqual(
   left: LineageDensityPresentationScale | undefined,
   right: LineageDensityPresentationScale | undefined,

@@ -32,3 +32,12 @@ Until separately sourced, reviewed, versioned, and admitted:
 - Fungal checkpoints are immutable scientific authority. Validation rejects identity, source-treatment, geometry, time, or radius drift rather than repairing it.
 - Renderer/UI consumers may project physical front/radius state and separately approved presentation identity, but presentation strokes, contours, merged blobs, opacity, camera/LOD state, or renderer caches never feed back into fungal biology.
 - A future mature network model is a new/versioned mechanism. Do not silently reinterpret the current surface-front checkpoint as a literal hyphal graph.
+
+## Runtime integration envelope
+
+- `runtimeAuthority.ts` is the preparatory #1005 replay/configuration boundary for admitting a supported fungal mechanism into composed runtime authority later. Its v1 modes are explicit `disabled` or the exact existing *A. niger* no. 10 source-validation front model; it is not a generic fungus plugin.
+- The runtime authority identity binds mechanism version, exact source pack, taxon/content revision, fixed source treatment, and explicit physical unit/meaning strings. Changing any of those requires a different identity before a checkpoint may be restored.
+- The runtime checkpoint envelope owns no stepping, RNG, resource law, bacteria↔fungus interaction, Worker branch identity, or accepted-command position yet. Wrapping a standalone fungal checkpoint therefore does **not** make it part of a composed runtime transaction.
+- Disabled authority must carry null fungal state. Enabled authority may wrap only an exact validated `AspergillusNo10SurfaceCheckpoint` matching its configured treatment and biological identity; serialized unknown fields fail closed so renderer hints or unsourced resource coefficients cannot enter replay authority.
+- Future composed integration must bind `fungalRuntimeAuthorityConfigurationIdentity(...)` into the composed configuration fingerprint and publish fungal state atomically with accepted runtime state. It must not externally stamp branch/checkpoint identity onto standalone source-validation data.
+- Physical glucose/resource stepping remains blocked on #974. No runtime integration may relabel E. coli `model-resource`, guess yield/uptake/diffusion, or enable cross-species competition to make the envelope executable.

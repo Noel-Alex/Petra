@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://project-petra.local/schema/content-pack-manifest-v1.json",
+  "title": "Petra biological content-pack manifest",
+  "description": "Inert exact references only. Support/compatibility and Science Mode admission are separate authorities.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "version",
+    "maturity",
+    "limitations",
+    "references"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "version": {
+      "$ref": "#/$defs/version"
+    },
+    "maturity": {
+      "enum": [
+        "experimental",
+        "validated-educational",
+        "reference"
+      ]
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^(?!\\s)(?:.|\\n)*\\S$"
+      }
+    },
+    "references": {
+      "type": "object",
+      "required": [
+        "organisms",
+        "antimicrobials",
+        "genotypeGraphs",
+        "environments",
+        "phageHostPairs",
+        "scenarios",
+        "mechanisms",
+        "presentationRecords",
+        "citationKeys"
+      ],
+      "properties": {
+        "organisms": {
+          "$ref": "#/$defs/references"
+        },
+        "antimicrobials": {
+          "$ref": "#/$defs/references"
+        },
+        "genotypeGraphs": {
+          "$ref": "#/$defs/references"
+        },
+        "environments": {
+          "$ref": "#/$defs/references"
+        },
+        "phageHostPairs": {
+          "$ref": "#/$defs/references"
+        },
+        "scenarios": {
+          "$ref": "#/$defs/references"
+        },
+        "mechanisms": {
+          "$ref": "#/$defs/references"
+        },
+        "presentationRecords": {
+          "$ref": "#/$defs/references"
+        },
+        "citationKeys": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$"
+    },
+    "recordReference": {
+      "type": "object",
+      "required": [
+        "id",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "version": {
+          "$ref": "#/$defs/version"
+        }
+      },
+      "additionalProperties": false
+    },
+    "references": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/recordReference"
+      }
+    }
+  }
+}

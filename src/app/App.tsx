@@ -20,6 +20,7 @@ import { PetraIcon } from "../ui/icons/PetraIcon";
 import { ProvenancePanel } from "../ui/provenance/ProvenancePanel";
 import { RegionInspectorPanel } from "../ui/RegionInspectorPanel";
 import { DishViewport } from "./DishViewport";
+import { projectComposedDishSnapshot } from "./composedDishProjection";
 import { ExperimentRunControls } from "./ExperimentRunControls";
 import { resolveDishFocusMode } from "./dishFocusMode";
 import { CausalNarrationMount } from "./CausalNarrationMount";
@@ -167,6 +168,15 @@ export function App({
     });
 
   const provenance = useMemo(() => buildFlagshipProvenanceView(), []);
+  const runtimeSnapshot = experiment.state?.snapshot ?? null;
+  const runBranchIdentity = experiment.state?.runBranchIdentity ?? null;
+  const dishSnapshot = useMemo(
+    () =>
+      runBranchIdentity === null
+        ? null
+        : projectComposedDishSnapshot(runtimeSnapshot, runBranchIdentity),
+    [runBranchIdentity, runtimeSnapshot],
+  );
   const regionInspector = useMemo(
     () =>
       projectRegionInspector(
@@ -622,6 +632,7 @@ export function App({
           />
           <DishViewport
             motion={motionPreference}
+            snapshot={dishSnapshot}
             placement={
               interventionPlacement.phase === "placing"
                 ? interventionPlacement

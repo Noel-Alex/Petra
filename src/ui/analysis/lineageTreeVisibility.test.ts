@@ -57,15 +57,17 @@ describe("buildLineageTreeVisibilityPlan", () => {
     expect(plan.nodes.map((node) => node.lineageId)).toEqual([
       "root",
       "a",
-      "a1",
+      "b",
     ]);
     expect(plan.edges).toEqual([
       { parentLineageId: "root", childLineageId: "a" },
-      { parentLineageId: "a", childLineageId: "a1" },
+      { parentLineageId: "root", childLineageId: "b" },
     ]);
     expect(plan.hiddenLineageCount).toBe(3);
     expect(plan.collapsedFrontiers).toEqual([
-      { lineageId: "root", hiddenDescendantCount: 3 },
+      { lineageId: "root", hiddenDescendantCount: 1 },
+      { lineageId: "a", hiddenDescendantCount: 1 },
+      { lineageId: "b", hiddenDescendantCount: 1 },
     ]);
     expect(plan.budgetExceededForPreservedAncestry).toBe(false);
   });

@@ -97,18 +97,23 @@ export function observeRuntimeSnapshotPublication(
 ): void {
   const probe = activeProbe();
   const identity = composedTransactionIdentity(snapshot, runBranchIdentity);
-  if (probe === null || identity === null || snapshot === null) return;
+  if (
+    probe === null ||
+    identity === null ||
+    snapshot?.checkpoint.authority !== "composed"
+  ) {
+    return;
+  }
+  const checkpoint = snapshot.checkpoint;
 
   safeObserve(probe, {
     version: RENDER_PUBLICATION_PERFORMANCE_SAMPLE_VERSION,
     phase: "runtime-snapshot-published",
     ...identity,
     observedAtMs: safeNow(probe),
-    hasEcologyObservation:
-      snapshot.checkpoint.authority === "composed" &&
-      snapshot.ecologyObservation !== undefined,
-    totalBiomass: snapshot.checkpoint.metrics.totalBiomass,
-    occupiedCells: snapshot.checkpoint.metrics.occupiedCells,
+    hasEcologyObservation: snapshot.ecologyObservation !== undefined,
+    totalBiomass: checkpoint.metrics.totalBiomass,
+    occupiedCells: checkpoint.metrics.occupiedCells,
   });
 }
 

@@ -198,3 +198,9 @@ Framework-neutral worker-session behavior requires deterministic tests with a fa
 - Import is always an explicit fresh-run replacement/replay action. A matching presentation confirmation key is required before `replace-run` may be planned; stale/unconfirmed inspection remains `confirmation-required`.
 - The confirmation key is presentation-only stale-dialog protection, not cryptographic or scientific identity and must never enter replay/checkpoint authority.
 - Browser File/Blob/download/upload/Web Share adapters may wrap this policy later, but local file save/load must remain fully offline-capable. Renderer state, screenshots, raw ML datasets, and unsupported counterfactual ancestry remain outside bundle authority.
+
+## Offline experiment-bundle file boundary
+- `experimentBundleFileIo.ts` is the browser-local file boundary for #681. It may create a JSON `Blob` only from an already prepared canonical `ExperimentBundleExportFile`, and local import text must flow through `inspectExperimentBundleImport(...)`; it must never define a second bundle schema or parser.
+- File size/MIME/read checks are cheap presentation/security guards only. They do not establish scientific validity or replay compatibility; the simulation-owned parser remains authoritative.
+- Browser-supplied empty MIME is accepted because local JSON files may not carry a type. Unsupported non-empty MIME and oversized/unreadable files fail before parsing with bounded user-facing messages.
+- This boundary does not replace the active run. Destructive replacement remains an explicit confirmed action through the existing handoff planner and a fresh authoritative runtime.

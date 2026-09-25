@@ -180,7 +180,7 @@ describe("experiment runtime", () => {
     expect(runtime.start()).toBe(true);
     expect(port.posted[0]).toMatchObject({
       type: "initialize",
-      composedIdentity,
+      identity: composedIdentity,
       composedConfig,
     });
     expect(
@@ -276,7 +276,7 @@ describe("experiment runtime", () => {
   });
 
   it("routes a validated intervention only after ciprofloxacin acceptance evidence", () => {
-    const { port, runtime } = readyRuntime();
+    const { port, runtime, engine } = readyComposedRuntime();
     const command = {
       id: "intervention-1",
       type: "apply-ciprofloxacin" as const,
@@ -310,26 +310,7 @@ describe("experiment runtime", () => {
       protocolVersion: PROTOCOL_VERSION,
       type: "snapshot",
       commandId: command.id,
-      snapshot: makeSnapshot({
-        tick: 0,
-        commandCount: 1,
-        events: [
-          {
-            sequence: 0,
-            tick: 0,
-            simulationTimeHours: 0,
-            type: "initialized",
-          },
-          {
-            sequence: 1,
-            tick: 0,
-            simulationTimeHours: 0,
-            type: "ciprofloxacin-applied",
-            commandId: command.id,
-            intervention: command.intervention,
-          },
-        ],
-      }),
+      snapshot: engine.execute(command),
     });
 
     expect(runtime.state.controls.acceptedCommands).toEqual([command]);
@@ -340,7 +321,7 @@ describe("experiment runtime", () => {
   });
 
   it("does not promote a same-id intervention on the wrong authoritative event type", () => {
-    const { port, runtime } = readyRuntime();
+    const { port, runtime, engine } = readyComposedRuntime();
     const command = {
       id: "intervention-1",
       type: "apply-ciprofloxacin" as const,
@@ -362,25 +343,10 @@ describe("experiment runtime", () => {
       protocolVersion: PROTOCOL_VERSION,
       type: "snapshot",
       commandId: command.id,
-      snapshot: makeSnapshot({
-        tick: 1,
-        commandCount: 1,
-        events: [
-          {
-            sequence: 0,
-            tick: 0,
-            simulationTimeHours: 0,
-            type: "initialized",
-          },
-          {
-            sequence: 1,
-            tick: 1,
-            simulationTimeHours: 1 / 60,
-            type: "advanced",
-            commandId: command.id,
-            value: 1,
-          },
-        ],
+      snapshot: engine.execute({
+        id: command.id,
+        type: "advance",
+        ticks: 1,
       }),
     });
 
@@ -462,20 +428,35 @@ describe("experiment runtime", () => {
   it("rejects a snapshot with the same parameter-set label but a different bound config", () => {
     const port = new FakePort();
     const session = new WorkerSession(port);
-    const runtime = new ExperimentRuntime(session, syntheticIdentity, commandIds());
-    const foreignIdentity = structuredClone(identity);
-    if (foreignIdentity.parameterSetBinding === undefined) {
-      throw new Error("expected bound fixture identity");
-    }
-    ;(
-      foreignIdentity.parameterSetBinding as { configurationFingerprint: string }
-    ).configurationFingerprint += "-foreign";
+    const runtime = new ExperimentRuntime(
+      session,
+      composedIdentity,
+      commandIds(),
+      composedConfig,
+    );
+    const foreignConfig = structuredClone(composedConfig);
+    foreignConfig.growth.maxDivisionRate = 0.6;
+    const foreignIdentity = createRunIdentity({
+      scenarioId: composedIdentity.scenarioId,
+      scenarioVersion: composedIdentity.scenarioVersion,
+      parameterSetId,
+      parameterSetVersion,
+      parameterSetBinding: createFixtureComposedParameterSetBinding(
+        parameterSetId,
+        parameterSetVersion,
+        foreignConfig,
+      ),
+      seed: composedIdentity.seed,
+    });
 
     runtime.start();
     port.emit({
       protocolVersion: PROTOCOL_VERSION,
       type: "ready",
-      snapshot: makeSnapshot({ identity: foreignIdentity, tick: 0 }),
+      snapshot: new ComposedSimulationEngine(
+        foreignIdentity,
+        foreignConfig,
+      ).snapshot(),
     });
 
     expect(runtime.state.snapshot).toBeNull();

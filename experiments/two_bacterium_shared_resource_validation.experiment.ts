@@ -387,7 +387,11 @@ describe.sequential('two-bacterium shared-resource local validation', () => {
     const measurements: Record<string, unknown> = {}
 
     try {
-      const primaryRun = sampledMixedRun(SEEDS[0])
+      const mixedSeedRuns = SEEDS.map((seed) => sampledMixedRun(seed))
+      const primaryRun = mixedSeedRuns[0]
+      if (primaryRun === undefined) {
+        throw new Error('two-bacterium validation requires at least one fixed seed')
+      }
       const primaryPlan = primaryRun.plan
       let isolatedEcoli: IsolatedGrowthMeasurement | null = null
       let isolatedBacillus: IsolatedGrowthMeasurement | null = null
@@ -1065,12 +1069,20 @@ describe.sequential('two-bacterium shared-resource local validation', () => {
           },
           contentPackInterpretation:
             'contentPack identifies the exact provenance-bound composed parameter-set revision carried by RunIdentity.',
-          mixedSeedSamples: [
-            {
-              seed: SEEDS[0],
-              samples: primaryRun.samples,
-            },
-          ],
+          mixedSeedSamples: mixedSeedRuns.map((run, index) => ({
+            seed: SEEDS[index]!,
+            finalTraceHash: run.finalSnapshot.traceHash,
+            finalTick: run.finalSnapshot.checkpoint.tick,
+            finalSimulationTimeHours:
+              run.finalSnapshot.checkpoint.simulationTimeHours,
+            samples: run.samples,
+          })),
+          termination: {
+            expectedHorizonTicks: HORIZON_TICKS,
+            allSeedsReachedHorizon: mixedSeedRuns.every(
+              (run) => run.finalSnapshot.checkpoint.tick === HORIZON_TICKS,
+            ),
+          },
           controls: measurements,
         },
       })

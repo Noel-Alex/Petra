@@ -1,5 +1,5 @@
 import { LiveDishActivity } from "./LiveDishActivity";
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { PetraCompactAction } from "../ui/PetraCompactAction";
 import {
   loadVisualContrastSetting,
@@ -23,6 +23,10 @@ import { RegionInspectorPanel } from "../ui/RegionInspectorPanel";
 import { DishViewport } from "./DishViewport";
 import { projectComposedDishSnapshot } from "./composedDishProjection";
 import { resolveComposedDishOrganismPresentationAuthority } from "./organismPresentationBinding";
+import { resolveCiprofloxacinToolAuthorityForRun } from "./ciprofloxacinToolBinding";
+import { createCiprofloxacinInterventionPreview } from "./ciprofloxacinInterventionDraft";
+import { planCiprofloxacinInterventionCommand } from "./ciprofloxacinInterventionAdapter";
+import { toCiprofloxacinIntentAuthority } from "./ciprofloxacinToolAuthority";
 import {
   measureDishProjectionPublication,
   observeDishReactCommit,
@@ -132,6 +136,7 @@ export function App({
 }: AppProps) {
   const systemReduced = useSystemReducedMotion();
   const experiment = useExperimentRuntime(runtimeFactory);
+  const ciprofloxacinIntentSequence = useRef(0);
   const onboardingProjection = useMemo(
     () => projectOnboardingRuntime(experiment.state, onboardingGates),
     [experiment.state, onboardingGates],
@@ -179,6 +184,10 @@ export function App({
   const ecologyObservation = experiment.state?.ecologyObservation ?? null;
   const organismPresentationAuthority =
     resolveComposedDishOrganismPresentationAuthority(
+      runtimeSnapshot?.checkpoint.identity ?? null,
+    );
+  const ciprofloxacinToolAuthority =
+    resolveCiprofloxacinToolAuthorityForRun(
       runtimeSnapshot?.checkpoint.identity ?? null,
     );
   const dishSnapshot = useMemo(
@@ -246,6 +255,43 @@ export function App({
     () => resolveDishAmbient(motionPreference),
     [motionPreference],
   );
+
+  const applyGlobalCiprofloxacin = (
+    concentrationMgPerL: number,
+  ): boolean => {
+    if (ciprofloxacinToolAuthority === null) return false;
+
+    ciprofloxacinIntentSequence.current += 1;
+    const intentId =
+      `ciprofloxacin-global-${ciprofloxacinIntentSequence.current}`;
+
+    try {
+      const preview = createCiprofloxacinInterventionPreview(
+        ciprofloxacinToolAuthority,
+        {
+          intentId,
+          geometry: { kind: "global" },
+          concentrationMgPerL,
+        },
+        motionPreference,
+      );
+      if (!preview.canCommit || preview.commitIntent === null) return false;
+
+      const command = planCiprofloxacinInterventionCommand(
+        preview.commitIntent,
+        toCiprofloxacinIntentAuthority(ciprofloxacinToolAuthority),
+      );
+      const result = experiment.dispatchAuthoritativeCommand(command);
+      if (result?.accepted !== true) return false;
+
+      setInterventionPlacement((current) =>
+        cancelInterventionPlacement(current),
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
   const showSourcesPlan = useMemo(
     () =>
@@ -373,6 +419,10 @@ export function App({
     status: experiment.view.status,
     playing: experiment.view.playing,
   });
+  const authoritativeGlobalCiprofloxacinActive =
+    interventionPlacement.phase === "placing" &&
+    interventionPlacement.tool === "antibiotic" &&
+    ciprofloxacinToolAuthority?.supportedGeometries.includes("global") === true;
 
   return (
     <main
@@ -664,6 +714,7 @@ export function App({
           motion={motionPreference}
           runtimeStatus={experiment.view.status}
           placement={interventionPlacement}
+          ciprofloxacinMetadata={ciprofloxacinToolAuthority}
           onBeginPlacement={(tool) => {
             setInterventionPlacement((current) =>
               beginInterventionPlacement(current, tool),
@@ -679,6 +730,7 @@ export function App({
               cancelInterventionPlacement(current),
             );
           }}
+          onApplyCiprofloxacinGlobal={applyGlobalCiprofloxacin}
         />
 
         <section
@@ -705,7 +757,8 @@ export function App({
             snapshot={dishSnapshot}
             runIdentity={runtimeSnapshot?.checkpoint.identity ?? null}
             placement={
-              interventionPlacement.phase === "placing"
+              interventionPlacement.phase === "placing" &&
+              !authoritativeGlobalCiprofloxacinActive
                 ? interventionPlacement
                 : null
             }

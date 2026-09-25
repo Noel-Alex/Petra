@@ -85,8 +85,8 @@ describe("supported content matrix", () => {
       },
       {
         id: "first-post-ciprofloxacin-antibiotic",
-        availability: "blocked-research",
-        issues: [874, 573],
+        availability: "blocked-implementation",
+        issues: [926, 928],
       },
       {
         id: "named-microbial-interactions",

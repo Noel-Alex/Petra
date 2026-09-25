@@ -78,18 +78,22 @@ these model-unit semantics.
 
 
 The same scenario also selects
-`ecoli-ciprofloxacin-baseline-composed@1.1.0` as its baseline composed
+`ecoli-ciprofloxacin-baseline-composed@1.2.0` as its baseline composed
 parameter set. That record owns engineering mechanism identity: circular
 model-grid geometry, the `founder-wt` → `WT` lineage/genotype channel, the
-active resource×drug loss-policy identity, and the scenario-owned Regoes
-reference curve + Marcusson genotype MIC table used by that policy. The bundled
+founder's exact scenario-owned `ecoli-k12-mg1655@1.0.0` biological taxon
+revision, the active resource×drug loss-policy identity, and the scenario-owned
+Regoes reference curve + Marcusson genotype MIC table used by that policy.
+The taxon binding is replay-critical biological identity only; it does not
+authorize physical cell dimensions, representative morphology, or a measured
+MG1655 resource-growth parameter pack. The bundled
 baseline config also carries an explicit all-zero `mg/L` ciprofloxacin
 landscape, so its incremental ciprofloxacin loss is exactly zero before any
 drug exposure is configured. Zero here is not a measured MG1655
 background-death rate.
 
-Under protocol v6 the all-zero landscape in the composed config is the
-fingerprinted **initial** exposure. Composed state v4 checkpoints the current
+Under protocol v8 the all-zero landscape in the composed config is the
+fingerprinted **initial** exposure. Composed state v5 checkpoints the current
 `mg/L` landscape, and the typed `apply-ciprofloxacin` command may mutate that
 state through validated global/radial/stripe/paint `set|add` geometry while
 preserving exact replay/export identity. Accepted commands record the exact

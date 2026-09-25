@@ -24,7 +24,7 @@ const baseline: FlagshipRunInitialization = {
 }
 
 describe('flagship composed run planning', () => {
-  it('projects bundled scenario authority into a provenance-bound protocol-v5 config', () => {
+  it('projects bundled scenario authority into the current provenance-bound config', () => {
     const plan = buildFlagshipComposedRunPlan(baseline)
     const center = 80 * plan.config.width + 80
 
@@ -33,7 +33,7 @@ describe('flagship composed run planning', () => {
       scenarioId: 'ecoli-ciprofloxacin-spatial',
       scenarioVersion: '1.5.0-research',
       parameterSetId: 'ecoli-ciprofloxacin-baseline-composed',
-      parameterSetVersion: '1.1.0',
+      parameterSetVersion: '1.2.0',
       seed: baseline.seed,
     })
     expect(plan.parameterSetBinding.authority).toBe('provenance')
@@ -72,10 +72,27 @@ describe('flagship composed run planning', () => {
       )?.micMgPerL,
     ).toBe(0.016)
     expect(plan.config.samplingExecutionPolicy).toBeNull()
+    expect(plan.config.taxonRegistry).toMatchObject({
+      schemaVersion: 2,
+      taxa: [
+        {
+          id: 'ecoli-k12-mg1655',
+          contentVersion: '1.0.0',
+          scientificName: 'Escherichia coli',
+          background: 'K-12 MG1655 for curated resistance phenotypes',
+          microbialGroup: 'bacterium',
+          provenance: {
+            sourceKeys: ['marcusson_2009'],
+          },
+        },
+      ],
+    })
     expect(plan.config.lineages).toEqual([
       {
         id: 'founder-wt',
         genotypeId: 'WT',
+        taxonId: 'ecoli-k12-mg1655',
+        taxonContentVersion: '1.0.0',
         deathHazardPerHour: 0,
       },
     ])
@@ -95,6 +112,15 @@ describe('flagship composed run planning', () => {
     const before = engine.snapshot().checkpoint
 
     expect(before.authority).toBe('composed')
+    if (before.authority !== 'composed') {
+      throw new Error('expected composed flagship checkpoint')
+    }
+    expect(before.composedState.lineageTaxonMap).toEqual({
+      schemaVersion: 2,
+      lineageIds: ['L1'],
+      taxonIds: ['ecoli-k12-mg1655'],
+      taxonContentVersions: ['1.0.0'],
+    })
     expect(before.metrics.totalBiomass).toBe(1)
 
     const after = engine.execute({
@@ -108,6 +134,30 @@ describe('flagship composed run planning', () => {
     expect(after.metrics.totalBiomass).toBeGreaterThan(1)
     expect(after.metrics.totalResource).toBeLessThan(
       before.metrics.totalResource,
+    )
+  })
+
+  it('makes exact taxon authority part of the composed mechanism fingerprint', () => {
+    const plan = buildFlagshipComposedRunPlan(baseline)
+    const {
+      taxonRegistry: omittedTaxonRegistry,
+      ...configWithoutTaxonRegistry
+    } = plan.config
+    void omittedTaxonRegistry
+    const legacyCompatibleConfig = {
+      ...configWithoutTaxonRegistry,
+      lineages: plan.config.lineages.map((lineage) => ({
+        id: lineage.id,
+        genotypeId: lineage.genotypeId,
+        ...(lineage.baselineGrowthRateScale === undefined
+          ? {}
+          : { baselineGrowthRateScale: lineage.baselineGrowthRateScale }),
+        deathHazardPerHour: lineage.deathHazardPerHour,
+      })),
+    }
+
+    expect(composedConfigurationFingerprint(legacyCompatibleConfig)).not.toBe(
+      composedConfigurationFingerprint(plan.config),
     )
   })
 

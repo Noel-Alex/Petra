@@ -45,6 +45,7 @@ const config: ComposedSimulationConfig = {
   },
   ciprofloxacin: null,
   samplingExecutionPolicy: null,
+  dynamicLineageLossPolicy: null,
   hoursPerTick: 0.1,
 }
 

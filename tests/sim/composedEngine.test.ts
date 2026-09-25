@@ -55,6 +55,8 @@ const config: ComposedSimulationConfig = {
     { id: 'variant', genotypeId: 'VAR', deathHazardPerHour: 0.1 },
   ],
   samplingExecutionPolicy: null,
+  dynamicLineageLossPolicy: null,
+  populationAuthority: null,
   hoursPerTick: 0.01,
 }
 
@@ -183,7 +185,7 @@ describe('ComposedSimulationEngine', () => {
     expect(initial.authority).toBe('composed')
     expect(initial.metrics.totalBiomass).toBe(3)
     expect(initial.metrics.totalResource).toBe(16)
-    expect(initial.composedState.lineageIds).toEqual(['ancestor', 'variant'])
+    expect(initial.composedState.lineageIds).toEqual(['L1', 'L2'])
     expect(initial.composedState.genotypeIds).toEqual(['WT', 'VAR'])
     expect('syntheticPopulation' in initial).toBe(false)
 
@@ -370,13 +372,13 @@ describe('ComposedSimulationEngine', () => {
     exported.checkpoint.composedState.genotypeIds[0] = 'CORRUPT'
     ;(
       exported.checkpoint.metrics.lineageBiomass as Record<string, number>
-    ).ancestor = 999
+    ).L1 = 999
 
     const fresh = engine.snapshot().checkpoint
     expect(fresh.composedState.resource[0]).toBe(8)
     expect(fresh.composedState.ciprofloxacinConcentrationMgPerL[0]).toBe(0)
     expect(fresh.composedState.genotypeIds[0]).toBe('WT')
-    expect(fresh.metrics.lineageBiomass.ancestor).toBe(1)
+    expect(fresh.metrics.lineageBiomass.L1).toBe(1)
   })
 
   it('uses one scientific-state validator for direct continuation and restore', () => {

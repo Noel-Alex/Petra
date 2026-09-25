@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   FLAGSHIP_SANDBOX_RUNTIME_ID,
   SANDBOX_RUNTIME_REGISTRY_VERSION,
+  TWO_BACTERIUM_SANDBOX_RUNTIME_ID,
   buildSandboxRun,
+  listSandboxRuntimeReadiness,
   listSandboxScenarios,
   planSandboxSelection,
   projectSandboxActiveRun,
@@ -27,6 +29,79 @@ describe("Sandbox authoritative scenario selection", () => {
         admitted: false,
         maturity: "experimental",
       },
+    });
+  });
+
+  it("prebinds the exact two-bacterium runtime behind the local evidence gate without making it selectable", () => {
+    const readiness = listSandboxRuntimeReadiness();
+
+    expect(readiness).toHaveLength(2);
+    expect(readiness[0]).toMatchObject({
+      runtimeId: FLAGSHIP_SANDBOX_RUNTIME_ID,
+      scenarioId: "ecoli-ciprofloxacin-spatial",
+      scenarioVersion: "1.5.0-research",
+      availability: "available",
+      evidenceGate: null,
+    });
+
+    const candidate = readiness.find(
+      (entry) => entry.runtimeId === TWO_BACTERIUM_SANDBOX_RUNTIME_ID,
+    );
+    expect(candidate).toMatchObject({
+      runtimeId: TWO_BACTERIUM_SANDBOX_RUNTIME_ID,
+      scenarioId: "ecoli-bsubtilis-shared-resource",
+      scenarioVersion: "1.0.0-experimental",
+      availability: "blocked-local-evidence",
+      evidenceGate: {
+        experimentId: "two-bacterium-shared-resource-validation",
+        issueIds: [907],
+      },
+    });
+    expect(Object.isFrozen(readiness)).toBe(true);
+    expect(Object.isFrozen(candidate)).toBe(true);
+    expect(Object.isFrozen(candidate?.evidenceGate?.issueIds)).toBe(true);
+
+    const executable = listSandboxScenarios();
+    expect(
+      executable.scenarios.some(
+        (entry) => entry.runtimeId === TWO_BACTERIUM_SANDBOX_RUNTIME_ID,
+      ),
+    ).toBe(false);
+
+    expect(
+      planSandboxSelection({
+        scenarioKey: "ecoli-bsubtilis-shared-resource@1.0.0-experimental",
+        seed: 17,
+      }),
+    ).toEqual({
+      kind: "refused",
+      scenarioKey: "ecoli-bsubtilis-shared-resource@1.0.0-experimental",
+      reason: "Unknown or unavailable Sandbox scenario.",
+    });
+
+    const flagship = executable.scenarios[0]!;
+    const forgedCatalog = {
+      catalogVersion: 1 as const,
+      scenarios: [
+        {
+          ...flagship,
+          key: "ecoli-bsubtilis-shared-resource@1.0.0-experimental",
+          scenarioId: "ecoli-bsubtilis-shared-resource",
+          scenarioVersion: "1.0.0-experimental",
+          runtimeId: TWO_BACTERIUM_SANDBOX_RUNTIME_ID,
+        },
+      ],
+    };
+    expect(
+      planSandboxSelection({
+        scenarioKey: "ecoli-bsubtilis-shared-resource@1.0.0-experimental",
+        seed: 17,
+        catalog: forgedCatalog,
+      }),
+    ).toEqual({
+      kind: "refused",
+      scenarioKey: "ecoli-bsubtilis-shared-resource@1.0.0-experimental",
+      reason: "Unknown or unavailable Sandbox scenario.",
     });
   });
 

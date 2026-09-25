@@ -10,10 +10,9 @@ const initialization = {
   inocula: [
     {
       lineageId: "founder-wt",
-      x: 0.5,
-      y: 0.5,
-      radiusCells: 2,
-      totalBiomass: 1,
+      x: 80,
+      y: 80,
+      biomass: 1,
     },
   ],
 } as const;

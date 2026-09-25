@@ -12,7 +12,11 @@ import {
   RUNTIME_ANALYSIS_TRANSACTION_SCHEMA_VERSION,
   type RuntimeAnalysisTransaction,
 } from "../../src/app/runtimeAnalysisTransaction";
-import type { AuthoritativeLineageAnalysisRecord } from "../../src/sim/evolution/analysis";
+import {
+  LINEAGE_ANALYSIS_SCHEMA_VERSION,
+  type AuthoritativeLineageAnalysisRecord,
+} from "../../src/sim/evolution/analysis";
+import { createAspergillusNo10SurfaceCheckpoint } from "../../src/sim/fungi/aspergillusNo10Surface";
 import {
   createRunIdentity,
   type ComposedSimulationSnapshot,
@@ -134,7 +138,7 @@ function analysisFor(
       },
       series: [],
       lineageAnalysis: {
-        schemaVersion: 1,
+        schemaVersion: LINEAGE_ANALYSIS_SCHEMA_VERSION,
         identity: structuredClone(snapshot.checkpoint.identity),
         configurationFingerprint: "selection-config-v1",
         simulationTimeHours: snapshot.checkpoint.simulationTimeHours,
@@ -189,7 +193,8 @@ describe("runtime shared lineage selection authority", () => {
     const scene = sceneFor(snapshot);
 
     const branchDrift = structuredClone(analysisFor(snapshot));
-    branchDrift.records.identity.runIdentity = "selection-branch-foreign";
+    (branchDrift.records.identity as { runIdentity: string }).runIdentity =
+      "selection-branch-foreign";
     expect(() =>
       createRuntimeLineageSelection({
         lineageId: "L1",
@@ -199,7 +204,8 @@ describe("runtime shared lineage selection authority", () => {
     ).toThrow(/different command-history generations/i);
 
     const traceDrift = structuredClone(analysisFor(snapshot));
-    traceDrift.records.identity.stateIdentity = "selection-trace-foreign";
+    (traceDrift.records.identity as { stateIdentity: string }).stateIdentity =
+      "selection-trace-foreign";
     expect(() =>
       createRuntimeLineageSelection({
         lineageId: "L1",
@@ -212,7 +218,7 @@ describe("runtime shared lineage selection authority", () => {
     if (runDrift.records.identity.composedRunIdentity === undefined) {
       throw new Error("fixture requires composed run identity");
     }
-    runDrift.records.identity.composedRunIdentity.seed += 1;
+    (runDrift.records.identity.composedRunIdentity as { seed: number }).seed += 1;
     expect(() =>
       createRuntimeLineageSelection({
         lineageId: "L1",
@@ -282,16 +288,7 @@ describe("runtime shared lineage selection authority", () => {
 
     const fungalScene = createDishSceneTransaction({
       fungalSourceValidation: {
-        checkpoint: {
-          schemaVersion: 1,
-          taxonId: "aspergillus-niger-no10",
-          taxonContentVersion: "favela-torres-1998-surface-front-v1",
-          sourcePackId: "favela-torres-1998-aspergillus-no10-surface",
-          treatmentId: "glucose-40-g-per-l",
-          plateRadiusUm: 45_000,
-          biologicalTimeHours: 0,
-          frontRadiusUm: 0,
-        } as never,
+        checkpoint: createAspergillusNo10SurfaceCheckpoint(40),
       },
     });
 

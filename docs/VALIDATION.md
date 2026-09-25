@@ -51,7 +51,7 @@ If enabled:
 - zero drug produces zero incremental PD-derived loss;
 - at the reference zMIC, the incremental loss equals the converted reference drug-free PD rate while the transferred PD response itself crosses zero;
 - the spatial loss field follows the authoritative drug mask/concentration state and remains finite/non-negative;
-- composed protocol-v5/state-v3 authority refuses non-zero ciprofloxacin exposure without explicit supported PD/MIC authority, refuses missing active-genotype MICs, and refuses off-mask concentration;
+- composed protocol-v6/state-v4 authority refuses non-zero ciprofloxacin exposure without explicit supported PD/MIC authority, refuses missing active-genotype MICs, and refuses off-mask concentration;
 - changing the **initial** ciprofloxacin landscape or PD/MIC authority changes the composed configuration fingerprint, while accepted intervention commands mutate only checkpoint state and remain reproducible through command/checkpoint history;
 - global/radial/stripe/paint ciprofloxacin commands preserve the exact composed mask, validate dense normalized geometry and finite Float32-representable `mg/L`, apply transactionally, increment accepted command position without advancing biological time, and are replay/export complete;
 - a refused intervention is an exact replay no-op: checkpoint drug state, biomass/resource state, metrics, tick/time, command count, and event history remain unchanged;
@@ -59,6 +59,17 @@ If enabled:
 - intervention geometry alone is not evidence for calibrated ciprofloxacin diffusion, decay, clearance, or physical delivery equivalence;
 - zero-resource + drug behavior is tested as a declared composition policy, not reported as stationary-phase calibration;
 - the whole-model zero-growth concentration is not assumed to equal Regoes zMIC until the independent ecology baseline is calibrated.
+
+## Discrete population/event authority tests
+
+- composed config requires either one explicit validated cell-equivalent calibration/policy or explicit `null`; omission is rejected and the bundled flagship remains `null` while no scenario-owned calibration exists;
+- enabling population authority changes the composed configuration fingerprint and creates checkpointed standing-host, standing-residual, and division-residual state; disabling it permits no hidden discrete state;
+- standing counts/residuals are validated against the exact committed continuous lineage biomass on direct continuation and checkpoint restore;
+- per-lineage/per-cell division opportunities derive only from the ecology division-flux ledger plus prior division residual; death, spread, and net biomass change cannot manufacture mutation opportunities;
+- repeated fractional division flux carries deterministically across steps and checkpoint restore reproduces the same future opportunity sequence;
+- a discrete-authority refusal after ecology calculation publishes neither the continuous ecology transition nor the discrete count/residual transition;
+- Worker protocol promotion rejects malformed/fractional counts, invalid residuals, lineage/dimension drift, and off-mask discrete state before snapshots become typed authority;
+- experiment bundle v2 round-trips protocol-v6/state-v4 population checkpoint residuals under exact runtime compatibility; no migration from older protocol/state artifacts is implied.
 
 ## Mutation and selection tests
 

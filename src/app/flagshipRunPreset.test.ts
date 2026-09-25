@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import runPresetData from "../../data/run_presets/ecoli_ciprofloxacin_baseline_v1.json";
+import { PROTOCOL_VERSION } from "../sim/protocol";
 import {
   buildDefaultFlagshipRun,
   buildFlagshipRunFromPreset,
@@ -10,6 +11,8 @@ describe("default flagship run preset", () => {
   it("binds the current composed flagship authority without upgrading engineering run state", () => {
     const { preset, plan } = buildDefaultFlagshipRun();
 
+    expect(preset.version).toBe("1.0.1");
+    expect(preset.protocolVersion).toBe(PROTOCOL_VERSION);
     expect(preset.classification).toBe("engineering");
     expect(preset.usageScope).toBe("research-expo-engineering-default");
     expect(plan.identity.scenarioId).toBe("ecoli-ciprofloxacin-spatial");
@@ -18,6 +21,7 @@ describe("default flagship run preset", () => {
       "ecoli-ciprofloxacin-baseline-composed",
     );
     expect(plan.identity.parameterSetVersion).toBe("1.1.0");
+    expect(plan.identity.protocolVersion).toBe(PROTOCOL_VERSION);
     expect(plan.identity.seed).toBe(preset.seed);
     expect(plan.config.ciprofloxacinConcentrationMgPerL.every((value) => value === 0)).toBe(true);
   });
@@ -39,7 +43,7 @@ describe("default flagship run preset", () => {
     expect(() =>
       parseFlagshipRunPreset({
         ...structuredClone(runPresetData),
-        protocolVersion: 999,
+        protocolVersion: 5,
       }),
     ).toThrow("protocol version does not match");
   });

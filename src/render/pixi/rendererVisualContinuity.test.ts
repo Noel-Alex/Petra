@@ -98,7 +98,10 @@ describe("Pixi dish visual continuity integration", () => {
     expect(tickerSource).toContain("advanceDishVisualTransition(");
     expect(tickerSource).toContain("drawableState = step.state;");
     expect(tickerSource).toContain("visualTransition = null;");
-    expect(tickerSource).toContain("if (changed) render();");
+    expect(tickerSource).toContain("if (visualChanged) {");
+    expect(tickerSource).toContain("render();");
+    expect(tickerSource).toContain("else if (cameraChanged) {");
+    expect(tickerSource).toContain("renderCameraState(true);");
   });
 
   it("invalidates prepared scientific layers by revision rather than mutable frame identity", () => {

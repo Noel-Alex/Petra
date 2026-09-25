@@ -5,9 +5,14 @@ import rawFlagshipScenario from "../data/presets/ecoli_ciprofloxacin_v1.json";
 import rawPresentationIdentity from "../data/presentation/ecoli_k12_mg1655_v1.json";
 import { evaluateScienceModeAdmission } from "./sim/scienceModeAdmission";
 import {
+  AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION,
+  createAuthoritativeTaxonRegistry,
+} from "./sim/taxonIdentity";
+import {
   findSupportedScenario,
   parseSupportedContentMatrix,
   SUPPORTED_CONTENT_MATRIX,
+  validateSupportedScenarioTaxonAuthority,
 } from "./contentSupportMatrix";
 
 function cloneMatrix(): Record<string, unknown> {
@@ -29,6 +34,7 @@ describe("supported content matrix", () => {
 
     expect(flagship.organisms).toEqual([
       {
+        taxon: null,
         scientificName: rawFlagshipScenario.organism.name,
         background: rawFlagshipScenario.organism.genotypeBackground,
         microbialGroup: "bacterium",
@@ -76,17 +82,17 @@ describe("supported content matrix", () => {
       {
         id: "first-shared-resource-bacterial-competitor",
         availability: "blocked-implementation",
-        issues: [553, 866],
+        issues: [890, 907, 866],
       },
       {
         id: "first-grounded-fungal-competitor",
-        availability: "blocked-research",
-        issues: [556, 615, 866],
+        availability: "blocked-implementation",
+        issues: [615, 866],
       },
       {
         id: "first-post-ciprofloxacin-antibiotic",
-        availability: "blocked-research",
-        issues: [874, 573],
+        availability: "blocked-implementation",
+        issues: [930, 928],
       },
       {
         id: "named-microbial-interactions",
@@ -133,6 +139,69 @@ describe("supported content matrix", () => {
     expect(() => parseSupportedContentMatrix(value)).toThrow(
       /cannot name a physical medium/i,
     );
+  });
+
+  it("rejects Science-Mode enablement without exact taxon revision authority", () => {
+    const value = cloneMatrix();
+    const supported = value.supportedScenarios as Array<Record<string, unknown>>;
+    const environment = supported[0]!.environment as Record<string, unknown>;
+    supported[0]!.availability = "enabled-science";
+    supported[0]!.scienceModeStatus = "admitted";
+    environment.resourceBindingStatus = "calibrated";
+
+    expect(() => parseSupportedContentMatrix(value)).toThrow(
+      /exact taxon id \+ contentVersion authority/i,
+    );
+  });
+
+  it("refuses stale biological content revisions even when display metadata is unchanged", () => {
+    const value = cloneMatrix();
+    const parsed = parseSupportedContentMatrix(value);
+    const scenario = parsed.supportedScenarios[0]!;
+    const organism = scenario.organisms[0]!;
+    const exactTaxon = {
+      schemaVersion: AUTHORITATIVE_TAXON_IDENTITY_SCHEMA_VERSION,
+      id: "ecoli-k12-mg1655",
+      contentVersion: "ecoli-k12-mg1655:v1",
+      scientificName: organism.scientificName,
+      background: organism.background,
+      microbialGroup: organism.microbialGroup,
+      provenance: {
+        sourceKeys: ["fixture:content-support-taxon"],
+        context: "Test-only exact taxon revision for support-matrix validation.",
+      },
+    } as const;
+    const exactRegistry = createAuthoritativeTaxonRegistry([exactTaxon]);
+
+    const boundScenario = {
+      ...scenario,
+      organisms: [
+        {
+          ...organism,
+          taxon: {
+            id: exactTaxon.id,
+            contentVersion: exactTaxon.contentVersion,
+          },
+        },
+      ],
+    };
+    expect(() =>
+      validateSupportedScenarioTaxonAuthority(boundScenario, exactRegistry),
+    ).not.toThrow();
+
+    const revisedRegistry = createAuthoritativeTaxonRegistry([
+      {
+        ...exactTaxon,
+        contentVersion: "ecoli-k12-mg1655:v2",
+        provenance: {
+          ...exactTaxon.provenance,
+          context: "Same display metadata under a new biological revision.",
+        },
+      },
+    ]);
+    expect(() =>
+      validateSupportedScenarioTaxonAuthority(boundScenario, revisedRegistry),
+    ).toThrow(/taxon content version mismatch/i);
   });
 
   it("rejects Science-Mode enablement while resource authority is unbound", () => {

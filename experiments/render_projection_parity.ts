@@ -1,7 +1,12 @@
 import { ECOLOGY_NET_GROWTH_RENDER_FIELD_ID } from '../src/render/ecologyFluxField'
-import type { DishRenderSnapshot, RenderField } from '../src/render/model'
+import { gridCellCenter } from '../src/render/gridGeometry'
+import type { DishRenderSnapshot, RenderEvent, RenderField } from '../src/render/model'
 import type { CiprofloxacinIntervention } from '../src/sim/ciprofloxacinIntervention'
 import type { EcologyFluxObservation } from '../src/sim/ecology/fluxObservation'
+import {
+  LineageRegistry,
+  type LineageRegistryCheckpoint,
+} from '../src/sim/evolution/lineage'
 import type {
   ComposedSimulationSnapshot,
   SimulationEvent,
@@ -117,6 +122,205 @@ export interface RuntimeEcologyNetGrowthParityEvidence {
     readonly projectedFloat32Channel: true
     readonly sourceMaskExtrema: true
     readonly sourceUnits: true
+  }
+}
+
+export const LINEAGE_ORIGIN_RENDER_EVENT_PARITY_SCHEMA_VERSION = 1 as const
+
+export interface LineageOriginRenderEventParityInput {
+  readonly lineageRegistry: LineageRegistryCheckpoint
+  readonly activeLineageIds: readonly string[]
+  readonly gridWidth: number
+  readonly gridHeight: number
+  readonly dishMask: readonly number[] | Uint8Array
+  readonly snapshotSimulationTimeHours: number
+  readonly projectedEvents: readonly RenderEvent[]
+}
+
+export interface LineageOriginRenderEventParityEvidence {
+  readonly schemaVersion: typeof LINEAGE_ORIGIN_RENDER_EVENT_PARITY_SCHEMA_VERSION
+  readonly classification: 'render-projection-integrity-not-biological-validation'
+  readonly sourceLineageRecordCount: number
+  readonly omittedFounderOrUnpositionedCreationCount: number
+  readonly projectedOriginEventCount: number
+  readonly activeLineageCrossLinkCount: number
+  readonly historicalEventWithoutLiveCrossLinkCount: number
+  readonly exactChecks: {
+    readonly canonicalLineageRegistry: true
+    readonly creationOrderAndIdentity: true
+    readonly creationTime: true
+    readonly authoritativeCellCenters: true
+    readonly sourceLabels: true
+    readonly currentLiveLineageCrossLinks: true
+  }
+}
+
+/**
+ * Independently verifies lineage-origin RenderEvent projection against the
+ * replay-critical lineage registry. This is integrity evidence only: it does
+ * not validate mutation probabilities, selection, fitness, or renderer pixels.
+ */
+export function verifyLineageOriginRenderEventParity(
+  input: LineageOriginRenderEventParityInput,
+): LineageOriginRenderEventParityEvidence {
+  if (
+    !Number.isSafeInteger(input.gridWidth) ||
+    !Number.isSafeInteger(input.gridHeight) ||
+    input.gridWidth <= 0 ||
+    input.gridHeight <= 0 ||
+    !Number.isSafeInteger(input.gridWidth * input.gridHeight)
+  ) {
+    throw new Error('lineage-origin parity requires positive safe grid dimensions')
+  }
+  const cells = input.gridWidth * input.gridHeight
+  if (input.dishMask.length !== cells) {
+    throw new Error('lineage-origin parity mask must match the authoritative grid')
+  }
+  for (let index = 0; index < input.dishMask.length; index += 1) {
+    const value = input.dishMask[index]
+    if (value !== 0 && value !== 1) {
+      throw new Error('lineage-origin parity mask must be binary at index ' + index)
+    }
+  }
+  if (
+    !Number.isFinite(input.snapshotSimulationTimeHours) ||
+    input.snapshotSimulationTimeHours < 0
+  ) {
+    throw new Error('lineage-origin parity snapshot time must be finite and non-negative')
+  }
+
+  const registry = LineageRegistry.restore(input.lineageRegistry)
+  const records = new Map(
+    registry.list().map((record) => [record.lineageId, record] as const),
+  )
+  const active = new Set<string>()
+  for (const lineageId of input.activeLineageIds) {
+    assertNonEmpty('active lineage id', lineageId)
+    if (lineageId !== lineageId.trim()) {
+      throw new Error('active lineage ids must be canonical text')
+    }
+    if (active.has(lineageId)) {
+      throw new Error('duplicate active lineage id: ' + lineageId)
+    }
+    if (!records.has(lineageId)) {
+      throw new Error('active lineage is absent from lineage registry: ' + lineageId)
+    }
+    active.add(lineageId)
+  }
+
+  const expected: RenderEvent[] = []
+  let omittedFounderOrUnpositionedCreationCount = 0
+  let activeLineageCrossLinkCount = 0
+  let historicalEventWithoutLiveCrossLinkCount = 0
+
+  for (const event of registry.eventLog()) {
+    if (event.kind !== 'lineage-created') continue
+    const record = records.get(event.lineageId)
+    if (record === undefined) {
+      throw new Error('lineage-origin parity creation event references unknown lineage')
+    }
+
+    if (record.parentLineageId === null || record.originCellIndex === null) {
+      omittedFounderOrUnpositionedCreationCount += 1
+      continue
+    }
+    if (event.timeHours > input.snapshotSimulationTimeHours) {
+      throw new Error(
+        'lineage-origin parity source creation occurs after snapshot time: ' +
+          event.lineageId,
+      )
+    }
+    if (record.originCellIndex >= cells) {
+      throw new Error(
+        'lineage-origin parity source cell is outside authoritative grid: ' +
+          event.lineageId,
+      )
+    }
+    if (input.dishMask[record.originCellIndex] !== 1) {
+      throw new Error(
+        'lineage-origin parity source cell is outside authoritative dish mask: ' +
+          event.lineageId,
+      )
+    }
+
+    const center = gridCellCenter(
+      record.originCellIndex,
+      input.gridWidth,
+      input.gridHeight,
+    )
+    const isActive = active.has(record.lineageId)
+    if (isActive) activeLineageCrossLinkCount += 1
+    else historicalEventWithoutLiveCrossLinkCount += 1
+
+    expected.push({
+      id: 'lineage-origin:' + record.lineageId,
+      kind: 'lineage-created',
+      simulationTimeHours: event.timeHours,
+      x: center.x,
+      y: center.y,
+      ...(isActive ? { lineageId: record.lineageId } : {}),
+      label:
+        record.mutationClass === null
+          ? 'Lineage ' + record.lineageId + ' originated'
+          : 'Lineage ' +
+            record.lineageId +
+            ' originated: ' +
+            record.mutationClass,
+    })
+  }
+
+  requireEqual(
+    'lineage-origin projected event count',
+    input.projectedEvents.length,
+    expected.length,
+  )
+  for (let index = 0; index < expected.length; index += 1) {
+    const source = expected[index]
+    const projected = input.projectedEvents[index]
+    if (source === undefined || projected === undefined) {
+      throw new Error('lineage-origin projected event ordering is incomplete')
+    }
+    requireEqual('lineage-origin event id at index ' + index, projected.id, source.id)
+    requireEqual(
+      'lineage-origin event kind at index ' + index,
+      projected.kind,
+      source.kind,
+    )
+    requireEqual(
+      'lineage-origin event time at index ' + index,
+      projected.simulationTimeHours,
+      source.simulationTimeHours,
+    )
+    requireEqual('lineage-origin event x at index ' + index, projected.x, source.x)
+    requireEqual('lineage-origin event y at index ' + index, projected.y, source.y)
+    requireEqual(
+      'lineage-origin event label at index ' + index,
+      projected.label,
+      source.label,
+    )
+    requireEqual(
+      'lineage-origin event live lineage link at index ' + index,
+      projected.lineageId ?? '',
+      source.lineageId ?? '',
+    )
+  }
+
+  return {
+    schemaVersion: LINEAGE_ORIGIN_RENDER_EVENT_PARITY_SCHEMA_VERSION,
+    classification: 'render-projection-integrity-not-biological-validation',
+    sourceLineageRecordCount: records.size,
+    omittedFounderOrUnpositionedCreationCount,
+    projectedOriginEventCount: expected.length,
+    activeLineageCrossLinkCount,
+    historicalEventWithoutLiveCrossLinkCount,
+    exactChecks: {
+      canonicalLineageRegistry: true,
+      creationOrderAndIdentity: true,
+      creationTime: true,
+      authoritativeCellCenters: true,
+      sourceLabels: true,
+      currentLiveLineageCrossLinks: true,
+    },
   }
 }
 

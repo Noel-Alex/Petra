@@ -6,6 +6,12 @@ import {
   type RenderField,
   type RenderLineage,
 } from "./model";
+import {
+  assertLineageDensityArrayWithinPresentationScale,
+  assertLineageDensityPresentationScale,
+  copyLineageDensityPresentationScale,
+  lineageDensityPresentationScaleEqual,
+} from "./lineageDensityScale";
 import { parseOrganismPresentationIdentity } from "./organismPresentationIdentity";
 import {
   cubicBezierProgress,
@@ -20,6 +26,7 @@ export interface DishVisualState {
   readonly biomass: Float32Array;
   readonly fields: readonly RenderField[];
   readonly lineages: readonly RenderLineage[];
+  readonly lineageDensityScale?: DishRenderSnapshot["lineageDensityScale"];
 }
 
 export interface DishPresentationFrame extends DishVisualState {
@@ -51,7 +58,8 @@ export type DishVisualTransitionRefusalReason =
   | "dish-mask-mismatch"
   | "field-set-mismatch"
   | "field-metadata-mismatch"
-  | "lineage-metadata-mismatch";
+  | "lineage-metadata-mismatch"
+  | "lineage-density-scale-mismatch";
 
 interface MutableRenderField extends Omit<
   RenderField,
@@ -133,6 +141,14 @@ export function planDishVisualTransition(
   }
   if (!arraysEqual(from.dishMask, to.dishMask)) {
     return { kind: "snap", reason: "dish-mask-mismatch" };
+  }
+  if (
+    !lineageDensityPresentationScaleEqual(
+      from.lineageDensityScale,
+      to.lineageDensityScale,
+    )
+  ) {
+    return { kind: "snap", reason: "lineage-density-scale-mismatch" };
   }
 
   const fromFields = new Map(from.fields.map((field) => [field.id, field]));
@@ -222,6 +238,13 @@ export function planDishVisualTransition(
     biomass: new Float32Array(to.biomass.length),
     fields: fieldChannels.map((channel) => channel.output),
     lineages: lineageChannels.map((channel) => channel.output),
+    ...(to.lineageDensityScale === undefined
+      ? {}
+      : {
+          lineageDensityScale: copyLineageDensityPresentationScale(
+            to.lineageDensityScale,
+          ),
+        }),
   };
 
   const transition: DishVisualTransition = {
@@ -530,6 +553,9 @@ function assertVisualState(state: DishVisualState): void {
     }
   }
 
+  if (state.lineageDensityScale !== undefined) {
+    assertLineageDensityPresentationScale(state.lineageDensityScale);
+  }
   const lineageIds = new Set<string>();
   for (const lineage of state.lineages) {
     if (lineageIds.has(lineage.id)) {
@@ -547,10 +573,9 @@ function assertVisualState(state: DishVisualState): void {
     if (lineage.density.length !== cells) {
       throw new RangeError("visual state lineage density must match grid");
     }
-    assertFiniteArray(
+    assertLineageDensityArrayWithinPresentationScale(
       lineage.density,
-      true,
-      "visual state lineage density",
+      state.lineageDensityScale,
     );
   }
 }

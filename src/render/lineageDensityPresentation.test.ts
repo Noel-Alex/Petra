@@ -1,11 +1,26 @@
 import { describe, expect, it } from "vitest";
 
+import {
+  LINEAGE_DENSITY_PRESENTATION_SCALE_VERSION,
+  type StableSourceLineageDensityScale,
+} from "./lineageDensityScale";
 import type { DishRenderSnapshot } from "./model";
 import { createRendererDemoSnapshot } from "./pixi/demoSnapshot";
 import {
   projectComparableLineageDensity,
   resolveSharedLineageDensityMaximum,
 } from "./lineageDensityPresentation";
+
+function stableScale(maximum: number): StableSourceLineageDensityScale {
+  return {
+    version: LINEAGE_DENSITY_PRESENTATION_SCALE_VERSION,
+    mode: "stable-source",
+    unit: "model-biomass",
+    maximum,
+    maximumTolerance: maximum * 2 ** -23,
+    sourceIdentity: "run-branch-a|config-fingerprint-a",
+  };
+}
 
 function snapshotWithPeaks(
   dominantPeak: number,
@@ -46,6 +61,31 @@ describe("shared lineage-density presentation", () => {
       visible: true,
       normalized: 0.1,
     });
+  });
+
+  it("keeps absolute density temporally comparable under one stable source ceiling", () => {
+    const early = {
+      ...snapshotWithPeaks(100, 10),
+      lineageDensityScale: stableScale(100),
+    };
+    const later = {
+      ...snapshotWithPeaks(50, 5),
+      lineageDensityScale: stableScale(100),
+    };
+
+    const earlyMaximum = resolveSharedLineageDensityMaximum(early);
+    const laterMaximum = resolveSharedLineageDensityMaximum(later);
+    expect(earlyMaximum).toBe(100);
+    expect(laterMaximum).toBe(100);
+
+    const earlyDominant = projectComparableLineageDensity(100, earlyMaximum);
+    const laterDominant = projectComparableLineageDensity(50, laterMaximum);
+    expect(earlyDominant.normalized).toBe(1);
+    expect(laterDominant.normalized).toBeCloseTo(Math.sqrt(0.5));
+    expect(laterDominant.normalized).toBeLessThan(earlyDominant.normalized);
+    expect(projectComparableLineageDensity(10, earlyMaximum)).toEqual(
+      projectComparableLineageDensity(10, laterMaximum),
+    );
   });
 
   it("maps the same raw density identically regardless of lineage identity", () => {

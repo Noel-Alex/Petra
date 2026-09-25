@@ -5,14 +5,28 @@ import {
 import {
   buildFlagshipComposedRunPlan,
   type FlagshipComposedRunPlan,
-  type FlagshipFounderInoculum,
 } from "../sim/flagshipComposition";
-import { composedConfigurationFingerprint } from "../sim/authoritative";
-import { assertSimulationSeed } from "../sim/protocol";
+import {
+  composedConfigurationFingerprint,
+  type ComposedSimulationConfig,
+} from "../sim/authoritative";
+import type { ComposedParameterSetBinding } from "../sim/parameterSetBinding";
+import {
+  assertSimulationSeed,
+  type RunIdentity,
+} from "../sim/protocol";
 
 export const SANDBOX_MODE = "sandbox" as const;
 export const SANDBOX_SCENARIO_CATALOG_VERSION = 1 as const;
+export const SANDBOX_RUNTIME_REGISTRY_VERSION = 1 as const;
 export const FLAGSHIP_SANDBOX_RUNTIME_ID = "flagship-composed-v1" as const;
+
+export interface SandboxFounderInoculum {
+  readonly lineageId: string;
+  readonly x: number;
+  readonly y: number;
+  readonly biomass: number;
+}
 
 export interface SandboxScenarioEntry {
   readonly catalogVersion: typeof SANDBOX_SCENARIO_CATALOG_VERSION;
@@ -23,7 +37,7 @@ export interface SandboxScenarioEntry {
   readonly catalogStatus: string;
   readonly scienceMode: ScenarioDiscoveryEntry["scienceMode"];
   readonly availability: "available";
-  readonly runtimeId: typeof FLAGSHIP_SANDBOX_RUNTIME_ID;
+  readonly runtimeId: string;
 }
 
 export interface SandboxScenarioCatalog {
@@ -35,7 +49,7 @@ export type SandboxSelectionPlan =
   | {
       readonly kind: "fresh-run";
       readonly mode: typeof SANDBOX_MODE;
-      readonly runtimeId: typeof FLAGSHIP_SANDBOX_RUNTIME_ID;
+      readonly runtimeId: string;
       readonly scenarioKey: string;
       readonly scenarioId: string;
       readonly scenarioVersion: string;
@@ -49,12 +63,18 @@ export type SandboxSelectionPlan =
 
 export interface SandboxRunInitialization {
   readonly initialResourceLevel: number;
-  readonly inocula: readonly FlagshipFounderInoculum[];
+  readonly inocula: readonly SandboxFounderInoculum[];
+}
+
+export interface SandboxComposedRunPlan {
+  readonly identity: RunIdentity;
+  readonly config: ComposedSimulationConfig;
+  readonly parameterSetBinding: ComposedParameterSetBinding;
 }
 
 export interface SandboxActiveRunView {
   readonly mode: typeof SANDBOX_MODE;
-  readonly runtimeId: typeof FLAGSHIP_SANDBOX_RUNTIME_ID;
+  readonly runtimeId: string;
   readonly scenarioKey: string;
   readonly scenarioId: string;
   readonly scenarioVersion: string;
@@ -69,39 +89,136 @@ export interface SandboxActiveRunView {
   readonly seed: number;
 }
 
+interface SandboxRuntimeRegistration {
+  readonly registryVersion: typeof SANDBOX_RUNTIME_REGISTRY_VERSION;
+  readonly runtimeId: string;
+  readonly scenarioId: string;
+  readonly scenarioVersion: string;
+  readonly buildRun: (
+    seed: number,
+    initialization: SandboxRunInitialization,
+  ) => SandboxComposedRunPlan;
+}
+
+const FLAGSHIP_SANDBOX_SCENARIO_ID = "ecoli-ciprofloxacin-spatial";
+const FLAGSHIP_SANDBOX_SCENARIO_VERSION = "1.5.0-research";
+
+/**
+ * Executable Sandbox runtimes are explicit product authority.
+ *
+ * A scenario becoming bundled/discoverable does not make it runnable here.
+ * The validated two-bacterium authority from #890 intentionally remains
+ * unregistered until #907/#879 promotion evidence is accepted.
+ */
+const SANDBOX_RUNTIME_REGISTRATIONS: readonly SandboxRuntimeRegistration[] =
+  Object.freeze([
+    Object.freeze({
+      registryVersion: SANDBOX_RUNTIME_REGISTRY_VERSION,
+      runtimeId: FLAGSHIP_SANDBOX_RUNTIME_ID,
+      scenarioId: FLAGSHIP_SANDBOX_SCENARIO_ID,
+      scenarioVersion: FLAGSHIP_SANDBOX_SCENARIO_VERSION,
+      buildRun(
+        seed: number,
+        initialization: SandboxRunInitialization,
+      ): FlagshipComposedRunPlan {
+        return buildFlagshipComposedRunPlan({
+          seed,
+          initialResourceLevel: initialization.initialResourceLevel,
+          inocula: initialization.inocula,
+        });
+      },
+    }),
+  ]);
+
 function scenarioKey(id: string, version: string): string {
   return `${id}@${version}`;
 }
 
+function runtimeRegistrationKey(registration: SandboxRuntimeRegistration): string {
+  return scenarioKey(registration.scenarioId, registration.scenarioVersion);
+}
+
+function assertRuntimeRegistry(): void {
+  const runtimeIds = new Set<string>();
+  const scenarioKeys = new Set<string>();
+
+  for (const registration of SANDBOX_RUNTIME_REGISTRATIONS) {
+    canonicalText("Sandbox runtime id", registration.runtimeId);
+    canonicalText("Sandbox runtime scenario id", registration.scenarioId);
+    canonicalText("Sandbox runtime scenario version", registration.scenarioVersion);
+    if (registration.registryVersion !== SANDBOX_RUNTIME_REGISTRY_VERSION) {
+      throw new Error("unsupported Sandbox runtime registration version");
+    }
+    if (runtimeIds.has(registration.runtimeId)) {
+      throw new Error(
+        `duplicate Sandbox runtime registration: ${registration.runtimeId}`,
+      );
+    }
+    const key = runtimeRegistrationKey(registration);
+    if (scenarioKeys.has(key)) {
+      throw new Error(`duplicate Sandbox scenario runtime registration: ${key}`);
+    }
+    runtimeIds.add(registration.runtimeId);
+    scenarioKeys.add(key);
+  }
+}
+
+function findRuntimeRegistration(args: {
+  readonly runtimeId: string;
+  readonly scenarioId: string;
+  readonly scenarioVersion: string;
+}): SandboxRuntimeRegistration | undefined {
+  return SANDBOX_RUNTIME_REGISTRATIONS.find(
+    (registration) =>
+      registration.runtimeId === args.runtimeId &&
+      registration.scenarioId === args.scenarioId &&
+      registration.scenarioVersion === args.scenarioVersion,
+  );
+}
+
 /**
- * Sandbox deliberately projects product discovery rather than reparsing scenario
- * evidence. The bundled flagship is the only currently registered executable
- * Sandbox runtime; adding a JSON/content record alone never makes it runnable.
+ * Sandbox deliberately projects executable product registrations onto shared
+ * discovery metadata. Bundling a scenario JSON record alone never makes it
+ * runnable; registration is an explicit reviewed integration decision.
  */
 export function listSandboxScenarios(): SandboxScenarioCatalog {
+  assertRuntimeRegistry();
   const discovered = listBundledScenarioDiscovery();
-  if (discovered.length !== 1) {
-    throw new Error(
-      "Sandbox flagship runtime registration expects exactly one bundled scenario",
-    );
+  const discoveryByKey = new Map<string, ScenarioDiscoveryEntry>();
+
+  for (const entry of discovered) {
+    const key = scenarioKey(entry.id, entry.version);
+    if (discoveryByKey.has(key)) {
+      throw new Error(`duplicate bundled Sandbox discovery identity: ${key}`);
+    }
+    discoveryByKey.set(key, entry);
   }
 
-  const flagship = discovered[0]!;
-  const entry: SandboxScenarioEntry = Object.freeze({
-    catalogVersion: SANDBOX_SCENARIO_CATALOG_VERSION,
-    key: scenarioKey(flagship.id, flagship.version),
-    scenarioId: flagship.id,
-    scenarioVersion: flagship.version,
-    title: flagship.title,
-    catalogStatus: flagship.catalogStatus,
-    scienceMode: structuredClone(flagship.scienceMode),
-    availability: "available",
-    runtimeId: FLAGSHIP_SANDBOX_RUNTIME_ID,
+  const scenarios = SANDBOX_RUNTIME_REGISTRATIONS.map((registration) => {
+    const key = runtimeRegistrationKey(registration);
+    const discovery = discoveryByKey.get(key);
+    if (discovery === undefined) {
+      throw new Error(
+        `Sandbox runtime ${registration.runtimeId} has no exact bundled discovery entry for ${key}`,
+      );
+    }
+
+    return Object.freeze({
+      catalogVersion: SANDBOX_SCENARIO_CATALOG_VERSION,
+      key,
+      scenarioId: discovery.id,
+      scenarioVersion: discovery.version,
+      title: discovery.title,
+      catalogStatus: discovery.catalogStatus,
+      scienceMode: structuredClone(discovery.scienceMode),
+      availability: "available" as const,
+      runtimeId: registration.runtimeId,
+    });
   });
 
   return Object.freeze({
     catalogVersion: SANDBOX_SCENARIO_CATALOG_VERSION,
-    scenarios: Object.freeze([entry]),
+    scenarios: Object.freeze(scenarios),
   });
 }
 
@@ -118,7 +235,14 @@ export function planSandboxSelection(args: {
   const requestedKey = canonicalText("sandbox scenario key", args.scenarioKey);
   const scenario = catalog.scenarios.find((item) => item.key === requestedKey);
 
-  if (scenario === undefined) {
+  if (
+    scenario === undefined ||
+    findRuntimeRegistration({
+      runtimeId: scenario.runtimeId,
+      scenarioId: scenario.scenarioId,
+      scenarioVersion: scenario.scenarioVersion,
+    }) === undefined
+  ) {
     return Object.freeze({
       kind: "refused",
       scenarioKey: requestedKey,
@@ -148,21 +272,18 @@ export function planSandboxSelection(args: {
 }
 
 /**
- * Execute a reviewed Sandbox selection through the same flagship composition
- * boundary used by authoritative product/runtime code. Initial resource and
- * founder state remain explicit user/run inputs; Sandbox owns no hidden demo
- * inoculum or resource defaults.
+ * Execute a reviewed Sandbox selection through its exact registered authority
+ * builder. Initial resource and founder state remain explicit user/run inputs;
+ * Sandbox owns no hidden demo inoculum or resource defaults.
  */
 export function buildSandboxRun(
   selection: Extract<SandboxSelectionPlan, { readonly kind: "fresh-run" }>,
   initialization: SandboxRunInitialization,
-): FlagshipComposedRunPlan {
-  assertCurrentSelection(selection);
-  return buildFlagshipComposedRunPlan({
-    seed: selection.seed,
-    initialResourceLevel: initialization.initialResourceLevel,
-    inocula: initialization.inocula,
-  });
+): SandboxComposedRunPlan {
+  const registration = resolveCurrentSelection(selection);
+  const run = registration.buildRun(selection.seed, initialization);
+  assertRunMatchesSelection(selection, run);
+  return run;
 }
 
 /**
@@ -174,23 +295,13 @@ export function projectSandboxActiveRun(args: {
     SandboxSelectionPlan,
     { readonly kind: "fresh-run" }
   >;
-  readonly run: FlagshipComposedRunPlan;
+  readonly run: SandboxComposedRunPlan;
 }): SandboxActiveRunView {
-  assertCurrentSelection(args.selection);
-  const catalog = listSandboxScenarios();
-  const scenario = catalog.scenarios[0]!;
+  resolveCurrentSelection(args.selection);
+  assertRunMatchesSelection(args.selection, args.run);
+
+  const scenario = currentScenarioForSelection(args.selection);
   const identity = args.run.identity;
-
-  if (
-    identity.scenarioId !== args.selection.scenarioId ||
-    identity.scenarioVersion !== args.selection.scenarioVersion ||
-    identity.seed !== args.selection.seed
-  ) {
-    throw new Error(
-      "active Sandbox run identity does not match the fresh-run selection",
-    );
-  }
-
   const binding = identity.parameterSetBinding;
   if (binding === undefined || binding.authority !== "provenance") {
     throw new Error(
@@ -234,26 +345,62 @@ export function projectSandboxActiveRun(args: {
   });
 }
 
-function assertCurrentSelection(
+function resolveCurrentSelection(
   selection: Extract<SandboxSelectionPlan, { readonly kind: "fresh-run" }>,
-): void {
-  if (
-    selection.kind !== "fresh-run" ||
-    selection.mode !== SANDBOX_MODE ||
-    selection.runtimeId !== FLAGSHIP_SANDBOX_RUNTIME_ID
-  ) {
+): SandboxRuntimeRegistration {
+  if (selection.kind !== "fresh-run" || selection.mode !== SANDBOX_MODE) {
     throw new Error("unsupported Sandbox fresh-run selection");
   }
   assertSimulationSeed(selection.seed);
 
-  const current = listSandboxScenarios().scenarios[0]!;
+  const registration = findRuntimeRegistration({
+    runtimeId: selection.runtimeId,
+    scenarioId: selection.scenarioId,
+    scenarioVersion: selection.scenarioVersion,
+  });
   if (
-    selection.scenarioKey !== current.key ||
-    selection.scenarioId !== current.scenarioId ||
-    selection.scenarioVersion !== current.scenarioVersion
+    registration === undefined ||
+    selection.scenarioKey !== runtimeRegistrationKey(registration)
   ) {
     throw new Error(
+      "Sandbox selection no longer matches a registered runtime identity",
+    );
+  }
+
+  currentScenarioForSelection(selection);
+  return registration;
+}
+
+function currentScenarioForSelection(
+  selection: Extract<SandboxSelectionPlan, { readonly kind: "fresh-run" }>,
+): SandboxScenarioEntry {
+  const current = listSandboxScenarios().scenarios.find(
+    (scenario) =>
+      scenario.runtimeId === selection.runtimeId &&
+      scenario.key === selection.scenarioKey &&
+      scenario.scenarioId === selection.scenarioId &&
+      scenario.scenarioVersion === selection.scenarioVersion,
+  );
+  if (current === undefined) {
+    throw new Error(
       "Sandbox selection no longer matches the registered scenario identity",
+    );
+  }
+  return current;
+}
+
+function assertRunMatchesSelection(
+  selection: Extract<SandboxSelectionPlan, { readonly kind: "fresh-run" }>,
+  run: SandboxComposedRunPlan,
+): void {
+  const identity = run.identity;
+  if (
+    identity.scenarioId !== selection.scenarioId ||
+    identity.scenarioVersion !== selection.scenarioVersion ||
+    identity.seed !== selection.seed
+  ) {
+    throw new Error(
+      "active Sandbox run identity does not match the fresh-run selection",
     );
   }
 }

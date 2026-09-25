@@ -5,6 +5,7 @@ import { dirname } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { projectAuthoritativeComposedDishSnapshot } from '../src/app/composedDishProjection'
+import { createDishSceneTransaction } from '../src/app/dishSceneTransaction'
 import { projectLineageOriginRenderEvents } from '../src/app/lineageRenderEvents'
 import type { RuntimeEcologyObservation } from '../src/app/experimentRuntime'
 import { projectRuntimeEcologyNetGrowthField } from '../src/app/runtimeEcologyRenderField'
@@ -14,6 +15,10 @@ import {
   CIPROFLOXACIN_INTERVENTION_SCHEMA_VERSION,
 } from '../src/sim/ciprofloxacinIntervention'
 import { ComposedSimulationEngine } from '../src/sim/composedEngine'
+import {
+  advanceAspergillusNo10SurfaceCheckpoint,
+  createAspergillusNo10SurfaceCheckpoint,
+} from '../src/sim/fungi/aspergillusNo10Surface'
 import { LineageRegistry } from '../src/sim/evolution/lineage'
 import { buildFlagshipComposedRunPlan } from '../src/sim/flagshipComposition'
 import type { ComposedSimulationSnapshot } from '../src/sim/protocol'
@@ -260,6 +265,83 @@ describe('authoritative composed-to-dish render projection parity', () => {
     const { plan, snapshot, projected } = buildProductProjection()
     const evidence = parity(projected, snapshot)
 
+    const composedScene = createDishSceneTransaction({
+      composedRuntime: {
+        snapshot,
+        runBranchIdentity: RUN_BRANCH_IDENTITY,
+        dish: projected,
+      },
+    })
+    expect(composedScene.authorityMode).toBe('composed-runtime')
+    if (composedScene.authorityMode !== 'composed-runtime') {
+      throw new Error('render parity expected composed-runtime dish scene')
+    }
+    expect(composedScene.acceptedRuntime).toMatchObject({
+      runBranchIdentity: RUN_BRANCH_IDENTITY,
+      traceHash: snapshot.traceHash,
+      tick: snapshot.checkpoint.tick,
+      acceptedCommandCount: snapshot.checkpoint.commandCount,
+      biologicalTimeHours: snapshot.checkpoint.simulationTimeHours,
+    })
+    expect(composedScene.acceptedRuntime.runIdentity).toEqual(
+      snapshot.checkpoint.identity,
+    )
+    expect(composedScene.dish).toBe(projected)
+    expect(composedScene.dish.dishMask).toBe(projected.dishMask)
+    expect(composedScene.dish.biomass).toBe(projected.biomass)
+
+    const sameTimeFungalCheckpoint = advanceAspergillusNo10SurfaceCheckpoint(
+      createAspergillusNo10SurfaceCheckpoint(70),
+      snapshot.checkpoint.simulationTimeHours,
+    )
+    const fungalScene = createDishSceneTransaction({
+      fungalSourceValidation: { checkpoint: sameTimeFungalCheckpoint },
+    })
+    expect(fungalScene.authorityMode).toBe('fungal-source-validation')
+    if (fungalScene.authorityMode !== 'fungal-source-validation') {
+      throw new Error('render parity expected fungal-source-validation dish scene')
+    }
+    expect(fungalScene.acceptedRuntime).toBeNull()
+    expect(fungalScene.dish).toBeNull()
+    expect(fungalScene.fungalSourceValidation.biologicalTimeHours).toBe(
+      snapshot.checkpoint.simulationTimeHours,
+    )
+    expect(() =>
+      createDishSceneTransaction({
+        composedRuntime: {
+          snapshot,
+          runBranchIdentity: RUN_BRANCH_IDENTITY,
+          dish: projected,
+        },
+        fungalSourceValidation: { checkpoint: sameTimeFungalCheckpoint },
+      }),
+    ).toThrow(/requires exactly one scientific authority source/i)
+
+    const dishSceneAuthorityEvidence = {
+      schemaVersion: composedScene.schemaVersion,
+      classification: 'dish-scene-authority-integrity-not-biological-validation',
+      composedRuntime: {
+        exactAcceptedRuntimeIdentity: true,
+        reusesDetachedDishByReference: true,
+        traceHash: composedScene.acceptedRuntime.traceHash,
+        runBranchIdentity: composedScene.acceptedRuntime.runBranchIdentity,
+        tick: composedScene.acceptedRuntime.tick,
+        acceptedCommandCount: composedScene.acceptedRuntime.acceptedCommandCount,
+        biologicalTimeHours: composedScene.acceptedRuntime.biologicalTimeHours,
+      },
+      fungalSourceValidation: {
+        acceptedRuntimeIdentityAbsent: true,
+        biologicalTimeHours:
+          fungalScene.fungalSourceValidation.biologicalTimeHours,
+        taxonId: fungalScene.fungalSourceValidation.taxonId,
+        taxonContentVersion:
+          fungalScene.fungalSourceValidation.taxonContentVersion,
+        treatmentId: fungalScene.fungalSourceValidation.treatmentId,
+      },
+      sameTimeCrossSourceCompositionRefused: true,
+      mixedLiveAuthorityAvailable: false,
+    } as const
+
     expect(evidence.classification).toBe(
       'render-projection-integrity-not-biological-validation',
     )
@@ -340,6 +422,7 @@ describe('authoritative composed-to-dish render projection parity', () => {
       evidence,
       netGrowthEvidence,
       lineageOriginEventEvidence,
+      dishSceneAuthorityEvidence,
       negativeCases: [
         'one-cell-resource-channel-drift',
         'lineage-identity-drift',
@@ -360,6 +443,7 @@ describe('authoritative composed-to-dish render projection parity', () => {
         'lineage-origin-event-label-drift',
         'lineage-origin-live-cross-link-drift',
         'lineage-origin-canonical-registry-drift',
+        'same-time-composed-plus-standalone-fungal-source-refused',
       ],
       limitations: [
         'This establishes product render-projection integrity for the tested authoritative keyframe, not biological validation or physical calibration.',
@@ -368,6 +452,7 @@ describe('authoritative composed-to-dish render projection parity', () => {
         'Accepted intervention footprint parity proves exact event-to-render geometry transport; it does not prove biological efficacy beyond the authoritative simulator state.',
         'Runtime net-growth parity proves the product adapter preserves the accepted step-local rate field; it does not prove that the current Pixi/UI selection visibly displays that overlay.',
         'Lineage-origin event parity proves exact registry-to-point-event transport for the deterministic fixture; it does not validate mutation probability, fitness, selection, or Pixi marker visibility.',
+        'DishSceneTransaction@v1 authority parity proves source-mode separation only; it does not authorize a live mixed bacteria+fungus runtime.',
         'Browser/GPU visual correctness and performance remain separate local acceptance gates.',
       ],
     })

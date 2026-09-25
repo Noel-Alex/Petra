@@ -8,6 +8,21 @@ import {
 } from "./renderPreparationInvalidation";
 
 describe("dish render preparation invalidation", () => {
+  it("treats an uninitialized prepared cache as fully dirty", () => {
+    const current = initialDishRenderPreparationRevision();
+
+    expect(
+      resolveDishRenderPreparationInvalidation(null, current),
+    ).toEqual({
+      fieldRaster: true,
+      densityRaster: true,
+      fieldContours: true,
+      lineageContours: true,
+      representativeGlyphCandidates: true,
+      representativeGlyphAppearance: true,
+    });
+  });
+
   it("keeps expensive scientific preparation clean for camera/selection-only redraws", () => {
     const settled = initialDishRenderPreparationRevision();
 
@@ -97,6 +112,17 @@ describe("dish render preparation invalidation", () => {
       resolveDishRenderPreparationInvalidation(second, third)
         .densityRaster,
     ).toBe(true);
+  });
+
+  it("refuses an unexpected runtime change kind", () => {
+    const settled = initialDishRenderPreparationRevision();
+
+    expect(() =>
+      advanceDishRenderPreparationRevision(
+        settled,
+        "camera" as never,
+      ),
+    ).toThrow(/unsupported dish render preparation change/);
   });
 
   it("fails closed on invalid or exhausted revision counters", () => {

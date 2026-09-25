@@ -5,6 +5,10 @@ import {
   type AdvanceExecutionPolicy,
 } from './advanceExecutionPolicy'
 import { SimulationRng } from './rng'
+import {
+  EMPTY_SIMULATION_EVENT_HISTORY,
+  appendSimulationEventHistory,
+} from './eventHistory'
 import { assertReplayCompatibility } from './replayCompatibility'
 import { simulationSnapshotTraceHash } from './snapshotTrace'
 import type {
@@ -65,7 +69,7 @@ export class SimulationEngine {
   private tick = 0
   private syntheticPopulation = 1_000
   private commandCount = 0
-  private readonly events: SimulationEvent[] = []
+  private events: readonly SimulationEvent[] = EMPTY_SIMULATION_EVENT_HISTORY
   private readonly advanceExecutionPolicy: AdvanceExecutionPolicy
 
   constructor(
@@ -163,7 +167,7 @@ export class SimulationEngine {
       rngState: this.rng.snapshot(),
       commandCount: this.commandCount,
     }
-    const events = this.events.map((event) => structuredClone(event))
+    const events = this.events
     return { checkpoint, events, traceHash: simulationSnapshotTraceHash({ checkpoint, events }) }
   }
 
@@ -174,7 +178,7 @@ export class SimulationEngine {
   private pushEvent(
     event: Omit<SimulationEvent, 'sequence' | 'tick' | 'simulationTimeHours'>,
   ): void {
-    this.events.push({
+    this.events = appendSimulationEventHistory(this.events, {
       sequence: this.events.length,
       tick: this.tick,
       simulationTimeHours: this.currentSimulationTimeHours(),
@@ -197,6 +201,6 @@ export class SimulationEngine {
     this.syntheticPopulation = checkpoint.syntheticPopulation
     this.commandCount = checkpoint.commandCount
     this.rng = restoredRng
-    this.events.length = 0
+    this.events = EMPTY_SIMULATION_EVENT_HISTORY
   }
 }

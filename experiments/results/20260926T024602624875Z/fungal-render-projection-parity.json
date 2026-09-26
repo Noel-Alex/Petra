@@ -1,0 +1,92 @@
+{
+  "command": [
+    "npm",
+    "exec",
+    "--offline",
+    "--",
+    "vitest",
+    "run",
+    "--config",
+    "experiments/vitest.fungal_render_projection_parity.config.ts"
+  ],
+  "compact_result": {
+    "cases": [
+      {
+        "atDishBoundary": false,
+        "biologicalTimeHours": 0,
+        "frontRadiusUm": 0,
+        "glucoseGPerL": 70,
+        "name": "zero-front",
+        "normalizedFrontRadius": 0,
+        "plateRadiusUm": 45000,
+        "treatmentId": "aspergillus-niger-var-hennebergi-no10_surface-agar_larralde-1997_v1:central-point:glucose-70-g-per-l"
+      },
+      {
+        "atDishBoundary": false,
+        "biologicalTimeHours": 3,
+        "frontRadiusUm": 1668,
+        "glucoseGPerL": 40,
+        "name": "partial-front",
+        "normalizedFrontRadius": 0.037066666666666664,
+        "plateRadiusUm": 45000,
+        "treatmentId": "aspergillus-niger-var-hennebergi-no10_surface-agar_larralde-1997_v1:central-point:glucose-40-g-per-l"
+      },
+      {
+        "atDishBoundary": true,
+        "biologicalTimeHours": 1000,
+        "frontRadiusUm": 45000,
+        "glucoseGPerL": 120,
+        "name": "dish-boundary-saturation",
+        "normalizedFrontRadius": 1,
+        "plateRadiusUm": 45000,
+        "treatmentId": "aspergillus-niger-var-hennebergi-no10_surface-agar_larralde-1997_v1:central-point:glucose-120-g-per-l"
+      }
+    ],
+    "classification": "fungal-render-projection-integrity-not-biological-validation",
+    "experimentId": "fungal-render-projection-parity",
+    "limitations": [
+      "This establishes checkpoint-to-render front projection integrity only; it is not biological validation of fungal growth.",
+      "The current fungal authority is a source-treatment radial front, not a spatial density, biomass field, mature hyphal network, resource field, antimicrobial-response model, or bacteria-fungus interaction model.",
+      "Presentation-only mass or hyphal strokes inside the authoritative front remain non-biological and must not feed back into simulation authority.",
+      "Browser/Pixi visual fidelity and performance remain separate acceptance gates."
+    ],
+    "negativeCases": [
+      "radius-time-drift",
+      "stale-taxon-content-version",
+      "treatment-identity-drift"
+    ],
+    "sourcePackId": "aspergillus-niger-var-hennebergi-no10_surface-agar_larralde-1997_v1",
+    "status": "pass",
+    "taxonContentVersion": "aspergillus-niger-var-hennebergi-no10_surface-agar_larralde-1997_v1",
+    "taxonId": "aspergillus-niger-var-hennebergi-no10",
+    "unsupportedScientificSemantics": [
+      "spatial-density",
+      "biomass",
+      "dynamic-resource-field",
+      "hyphal-network",
+      "literal-hyphal-count",
+      "antimicrobial-response",
+      "bacteria-fungus-interaction"
+    ]
+  },
+  "cwd": ".",
+  "description": "Authoritative Aspergillus no. 10 source-validation checkpoint-to-render front integrity: exact identity/time/physical radius/normalized geometry plus explicit unsupported-semantics refusal.",
+  "duration_seconds": 1.197998,
+  "error": null,
+  "id": "fungal-render-projection-parity",
+  "issues": [
+    6,
+    542,
+    556,
+    615,
+    876,
+    885,
+    947,
+    950
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260926T024602624875Z\\fungal-render-projection-parity\\artifacts",
+  "log_tail": "\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv3.2.7 \u001b[39m\u001b[90mN:/projects/Petra\u001b[39m\n\n \u001b[32m\u2713\u001b[39m experiments/fungal_render_projection_parity.experiment.ts \u001b[2m(\u001b[22m\u001b[2m1 test\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 5\u001b[2mms\u001b[22m\u001b[39m\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m1 passed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m1 passed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m   Start at \u001b[22m 08:19:30\n\u001b[2m   Duration \u001b[22m 228ms\u001b[2m (transform 47ms, setup 0ms, collect 61ms, tests 5ms, environment 0ms, prepare 57ms)\u001b[22m\n\n",
+  "return_code": 0,
+  "status": "passed",
+  "timeout_seconds": 300
+}

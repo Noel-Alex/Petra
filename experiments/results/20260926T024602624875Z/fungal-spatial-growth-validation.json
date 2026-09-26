@@ -1,0 +1,41 @@
+{
+  "command": [
+    "python",
+    "experiments/blocked.py",
+    "--experiment-id",
+    "fungal-spatial-growth-validation",
+    "--blocked-on",
+    "615",
+    "--reason",
+    "Issues #556/#885 resolved the exact Aspergillus niger no. 10 evidence subset and #615/#940 landed the first source-validation taxon/front state. The broader experiment remains scientifically blocked because #615 still lacks the source-backed resource-consumption and zero-resource mechanism required by this registration's controls; activating it now would overstate the model."
+  ],
+  "compact_result": {
+    "blocked_on_issues": [
+      615
+    ],
+    "experiment_id": "fungal-spatial-growth-validation",
+    "next_action": "Land the listed prerequisite issue(s), then replace this gate command with the real experiment helper while preserving the stable experiment id.",
+    "reason": "Issues #556/#885 resolved the exact Aspergillus niger no. 10 evidence subset and #615/#940 landed the first source-validation taxon/front state. The broader experiment remains scientifically blocked because #615 still lacks the source-backed resource-consumption and zero-resource mechanism required by this registration's controls; activating it now would overstate the model.",
+    "schema_version": 1,
+    "status": "blocked"
+  },
+  "cwd": ".",
+  "description": "PREPARED; BLOCKED on #615: the named fungal pack and first source-validation state are merged, but the broader validation still requires a source-backed resource/zero-resource mechanism before it can run.",
+  "duration_seconds": 0.064675,
+  "error": null,
+  "id": "fungal-spatial-growth-validation",
+  "issues": [
+    530,
+    542,
+    556,
+    586,
+    615,
+    885,
+    895
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260926T024602624875Z\\fungal-spatial-growth-validation\\artifacts",
+  "log_tail": "fungal-spatial-growth-validation: BLOCKED on #615\r\nIssues #556/#885 resolved the exact Aspergillus niger no. 10 evidence subset and #615/#940 landed the first source-validation taxon/front state. The broader experiment remains scientifically blocked because #615 still lacks the source-backed resource-consumption and zero-resource mechanism required by this registration's controls; activating it now would overstate the model.\r\n",
+  "return_code": 2,
+  "status": "failed",
+  "timeout_seconds": 30
+}

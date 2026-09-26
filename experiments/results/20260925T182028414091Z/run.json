@@ -1,0 +1,398 @@
+{
+  "environment": {
+    "logical_cpu_count": 32,
+    "machine": "AMD64",
+    "node": "v24.14.0",
+    "npm": "11.12.0",
+    "nvidia_gpu": "NVIDIA GeForce RTX 4080 Laptop GPU, 610.74, 12282 MiB",
+    "os": "Windows-11-10.0.22631-SP0",
+    "processor": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "python": "3.14.0 (tags/v3.14.0:ebf955d, Oct  7 2025, 10:15:03) [MSC v.1944 64 bit (AMD64)]",
+    "recorded_at_utc": "2026-09-25T18:20:28.466346+00:00",
+    "release": "11",
+    "system": "Windows"
+  },
+  "experiment_count": 28,
+  "failed": 19,
+  "manifest_version": 1,
+  "passed": 9,
+  "results": [
+    {
+      "duration_seconds": 51.832761,
+      "id": "expo-browser-acceptance",
+      "issues": [
+        6,
+        10,
+        59,
+        468,
+        500,
+        577,
+        642,
+        850,
+        876,
+        904,
+        1054
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 7.074589,
+      "id": "cross-browser-release-acceptance",
+      "issues": [
+        59,
+        532,
+        643
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 7.034273,
+      "id": "worker-transport-profile",
+      "issues": [
+        519,
+        577,
+        630,
+        642
+      ],
+      "status": "passed"
+    },
+    {
+      "duration_seconds": 2.957022,
+      "id": "render-projection-parity",
+      "issues": [
+        6,
+        37,
+        42,
+        457,
+        524,
+        542,
+        630,
+        833,
+        950,
+        978,
+        1044
+      ],
+      "status": "passed"
+    },
+    {
+      "duration_seconds": 1.677835,
+      "id": "fungal-render-projection-parity",
+      "issues": [
+        6,
+        542,
+        556,
+        615,
+        876,
+        885,
+        947,
+        950
+      ],
+      "status": "passed"
+    },
+    {
+      "duration_seconds": 215.156238,
+      "id": "population-scale-calibration",
+      "issues": [
+        5,
+        37,
+        542,
+        562,
+        740,
+        796
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 3.184545,
+      "id": "flagship-runtime-smoke",
+      "issues": [
+        37,
+        42,
+        542,
+        626,
+        717
+      ],
+      "status": "passed"
+    },
+    {
+      "duration_seconds": 2.884062,
+      "id": "flagship-ciprofloxacin-validation",
+      "issues": [
+        37,
+        542,
+        626,
+        749
+      ],
+      "status": "passed"
+    },
+    {
+      "duration_seconds": 153.412,
+      "id": "flagship-long-soak",
+      "issues": [
+        3,
+        5,
+        37,
+        542,
+        558,
+        628
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 24.796268,
+      "id": "seed-replay-matrix",
+      "issues": [
+        5,
+        37,
+        542
+      ],
+      "status": "passed"
+    },
+    {
+      "duration_seconds": 1.728758,
+      "id": "ecology-calibration-sweep",
+      "issues": [
+        3,
+        227,
+        494,
+        542,
+        657
+      ],
+      "status": "passed"
+    },
+    {
+      "duration_seconds": 1.774522,
+      "id": "evolution-replicate-statistics",
+      "issues": [
+        5,
+        37,
+        542,
+        562,
+        740,
+        796
+      ],
+      "status": "passed"
+    },
+    {
+      "duration_seconds": 0.121708,
+      "id": "phage-mechanism-statistics",
+      "issues": [
+        12,
+        283,
+        491,
+        529,
+        542,
+        562,
+        626,
+        751,
+        752
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 112.244369,
+      "id": "ml-node-authoritative-profile",
+      "issues": [
+        13,
+        37,
+        531,
+        542,
+        543,
+        544,
+        594,
+        682,
+        685
+      ],
+      "status": "passed"
+    },
+    {
+      "duration_seconds": 0.105896,
+      "id": "ml-mechanistic-dataset",
+      "issues": [
+        13,
+        442,
+        531,
+        542,
+        544,
+        594,
+        682,
+        685
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 0.11885,
+      "id": "ml-aggregate-benchmark",
+      "issues": [
+        13,
+        531,
+        542,
+        544,
+        545,
+        594,
+        1019
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 0.101875,
+      "id": "ml-spatial-benchmark",
+      "issues": [
+        13,
+        531,
+        542
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 6.317361,
+      "id": "offline-expo-rehearsal",
+      "issues": [
+        11,
+        37,
+        532,
+        542,
+        557,
+        580
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 0.110327,
+      "id": "final-expo-rehearsal",
+      "issues": [
+        11,
+        30,
+        37,
+        42,
+        59,
+        158,
+        532,
+        542,
+        557,
+        561,
+        580,
+        626
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 0.103063,
+      "id": "release-responsive-performance-matrix",
+      "issues": [
+        59,
+        532,
+        542
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 0.168592,
+      "id": "fungal-spatial-growth-validation",
+      "issues": [
+        530,
+        542,
+        556,
+        586,
+        615,
+        885,
+        895
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 0.125231,
+      "id": "multidrug-collateral-validation",
+      "issues": [
+        542,
+        573,
+        574,
+        586,
+        905
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 0.104159,
+      "id": "persistence-tolerance-validation",
+      "issues": [
+        528,
+        542,
+        549,
+        550,
+        1066
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 7.916445,
+      "id": "two-bacterium-shared-resource-validation",
+      "issues": [
+        530,
+        542,
+        553,
+        873,
+        877,
+        890,
+        907
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 0.101872,
+      "id": "hgt-conjugation-validation",
+      "issues": [
+        530,
+        542,
+        551,
+        552,
+        796,
+        914,
+        983
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 0.102769,
+      "id": "external-inoculation-validation",
+      "issues": [
+        37,
+        542,
+        626,
+        879,
+        890,
+        918,
+        980,
+        1057,
+        1062
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 10.522363,
+      "id": "mops-glucose-resource-calibration",
+      "issues": [
+        227,
+        542,
+        657,
+        874,
+        928,
+        938
+      ],
+      "status": "failed"
+    },
+    {
+      "duration_seconds": 0.096262,
+      "id": "model-resource-intervention-validation",
+      "issues": [
+        158,
+        542,
+        626,
+        918
+      ],
+      "status": "failed"
+    }
+  ],
+  "run_id": "20260925T182028414091Z",
+  "schema_version": 1
+}

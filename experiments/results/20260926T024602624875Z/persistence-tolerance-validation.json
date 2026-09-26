@@ -1,0 +1,42 @@
+{
+  "command": [
+    "python",
+    "experiments/blocked.py",
+    "--experiment-id",
+    "persistence-tolerance-validation",
+    "--blocked-on",
+    "549",
+    "--blocked-on",
+    "550",
+    "--reason",
+    "Issue #549 must publish the exact named hipA7 persistence/tolerance pack and issue #550 must integrate replay-critical executable N/Q phenotype state without conflating tolerance with genotype mutation. Until both land, Petra must not invent a stationary-phase trigger, initial persister fraction, ampicillin transport/response law, or synthetic survival mechanism."
+  ],
+  "compact_result": {
+    "blocked_on_issues": [
+      549,
+      550
+    ],
+    "experiment_id": "persistence-tolerance-validation",
+    "next_action": "Land the listed prerequisite issue(s), then replace this gate command with the real experiment helper while preserving the stable experiment id.",
+    "reason": "Issue #549 must publish the exact named hipA7 persistence/tolerance pack and issue #550 must integrate replay-critical executable N/Q phenotype state without conflating tolerance with genotype mutation. Until both land, Petra must not invent a stationary-phase trigger, initial persister fraction, ampicillin transport/response law, or synthetic survival mechanism.",
+    "schema_version": 1,
+    "status": "blocked"
+  },
+  "cwd": ".",
+  "description": "PREPARED; BLOCKED on #549/#550: the named hipA7/MGYA7 tolerance context and source-independent N/Q foundation exist as active work, but replay-critical composed persistence authority must land before source-parity validation can run.",
+  "duration_seconds": 0.06594,
+  "error": null,
+  "id": "persistence-tolerance-validation",
+  "issues": [
+    528,
+    542,
+    549,
+    550,
+    1066
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260926T024602624875Z\\persistence-tolerance-validation\\artifacts",
+  "log_tail": "persistence-tolerance-validation: BLOCKED on #549, #550\r\nIssue #549 must publish the exact named hipA7 persistence/tolerance pack and issue #550 must integrate replay-critical executable N/Q phenotype state without conflating tolerance with genotype mutation. Until both land, Petra must not invent a stationary-phase trigger, initial persister fraction, ampicillin transport/response law, or synthetic survival mechanism.\r\n",
+  "return_code": 2,
+  "status": "failed",
+  "timeout_seconds": 30
+}

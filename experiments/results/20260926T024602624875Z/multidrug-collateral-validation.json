@@ -1,0 +1,42 @@
+{
+  "command": [
+    "python",
+    "experiments/blocked.py",
+    "--experiment-id",
+    "multidrug-collateral-validation",
+    "--blocked-on",
+    "573",
+    "--blocked-on",
+    "574",
+    "--reason",
+    "Issue #573 must approve one exact genotype \u00d7 environment \u00d7 multi-drug evidence pack and #574 must provide authoritative multi-drug fields/interventions/checkpoint/replay. Petra must not invent a generic synergy rule, convert disc diffusion into concentration-response authority, or run synthetic multidrug biology."
+  ],
+  "compact_result": {
+    "blocked_on_issues": [
+      573,
+      574
+    ],
+    "experiment_id": "multidrug-collateral-validation",
+    "next_action": "Land the listed prerequisite issue(s), then replace this gate command with the real experiment helper while preserving the stable experiment id.",
+    "reason": "Issue #573 must approve one exact genotype \u00d7 environment \u00d7 multi-drug evidence pack and #574 must provide authoritative multi-drug fields/interventions/checkpoint/replay. Petra must not invent a generic synergy rule, convert disc diffusion into concentration-response authority, or run synthetic multidrug biology.",
+    "schema_version": 1,
+    "status": "blocked"
+  },
+  "cwd": ".",
+  "description": "PREPARED; BLOCKED on #573/#574: exact collateral-sensitivity evidence pack and authoritative multidrug engine are required before deterministic source-parity validation can run.",
+  "duration_seconds": 0.072792,
+  "error": null,
+  "id": "multidrug-collateral-validation",
+  "issues": [
+    542,
+    573,
+    574,
+    586,
+    905
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260926T024602624875Z\\multidrug-collateral-validation\\artifacts",
+  "log_tail": "multidrug-collateral-validation: BLOCKED on #573, #574\r\nIssue #573 must approve one exact genotype \ufffd environment \ufffd multi-drug evidence pack and #574 must provide authoritative multi-drug fields/interventions/checkpoint/replay. Petra must not invent a generic synergy rule, convert disc diffusion into concentration-response authority, or run synthetic multidrug biology.\r\n",
+  "return_code": 2,
+  "status": "failed",
+  "timeout_seconds": 30
+}

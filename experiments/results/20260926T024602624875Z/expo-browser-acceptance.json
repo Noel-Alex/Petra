@@ -1,0 +1,668 @@
+{
+  "command": [
+    "python",
+    "tools/expo_browser_acceptance.py"
+  ],
+  "compact_result": {
+    "browser_executable": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "checks": [
+      {
+        "detail": {
+          "bodyClientWidth": 1440,
+          "bodyScrollHeight": 900,
+          "bodyScrollWidth": 1440,
+          "dish": true,
+          "dishRect": {
+            "bottom": 790,
+            "height": 712,
+            "left": 361.125,
+            "right": 1062.171875,
+            "top": 78,
+            "width": 701.046875,
+            "x": 361.125,
+            "y": 78
+          },
+          "root": true,
+          "title": "Petra \u2014 Living Laboratory",
+          "viewportHeight": 900
+        },
+        "name": "desktop: app root present",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "bottom": 790,
+          "height": 712,
+          "left": 361.125,
+          "right": 1062.171875,
+          "top": 78,
+          "width": 701.046875,
+          "x": 361.125,
+          "y": 78
+        },
+        "name": "desktop: dish present",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "canvas": false,
+          "fallback": false,
+          "source": "awaiting-authoritative-snapshot",
+          "status": "idle"
+        },
+        "name": "desktop: Pixi renderer ready with canvas",
+        "status": "fail"
+      },
+      {
+        "detail": {
+          "bodyClientWidth": 1440,
+          "bodyScrollHeight": 900,
+          "bodyScrollWidth": 1440,
+          "dish": true,
+          "dishRect": {
+            "bottom": 790,
+            "height": 712,
+            "left": 361.125,
+            "right": 1062.171875,
+            "top": 78,
+            "width": 701.046875,
+            "x": 361.125,
+            "y": 78
+          },
+          "root": true,
+          "title": "Petra \u2014 Living Laboratory",
+          "viewportHeight": 900
+        },
+        "name": "desktop: no horizontal clipping",
+        "status": "pass"
+      },
+      {
+        "detail": "N:\\projects\\Petra\\.petra_local\\runs\\20260926T024602624875Z\\expo-browser-acceptance\\artifacts\\desktop-1440x900.png",
+        "name": "desktop: screenshot captured",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "bodyClientWidth": 753,
+          "bodyScrollHeight": 2066,
+          "bodyScrollWidth": 753,
+          "dish": true,
+          "dishRect": {
+            "bottom": 1055.1875,
+            "height": 858.890625,
+            "left": 14.390625,
+            "right": 738.609375,
+            "top": 196.296875,
+            "width": 724.21875,
+            "x": 14.390625,
+            "y": 196.296875
+          },
+          "root": true,
+          "title": "Petra \u2014 Living Laboratory",
+          "viewportHeight": 900
+        },
+        "name": "narrow: app root present",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "bottom": 1055.1875,
+          "height": 858.890625,
+          "left": 14.390625,
+          "right": 738.609375,
+          "top": 196.296875,
+          "width": 724.21875,
+          "x": 14.390625,
+          "y": 196.296875
+        },
+        "name": "narrow: dish present",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "canvas": false,
+          "fallback": false,
+          "source": "awaiting-authoritative-snapshot",
+          "status": "idle"
+        },
+        "name": "narrow: Pixi renderer ready with canvas",
+        "status": "fail"
+      },
+      {
+        "detail": {
+          "bodyClientWidth": 753,
+          "bodyScrollHeight": 2066,
+          "bodyScrollWidth": 753,
+          "dish": true,
+          "dishRect": {
+            "bottom": 1055.1875,
+            "height": 858.890625,
+            "left": 14.390625,
+            "right": 738.609375,
+            "top": 196.296875,
+            "width": 724.21875,
+            "x": 14.390625,
+            "y": 196.296875
+          },
+          "root": true,
+          "title": "Petra \u2014 Living Laboratory",
+          "viewportHeight": 900
+        },
+        "name": "narrow: no horizontal clipping",
+        "status": "pass"
+      },
+      {
+        "detail": "N:\\projects\\Petra\\.petra_local\\runs\\20260926T024602624875Z\\expo-browser-acceptance\\artifacts\\narrow-768x900.png",
+        "name": "narrow: screenshot captured",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "motion": "full",
+          "selected": "full",
+          "stored": "full",
+          "transition": "0.22s, 0.22s"
+        },
+        "name": "motion full: control available",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "motion": "full",
+          "selected": "full",
+          "stored": "full",
+          "transition": "0.22s, 0.22s"
+        },
+        "name": "motion full: resolved mode",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "state": {
+            "motion": "full",
+            "selected": "full",
+            "stored": "full",
+            "transition": "0.22s, 0.22s"
+          },
+          "storageKey": "petra.motion-setting.v1"
+        },
+        "name": "motion full: canonical preference persisted",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "motion": "reduced",
+          "selected": "reduced",
+          "stored": "reduced",
+          "transition": "0s, 0s"
+        },
+        "name": "motion reduced: control available",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "motion": "reduced",
+          "selected": "reduced",
+          "stored": "reduced",
+          "transition": "0s, 0s"
+        },
+        "name": "motion reduced: resolved mode",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "state": {
+            "motion": "reduced",
+            "selected": "reduced",
+            "stored": "reduced",
+            "transition": "0s, 0s"
+          },
+          "storageKey": "petra.motion-setting.v1"
+        },
+        "name": "motion reduced: canonical preference persisted",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "motion": "off",
+          "selected": "off",
+          "stored": "off",
+          "transition": "0s"
+        },
+        "name": "motion off: control available",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "motion": "off",
+          "selected": "off",
+          "stored": "off",
+          "transition": "0s"
+        },
+        "name": "motion off: resolved mode",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "state": {
+            "motion": "off",
+            "selected": "off",
+            "stored": "off",
+            "transition": "0s"
+          },
+          "storageKey": "petra.motion-setting.v1"
+        },
+        "name": "motion off: canonical preference persisted",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "motion": "off",
+          "selected": "off",
+          "stored": "off",
+          "transition": "0s"
+        },
+        "name": "motion off: CSS transitions disabled",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "afterReload": {
+            "motion": "reduced",
+            "selected": "reduced",
+            "stored": "reduced",
+            "transition": "0s, 0s"
+          },
+          "beforeReload": {
+            "motion": "reduced",
+            "selected": "reduced",
+            "stored": "reduced",
+            "transition": "0s, 0s"
+          },
+          "storageKey": "petra.motion-setting.v1"
+        },
+        "name": "motion reduced: preference survives page reload",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "state": {
+            "motion": "reduced",
+            "selected": "system",
+            "stored": "system",
+            "transition": "0s, 0s"
+          },
+          "storageKey": "petra.motion-setting.v1"
+        },
+        "name": "system + OS reduced resolves to reduced",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "state": {
+            "motion": "full",
+            "selected": "full",
+            "stored": "full",
+            "transition": "0.22s, 0.22s"
+          },
+          "storageKey": "petra.motion-setting.v1"
+        },
+        "name": "explicit full overrides OS reduced motion",
+        "status": "pass"
+      },
+      {
+        "detail": [
+          "A:Explore",
+          "A:Simulate",
+          "BUTTON:Learn",
+          "BUTTON:Library",
+          "BUTTON:Search scientific sources and assumptions",
+          "SUMMARY:Display preferences",
+          "SUMMARY:AnalysisAuthoritative analysis unavailab",
+          "SUMMARY:Event history 0",
+          "SUMMARY:Run settings",
+          "BODY:PetraExploreSimulateLearnLibrarySearch s",
+          "A:Explore",
+          "A:Simulate"
+        ],
+        "name": "keyboard: tab reaches interactive controls",
+        "status": "pass"
+      },
+      {
+        "detail": [
+          "A:Explore",
+          "A:Simulate",
+          "BUTTON:Learn",
+          "BUTTON:Library",
+          "BUTTON:Search scientific sources and assumptions",
+          "SUMMARY:Display preferences",
+          "SUMMARY:AnalysisAuthoritative analysis unavailab",
+          "SUMMARY:Event history 0",
+          "SUMMARY:Run settings",
+          "BODY:PetraExploreSimulateLearnLibrarySearch s",
+          "A:Explore",
+          "A:Simulate"
+        ],
+        "name": "keyboard: motion control reachable",
+        "status": "fail"
+      },
+      {
+        "detail": [
+          "A:Explore",
+          "A:Simulate",
+          "BUTTON:Learn",
+          "BUTTON:Library",
+          "BUTTON:Search scientific sources and assumptions",
+          "SUMMARY:Display preferences",
+          "SUMMARY:AnalysisAuthoritative analysis unavailab",
+          "SUMMARY:Event history 0",
+          "SUMMARY:Run settings",
+          "BODY:PetraExploreSimulateLearnLibrarySearch s",
+          "A:Explore",
+          "A:Simulate"
+        ],
+        "name": "keyboard: timeline controls reachable",
+        "status": "fail"
+      },
+      {
+        "detail": [
+          {
+            "canceled": false,
+            "dispatched": false,
+            "label": "ArrowRight"
+          },
+          {
+            "canceled": false,
+            "dispatched": false,
+            "label": "Home"
+          },
+          {
+            "canceled": false,
+            "dispatched": false,
+            "label": "0"
+          },
+          {
+            "canceled": false,
+            "dispatched": false,
+            "label": "+"
+          },
+          {
+            "canceled": false,
+            "dispatched": false,
+            "label": "-"
+          }
+        ],
+        "name": "keyboard: plain camera keys are Petra-owned",
+        "status": "fail"
+      },
+      {
+        "detail": [
+          {
+            "canceled": false,
+            "dispatched": false,
+            "label": "Ctrl++"
+          },
+          {
+            "canceled": false,
+            "dispatched": false,
+            "label": "Ctrl+-"
+          },
+          {
+            "canceled": false,
+            "dispatched": false,
+            "label": "Ctrl+0"
+          },
+          {
+            "canceled": false,
+            "dispatched": false,
+            "label": "Meta++"
+          },
+          {
+            "canceled": false,
+            "dispatched": false,
+            "label": "Meta+-"
+          },
+          {
+            "canceled": false,
+            "dispatched": false,
+            "label": "Meta+0"
+          },
+          {
+            "canceled": false,
+            "dispatched": false,
+            "label": "Ctrl+ArrowRight"
+          },
+          {
+            "canceled": false,
+            "dispatched": false,
+            "label": "Alt+Home"
+          },
+          {
+            "canceled": false,
+            "dispatched": false,
+            "label": "Meta+ArrowLeft"
+          }
+        ],
+        "name": "keyboard: browser and OS modified shortcuts stay unowned",
+        "status": "fail"
+      },
+      {
+        "detail": {
+          "rect": null,
+          "renderer": {
+            "canvas": false,
+            "fallback": false,
+            "source": "awaiting-authoritative-snapshot",
+            "status": "idle"
+          }
+        },
+        "name": "wheel ownership: renderer target ready",
+        "status": "fail"
+      },
+      {
+        "detail": {
+          "rect": null,
+          "renderer": {
+            "canvas": false,
+            "fallback": false,
+            "source": "awaiting-authoritative-snapshot",
+            "status": "idle"
+          }
+        },
+        "name": "pointer continuity: renderer target ready",
+        "status": "fail"
+      },
+      {
+        "detail": {
+          "missing": [
+            "Inspector",
+            "Motion preference"
+          ]
+        },
+        "name": "accessibility: landmark/control names exposed",
+        "status": "fail"
+      },
+      {
+        "detail": {
+          "nodeCount": 228
+        },
+        "name": "accessibility: semantic tree non-empty",
+        "status": "pass"
+      },
+      {
+        "detail": {
+          "rect": null,
+          "renderer": {
+            "canvas": false,
+            "fallback": false,
+            "source": "awaiting-authoritative-snapshot",
+            "status": "idle"
+          }
+        },
+        "name": "touch: renderer target ready",
+        "status": "fail"
+      },
+      {
+        "detail": {
+          "canvas": false,
+          "fallback": false,
+          "source": "awaiting-authoritative-snapshot",
+          "status": "idle"
+        },
+        "name": "performance: renderer ready",
+        "status": "fail"
+      },
+      {
+        "detail": {
+          "before": {
+            "acceptedCommandCount": 0,
+            "dishFocus": "ambient",
+            "playing": false,
+            "renderSource": "awaiting-authoritative-snapshot",
+            "rendererStatus": "idle",
+            "selectedSpeed": "1\u00d7",
+            "simulationTimeHours": null,
+            "simulationTimeLabel": "Simulation time \u2014",
+            "status": "starting",
+            "statusText": "Starting authoritative simulation"
+          },
+          "resetAction": {
+            "clicked": false,
+            "reason": "button-disabled"
+          },
+          "resetState": {
+            "acceptedCommandCount": 0,
+            "dishFocus": "ambient",
+            "playing": false,
+            "renderSource": "awaiting-authoritative-snapshot",
+            "rendererStatus": "idle",
+            "selectedSpeed": "1\u00d7",
+            "simulationTimeHours": null,
+            "simulationTimeLabel": "Simulation time \u2014",
+            "status": "starting",
+            "statusText": "Starting authoritative simulation"
+          },
+          "speedAction": {
+            "clicked": false,
+            "reason": "button-disabled"
+          }
+        },
+        "name": "render publication playback 1x: workload setup",
+        "status": "blocked"
+      },
+      {
+        "detail": {
+          "before": {
+            "acceptedCommandCount": 0,
+            "dishFocus": "ambient",
+            "playing": false,
+            "renderSource": "awaiting-authoritative-snapshot",
+            "rendererStatus": "idle",
+            "selectedSpeed": "1\u00d7",
+            "simulationTimeHours": null,
+            "simulationTimeLabel": "Simulation time \u2014",
+            "status": "starting",
+            "statusText": "Starting authoritative simulation"
+          },
+          "resetAction": {
+            "clicked": false,
+            "reason": "button-disabled"
+          },
+          "resetState": {
+            "acceptedCommandCount": 0,
+            "dishFocus": "ambient",
+            "playing": false,
+            "renderSource": "awaiting-authoritative-snapshot",
+            "rendererStatus": "idle",
+            "selectedSpeed": "1\u00d7",
+            "simulationTimeHours": null,
+            "simulationTimeLabel": "Simulation time \u2014",
+            "status": "starting",
+            "statusText": "Starting authoritative simulation"
+          },
+          "speedAction": {
+            "clicked": false,
+            "reason": "button-disabled"
+          }
+        },
+        "name": "render publication playback 4x: workload setup",
+        "status": "blocked"
+      },
+      {
+        "detail": {
+          "before": {
+            "acceptedCommandCount": 0,
+            "dishFocus": "ambient",
+            "playing": false,
+            "renderSource": "awaiting-authoritative-snapshot",
+            "rendererStatus": "idle",
+            "selectedSpeed": "1\u00d7",
+            "simulationTimeHours": null,
+            "simulationTimeLabel": "Simulation time \u2014",
+            "status": "starting",
+            "statusText": "Starting authoritative simulation"
+          },
+          "resetAction": {
+            "clicked": false,
+            "reason": "button-disabled"
+          },
+          "resetState": {
+            "acceptedCommandCount": 0,
+            "dishFocus": "ambient",
+            "playing": false,
+            "renderSource": "awaiting-authoritative-snapshot",
+            "rendererStatus": "idle",
+            "selectedSpeed": "1\u00d7",
+            "simulationTimeHours": null,
+            "simulationTimeLabel": "Simulation time \u2014",
+            "status": "starting",
+            "statusText": "Starting authoritative simulation"
+          },
+          "speedAction": {
+            "clicked": false,
+            "reason": "button-disabled"
+          }
+        },
+        "name": "render publication playback 16x: workload setup",
+        "status": "blocked"
+      },
+      {
+        "detail": "RuntimeError(\"Authoritative runtime is not ready: {'status': 'starting', 'statusText': 'Starting authoritative simulation', 'simulationTimeLabel': 'Simulation time \u2014', 'simulationTimeHours': None, 'acceptedCommandCount': 0, 'selectedSpeed': '1\u00d7', 'playing': False, 'dishFocus': 'ambient', 'renderSource': 'awaiting-authoritative-snapshot', 'rendererStatus': 'idle'}\")",
+        "name": "harness execution",
+        "status": "fail"
+      }
+    ],
+    "evidence_boundary": "Headless browser evidence checks layout, accessibility plumbing, motion modes, input event ownership/cancellation, pointer continuity, screenshots, representative renderer frame/redraw time, WebGL draw-call counts from a separate profiled redraw workload, Chromium heap/DOM trends, and long-task/GC symptoms where exposed. A separate instrumented continuous-playback workload measures render-publication ratios at 1x/4x/16x without being used as frame-time evidence. A separate advance-only workload measures accepted-runtime-snapshot to dish-projection to React-commit publication timing and renderer-facing payload estimates without choosing an optimization policy. The GPU record is explicitly a canvas/capability proxy, not measured VRAM. Human visible-browser review remains required for final aesthetic judgment; this run does not validate scientific correctness or simulator throughput.",
+    "kind": "petra-expo-browser-acceptance",
+    "schema_version": 1,
+    "summary": {
+      "blocked": 3,
+      "fail": 12,
+      "pass": 23
+    },
+    "target_url": "http://127.0.0.1:4173/"
+  },
+  "cwd": ".",
+  "description": "Headless Chrome/Chromium expo QA for layout, motion modes, keyboard/touch smoke, accessibility, screenshots, frame timing, post-growth authoritative camera stress, and advance-only authoritative render-publication measurements.",
+  "duration_seconds": 184.946772,
+  "error": null,
+  "id": "expo-browser-acceptance",
+  "issues": [
+    6,
+    10,
+    59,
+    468,
+    500,
+    577,
+    642,
+    850,
+    876,
+    904,
+    1054
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260926T024602624875Z\\expo-browser-acceptance\\artifacts",
+  "log_tail": "N:\\projects\\Petra\\tools\\expo_browser_acceptance.py:2086: SyntaxWarning: \"\\.\" is an invalid escape sequence. Such sequences will not work in the future. Did you mean \"\\\\.\"? A raw string is also an option.\r\n  const timeMatch = /^Simulation time ([0-9]+(?:\\.[0-9]+)?) h$/.exec(\r\n{\"blocked\": 3, \"fail\": 12, \"pass\": 23}\r\n",
+  "return_code": 1,
+  "status": "failed",
+  "timeout_seconds": 300
+}

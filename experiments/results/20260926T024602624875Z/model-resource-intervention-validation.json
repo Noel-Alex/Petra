@@ -1,0 +1,38 @@
+{
+  "command": [
+    "python",
+    "experiments/blocked.py",
+    "--experiment-id",
+    "model-resource-intervention-validation",
+    "--blocked-on",
+    "918",
+    "--reason",
+    "The pure model-resource edit authority is on main, but #918 must land the authoritative apply-model-resource command/event plus strict Worker/protocol/replay/export integration before end-to-end command validation is truthful. The deterministic cases and compact-result contract are predeclared in experiments/model_resource_intervention_validation_plan.json; preserve this stable experiment id when activating the executable harness."
+  ],
+  "compact_result": {
+    "blocked_on_issues": [
+      918
+    ],
+    "experiment_id": "model-resource-intervention-validation",
+    "next_action": "Land the listed prerequisite issue(s), then replace this gate command with the real experiment helper while preserving the stable experiment id.",
+    "reason": "The pure model-resource edit authority is on main, but #918 must land the authoritative apply-model-resource command/event plus strict Worker/protocol/replay/export integration before end-to-end command validation is truthful. The deterministic cases and compact-result contract are predeclared in experiments/model_resource_intervention_validation_plan.json; preserve this stable experiment id when activating the executable harness.",
+    "schema_version": 1,
+    "status": "blocked"
+  },
+  "cwd": ".",
+  "description": "PREPARED; BLOCKED on #918 protocol/replay integration: deterministic model-resource set/add/spatial edit, mask/event/order, checkpoint/genesis replay, zero-resource\u2192replenish response, and rejection no-op validation with no physical nutrient claim.",
+  "duration_seconds": 0.072595,
+  "error": null,
+  "id": "model-resource-intervention-validation",
+  "issues": [
+    158,
+    542,
+    626,
+    918
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260926T024602624875Z\\model-resource-intervention-validation\\artifacts",
+  "log_tail": "model-resource-intervention-validation: BLOCKED on #918\r\nThe pure model-resource edit authority is on main, but #918 must land the authoritative apply-model-resource command/event plus strict Worker/protocol/replay/export integration before end-to-end command validation is truthful. The deterministic cases and compact-result contract are predeclared in experiments/model_resource_intervention_validation_plan.json; preserve this stable experiment id when activating the executable harness.\r\n",
+  "return_code": 2,
+  "status": "failed",
+  "timeout_seconds": 30
+}

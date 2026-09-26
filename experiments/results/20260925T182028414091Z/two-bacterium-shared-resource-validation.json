@@ -1,0 +1,110 @@
+{
+  "command": [
+    "npm",
+    "exec",
+    "--offline",
+    "--",
+    "vitest",
+    "run",
+    "--config",
+    "experiments/vitest.two_bacterium_shared_resource_validation.config.ts"
+  ],
+  "compact_result": {
+    "completedAtUtc": "2026-09-25T18:30:30.282Z",
+    "controls": [
+      {
+        "detail": "E. coli MG1655 increased from its engineering founder biomass while the Bacillus channel remained exactly zero; values remain model-biomass.",
+        "id": "isolated-ecoli-growth",
+        "status": "passed"
+      },
+      {
+        "detail": "B. subtilis 168 trp+ sigE- increased from its engineering founder biomass while the E. coli channel remained exactly zero; values remain model-biomass.",
+        "id": "isolated-bacillus-growth",
+        "status": "passed"
+      },
+      {
+        "detail": "zero model-resource must not create biomass",
+        "id": "zero-resource-no-biomass-production",
+        "status": "failed"
+      },
+      {
+        "detail": "Equal-trait colocated founders remained symmetric under the shared ecology mechanism.",
+        "id": "identical-trait-symmetry",
+        "status": "passed"
+      },
+      {
+        "detail": "One authoritative ecology step was invariant to reversing the configured lineage/species order.",
+        "id": "lineage-species-iteration-order-invariance",
+        "status": "passed"
+      },
+      {
+        "detail": "Mixed growth depleted shared model-resource, respected local capacity, and matched the configured engineering yield accounting.",
+        "id": "shared-resource-local-capacity-coherence",
+        "status": "passed"
+      },
+      {
+        "detail": "Exact same-seed replay matched for 3 canonical uint32 seeds.",
+        "id": "same-seed-replay",
+        "status": "passed"
+      },
+      {
+        "detail": "Checkpoint restore plus the identical suffix reproduced the exact final authoritative checkpoint.",
+        "id": "checkpoint-restore-continuation",
+        "status": "passed"
+      },
+      {
+        "detail": "Runtime L1/L2 channels carry the exact E. coli and Bacillus taxon content revisions from the scenario.",
+        "id": "exact-lineage-taxon-identity",
+        "status": "passed"
+      },
+      {
+        "detail": "Finite source-target distances were reported without imposing a physical-calibration pass threshold.",
+        "id": "isolated-growth-target-distance-reported",
+        "status": "passed"
+      },
+      {
+        "detail": "A non-zero ciprofloxacin refusal sentinel was rejected atomically because the mixed scenario has no Bacillus pharmacodynamic authority.",
+        "id": "bacillus-ciprofloxacin-refusal",
+        "status": "passed"
+      },
+      {
+        "detail": "The scenario contains no mutation transitions and the current protocol refuses an untyped Bacillus evolution command before engine dispatch.",
+        "id": "bacillus-evolution-refusal",
+        "status": "passed"
+      }
+    ],
+    "experimentId": "two-bacterium-shared-resource-validation",
+    "failure": {
+      "message": "required control failed: zero-resource-no-biomass-production; runtime did not complete: failed; runtime reported one or more failures\n\nfalse !== true\n",
+      "name": "AssertionError"
+    },
+    "localRunId": "20260925T182028414091Z",
+    "runtimeMemory": {
+      "peakRssBytes": null,
+      "rssEndBytes": 306798592,
+      "rssStartBytes": 70520832
+    },
+    "schemaVersion": "petra-two-bacterium-shared-resource-validation-v2",
+    "startedAtUtc": "2026-09-25T18:30:24.342Z",
+    "status": "failed"
+  },
+  "cwd": ".",
+  "description": "Authoritative E. coli MG1655 + B. subtilis 168 trp+ sigE- shared-resource validation: isolated controls, symmetry/order, resource-capacity accounting, replay/restore, exact taxa, calibration-distance reporting, and unsupported-path refusal.",
+  "duration_seconds": 7.916445,
+  "error": null,
+  "id": "two-bacterium-shared-resource-validation",
+  "issues": [
+    530,
+    542,
+    553,
+    873,
+    877,
+    890,
+    907
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T182028414091Z\\two-bacterium-shared-resource-validation\\artifacts",
+  "log_tail": "\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv3.2.7 \u001b[39m\u001b[90mN:/projects/Petra\u001b[39m\n\n \u001b[31m\u276f\u001b[39m experiments/two_bacterium_shared_resource_validation.experiment.ts \u001b[2m(\u001b[22m\u001b[2m1 test\u001b[22m\u001b[2m | \u001b[22m\u001b[31m1 failed\u001b[39m\u001b[2m)\u001b[22m\u001b[33m 5947\u001b[2mms\u001b[22m\u001b[39m\n\u001b[31m   \u001b[31m\u00d7\u001b[31m two-bacterium shared-resource local validation\u001b[2m > \u001b[22mrecords the complete real-engine validation contract\u001b[39m\u001b[33m 5946\u001b[2mms\u001b[22m\u001b[39m\n\u001b[31m     \u2192 required control failed: zero-resource-no-biomass-production; runtime did not complete: failed; runtime reported one or more failures\n\nfalse !== true\n\u001b[39m\n\n\u001b[31m\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u001b[39m\u001b[1m\u001b[41m Failed Tests 1 \u001b[49m\u001b[22m\u001b[31m\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u001b[39m\n\n\u001b[41m\u001b[1m FAIL \u001b[22m\u001b[49m experiments/two_bacterium_shared_resource_validation.experiment.ts\u001b[2m > \u001b[22mtwo-bacterium shared-resource local validation\u001b[2m > \u001b[22mrecords the complete real-engine validation contract\n\u001b[31m\u001b[1mAssertionError\u001b[22m: required control failed: zero-resource-no-biomass-production; runtime did not complete: failed; runtime reported one or more failures\n\nfalse !== true\n\u001b[39m\n\n\u001b[32m- Expected\u001b[39m\n\u001b[31m+ Received\u001b[39m\n\n\u001b[32m- true\u001b[39m\n\u001b[31m+ false\u001b[39m\n\n\u001b[36m \u001b[2m\u276f\u001b[22m experiments/two_bacterium_shared_resource_validation.experiment.ts:\u001b[2m616:14\u001b[22m\u001b[39m\n    \u001b[90m614| \u001b[39m      \u001b[34mwriteCompactResult\u001b[39m(compactResult)\n    \u001b[90m615| \u001b[39m\n    \u001b[90m616| \u001b[39m      assert\u001b[33m.\u001b[39m\u001b[34mequal\u001b[39m(\n    \u001b[90m   | \u001b[39m             \u001b[31m^\u001b[39m\n    \u001b[90m617| \u001b[39m        assessment\u001b[33m.\u001b[39mmechanisticAccepted\u001b[33m,\u001b[39m\n    \u001b[90m618| \u001b[39m        \u001b[35mtrue\u001b[39m\u001b[33m,\u001b[39m\n\n\u001b[31m\u001b[2m\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af[1/1]\u23af\u001b[22m\u001b[39m\n\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[31m1 failed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[31m1 failed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m   Start at \u001b[22m 00:00:23\n\u001b[2m   Duration \u001b[22m 6.57s\u001b[2m (transform 267ms, setup 0ms, collect 409ms, tests 5.95s, environment 0ms, prepare 77ms)\u001b[22m\n\n",
+  "return_code": 1,
+  "status": "failed",
+  "timeout_seconds": 1800
+}

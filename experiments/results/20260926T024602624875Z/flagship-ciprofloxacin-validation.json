@@ -1,0 +1,29 @@
+{
+  "command": [
+    "npm",
+    "exec",
+    "--offline",
+    "--",
+    "vitest",
+    "run",
+    "--config",
+    "experiments/vitest.flagship_ciprofloxacin_validation.config.ts"
+  ],
+  "compact_result": null,
+  "cwd": ".",
+  "description": "Focused deterministic integrated flagship ciprofloxacin validation: zero-drug equivalence plus 0/1x/2x WT-MIC monotonic response through the authoritative intervention command path.",
+  "duration_seconds": 2.247911,
+  "error": null,
+  "id": "flagship-ciprofloxacin-validation",
+  "issues": [
+    37,
+    542,
+    626,
+    749
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260926T024602624875Z\\flagship-ciprofloxacin-validation\\artifacts",
+  "log_tail": "\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv3.2.7 \u001b[39m\u001b[90mN:/projects/Petra\u001b[39m\n\n \u001b[32m\u2713\u001b[39m tests/sim/flagshipCiprofloxacinValidation.test.ts \u001b[2m(\u001b[22m\u001b[2m3 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[33m 858\u001b[2mms\u001b[22m\u001b[39m\n   \u001b[33m\u001b[2m\u2713\u001b[22m\u001b[39m integrated flagship ciprofloxacin validation\u001b[2m > \u001b[22mpreserves the monotone response when WT-MIC-derived exposure enters through the authoritative intervention command path \u001b[33m 700\u001b[2mms\u001b[22m\u001b[39m\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m1 passed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m3 passed\u001b[39m\u001b[22m\u001b[90m (3)\u001b[39m\n\u001b[2m   Start at \u001b[22m 08:21:35\n\u001b[2m   Duration \u001b[22m 1.31s\u001b[2m (transform 180ms, setup 0ms, collect 287ms, tests 858ms, environment 0ms, prepare 54ms)\u001b[22m\n\n",
+  "return_code": 0,
+  "status": "passed",
+  "timeout_seconds": 300
+}

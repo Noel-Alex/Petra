@@ -1,0 +1,36 @@
+{
+  "command": [
+    "python",
+    "experiments/ml_aggregate_benchmark.py"
+  ],
+  "compact_result": {
+    "blocked_on": [
+      594
+    ],
+    "evidence_boundary": "Preparation/availability signal only; no model-quality, biological-validation, or promotion claim.",
+    "experiment_id": "ml-aggregate-benchmark",
+    "promotion_evidence": false,
+    "reason": "No clean, integrity-verified first-aggregate v2 dataset produced by the registered ml-mechanistic-dataset experiment exists under .petra_local. Generate it through python run_local_experiments.py after #594 local worker verification; do not supply an ad-hoc JSONL.",
+    "schema_version": 1,
+    "status": "blocked"
+  },
+  "cwd": ".",
+  "description": "First-aggregate v2 constant/ridge held-out benchmark. Runs only against a clean, integrity-verified local dataset produced by the registered mechanistic generator; otherwise reports the #594 dataset-evidence blocker.",
+  "duration_seconds": 0.11885,
+  "error": null,
+  "id": "ml-aggregate-benchmark",
+  "issues": [
+    13,
+    531,
+    542,
+    544,
+    545,
+    594,
+    1019
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260925T182028414091Z\\ml-aggregate-benchmark\\artifacts",
+  "log_tail": "ml-aggregate-benchmark is prepared but no eligible finalized first-aggregate v2 dataset is available locally.\r\n",
+  "return_code": 2,
+  "status": "failed",
+  "timeout_seconds": 900
+}

@@ -1,0 +1,32 @@
+{
+  "command": [
+    "python",
+    "tools/worker_transport_profile.py"
+  ],
+  "compact_result": {
+    "browser_executable": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "error": "TimeoutError('timed out')",
+    "evidence_boundary": "The profile failed before valid compact Worker transport evidence was produced. No architecture or optimization conclusion should be drawn from this result.",
+    "kind": "petra-worker-transport-profile",
+    "schema_version": 2,
+    "status": "failed",
+    "target_url": "http://127.0.0.1:4175/tools/worker_transport_profile.html"
+  },
+  "cwd": ".",
+  "description": "Real composed browser Worker transport profile: payload-size breakdown, sender postMessage handoff, request-window/worker time, accepted-snapshot materialization cost, and matched-biological-state history-age probes through the 625-event maintainer frontier.",
+  "duration_seconds": 11.364232,
+  "error": null,
+  "id": "worker-transport-profile",
+  "issues": [
+    519,
+    577,
+    630,
+    642,
+    1102
+  ],
+  "local_artifact_dir": ".petra_local\\runs\\20260926T024602624875Z\\worker-transport-profile\\artifacts",
+  "log_tail": "{\"error\": \"TimeoutError('timed out')\", \"status\": \"failed\"}\r\n",
+  "return_code": 1,
+  "status": "failed",
+  "timeout_seconds": 900
+}

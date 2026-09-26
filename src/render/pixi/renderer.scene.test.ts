@@ -6,7 +6,13 @@ describe("Pixi dish aperture scene contract", () => {
     expect(rendererSource).toContain("const dishInteriorMask = new Graphics()");
     expect(rendererSource).toContain("const dataLayer = new Container()");
     expect(rendererSource).toContain(
-      "dataLayer.addChild(fieldSprite, fieldLayer, densitySprite, densityLayer, glyphLayer)",
+      "const preparedCameraLayer = new Container()",
+    );
+    expect(rendererSource).toContain(
+      "preparedCameraLayer.addChild(\n    fieldSprite,\n    fieldLayer,\n    densitySprite,\n    densityLayer,\n  )",
+    );
+    expect(rendererSource).toContain(
+      "dataLayer.addChild(preparedCameraLayer, glyphLayer)",
     );
     expect(rendererSource).toContain("dataLayer.mask = dishInteriorMask");
     expect(rendererSource).toContain(

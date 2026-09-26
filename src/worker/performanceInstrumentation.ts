@@ -6,6 +6,7 @@ import {
 } from "./eventDeltaTransport";
 import {
   parseWorkerRequest,
+  parseWorkerResponse,
   type ProtocolParseResult,
 } from "../sim/protocolRuntime";
 

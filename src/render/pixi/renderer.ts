@@ -40,6 +40,9 @@ import {
   type RenderLineage,
 } from "../model";
 import {
+  resolvePreparedCameraLayerTransform,
+} from "./cameraLayerTransform";
+import {
   isScreenPointInsideDishAperture,
   panCamera,
   resolveDishViewportGeometry,
@@ -167,6 +170,7 @@ export async function createPixiDishRenderer(
   const plateLayer = new Graphics();
   const dishInteriorMask = new Graphics();
   const dataLayer = new Container();
+  const preparedCameraLayer = new Container();
   const fieldLayer = new Graphics();
   const densityLayer = new Graphics();
   const fieldCanvas = document.createElement("canvas");
@@ -196,7 +200,13 @@ export async function createPixiDishRenderer(
   const glyphLayer = new Graphics();
   const accentLayer = new Graphics();
 
-  dataLayer.addChild(fieldSprite, fieldLayer, densitySprite, densityLayer, glyphLayer);
+  preparedCameraLayer.addChild(
+    fieldSprite,
+    fieldLayer,
+    densitySprite,
+    densityLayer,
+  );
+  dataLayer.addChild(preparedCameraLayer, glyphLayer);
   dataLayer.mask = dishInteriorMask;
   root.addChild(plateLayer, dishInteriorMask, dataLayer, accentLayer);
   app.stage.addChild(root);
@@ -216,6 +226,7 @@ export async function createPixiDishRenderer(
   let cameraMotion = copyCameraMotionSpec(options.cameraMotion);
   let visualMotion = copyDishVisualMotionSpec(options.visualMotion);
   let camera: CameraView = { centerX: 0.5, centerY: 0.5, zoom: 1 };
+  let preparedCamera: CameraView | null = null;
   let transitionStartCamera = camera;
   let targetCamera = camera;
   let cameraElapsedMs = cameraMotion.durationMs;
@@ -239,6 +250,30 @@ export async function createPixiDishRenderer(
   const semanticZoomObserver = createSemanticZoomLevelObserver((level) => {
     options.onSemanticZoomLevelChange?.(level);
   });
+
+  const representativeGlyphsForCamera = (
+    currentCamera: CameraView,
+    maxGlyphs: number,
+    minimumDensity: number,
+  ): readonly GlyphSample[] => {
+    if (drawableState === null) return [];
+    if (
+      preparedRepresentativeGlyphCandidates === null ||
+      preparedRepresentativeGlyphMinimumDensity !== minimumDensity
+    ) {
+      preparedRepresentativeGlyphCandidates =
+        prepareRepresentativeGlyphCandidates(
+          drawableState,
+          minimumDensity,
+        );
+      preparedRepresentativeGlyphMinimumDensity = minimumDensity;
+    }
+    return selectRepresentativeGlyphs(
+      preparedRepresentativeGlyphCandidates,
+      currentCamera,
+      maxGlyphs,
+    );
+  };
 
   // Development-only, bounded local profiling. These timings have no simulation authority.
   const drawTimes: number[] = [];
@@ -268,6 +303,9 @@ export async function createPixiDishRenderer(
       preparedRepresentativeGlyphCandidates = null;
       preparedRepresentativeGlyphMinimumDensity = null;
     }
+
+    preparedCameraLayer.position.set(0, 0);
+    preparedCameraLayer.scale.set(1, 1);
 
     drawScene({
       app,
@@ -326,28 +364,7 @@ export async function createPixiDishRenderer(
         preparedLineageContours.set(lineage.id, contours);
         return contours;
       },
-      representativeGlyphsForCamera(
-        currentCamera,
-        maxGlyphs,
-        minimumDensity,
-      ) {
-        if (
-          preparedRepresentativeGlyphCandidates === null ||
-          preparedRepresentativeGlyphMinimumDensity !== minimumDensity
-        ) {
-          preparedRepresentativeGlyphCandidates =
-            prepareRepresentativeGlyphCandidates(
-              drawableState!,
-              minimumDensity,
-            );
-          preparedRepresentativeGlyphMinimumDensity = minimumDensity;
-        }
-        return selectRepresentativeGlyphs(
-          preparedRepresentativeGlyphCandidates,
-          currentCamera,
-          maxGlyphs,
-        );
-      },
+      representativeGlyphsForCamera,
       organismPresentation,
       selection,
       camera,
@@ -380,11 +397,76 @@ export async function createPixiDishRenderer(
       glyphLayer,
       accentLayer,
     });
+    preparedCamera = { ...camera };
     preparedRevision = renderPreparationRevision;
     if (import.meta.env.DEV) {
       drawTimes.push(performance.now() - drawStartedAt);
       if (drawTimes.length > 600) drawTimes.shift();
     }
+  };
+
+  const renderCameraOnly = () => {
+    const drawStartedAt = import.meta.env.DEV ? performance.now() : 0;
+    if (destroyed) return;
+    syncHostTouchAction();
+    if (
+      drawableState === null ||
+      preparedCamera === null ||
+      !hasPreparedLineageDensityMaximum
+    ) {
+      render();
+      return;
+    }
+
+    semanticZoomObserver.update(semanticZoomLevel(camera.zoom));
+    const viewport = {
+      width: app.screen.width,
+      height: app.screen.height,
+    };
+    const transform = resolvePreparedCameraLayerTransform(
+      preparedCamera,
+      camera,
+      viewport,
+    );
+    preparedCameraLayer.position.set(transform.x, transform.y);
+    preparedCameraLayer.scale.set(transform.scale, transform.scale);
+
+    drawGlyphAndSelectionLayer({
+      app,
+      snapshot: drawableState,
+      representativeGlyphsForCamera,
+      organismPresentation,
+      selection,
+      camera,
+      maxRepresentativeGlyphs,
+      lineageDensityMaximum: preparedLineageDensityMaximum,
+      glyphLayer,
+    });
+
+    if (import.meta.env.DEV) {
+      drawTimes.push(performance.now() - drawStartedAt);
+      if (drawTimes.length > 600) drawTimes.shift();
+    }
+  };
+
+  const renderCameraState = (settleZoomWhenComplete: boolean) => {
+    const zoomNeedsRebake =
+      preparedCamera !== null &&
+      camera.zoom !== preparedCamera.zoom;
+    const transitionComplete = cameraTransitionComplete({
+      elapsedMs: cameraElapsedMs,
+      durationMs: cameraMotion.durationMs,
+    });
+
+    if (
+      settleZoomWhenComplete &&
+      zoomNeedsRebake &&
+      transitionComplete
+    ) {
+      render();
+      return;
+    }
+    renderCameraOnly();
   };
 
   const applySnapshotOverlayUpdate = (
@@ -568,7 +650,8 @@ export async function createPixiDishRenderer(
     }
     if (destroyed || motion !== "full") return;
 
-    let changed = false;
+    let cameraChanged = false;
+    let visualChanged = false;
     if (
       !cameraTransitionComplete({
         elapsedMs: cameraElapsedMs,
@@ -582,7 +665,7 @@ export async function createPixiDishRenderer(
         elapsedMs: cameraElapsedMs,
         motion: cameraMotion,
       });
-      changed = true;
+      cameraChanged = true;
     }
 
     if (visualTransition !== null) {
@@ -601,10 +684,14 @@ export async function createPixiDishRenderer(
         visualTransition = null;
         visualElapsedMs = 0;
       }
-      changed = true;
+      visualChanged = true;
     }
 
-    if (changed) render();
+    if (visualChanged) {
+      render();
+    } else if (cameraChanged) {
+      renderCameraState(true);
+    }
   };
   app.ticker.add(ticker);
 
@@ -699,7 +786,7 @@ export async function createPixiDishRenderer(
       applyDirectCamera(
         panCamera(camera, moved.intent.deltaScreen, viewport),
       );
-      render();
+      renderCameraOnly();
       return;
     }
 
@@ -716,7 +803,7 @@ export async function createPixiDishRenderer(
     applyDirectCamera(
       panCamera(zoomed, moved.intent.centroidDelta, viewport),
     );
-    render();
+    renderCameraOnly();
   };
 
   const finishPointer = (
@@ -748,6 +835,12 @@ export async function createPixiDishRenderer(
     }
     if (gestureState.active.length === 0) {
       onePointerPanOwned = false;
+      if (
+        preparedCamera !== null &&
+        camera.zoom !== preparedCamera.zoom
+      ) {
+        render();
+      }
     }
     if (app.canvas.hasPointerCapture(event.pointerId)) {
       app.canvas.releasePointerCapture(event.pointerId);
@@ -783,7 +876,7 @@ export async function createPixiDishRenderer(
         },
       }),
     );
-    render();
+    renderCameraState(true);
   };
 
   const onDoubleClick = (event: MouseEvent) => {
@@ -797,7 +890,7 @@ export async function createPixiDishRenderer(
       camera,
     );
     beginCameraTransition({ centerX: anchor.x, centerY: anchor.y, zoom: 3.2 });
-    render();
+    renderCameraState(true);
   };
 
   const onKeyDown = (event: KeyboardEvent) => {
@@ -823,7 +916,7 @@ export async function createPixiDishRenderer(
 
     event.preventDefault();
     beginCameraTransition(result.camera);
-    render();
+    renderCameraState(true);
   };
 
   app.canvas.addEventListener("pointerdown", onPointerDown);
@@ -877,7 +970,7 @@ export async function createPixiDishRenderer(
 
     setSelection(nextSelection) {
       selection = nextSelection;
-      render();
+      renderCameraOnly();
     },
 
     setOverlay(nextOverlayId) {
@@ -911,7 +1004,7 @@ export async function createPixiDishRenderer(
 
       cameraMotion = update.state.spec;
       writeCameraTransitionState(update.state.transition);
-      render();
+      renderCameraState(true);
     },
 
     setVisualMotion(nextSpec) {
@@ -940,17 +1033,17 @@ export async function createPixiDishRenderer(
 
     setCamera(nextCamera) {
       beginCameraTransition(nextCamera);
-      render();
+      renderCameraState(true);
     },
 
     focusDishPoint(point, zoom = 3.2) {
       beginCameraTransition({ centerX: point.x, centerY: point.y, zoom });
-      render();
+      renderCameraState(true);
     },
 
     resetCamera() {
       beginCameraTransition({ centerX: 0.5, centerY: 0.5, zoom: 1 });
-      render();
+      renderCameraState(true);
     },
 
     destroy() {
@@ -1070,14 +1163,11 @@ function drawScene(args: {
   const centerX = geometry.centerX;
   const centerY = geometry.centerY;
   const radius = geometry.radius;
-  const level = semanticZoomLevel(camera.zoom);
-
   for (const layer of [
     plateLayer,
     dishInteriorMask,
     fieldLayer,
     densityLayer,
-    glyphLayer,
     accentLayer,
   ]) {
     layer.clear();
@@ -1137,17 +1227,75 @@ function drawScene(args: {
     );
   });
 
+  drawGlyphAndSelectionLayer({
+    app,
+    snapshot,
+    representativeGlyphsForCamera,
+    organismPresentation,
+    selection,
+    camera,
+    maxRepresentativeGlyphs,
+    lineageDensityMaximum,
+    glyphLayer,
+  });
+
+  const accentAlpha = motion === "off" ? 0.12 : 0.16;
+  accentLayer
+    .circle(centerX, centerY, radius * 0.985)
+    .stroke({ color: DISH_ACCENT_COLOR, alpha: accentAlpha, width: Math.max(1, dishSize * 0.003) });
+}
+
+function drawGlyphAndSelectionLayer(args: {
+  readonly app: Application;
+  readonly snapshot: DishDrawableState;
+  readonly representativeGlyphsForCamera: (
+    camera: CameraView,
+    maxGlyphs: number,
+    minimumDensity: number,
+  ) => readonly GlyphSample[];
+  readonly organismPresentation: OrganismPresentationIdentity | null;
+  readonly selection: DishSelectionHighlight | null;
+  readonly camera: CameraView;
+  readonly maxRepresentativeGlyphs: number;
+  readonly lineageDensityMaximum: number;
+  readonly glyphLayer: Graphics;
+}): void {
+  const {
+    app,
+    snapshot,
+    representativeGlyphsForCamera,
+    organismPresentation,
+    selection,
+    camera,
+    maxRepresentativeGlyphs,
+    lineageDensityMaximum,
+    glyphLayer,
+  } = args;
+
+  glyphLayer.clear();
+  const geometry = resolveDishViewportGeometry({
+    width: app.screen.width,
+    height: app.screen.height,
+  });
+  const dishSize = geometry.diameter;
+  const centerX = geometry.centerX;
+  const centerY = geometry.centerY;
+  const level = semanticZoomLevel(camera.zoom);
   const lineagePresentations = indexLineageGlyphPresentations(
     snapshot.lineages,
     organismPresentation,
   );
+
   if (
     lineagePresentations.hasAnySupportedDishGlyphPresentation ||
     level !== "dish"
   ) {
     const glyphs = representativeGlyphsForCamera(
       camera,
-      Math.min(maxRepresentativeGlyphs, level === "dish" ? 140 : 260),
+      Math.min(
+        maxRepresentativeGlyphs,
+        level === "dish" ? 140 : 260,
+      ),
       lineageDensityMaximum * 0.12,
     );
     const occupiedGlyphPositions: ScreenPoint[] = [];
@@ -1157,7 +1305,9 @@ function drawScene(args: {
       );
       if (indexedLineage === undefined) continue;
       const { lineage, presentation } = indexedLineage;
-      const color = resolveLineageAppearance(lineage.appearanceToken).color;
+      const color = resolveLineageAppearance(
+        lineage.appearanceToken,
+      ).color;
       const point = dishToScreen(
         glyph.x,
         glyph.y,
@@ -1167,41 +1317,142 @@ function drawScene(args: {
         dishSize,
       );
       const spacing = level === "dish" ? 11 : 16;
-      if (occupiedGlyphPositions.some(previous => (previous.x - point.x) ** 2 + (previous.y - point.y) ** 2 < spacing ** 2)) continue;
+      if (
+        occupiedGlyphPositions.some(
+          (previous) =>
+            (previous.x - point.x) ** 2 +
+              (previous.y - point.y) ** 2 <
+            spacing ** 2,
+        )
+      ) {
+        continue;
+      }
       occupiedGlyphPositions.push(point);
-      const strength = Math.sqrt(glyph.weight / Math.max(lineageDensityMaximum, Number.EPSILON));
-      const glyphRadius = Math.max(2.2, (level === "dish" ? 4.3 : 5.2) * Math.min(camera.zoom, 3)) * (0.55 + strength * 0.45);
+      const strength = Math.sqrt(
+        glyph.weight /
+          Math.max(
+            lineageDensityMaximum,
+            Number.EPSILON,
+          ),
+      );
+      const glyphRadius =
+        Math.max(
+          2.2,
+          (level === "dish" ? 4.3 : 5.2) *
+            Math.min(camera.zoom, 3),
+        ) *
+        (0.55 + strength * 0.45);
       if (presentation?.morphology === "rod") {
         // Stable illustration pose, NOT orientation, motility, cell size, or a cell count.
-        const angle = (glyph.cellIndex * 2.399963 + glyph.lineageId.length) % Math.PI;
+        const angle =
+          (glyph.cellIndex * 2.399963 +
+            glyph.lineageId.length) %
+          Math.PI;
         const dx = Math.cos(angle) * glyphRadius;
         const dy = Math.sin(angle) * glyphRadius;
-        glyphLayer.moveTo(point.x - dx, point.y - dy + 1.5).lineTo(point.x + dx, point.y + dy + 1.5)
-          .stroke({ color: DISH_GLYPH_EDGE_COLOR, alpha: 0.3, width: glyphRadius * 1.5, cap: "round" });
-        glyphLayer.moveTo(point.x - dx, point.y - dy).lineTo(point.x + dx, point.y + dy)
-          .stroke({ color, alpha: 0.65 + strength * 0.3, width: glyphRadius * 1.4, cap: "round" });
-        glyphLayer.moveTo(point.x - dx * 0.65 - .6, point.y - dy * .65 - .8).lineTo(point.x + dx * .3 - .6, point.y + dy * .3 - .8)
-          .stroke({ color: DISH_HIGHLIGHT_COLOR, alpha: .35, width: Math.max(.8, glyphRadius * .3), cap: "round" });
-        if (lineage.patternToken === "double-ring") {
-          glyphLayer.circle(point.x, point.y, glyphRadius * .45).stroke({ color: LINEAGE_PATTERN_COLOR, alpha: .8, width: 1 });
+        glyphLayer
+          .moveTo(
+            point.x - dx,
+            point.y - dy + 1.5,
+          )
+          .lineTo(
+            point.x + dx,
+            point.y + dy + 1.5,
+          )
+          .stroke({
+            color: DISH_GLYPH_EDGE_COLOR,
+            alpha: 0.3,
+            width: glyphRadius * 1.5,
+            cap: "round",
+          });
+        glyphLayer
+          .moveTo(point.x - dx, point.y - dy)
+          .lineTo(point.x + dx, point.y + dy)
+          .stroke({
+            color,
+            alpha: 0.65 + strength * 0.3,
+            width: glyphRadius * 1.4,
+            cap: "round",
+          });
+        glyphLayer
+          .moveTo(
+            point.x - dx * 0.65 - 0.6,
+            point.y - dy * 0.65 - 0.8,
+          )
+          .lineTo(
+            point.x + dx * 0.3 - 0.6,
+            point.y + dy * 0.3 - 0.8,
+          )
+          .stroke({
+            color: DISH_HIGHLIGHT_COLOR,
+            alpha: 0.35,
+            width: Math.max(
+              0.8,
+              glyphRadius * 0.3,
+            ),
+            cap: "round",
+          });
+        if (
+          lineage.patternToken === "double-ring"
+        ) {
+          glyphLayer
+            .circle(
+              point.x,
+              point.y,
+              glyphRadius * 0.45,
+            )
+            .stroke({
+              color: LINEAGE_PATTERN_COLOR,
+              alpha: 0.8,
+              width: 1,
+            });
         }
       } else {
-        glyphLayer.circle(point.x, point.y, glyphRadius).fill({ color, alpha: .88 });
-        drawLineagePatternRings(glyphLayer, point, glyphRadius + 1.8, lineage.patternToken, .72, 1.1);
+        glyphLayer
+          .circle(
+            point.x,
+            point.y,
+            glyphRadius,
+          )
+          .fill({ color, alpha: 0.88 });
+        drawLineagePatternRings(
+          glyphLayer,
+          point,
+          glyphRadius + 1.8,
+          lineage.patternToken,
+          0.72,
+          1.1,
+        );
       }
     }
   }
 
   if (selection !== null) {
-    const selected = dishToScreen(selection.centerX, selection.centerY, camera, centerX, centerY, dishSize);
-    glyphLayer.circle(selected.x, selected.y, selection.radius * dishSize * camera.zoom)
-      .stroke({ color: petraVisualColor("mint"), width: 2, alpha: .95 });
-    glyphLayer.circle(selected.x, selected.y, 3).fill({ color: petraVisualColor("mint") });
+    const selected = dishToScreen(
+      selection.centerX,
+      selection.centerY,
+      camera,
+      centerX,
+      centerY,
+      dishSize,
+    );
+    glyphLayer
+      .circle(
+        selected.x,
+        selected.y,
+        selection.radius *
+          dishSize *
+          camera.zoom,
+      )
+      .stroke({
+        color: petraVisualColor("mint"),
+        width: 2,
+        alpha: 0.95,
+      });
+    glyphLayer
+      .circle(selected.x, selected.y, 3)
+      .fill({ color: petraVisualColor("mint") });
   }
-  const accentAlpha = motion === "off" ? 0.12 : 0.16;
-  accentLayer
-    .circle(centerX, centerY, radius * 0.985)
-    .stroke({ color: DISH_ACCENT_COLOR, alpha: accentAlpha, width: Math.max(1, dishSize * 0.003) });
 }
 
 function drawField(

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import rendererSource from "./renderer.ts?raw";
+import rawRendererSource from "./renderer.ts?raw";
+
+const rendererSource = rawRendererSource.replace(/\r\n/g, "\n");
 
 describe("Pixi touch ownership integration", () => {
   it("latches one-pointer ownership only when a new admitted gesture begins", () => {
@@ -27,7 +29,7 @@ describe("Pixi touch ownership integration", () => {
       "const onPointerMove = (event: PointerEvent) => {",
     );
     const finishStart = rendererSource.indexOf(
-      "const finishPointer = (event: PointerEvent) => {",
+      "const finishPointer = (",
       moveStart,
     );
     const move = rendererSource.slice(moveStart, finishStart);
@@ -44,7 +46,7 @@ describe("Pixi touch ownership integration", () => {
 
   it("clears latched ownership when the last pointer ends or is cancelled", () => {
     const finishStart = rendererSource.indexOf(
-      "const finishPointer = (event: PointerEvent) => {",
+      "const finishPointer = (",
     );
     const wheelStart = rendererSource.indexOf(
       "const onWheel = (event: WheelEvent) => {",
@@ -55,7 +57,10 @@ describe("Pixi touch ownership integration", () => {
     expect(finish).toContain("gestureState.active.length === 0");
     expect(finish).toContain("onePointerPanOwned = false;");
     expect(rendererSource).toContain(
-      'app.canvas.addEventListener("pointercancel", finishPointer);',
+      "const onPointerCancel = (event: PointerEvent) => finishPointer(event, false);",
+    );
+    expect(rendererSource).toContain(
+      'app.canvas.addEventListener("pointercancel", onPointerCancel);',
     );
   });
 

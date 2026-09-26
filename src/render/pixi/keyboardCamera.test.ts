@@ -48,14 +48,15 @@ describe("keyboard camera controls", () => {
 
   it("pans only for supported arrow keys and preserves camera bounds", () => {
     const start = { centerX: 0.5, centerY: 0.5, zoom: 2 };
+    const expectedPanDelta = 0.09 / (0.93 * 2);
 
     expect(applyKeyboardCameraKey(start, "ArrowLeft", viewport)).toEqual({
       handled: true,
-      camera: { centerX: 0.455, centerY: 0.5, zoom: 2 },
+      camera: { centerX: 0.5 - expectedPanDelta, centerY: 0.5, zoom: 2 },
     });
     expect(applyKeyboardCameraKey(start, "ArrowUp", viewport)).toEqual({
       handled: true,
-      camera: { centerX: 0.5, centerY: 0.455, zoom: 2 },
+      camera: { centerX: 0.5, centerY: 0.5 - expectedPanDelta, zoom: 2 },
     });
   });
 

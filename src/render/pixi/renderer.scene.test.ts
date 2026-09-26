@@ -1,12 +1,20 @@
 import { describe, expect, it } from "vitest";
-import rendererSource from "./renderer.ts?raw";
+import rawRendererSource from "./renderer.ts?raw";
+
+const rendererSource = rawRendererSource.replace(/\r\n/g, "\n");
 
 describe("Pixi dish aperture scene contract", () => {
   it("keeps scientific layers under one shared circular mask and vessel chrome outside it", () => {
     expect(rendererSource).toContain("const dishInteriorMask = new Graphics()");
     expect(rendererSource).toContain("const dataLayer = new Container()");
     expect(rendererSource).toContain(
-      "dataLayer.addChild(fieldSprite, fieldLayer, densitySprite, densityLayer, glyphLayer)",
+      "const preparedCameraLayer = new Container()",
+    );
+    expect(rendererSource).toContain(
+      "preparedCameraLayer.addChild(\n    fieldSprite,\n    fieldLayer,\n    densitySprite,\n    densityLayer,\n  )",
+    );
+    expect(rendererSource).toContain(
+      "dataLayer.addChild(preparedCameraLayer, glyphLayer)",
     );
     expect(rendererSource).toContain("dataLayer.mask = dishInteriorMask");
     expect(rendererSource).toContain(
@@ -21,8 +29,8 @@ describe("Pixi dish aperture scene contract", () => {
     expect(rendererSource).toContain(
       'import { extractFieldContourSegments } from "../fieldContours"',
     );
-    expect(rendererSource).toContain("const contours = extractFieldContourSegments({");
-    expect(rendererSource).toContain("dishMask: snapshot.dishMask");
+    expect(rendererSource).toContain("extractFieldContourSegments({");
+    expect(rendererSource).toContain("dishMask: drawableState!.dishMask");
     expect(rendererSource).toContain(".lineTo(to.x, to.y)");
   });
 
@@ -31,11 +39,11 @@ describe("Pixi dish aperture scene contract", () => {
       'import { extractLineageDensityContourSegments } from "../lineageDensityContours"',
     );
     expect(rendererSource).toContain(
-      "const contourSegments = extractLineageDensityContourSegments({",
+      "const contours = extractLineageDensityContourSegments({",
     );
-    expect(rendererSource).toContain("sharedMaximum");
+    expect(rendererSource).toContain("sharedMaximum: maximum");
     expect(rendererSource).toContain(
-      "const contourPattern = resolveLineagePattern(lineage.patternToken)",
+      "const contourPattern = resolveLineagePattern(patternToken)",
     );
     expect(rendererSource).toContain("color: LINEAGE_PATTERN_COLOR");
   });

@@ -171,10 +171,10 @@ function validateRequestedHorizons(
 
   let previous = 0;
   for (let index = 0; index < requestedHorizonTicks.length; index += 1) {
-    if (!(index in requestedHorizonTicks)) {
+    const horizon = requestedHorizonTicks[index];
+    if (horizon === undefined) {
       throw new RangeError("requested forecast horizons must be a dense array");
     }
-    const horizon = requestedHorizonTicks[index];
     if (!Number.isSafeInteger(horizon) || horizon < 1) {
       throw new RangeError(
         "requested forecast horizons must be positive safe-integer tick counts",

@@ -67,11 +67,11 @@ describe("scenario validation status", () => {
 
   it("requires evidence locators for passed/partial/failed claims", () => {
     const invalid = status();
-    const records = invalid.records.map((record) =>
-      record.id === "numerical-source-suite"
-        ? { ...record, locator: undefined }
-        : record,
-    );
+    const records = invalid.records.map((record) => {
+      if (record.id !== "numerical-source-suite") return record;
+      const { locator: _omittedLocator, ...withoutLocator } = record;
+      return withoutLocator;
+    });
 
     expect(() =>
       buildScenarioValidationPresentation({ ...invalid, records }),
@@ -80,11 +80,11 @@ describe("scenario validation status", () => {
 
   it("requires an explicit blocker for blocked evidence", () => {
     const invalid = status();
-    const records = invalid.records.map((record) =>
-      record.id === "browser-evidence"
-        ? { ...record, blocker: undefined }
-        : record,
-    );
+    const records = invalid.records.map((record) => {
+      if (record.id !== "browser-evidence") return record;
+      const { blocker: _omittedBlocker, ...withoutBlocker } = record;
+      return withoutBlocker;
+    });
 
     expect(() =>
       buildScenarioValidationPresentation({ ...invalid, records }),

@@ -150,7 +150,7 @@ describe("mechanistic ML sweep planner", () => {
       manifest.splitGroupCounts.validation +
       manifest.splitGroupCounts.test;
 
-    expect(manifest.schemaVersion).toBe("petra-ml-sweep-manifest-v5");
+    expect(manifest.schemaVersion).toBe("petra-ml-sweep-manifest-v6");
     expect(manifest.engineVersion).toBe("engine-v3");
     expect(manifest.datasetSchema).toEqual(plan.datasetSchema);
     expect(manifest.splitPolicyVersion).toBe(plan.splitPolicy.version);

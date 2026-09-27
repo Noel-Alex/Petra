@@ -147,7 +147,7 @@ describe("mechanistic ML dataset contract", () => {
   it("rejects invalid time/index and malformed split policies", () => {
     const invalid: MechanisticSample<null, null> = {
       datasetVersion: "dataset-v1",
-      trajectory: trajectory("42"),
+      trajectory: trajectory(42),
       snapshotIndex: -1,
       simulationTimeHours: 1,
       normalizationProfileId: "aggregate-v1",

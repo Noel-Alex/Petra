@@ -141,8 +141,15 @@ describe("ecology flux render fields", () => {
       projectEcologyNetGrowthField(observation({ stepDuration: 0 })),
     ).toThrow(/stepDuration.*positive/);
 
+    // Isolate the empty-mask validator: with every cell off-mask, the source
+    // channel must also be zero or the off-mask-rate check fires first.
     expect(() =>
-      projectEcologyNetGrowthField(observation({ mask: [0, 0, 0, 0] })),
+      projectEcologyNetGrowthField(
+        observation({
+          mask: [0, 0, 0, 0],
+          averageNetLocalBiomassRateByCell: [0, 0, 0, 0],
+        }),
+      ),
     ).toThrow(/at least one in-mask cell/);
   });
 });

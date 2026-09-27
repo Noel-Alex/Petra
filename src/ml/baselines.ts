@@ -186,35 +186,84 @@ function solveRidge(
   return solveLinearSystem(matrix, rhs);
 }
 
+/**
+ * `solveRidge` allocates a dense `width` x `width` normal-equation matrix and a
+ * matching right-hand side, so every index below is in range by construction.
+ * `noUncheckedIndexedAccess` still types each read as `number | undefined`, and
+ * a hole in this system would propagate silently: NaN coefficients pass through
+ * `rhs.some(Number.isFinite)` only by luck and would corrupt every downstream
+ * ridge baseline metric. So reads go through these guards and a missing entry
+ * is reported as the caller bug it is (a sparse/holey system) rather than being
+ * defaulted to a number.
+ */
+function requireRow(system: readonly (readonly number[])[], index: number): number[] {
+  const row = system[index];
+  if (row === undefined) {
+    throw new RangeError(
+      `linear system row ${index} is missing; expected a dense ${system.length}-row system`,
+    );
+  }
+  return row as number[];
+}
+
+function requireEntry(
+  vector: readonly number[],
+  index: number,
+  label: string,
+): number {
+  const entry = vector[index];
+  if (entry === undefined) {
+    throw new RangeError(
+      `${label} ${index} is missing; expected a dense ${vector.length}-entry system`,
+    );
+  }
+  return entry;
+}
+
 function solveLinearSystem(matrix: number[][], rhs: number[]): readonly number[] {
   const n = rhs.length;
   for (let pivot = 0; pivot < n; pivot += 1) {
+    let pivotRow = requireRow(matrix, pivot);
+    let pivotRhs = requireEntry(rhs, pivot, "right-hand side entry");
     let best = pivot;
+    let bestMagnitude = Math.abs(requireEntry(pivotRow, pivot, "pivot column entry"));
     for (let row = pivot + 1; row < n; row += 1) {
-      if (Math.abs(matrix[row]![pivot]!) > Math.abs(matrix[best]![pivot]!)) {
+      const candidate = requireRow(matrix, row);
+      const magnitude = Math.abs(requireEntry(candidate, pivot, "pivot column entry"));
+      if (magnitude > bestMagnitude) {
         best = row;
+        bestMagnitude = magnitude;
+        pivotRow = candidate;
+        pivotRhs = requireEntry(rhs, best, "right-hand side entry");
       }
     }
-    [matrix[pivot], matrix[best]] = [matrix[best]!, matrix[pivot]!];
-    [rhs[pivot], rhs[best]] = [rhs[best]!, rhs[pivot]!];
 
-    const diagonal = matrix[pivot]![pivot]!;
+    matrix[best] = requireRow(matrix, pivot);
+    matrix[pivot] = pivotRow;
+    rhs[best] = requireEntry(rhs, pivot, "right-hand side entry");
+    rhs[pivot] = pivotRhs;
+
+    const diagonal = requireEntry(pivotRow, pivot, "diagonal entry");
     if (!Number.isFinite(diagonal) || Math.abs(diagonal) < 1e-15) {
       throw new RangeError("ridge normal equation is singular");
     }
     for (let column = pivot; column < n; column += 1) {
-      matrix[pivot]![column] /= diagonal;
+      pivotRow[column] = requireEntry(pivotRow, column, "pivot row entry") / diagonal;
     }
-    rhs[pivot] /= diagonal;
+    pivotRhs /= diagonal;
+    rhs[pivot] = pivotRhs;
 
     for (let row = 0; row < n; row += 1) {
       if (row === pivot) continue;
-      const factor = matrix[row]![pivot]!;
+      const rowVector = requireRow(matrix, row);
+      const factor = requireEntry(rowVector, pivot, "elimination column entry");
       if (factor === 0) continue;
       for (let column = pivot; column < n; column += 1) {
-        matrix[row]![column] -= factor * matrix[pivot]![column]!;
+        rowVector[column] =
+          requireEntry(rowVector, column, "row entry") -
+          factor * requireEntry(pivotRow, column, "pivot row entry");
       }
-      rhs[row] -= factor * rhs[pivot]!;
+      rhs[row] = requireEntry(rhs, row, "right-hand side entry") - factor * pivotRhs;
     }
   }
   if (rhs.some((value) => !Number.isFinite(value))) {

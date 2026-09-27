@@ -52,6 +52,14 @@ function definition(): MechanisticSweepDefinition {
     ],
     seeds: [1, 2],
     maxTrajectories: 20,
+    // Fixture exercises the staged/resume runner path, not held-out
+    // generalisation; its single group cannot supply validation/test.
+    // Separately versioned train-only policy, so no held-out evidence implied.
+    splitCoveragePolicy: Object.freeze({
+      version: "runner-fixture-coverage-v1",
+      requiredSplits: Object.freeze(["train"] as const),
+      minimumGroupsPerSplit: 1,
+    }),
   };
 }
 

@@ -214,6 +214,12 @@ function parseRunIdentity(value: unknown): ParseResult<RunIdentity> {
     return failure('.parameterSetVersion must be a string')
   }
 
+  // Untrusted wire data: reject non-numeric seeds at the boundary instead of
+  // promoting them into the numeric assertion (which owns the u32 range).
+  if (typeof record.seed !== 'number') {
+    return failure('.seed must be an unsigned 32-bit integer')
+  }
+
   try {
     assertSimulationSeed(record.seed)
   } catch {

@@ -114,27 +114,26 @@ describe("provenance presentation", () => {
         id: evidenceClass,
         label: evidenceClass,
         evidenceClass,
-        sources:
-          evidenceClass === "engineering" ||
-          evidenceClass === "visual-only" ||
-          evidenceClass === "calibrated" ||
-          evidenceClass === "hypothesis-experimental"
-            ? undefined
-            : [{ id: "source", label: "Source" }],
-        transferNote:
-          evidenceClass === "transferred" ||
-          evidenceClass === "transferred-mechanistic-approximation"
-            ? "Transfer disclosed."
-            : undefined,
-        calibrationNote:
-          evidenceClass === "calibrated" ? "Calibrated to a declared scenario target." : undefined,
-        limitation:
-          evidenceClass === "mechanistic-approximation" ||
-          evidenceClass === "transferred-mechanistic-approximation"
-            ? "Approximation limitation disclosed."
-            : undefined,
-        transformation:
-          evidenceClass === "derived" ? "Documented equation." : undefined,
+        ...(evidenceClass === "engineering" ||
+        evidenceClass === "visual-only" ||
+        evidenceClass === "calibrated" ||
+        evidenceClass === "hypothesis-experimental"
+          ? {}
+          : { sources: [{ id: "source", label: "Source" }] }),
+        ...(evidenceClass === "transferred" ||
+        evidenceClass === "transferred-mechanistic-approximation"
+          ? { transferNote: "Transfer disclosed." }
+          : {}),
+        ...(evidenceClass === "calibrated"
+          ? { calibrationNote: "Calibrated to a declared scenario target." }
+          : {}),
+        ...(evidenceClass === "mechanistic-approximation" ||
+        evidenceClass === "transferred-mechanistic-approximation"
+          ? { limitation: "Approximation limitation disclosed." }
+          : {}),
+        ...(evidenceClass === "derived"
+          ? { transformation: "Documented equation." }
+          : {}),
       });
 
       for (const badge of presentation.badges) {

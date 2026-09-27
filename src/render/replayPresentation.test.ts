@@ -34,8 +34,11 @@ function snapshot(
         width: 2,
         height: 1,
         values: new Float32Array(biomass),
+        // Stable fixed transfer range covering every keyframe this fixture
+        // feeds it: validateRenderSnapshot() admits every in-mask field sample
+        // against these declared bounds.
         minimum: 0,
-        maximum: 20,
+        maximum: 40,
       },
     ],
     lineages: [

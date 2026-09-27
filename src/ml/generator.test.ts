@@ -52,6 +52,18 @@ function definition(): MechanisticSweepDefinition {
     ],
     seeds: [1, 2],
     maxTrajectories: 20,
+    // This fixture exercises artifact determinism, staging, and provenance -
+    // not held-out generalisation. Its single biological group cannot supply
+    // a validation/test group, so it declares a separately versioned train-only
+    // coverage policy instead of silently inheriting (or weakening) the
+    // production held-out policy. Real sweeps keep DEFAULT_SPLIT_COVERAGE_POLICY;
+    // the version string here is provenance that this dataset carries no
+    // held-out evidence.
+    splitCoveragePolicy: Object.freeze({
+      version: "generator-fixture-coverage-v1",
+      requiredSplits: Object.freeze(["train"] as const),
+      minimumGroupsPerSplit: 1,
+    }),
   };
 }
 
@@ -257,11 +269,13 @@ describe("mechanistic ML dataset generator", () => {
     const firstSample = first.samples[0]!;
     const secondSample = first.samples[1]!;
 
+    // A valid uint32 replica seed outside the plan's [1, 2] seed set: the
+    // sample is well-formed but claims a different trajectory than its task.
     const foreignTrajectory: MechanisticSample<FixtureInput, FixtureTarget> = {
       ...firstSample,
       trajectory: {
         ...firstSample.trajectory,
-        seed: "foreign-seed",
+        seed: 0x5eed_1234,
       },
     };
     expect(() =>

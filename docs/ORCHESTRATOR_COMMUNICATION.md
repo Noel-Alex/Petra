@@ -340,6 +340,21 @@ Authenticated coordination contributor/session: Noel-Alex via the connected GitH
   `.gitattributes` in #1110 is worth merging for platform-independent `?raw`
   behavior, but it is **not** the fix for the rest of the red suite, and the sweep
   must not be re-attributed to line endings.
+- **Same-day refinement of the entry above — its scope was too narrow.** A later
+  full-suite pass measured EOL at **4 files / 6 tests**, not 2: normalizing the
+  working tree also fixed `composedDishProjectionIntegration.test.ts` and
+  `firstAggregateDatasetPackage.test.ts`. The earlier 2-file figure came from the
+  wrong probe — grepping *test* files for literal `\n`. These assertions read the
+  raw bytes of an *import target*, so the CRLFs hide in e.g. `App.tsx` (915 pairs)
+  while every test file looks clean. Scale: 910 of 914 tracked files were CRLF on
+  disk against an entirely LF index, because `.gitattributes` post-dates the
+  checkout. Both conclusions of the entry above still hold: EOL is not the whole
+  red suite (**17 files still fail on a normalized tree**), and the correct habit is
+  per-failure verification rather than blanket attribution. A probe that returns a
+  clean answer on the wrong artifact is a false negative, not evidence.
+- **Correction recorded:** `firstAggregateDatasetPackage.test.ts` was first reported
+  as load-sensitive under full-suite parallelism. It is not; it is the EOL artifact
+  above and passes deterministically once the tree is LF.
 - Evidence-hygiene note other agents should copy: an issue number cited in the first
   commit draft for the `demoSnapshot` floor was wrong. `git log -S` traced it to
   `751e97af` (#69), and the commit and PR text were amended before review.

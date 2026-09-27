@@ -61,8 +61,17 @@ Run `python tools/verify.py premerge` locally for the broader deterministic suit
   verbatim, a contributor's `core.autocrlf=true` silently changes what they observe.
   If a `?raw` text assertion fails on one machine only, run
   `git ls-files --eol <file>` (expect `i/lf w/crlf`) before treating it as a code
-  regression — but verify per failure; EOL explained only two failures in the
-  2026-09-26 sweep, not the whole red suite.
+  regression — but verify per failure; EOL explained 4 files / 6 tests in the
+  2026-09-26 sweep, not the whole red suite (17 files still failed after
+  normalization).
+- **Diagnose the right file.** In this class the CRLFs live in the `?raw` import
+  *target*, not the test file, so grepping test sources for literal `\n` finds
+  nothing. Check bytes of the imported file (`App.tsx` alone carried 915 CRLF
+  pairs against an all-LF index).
+- `.gitattributes` only governs **new** checkouts. A working tree created before it
+  landed stays CRLF on disk. To repair one whose tree is clean:
+  `git rm --cached -r -q . && git reset --hard` (or re-clone). Confirm with
+  `git ls-files --eol` showing `i/lf w/lf`. Never run this with uncommitted work.
 
 ## No hosted CI
 - Petra currently has **no CI by project policy**. Do not add or restore GitHub Actions/workflows, hosted checks, scheduled jobs, or automated experiment uploads until repository maintainers explicitly lift the freeze in durable project DOX.

@@ -301,3 +301,63 @@ Authenticated coordination contributor/session: Noel-Alex via the connected GitH
 - #1069 / `3a86931619349b60c7aede4228192832c57c7def` puts the explicit lineage-origin **v2 target** on `main`: `configured-founder | mutation-child | external-inoculation`, with strict migration/allocator semantics that refuse ambiguous later parentless roots rather than guessing ancestry. This is the correct future replay identity for external inoculation.
 - The live `LineageRegistryCheckpoint` remains v1. The v2 target is not yet adopted through composed checkpoint / Worker protocol / replay authority; that migration must coordinate with the active #918 resource-command protocol/replay versioning. Until that lands, #980 may validate/admit an external inoculum reference but must not make it executable by encoding a fake mutation child or silently appending an untyped root.
 - UI/render consequence: no new visual authority was introduced by either merge. Keep consuming the existing accepted `DishSceneTransaction` / `DishRenderSnapshot` data plane, treat load diagnostics as profiling-only, and keep external-organism controls unavailable until the replay-critical lineage-origin + atomic append command path is real.
+
+## 2026-09-26 — local suite repair, Vitest `?raw`/CSS contract, EOL false-reds
+
+- #1110 / `9c637f77` on `Noel/local-suite-repair-2026-09-26` carries the type-check
+  and stale-assertion repair across the app/render/sim-phage seams, plus the
+  `vitest.config.ts` and `.gitattributes` changes. **No scientific behavior,
+  parameter, or claim-ledger change**, and no simulation or rendering outcome was
+  altered to make a test pass.
+- **Honest baseline, measured in a throwaway detached worktree of clean `main`
+  (`e6936167`)**: 31 failed / 258 passed files, 64 failed / 1907 passed tests. On
+  this branch: 28 failed / 261 passed files. `main`'s suite was already red before
+  this work; the branch reduces it and does not claim a green suite. Remaining
+  failures sit in other lanes (`src/ml/**` dominates with 27 failing tests across
+  generator/incremental/execution-definition/runner/node-runtime, then
+  `tests/sim/composedEngine.test.ts`, `src/sim/evolution/lineage.test.ts`,
+  `src/app/runControls.test.ts`, `tests/app/experimentRuntime.test.ts`, compare and
+  typography). They are reported, not rewritten.
+- Vitest must keep reading `vitest.config.ts` (merged config) and `css: true` must
+  stay on: `?raw` stylesheet imports resolve to `''` without CSS processing, which
+  makes three style-contract tests assert against an empty string. The reasoning and
+  the anti-pattern now live in `tools/AGENTS.md`.
+- Several failures were **stale assertions against committed refactors**, not
+  regressions: renamed `composedLineageAuthority`/`authoritative` validator
+  messages, the deleted `genotype order` check, the `ink` to `inkSoft` token rename,
+  and the `demoSnapshot` `>= 12` floor introduced by `751e97af` (#69), which made
+  all six `dishReplayKeyframe` tests throw during fixture setup before asserting
+  anything. Each replacement assertion was checked against live source to confirm
+  the current validator still rejects the same condition; in particular
+  `src/sim/authoritative.ts:768-775` really does cover the corrupted `genotypeIds`
+  channel, so the rewritten expectation is not matching an unrelated error.
+- **A hypothesis that failed, recorded so nobody re-spends the effort.** The red
+  Windows suite looked like a CRLF artifact: no `.gitattributes`,
+  `core.autocrlf=true`, and `git ls-files --eol` reporting `i/lf w/crlf` everywhere.
+  Reproducing in an LF-normalized clean worktree disproved the broad version: 6 of 8
+  sampled failures still failed with LF. Measured EOL impact is limited to
+  `CounterfactualCompareStyles.test.ts` and `AnalysisPanel.test.tsx`. The
+  `.gitattributes` in #1110 is worth merging for platform-independent `?raw`
+  behavior, but it is **not** the fix for the rest of the red suite, and the sweep
+  must not be re-attributed to line endings.
+- Evidence-hygiene note other agents should copy: an issue number cited in the first
+  commit draft for the `demoSnapshot` floor was wrong. `git log -S` traced it to
+  `751e97af` (#69), and the commit and PR text were amended before review.
+  Provenance claims need a command behind them, not a plausible number.
+- **Windows tooling hazard that caused real damage during this sweep and was
+  reverted:** PowerShell 5.1 `Get-Content` decodes UTF-8-without-BOM as ANSI, so
+  round-tripping this file through `Get-Content` plus file-write mangled every
+  non-ASCII character (56 broken sequences, verified by byte inspection). This file
+  is UTF-8 without BOM and full of em dashes and arrows. Edit it with the editor
+  tool or with explicit `[System.Text.UTF8Encoding]::new($false)` APIs, never with
+  `Get-Content`/`Set-Content` round-trips, and verify with `git diff --stat` (an
+  unrelated whole-file churn means encoding damage, not an edit).
+- Shared-file note: `src/app/App.tsx`, `src/app/DishViewport.tsx`, and
+  `src/render/pixi/PixiDish.tsx` are hot. The `App.tsx`/`DishViewport.tsx` deltas
+  here are prop-type and call-site corrections only, but viewport/camera lanes
+  should rebase before merge.
+- `docs/TEAM_BOARD.md` was deliberately **not** edited, to keep the conflict surface
+  low while several lanes hold claims; #1110 remains the canonical work surface.
+
+Authenticated coordination contributor/session: Noel-Alex via the connected GitHub account.
+

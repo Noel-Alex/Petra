@@ -35,6 +35,35 @@ Run `python tools/verify.py quick` for local contract validation.
 
 Run `python tools/verify.py premerge` locally for the broader deterministic suite. With the TypeScript implementation substrate present, the premerge registry owns strict typechecking + Vitest through the `typescript-deterministic-suite` check.
 
+## Vitest configuration and `?raw` text assertions
+
+- Vitest options live in `vitest.config.ts`, which merges `vite.config.ts` through
+  `mergeConfig`. Do **not** switch `vite.config.ts` to `defineConfig` imported from
+  `vitest/config`: Vitest resolves its own nested copy of `vite`, whose plugin types
+  are structurally incompatible with the top-level `vite` plugins in use, and that
+  edit breaks `npm run typecheck` (`react()`/`vite-plugin-singlefile` become
+  non-assignable `PluginOption`s).
+- `css: true` is required, not cosmetic. Contract tests import real stylesheets
+  through Vite's `?raw` suffix; without CSS processing those imports resolve to an
+  empty string and the tests assert against `''` (observed:
+  `petraPrimitiveGlyph.css.test.ts`, `ExperimentRunControls.css.test.ts`,
+  `OnboardingGuide.css.test.ts`).
+- A test that slices committed source text to enforce a contract must bound the
+  slice to the construct it actually guards. Slicing between an outer and inner
+  class name folds the child element's attributes into the parent's attribute list
+  (observed in `DishViewport.liveRegion.test.ts`, where a legitimately keyed inner
+  animation node made the stable-live-region rule fail).
+- When a test fails because a validator message or fixture floor changed, repair the
+  assertion against the committed behavior and confirm the current check still
+  rejects the same condition. Do not edit production code to resurrect a deleted
+  message. Confirm provenance with `git log -S` rather than guessing an issue number.
+- `.gitattributes` forces LF for text sources. Because `?raw` tests read bytes
+  verbatim, a contributor's `core.autocrlf=true` silently changes what they observe.
+  If a `?raw` text assertion fails on one machine only, run
+  `git ls-files --eol <file>` (expect `i/lf w/crlf`) before treating it as a code
+  regression — but verify per failure; EOL explained only two failures in the
+  2026-09-26 sweep, not the whole red suite.
+
 ## No hosted CI
 - Petra currently has **no CI by project policy**. Do not add or restore GitHub Actions/workflows, hosted checks, scheduled jobs, or automated experiment uploads until repository maintainers explicitly lift the freeze in durable project DOX.
 - Verification commands remain useful, but agents/humans run them locally and record exact evidence in the relevant Issue/PR.

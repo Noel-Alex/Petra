@@ -1,4 +1,5 @@
 import { validateRenderSnapshot, type DishRenderSnapshot } from "../render/model";
+import { isComposedSimulationSnapshot } from "../sim/protocol";
 import type {
   ComposedSimulationSnapshot,
   RunIdentity,
@@ -167,7 +168,7 @@ function createComposedRuntimeDishScene(
 function requireComposedSnapshot(
   snapshot: SimulationSnapshot,
 ): ComposedSimulationSnapshot {
-  if (snapshot.checkpoint.authority !== "composed") {
+  if (!isComposedSimulationSnapshot(snapshot)) {
     throw new Error(
       "composed-runtime dish scene requires composed simulation authority",
     );

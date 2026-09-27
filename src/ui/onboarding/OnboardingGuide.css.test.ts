@@ -2,8 +2,6 @@ import { describe, expect, it } from "vitest";
 import compactActionCss from "../petraCompactAction.css?raw";
 import css from "./OnboardingGuide.css?raw";
 
-// Vite resolves raw modules in Vitest; this project intentionally omits vite/client globals.
-// @ts-expect-error Vite raw source import is runtime-supported but not declared in tsconfig types.
 import guideSource from "./OnboardingGuide.tsx?raw";
 
 describe("OnboardingGuide ambient motion source contract", () => {

@@ -23,6 +23,8 @@ import { RegionInspectorPanel } from "../ui/RegionInspectorPanel";
 import { DishViewport } from "./DishViewport";
 import { projectComposedDishSnapshot } from "./composedDishProjection";
 import { RuntimeInterventionFootprintAccumulator } from "./runtimeInterventionFootprints";
+import { isComposedSimulationSnapshot } from "../sim/protocol";
+
 import { resolveComposedDishOrganismPresentationAuthority } from "./organismPresentationBinding";
 import { resolveCiprofloxacinToolAuthorityForRun } from "./ciprofloxacinToolBinding";
 import { createCiprofloxacinInterventionPreview } from "./ciprofloxacinInterventionDraft";
@@ -206,7 +208,7 @@ export function App({
     }
 
     const interventionFootprintFrame =
-      runtimeSnapshot?.checkpoint.authority === "composed"
+      runtimeSnapshot !== null && isComposedSimulationSnapshot(runtimeSnapshot)
         ? interventionFootprintAccumulatorRef.current!.projectSnapshot(
             runtimeSnapshot,
             runBranchIdentity,

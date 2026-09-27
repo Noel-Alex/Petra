@@ -4,8 +4,6 @@ import { describe, expect, it } from "vitest";
 import { AnalysisPanel } from "./AnalysisPanel";
 import { buildLineageTree, buildScientificChart } from "./model";
 
-// Vite resolves raw assets in Vitest; this project intentionally omits vite/client globals.
-// @ts-expect-error Vite raw asset import is runtime-supported but not declared in tsconfig types.
 import analysisCss from "./analysisPanel.css?raw";
 
 const chart = buildScientificChart(

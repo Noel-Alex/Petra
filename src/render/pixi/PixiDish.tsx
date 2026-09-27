@@ -37,7 +37,7 @@ export interface PixiDishProps {
   readonly resetCameraSignal?: number;
   readonly onSemanticZoomLevelChange?: (level: SemanticZoomLevel) => void;
   /** Presentation-only normalized dish activation for authoritative query adapters. */
-  readonly onDishPointActivate?: (point: { readonly x: number; readonly y: number }) => void;
+  readonly onDishPointActivate?: ((point: { readonly x: number; readonly y: number }) => void) | undefined;
 }
 
 export type RendererStartupStatus = "idle" | "initializing" | "ready" | "failed";

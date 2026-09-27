@@ -152,7 +152,7 @@ export function projectHistoricalPresentation(
       selection === null
         ? null
         : inspectAuthoritativeRegion(
-            structuredClone(checkpoint.composedState),
+            structuredClone(checkpoint),
             selection,
           )
 

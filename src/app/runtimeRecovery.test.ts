@@ -30,7 +30,7 @@ describe("runtime recovery failure projection", () => {
   it("preserves explicit typed failure categories", () => {
     const failure = normalizeRuntimeFailure(
       new PetraRuntimeError("preset", "setup", "schema rejected field x"),
-      "runtime",
+      "integration",
     );
 
     expect(failure).toEqual(

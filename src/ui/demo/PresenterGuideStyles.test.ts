@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-// Vite resolves raw assets in the Vitest runtime; this project intentionally omits vite/client globals.
-// @ts-expect-error Vite raw asset import is runtime-supported but not declared in tsconfig types.
 import presenterCss from "./PresenterGuide.css?raw";
-// @ts-expect-error Vite raw asset import is runtime-supported but not declared in tsconfig types.
 import presenterSource from "./PresenterGuide.tsx?raw";
 
 describe("PresenterGuide presentation contracts", () => {

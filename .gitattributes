@@ -1,0 +1,37 @@
+# Normalize line endings in the index so text sources are byte-identical across
+# platforms. Several tests read real sources and stylesheets through Vite's
+# `?raw` suffix and assert on multi-line text. With a per-machine
+# `core.autocrlf=true` those imports yield CRLF on Windows checkouts and the
+# assertions fail for a reason unrelated to the code (observed on this repo:
+# src/ui/compare/CounterfactualCompareStyles.test.ts and
+# src/ui/analysis/AnalysisPanel.test.tsx fail only under CRLF).
+* text=auto
+
+# Text that tests and reproducible-identity tooling read verbatim must always be
+# LF in the working tree, independent of any contributor's autocrlf setting.
+*.ts text eol=lf
+*.tsx text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.json text eol=lf
+*.jsonc text eol=lf
+*.html text eol=lf
+*.svg text eol=lf
+*.md text eol=lf
+
+# Never normalize binary assets.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.wasm binary
+*.gz binary
+*.pdf binary

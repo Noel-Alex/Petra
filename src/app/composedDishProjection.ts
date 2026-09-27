@@ -22,6 +22,7 @@ import {
   type RenderField,
   type RenderLineage,
 } from "../render/model";
+import { isComposedSimulationSnapshot } from "../sim/protocol";
 import type {
   ComposedSimulationSnapshot,
   SimulationSnapshot,
@@ -48,7 +49,7 @@ export function projectComposedDishSnapshot(
   lineageDensityPresentationScale: SourceOwnedFixedLineageDensityPresentationScale | null = null,
   interventionFootprintFrame: RuntimeInterventionFootprintFrame | null = null,
 ): DishRenderSnapshot | null {
-  if (snapshot?.checkpoint.authority !== "composed") return null;
+  if (snapshot === null || !isComposedSimulationSnapshot(snapshot)) return null;
   return projectAuthoritativeComposedDishSnapshot(
     snapshot,
     runBranchIdentity,

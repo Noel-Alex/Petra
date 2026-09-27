@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-// Vite resolves raw assets in the Vitest runtime; this project intentionally omits vite/client globals.
-// @ts-expect-error Vite raw asset import is runtime-supported but not declared in tsconfig types.
 import compareCss from "./CounterfactualCompare.css?raw";
 
 describe("CounterfactualCompare resolved motion CSS", () => {

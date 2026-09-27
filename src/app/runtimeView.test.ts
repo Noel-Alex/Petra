@@ -66,8 +66,10 @@ function runtimeState(
       pendingCommandId: null,
       queuedRequests: 0,
       error: phase === "error" ? "worker failed" : null,
+      errorCode: null,
     },
     snapshot,
+    ecologyObservation: null,
     timeline: [],
     integrationError: options.integrationError ?? null,
   };

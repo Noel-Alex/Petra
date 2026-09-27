@@ -81,9 +81,13 @@ describe("shared lineage-density presentation", () => {
     expect(
       resolveDeclaredLineageDensityPresentationMaximum(snapshot, scale),
     ).toBe(100);
+    // Hoisted out of the call position so the literal is not excess-property
+    // checked against the broader DishVisualState parameter, which probes for an
+    // optional snapshotId at runtime.
+    const mismatchedIdentity = { ...snapshot, snapshotId: "different" };
     expect(() =>
       resolveDeclaredLineageDensityPresentationMaximum(
-        { ...snapshot, snapshotId: "different" },
+        mismatchedIdentity,
         scale,
       ),
     ).toThrow(/does not match drawable snapshot identity/);

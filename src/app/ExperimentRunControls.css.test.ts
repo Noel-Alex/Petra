@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-// Vite resolves raw modules in Vitest; this project intentionally omits vite/client globals.
-// @ts-expect-error Vite raw asset imports are runtime-supported but not declared in tsconfig types.
 import css from "./ExperimentRunControls.css?raw";
 
 function ruleBody(selector: string): string {

@@ -36,6 +36,26 @@ Sync: `git rev-list --count HEAD..origin/main` = **0** → nothing to pull; `ori
 | G11 | Content catalog is ~1 flagship scenario, not "plenty" | `data/`: 1 content pack, 1 antimicrobial pack (chloramphenicol) + ciprofloxacin preset, 1 medium (MOPS-glucose), 1 interaction, 3 phage files; runnable organisms ≈ *E. coli* MG1655, *B. subtilis*, *A. niger* No10 (+T4) |
 | G12 | Reference UI is tracked in-repo | `docs/design/ui-reference/0{1,2,3}-*.png`, 1672×941, added by `7c1017c5` "Add approved Petra UI direction reference concepts" |
 
+### Remediation status against this table (updated 2026-09-28)
+
+| # | Status | Evidence |
+|---|---|---|
+| G1 | **Fixed earlier** — do not redo | `fd940f01 perf(sim): make event history immutable copy-on-write (#1106)` + `c9c64385 perf(worker): transport only appended event history (#1107)`. `src/sim/eventHistory.ts` now keeps a `WeakMap` parent chain so `simulationEventHistoryDelta` is O(newly appended), and the surviving `[...history, stored]` copy is the intended copy-on-write prefix cost of the immutable-array interface. |
+| G3 | **Partly fixed, honestly bounded** | Same two commits remove the per-append full-history walk/clone from the transport path. The array prefix copy in `appendSimulationEventHistory` remains O(history) per append; replacing it means changing the history representation (e.g. persistent vector), which is **not** justified until a measured frontier actually shows it hurting. |
+| G4 | **Fixed here** | `src/app/liveAnalysisHistory.ts`: samples are deep-frozen at append, `snapshot()` reuses a cached frozen array and shares frozen identity/policy instead of `structuredClone`-ing the whole series per call. n snapshots now cost O(n) amortized in the snapshot path instead of O(n²). Contract change recorded in `src/app/AGENTS.md`; regression tests replaced/added in `tests/app/liveAnalysisHistory.test.ts`. |
+| G2 | **Confirmed, still open** | Fast-path tests still assert source strings; the harness fix now at least makes real frame capture possible (see measured baseline). |
+| G5–G12 | Untouched by this change | G5 still amplifies G4's *retained volume*, but no longer its per-call cost. |
+
+Verification actually run for G4: `npm run typecheck` → exit 0. Full local suite (no CI, per project
+freeze) `npx vitest run` → **1952 passed / 25 failed (1977)**; the identical **18-file / 25-failure**
+set reproduces with these two files stashed at HEAD (**1951 passed / 25 failed, 1976**), so the 25
+failures are pre-existing on this branch and this change introduces none while adding one passing
+test. `src/app/analysisMetrics.ts` was audited: `buildAuthoritativeMetricSeries` only reads its
+`samples` argument, so handing out shared frozen rows is safe for the sole consumer
+(`runtimeAnalysisTransaction.ts`).
+
+
+
 ### Reference UI facts extracted by pixel sampling (agent cannot view images)
 
 Palette is a dark, low-saturation navy/teal ground: `#102030` 32-37%, `#001020` 18-33%,
@@ -97,6 +117,67 @@ blocked on.
 
 Deliverable = committed harness + committed baseline numbers. **No optimization claim until a
 baseline exists.**
+
+### Measured baseline — 2026-09-28 (first frame numbers this project has produced)
+
+Environment: production bundle via `npm run preview` of `dist/`, headless Chrome on
+`C:\Program Files\Google\Chrome\Application\chrome.exe`, **SwiftShader software WebGL**
+(`--use-angle=swiftshader`), 1440×900, DPR 1, Motion Off, scenario
+`ecoli-ciprofloxacin-spatial`, engine `petra-ts-core/0.1.0`.
+Run `20260928133836789Z`, summary `56 pass / 12 fail / 4 blocked` (previously
+`23/12/3` with **zero** frame data because no GL context existed).
+
+Renderer-owned synchronous camera redraw vs total frame interval, 175 frames per workload:
+
+| Workload | Frame avg | Frame p95 | Frames > 33 ms | Redraw avg | Redraw p95 |
+| --- | --- | --- | --- | --- | --- |
+| whole-dish (t≈0) | 82.99 ms | 91.70 ms | 175/175 | 0.469 ms | 0.70 ms |
+| colony camera zoom | 82.68 ms | 91.60 ms | 175/175 | 0.371 ms | 0.50 ms |
+| post-growth whole-dish | 82.85 ms | — | 175/175 | 0.490 ms | — |
+| post-growth colony zoom | 83.09 ms | — | 175/175 | 0.426 ms | — |
+
+Reading these honestly:
+
+- **Petra's own camera redraw work is ~0.4–0.7 ms.** The ~83 ms frame interval is almost
+  entirely outside application code: SwiftShader rasterizes a 610×610 surface on CPU threads
+  shared with everything else on this machine. **The frame-interval column must not be used as
+  a release gate** — it measures this software rasterizer, not a GPU. The redraw column is the
+  application-attributable number and it is already well inside budget.
+- **These numbers do not yet exercise G1/G3/G4.** The post-growth workload reached only
+  **17 accepted commands / 5.44 h / 1 873 occupied cells**, and the redraw cost is flat across
+  early and late (0.469 → 0.490 ms). That is a *weak workload*, not evidence of no slowdown —
+  the two `post-growth: authoritative frontier reached` checks are correctly `blocked`. Raising
+  the frontier into thousands of commands/events is the prerequisite for any Phase 1 claim.
+- `framesOver33ms = 175/175` in every workload is therefore a rasterizer property, and the two
+  `p95 under 33.4ms` failures are **not** attributable to application code in this environment.
+  The Phase 0 gate has to be restated against a real GPU (see Gate restatement below).
+
+What the now-working harness surfaced about camera gestures (previously invisible, because every
+prior run had no GL context at all): the camera pipeline **works**, but a **single wheel tick of
+`deltaY = -32` produces no observable change at all.** A dedicated probe
+(`.petra_local/camera_probe.py`, artifact `.petra_local/camera-probe.json`) compared the full
+page PNG hash and the dish panel text after each gesture, all against the same settled frame:
+
+| Gesture | Page PNG changed | Dish text changed |
+| --- | --- | --- |
+| one wheel, `deltaY = -32` | **no** | no |
+| 12 × wheel, `deltaY = -120` | yes | yes |
+| keyboard `+` (Shift+Equal) | yes | — |
+
+The wheel event is genuinely owned (`defaultPrevented: true`), the canvas stays
+610×610, and `rendererSource = authoritative-snapshot` throughout, so this is not the
+"zeroing GL failure" pattern from before. The honest reading is **single-tick wheel zoom is
+below observable resolution**, not "camera is broken" — cumulative wheel and keyboard zoom both
+work. Two consequences, both actionable:
+
+- The acceptance assertion is too weak a probe of real interaction: it asserts that **one**
+  `-32` tick must move pixels. It should assert a gesture sequence a user would actually
+  perform, and separately assert per-tick responsiveness if per-tick responsiveness is a
+  product requirement.
+- Whether `-32` is *supposed* to be invisible is an unresolved product/science-of-use question
+  (trackpads emit small deltas constantly; a first tick that feels dead is a real UX defect).
+  It needs a delta-sweep measurement before any threshold is changed, so a fix is grounded in
+  data rather than a guessed constant.
 
 ## Phase 1 — Kill simulation-age slowdown (#1102, #1081)
 

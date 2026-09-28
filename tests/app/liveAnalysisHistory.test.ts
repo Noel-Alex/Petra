@@ -176,14 +176,43 @@ describe("live authoritative analysis history", () => {
     expect(state.samples.map((sample) => sample.tick)).toEqual([0, 2]);
   });
 
-  it("returns detached sample history so presentation consumers cannot mutate authority", () => {
+  it("hands consumers deep-frozen samples so presentation code cannot mutate authority", () => {
     const engine = new ComposedSimulationEngine(identity, config);
     const accumulator = history();
     accumulator.append(engine.snapshot());
 
-    const first = accumulator.snapshot();
-    (first.samples[0] as { totalBiomass: number }).totalBiomass = 999;
+    const state = accumulator.snapshot();
+    const sample = state.samples[0]!;
+    expect(Object.isFrozen(sample)).toBe(true);
+    expect(() => {
+      (sample as { totalBiomass: number }).totalBiomass = 999;
+    }).toThrow(TypeError);
 
     expect(accumulator.snapshot().samples[0]!.totalBiomass).toBe(2);
+  });
+
+  it("shares one immutable sample view between snapshots instead of deep-cloning per call", () => {
+    const engine = new ComposedSimulationEngine(identity, config);
+    const accumulator = history();
+    accumulator.append(engine.snapshot());
+    accumulator.append(
+      engine.execute({ id: "advance-1", type: "advance", ticks: 1 }),
+    );
+
+    const before = accumulator.snapshot();
+    expect(before.samples).toHaveLength(2);
+    // No append in between: the immutable view is reused, not rebuilt.
+    expect(accumulator.snapshot().samples).toBe(before.samples);
+    expect(accumulator.snapshot().identity).toBe(before.identity);
+
+    // A later append must never mutate a view an older transaction still holds.
+    accumulator.append(
+      engine.execute({ id: "advance-2", type: "advance", ticks: 1 }),
+    );
+    const after = accumulator.snapshot();
+    expect(after.samples).not.toBe(before.samples);
+    expect(after.samples).toHaveLength(3);
+    expect(before.samples).toHaveLength(2);
+    expect(after.samples[0]).toBe(before.samples[0]);
   });
 });

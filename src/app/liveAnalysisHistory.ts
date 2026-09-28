@@ -37,6 +37,13 @@ export class LiveAnalysisHistory {
   private readonly resistantGenotypeIds: readonly string[];
   private readonly knownGenotypeIds: ReadonlySet<string> | null;
   private readonly samples: AuthoritativeMetricSample[] = [];
+  /**
+   * Lazily built immutable view over `samples`. Every sample is deep-frozen at
+   * append time, so the view can be shared with consumers instead of being
+   * deep-cloned on every `snapshot()` call. Appends drop the cache and build a
+   * new array, so a view handed to an older transaction never changes.
+   */
+  private sampleView: readonly AuthoritativeMetricSample[] | null = null;
   private acceptedSnapshotCount = 0;
   private lastCommandCount: number | null = null;
   private lastTraceHash: string | null = null;
@@ -56,7 +63,7 @@ export class LiveAnalysisHistory {
     readonly knownGenotypeIds?: readonly string[];
   }) {
     validateMetricSamplingPolicy(args.samplingPolicy);
-    this.identity = structuredClone(args.identity);
+    this.identity = deepFreeze(structuredClone(args.identity));
     this.samplingPolicy = Object.freeze({ ...args.samplingPolicy });
     this.resistantGenotypeIds = Object.freeze(
       args.resistantGenotypeIds.map((id, index) => {
@@ -185,22 +192,50 @@ export class LiveAnalysisHistory {
       );
     }
 
-    this.samples.push(structuredClone(sample));
+    this.samples.push(deepFreeze(structuredClone(sample)));
+    this.sampleView = null;
     this.lastSampleTick = sample.tick;
     return true;
   }
 
+  /**
+   * Build the immutable transaction view. This is O(newly appended samples)
+   * amortized rather than O(total retained samples): identity and sampling
+   * policy are frozen at construction and shared by reference, and the sample
+   * view is cached between appends instead of being deep-cloned per call.
+   * Runtime analysis calls this once per accepted snapshot, so a full clone
+   * here would make a run of n snapshots cost O(n²).
+   */
   snapshot(): LiveAnalysisHistorySnapshot {
+    if (this.sampleView === null) {
+      this.sampleView = Object.freeze([...this.samples]);
+    }
     return Object.freeze({
       schemaVersion: LIVE_ANALYSIS_HISTORY_SCHEMA_VERSION,
-      identity: structuredClone(this.identity),
-      samplingPolicy: { ...this.samplingPolicy },
+      identity: this.identity,
+      samplingPolicy: this.samplingPolicy,
       acceptedSnapshotCount: this.acceptedSnapshotCount,
       lastCommandCount: this.lastCommandCount,
       lastTraceHash: this.lastTraceHash,
-      samples: Object.freeze(this.samples.map((sample) => structuredClone(sample))),
+      samples: this.sampleView,
     });
   }
+}
+
+function deepFreeze<T>(value: T): T {
+  if (
+    value === null ||
+    typeof value !== "object" ||
+    Object.isFrozen(value)
+  ) {
+    return value;
+  }
+
+  for (const nested of Object.values(value as Record<string, unknown>)) {
+    deepFreeze(nested);
+  }
+
+  return Object.freeze(value);
 }
 
 function sameRunIdentity(left: RunIdentity, right: RunIdentity): boolean {

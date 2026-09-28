@@ -376,3 +376,54 @@ Authenticated coordination contributor/session: Noel-Alex via the connected GitH
 
 Authenticated coordination contributor/session: Noel-Alex via the connected GitHub account.
 
+## 2026-09-26 (late) — research source-sheet lanes: 3 of 4 produced zero admissible values; `fungi_v1` independently verified, one prose defect
+
+Content audit after all four research lanes terminated (wall-clock / socket / stream errors). An
+earlier status line — "all four sheets have valid headers, three parse-clean JSONs" — was true but
+**misleading**: it validated syntax, not content. Same failure mode as the line-ending trap above:
+a check that passes while measuring the wrong thing.
+
+Measured content of the untracked `research/source_sheets/` drafts:
+
+| sheet | `AWAITING SOURCE` markers | DOI strings | JSON records | records with value **and** citation |
+|---|---|---|---|---|
+| `enterobacteriaceae_v1` | 23 | 0 | 1 | **0** |
+| `antimicrobial_pkpd_v1` | 9 | 0 | 2 | **0** |
+| `gram_positive_v1` | 28 | 0 | none (no JSON) | **0** |
+| `fungi_v1` | 0 | 6 | 12 | **12** |
+
+- Three lanes wrote scaffolds and died before sourcing anything. `enterobacteriaceae_v1.json`
+  contains a self-labelled placeholder (`record_id: SKELETON`,
+  `parameter: PLACEHOLDER_skeleton_only`, `value`/`doi`/`url` all `null`) whose `organism` field is
+  misspelled `Escherichichia coli K-12 MG1655`. Left in place for its owning lane; it must not be
+  admitted to a parameter pack, and the misspelled taxon must not propagate into one.
+- `fungi_v1` was verified independently rather than trusting the lane's own
+  `verification: "source-verified"` field. Both cited tables were re-fetched and matched exactly:
+  PMC13038894 Table 2 row `Calsa 0.21 ± 0.00 B 0.16–0.25 / 7.46 ± 0.13 A 1.24–13.68 /
+  31.86 ± 0.67 A 27.75–35.96 / 45.28 ± 0.22 A 43.19–47.37` confirms `FUN-CTMI-001..004`;
+  PMC7251540 Table 5 row `CEN.PK113-7D 30 °C 0.498±0.011 1.717±0.033 1.636±0.032 0.144±0.003`
+  confirms `FUN-YLD-033/034/035` including SDs and 95% CI bounds. The values are faithful.
+- **Defect found — in interpretation, not in data:** `FUN-YLD-034.transfer_note` says glycerol
+  yield "rises with temperature in ADY5/Ethanol Red but falls in CEN.PK". The very table that
+  record cites gives Ethanol Red 0.210 → 0.178 → 0.176 (12 → 30 → 39 °C, monotonically **falling**)
+  and ADY5 0.165 → 0.174 → 0.125 (rises only across 12 → 30, then falls). The CEN.PK half is
+  correct (0.162 → 0.144 → 0.113). No numeric record needs to change; the note should be corrected.
+  This matters precisely because Petra's rule is *do not pool strain-dependent behaviour* — a wrong
+  trend description is what would make pooling look justified. Left unedited: the file belongs to
+  its owning lane and needs that lane's claim-ledger pass.
+- The surviving sheet's discipline is good and worth keeping as the template: unresolved fields
+  carry `see Gaps G-01` instead of an invented value, and cross-system values carry explicit
+  `transfer_note` caveats.
+- Housekeeping hazard: `research/source_sheets/` is untracked and **not** ignored, so a
+  `git add -A` would sweep these scaffolds into a commit. Stage explicit paths only; `.gitignore`
+  covers `_cache/` alone, which is where the ~15 MB Adobe/Apache POI vendor binaries live.
+- Re-issue shape for the dead lanes: full organism-list scopes are the observed failure mode (4 of
+  4 died on transport/wall-clock). Re-issue per organism or per parameter family so one fetch-set
+  fits the budget, and write records incrementally rather than scaffold-then-fill.
+
+This entry is documentation only; it changes no scientific behaviour and no code, so the #1110
+verification numbers above are unaffected.
+
+Authenticated coordination session: agent session operating under the repository maintainer's
+GitHub account; research drafts left uncommitted for their owning lane.
+

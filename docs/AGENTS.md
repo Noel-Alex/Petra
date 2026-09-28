@@ -19,6 +19,11 @@ This subtree is Petra's durable product/science/engineering specification and co
 
 ## Work guidance
 Prefer one authoritative home per concept and cross-link rather than duplicating equations/parameters across many documents.
+- Active execution plans keep their own file plus an in-file tracker, and that tracker is
+  authoritative for its lane. Current lane: [`PERFORMANCE_AND_PRODUCT_PLAN.md`](PERFORMANCE_AND_PRODUCT_PLAN.md)
+  (lag/long-run performance, visual fidelity to `design/ui-reference/`, organism/antimicrobial/
+  nutrient content). Two standing rules from that plan: performance claims require measured
+  frames — source-text assertions are not evidence — and no profiler ships without a paired fix.
 
 ## Verification
 Run repository verification for changed structured data/docs when available and manually check links/contradictions in touched specs.

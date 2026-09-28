@@ -427,3 +427,22 @@ verification numbers above are unaffected.
 Authenticated coordination session: agent session operating under the repository maintainer's
 GitHub account; research drafts left uncommitted for their owning lane.
 
+### 2026-09-28 — performance/content recovery lane opened (`Noel/perf-recovery-2026-09-28`)
+
+Perf work here repeatedly produced measurement rigs, camera stress profiles, and source-text
+contract tests while the open perf P0/P1s (#1102, #1081, #869, #865, #876, #850, #1054) stayed
+unassigned and `release-responsive-performance-matrix` stayed a `blocked` stub — so the suite
+reported green while the app stayed laggy. The active lane is now
+`docs/PERFORMANCE_AND_PRODUCT_PLAN.md`, and its tracker/gates are authoritative for that work.
+Its recorded ground truth includes the two O(n²) growth paths (`src/sim/eventHistory.ts:31`
+full-array copy per appended event; `src/app/liveAnalysisHistory.ts:201` full-history deep clone
+per snapshot), the 20 Hz whole-state React publication in `useExperimentRuntime.ts`, the
+single-revision render-cache invalidation that re-bakes rasters and per-lineage contours on every
+tick, and the fact that shipped content is one flagship scenario rather than the breadth the
+product needs. Two standing rules: performance claims require measured frames, and no profiler
+ships without a paired fix.
+
+Honest capability note: this session's agent cannot view images, so visual fidelity to
+`docs/design/ui-reference/` is pursued by quantitative palette/layout extraction and diffing, with
+a human review pass required per milestone rather than self-certified.
+

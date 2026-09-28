@@ -36,6 +36,25 @@ CDP_PORT = 9223
 TARGET_URL = f"http://{HOST}:{VITE_PORT}/"
 MOTION_PREFERENCE_SOURCE = ROOT / "src" / "ui" / "motion" / "preference.ts"
 
+# Headless Chrome exposes no usable WebGL context without these flags. Without a
+# context Pixi cannot create a canvas, the renderer stays "idle", and every
+# renderer/frame/performance workload in this harness silently no-ops while the
+# run still reports a summary. This is why "performance: renderer ready" was a
+# permanent fail and no frame time was ever recorded. Software rasterization
+# (SwiftShader) is intentional: the numbers are then device-independent and
+# comparable across machines, and the evidence boundary must state that the
+# host GPU is not being measured.
+BROWSER_GL_FLAGS = [
+    "--use-gl=angle",
+    "--use-angle=swiftshader",
+    "--enable-unsafe-swiftshader",
+]
+
+# Number of camera-redraw frames sampled per renderer workload. Configurable so
+# the same harness can do a quick smoke pass on a slow machine and a full
+# statistical sample on the reference laptop without editing code mid-run.
+FRAME_SAMPLE_COUNT = int(os.environ.get("PETRA_PERF_FRAME_SAMPLES", "180"))
+
 
 def canonical_motion_storage_key() -> str:
     source = MOTION_PREFERENCE_SOURCE.read_text(encoding="utf-8")
@@ -172,22 +191,49 @@ class CDP:
         masked = bytes(byte ^ mask[i % 4] for i, byte in enumerate(payload))
         self.sock.sendall(header + mask + masked)
 
-    def call(self, method: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+    def call(
+        self,
+        method: str,
+        params: dict[str, Any] | None = None,
+        *,
+        timeout: float | None = None,
+    ) -> dict[str, Any]:
+        """Dispatch one CDP request.
+
+        ``timeout`` overrides the connection-wide socket timeout for this call
+        only. Long browser workloads (for example 180 synchronous software-WebGL
+        redraws inside a single awaited expression) legitimately exceed the
+        default 10 s socket timeout, and letting them raise a bare socket
+        ``TimeoutError`` silently destroyed the whole performance pass.
+        """
         request_id = self.next_id
         self.next_id += 1
         payload: dict[str, Any] = {"id": request_id, "method": method}
         if params:
             payload["params"] = params
         self._send_text(json.dumps(payload))
-        while True:
-            message = json.loads(self._recv_text())
-            if message.get("id") != request_id:
-                continue
-            if "error" in message:
-                raise RuntimeError(f"CDP {method} failed: {message['error']}")
-            return message.get("result", {})
+        previous_timeout = self.sock.gettimeout()
+        if timeout is not None:
+            self.sock.settimeout(timeout)
+        try:
+            while True:
+                message = json.loads(self._recv_text())
+                if message.get("id") != request_id:
+                    continue
+                if "error" in message:
+                    raise RuntimeError(f"CDP {method} failed: {message['error']}")
+                return message.get("result", {})
+        finally:
+            if timeout is not None:
+                self.sock.settimeout(previous_timeout)
 
-    def eval(self, expression: str, *, await_promise: bool = False) -> Any:
+    def eval(
+        self,
+        expression: str,
+        *,
+        await_promise: bool = False,
+        timeout: float | None = None,
+    ) -> Any:
         result = self.call(
             "Runtime.evaluate",
             {
@@ -195,6 +241,7 @@ class CDP:
                 "returnByValue": True,
                 "awaitPromise": await_promise,
             },
+            timeout=timeout,
         )
         inner = result.get("result", {})
         if inner.get("subtype") == "error":
@@ -1948,7 +1995,7 @@ def renderer_frame_samples(cdp: CDP) -> dict[str, Any] | None:
               synchronousRedrawMs.push(previousRedrawMs);
             }
 
-            if (frameIntervalsMs.length >= 180) {
+            if (frameIntervalsMs.length >= __FRAME_SAMPLE_COUNT__) {
               resolve({
                 frameIntervalsMs: frameIntervalsMs.slice(5),
                 rendererOwned: rendererOwned.slice(5),
@@ -1982,8 +2029,13 @@ def renderer_frame_samples(cdp: CDP) -> dict[str, Any] | None:
           }
 
           requestAnimationFrame(step);
-        })""",
+        })""".replace("__FRAME_SAMPLE_COUNT__", str(FRAME_SAMPLE_COUNT)),
         await_promise=True,
+        # Each iteration performs a synchronous renderer redraw. Under
+        # software rasterization that is tens of ms per frame, so the whole
+        # awaited workload can legitimately run far longer than the default
+        # socket timeout.
+        timeout=60.0 + FRAME_SAMPLE_COUNT * 1.0,
     )
     if not isinstance(workload, dict):
         return None
@@ -2083,10 +2135,10 @@ def run_control_state(cdp: CDP) -> dict[str, Any] | None:
             (button) => button.textContent?.trim() === 'Pause'
           );
           const timeText = timeNode.textContent?.trim() ?? '';
-          const timeMatch = /^Simulation time ([0-9]+(?:\.[0-9]+)?) h$/.exec(
+          const timeMatch = /^Simulation time ([0-9]+(?:\\.[0-9]+)?) h$/.exec(
             timeText
           );
-          const identityText = identityNode?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+          const identityText = identityNode?.textContent?.replace(/\\s+/g, ' ').trim() ?? '';
           const commandMatch = /Replay history ([0-9]+) accepted command/.exec(
             identityText
           );
@@ -2227,7 +2279,13 @@ def playback_window_samples(
 
       requestAnimationFrame(step);
     })""".replace("__DURATION_MS__", str(int(duration_ms)))
-    result = cdp.eval(expression, await_promise=True)
+    result = cdp.eval(
+        expression,
+        await_promise=True,
+        # Duration-bounded, but rAF delivery can lag well past the requested
+        # window while software rasterization drains camera redraws.
+        timeout=30.0 + duration_ms / 1000.0,
+    )
     return result if isinstance(result, dict) else None
 
 def percentile(values: list[float], fraction: float) -> float | None:
@@ -3086,6 +3144,16 @@ def performance_pass(cdp: CDP) -> list[dict[str, Any]]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--vite-port", type=int, default=VITE_PORT)
+    parser.add_argument(
+        "--serve",
+        choices=["dev", "preview"],
+        default="dev",
+        help=(
+            "dev = Vite dev server (historical behaviour). preview = the production "
+            "bundle via vite preview, which is the only defensible target for "
+            "release-candidate performance claims."
+        ),
+    )
     args = parser.parse_args()
     if args.vite_port != VITE_PORT:
         raise SystemExit(f"This harness currently expects Vite port {VITE_PORT}.")
@@ -3101,7 +3169,7 @@ def main() -> int:
 
     try:
         vite = subprocess.Popen(
-            resolve_local_command(["npm", "run", "dev", "--", "--host", HOST, "--port", str(VITE_PORT), "--strictPort"]),
+            resolve_local_command(["npm", "run", args.serve, "--", "--host", HOST, "--port", str(VITE_PORT), "--strictPort"]),
             cwd=ROOT,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
@@ -3119,6 +3187,7 @@ def main() -> int:
                 "--disable-background-networking",
                 "--disable-component-update",
                 "--disable-sync",
+                *BROWSER_GL_FLAGS,
                 "about:blank",
             ],
             stdout=subprocess.DEVNULL,
@@ -3160,7 +3229,14 @@ def main() -> int:
                     proc.wait(timeout=5)
                 except subprocess.TimeoutExpired:
                     proc.kill()
-        user_data.cleanup()
+        # Chrome can still hold files in the temp profile when terminate() returns
+        # on Windows. Cleanup must never be able to throw out of this finally
+        # block: it sits before RESULT_JSON is written, so a transient WinError 32
+        # here silently destroyed the entire completed run's evidence.
+        try:
+            user_data.cleanup()
+        except Exception as cleanup_error:  # noqa: BLE001 - evidence preservation wins
+            print(f"warning: browser profile cleanup failed: {cleanup_error!r}")
 
     passed = sum(item["status"] == "pass" for item in checks)
     failed = sum(item["status"] == "fail" for item in checks)
@@ -3169,7 +3245,9 @@ def main() -> int:
         "schema_version": 1,
         "kind": "petra-expo-browser-acceptance",
         "target_url": TARGET_URL,
+        "serve_mode": args.serve,
         "browser_executable": chrome,
+        "browser_gl_flags": BROWSER_GL_FLAGS,
         "checks": checks,
         "summary": {"pass": passed, "fail": failed, "blocked": blocked},
         "evidence_boundary": (

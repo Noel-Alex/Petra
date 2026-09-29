@@ -41,7 +41,8 @@ Sync: `git rev-list --count HEAD..origin/main` = **0** → nothing to pull; `ori
 | # | Status | Evidence |
 |---|---|---|
 | G1 | **Fixed earlier** — do not redo | `fd940f01 perf(sim): make event history immutable copy-on-write (#1106)` + `c9c64385 perf(worker): transport only appended event history (#1107)`. `src/sim/eventHistory.ts` now keeps a `WeakMap` parent chain so `simulationEventHistoryDelta` is O(newly appended), and the surviving `[...history, stored]` copy is the intended copy-on-write prefix cost of the immutable-array interface. |
-| G3 | **Partly fixed, honestly bounded** | Same two commits remove the per-append full-history walk/clone from the transport path. The array prefix copy in `appendSimulationEventHistory` remains O(history) per append; replacing it means changing the history representation (e.g. persistent vector), which is **not** justified until a measured frontier actually shows it hurting. |
+| G3 | **Measured and re-diagnosed — the plan targeted the wrong term** | My earlier "not justified until measured" note was itself unmeasured, and wrong in direction. Measured (`node`, production-free pure append loop): per-1000-event append cost is 16.4 ms at n=2 000, 42.7 ms at n=8 000, 145.9 ms at n=20 000 — quadratic, with late/early per-append ratio **4.8×-27×**, far outside the ≤1.15 gate. But the same measurement splits the per-command cost: at n=20 000 the array prefix copy costs **0.23 ms** while one `simulationSnapshotTraceHash` call costs **~51 ms**. The copy is ~0.5% of the per-command cost. Chunking the log cannot move the gate; see **Phase 1 correction** below. |
+| G13 | **The real per-command O(n) term is the snapshot trace hash** (new, measured here) | `src/sim/composedEngine.ts:342` and `:381` call `simulationSnapshotTraceHash` per accepted command; `src/sim/snapshotTrace.ts` FNV-walks the **entire** retained event history, re-running `Object.keys().sort()` + `JSON.stringify` per event every time. At n=20 000 that is ~50 ms inside the accepted-command path — the "steps slow down as the simulation ages" symptom. |
 | G4 | **Fixed here** | `src/app/liveAnalysisHistory.ts`: samples are deep-frozen at append, `snapshot()` reuses a cached frozen array and shares frozen identity/policy instead of `structuredClone`-ing the whole series per call. n snapshots now cost O(n) amortized in the snapshot path instead of O(n²). Contract change recorded in `src/app/AGENTS.md`; regression tests replaced/added in `tests/app/liveAnalysisHistory.test.ts`. |
 | G2 | **Confirmed, still open** | Fast-path tests still assert source strings; the harness fix now at least makes real frame capture possible (see measured baseline). |
 | G5–G12 | Untouched by this change | G5 still amplifies G4's *retained volume*, but no longer its per-call cost. |
@@ -199,6 +200,49 @@ Highest leverage on "steps get slow later on".
   ratio ≤ 1.15); unchanged `traceHash` via `seed_replay_matrix`; `npm test` green apart from the
   3 known-red tests listed under Hazards.
 
+### Phase 1 correction — what the measurement actually showed (2026-09-28)
+
+The Phase 1 prescription above was written before anything was measured. Measured on this machine
+(node, steady state = median of repeated accepted-command hashes against a growing history):
+
+| n events | array copy / command | trace hash / command (before) | trace hash / command (after) | steady speedup |
+| --- | --- | --- | --- | --- |
+| 2 000 | 0.037 ms | 6.09 ms | 2.37 ms | **2.57×** |
+| 5 000 | — | 14.91 ms | 6.10 ms | **2.44×** |
+| 20 000 | 0.23 ms | 56.54 ms | 33.49 ms | **1.69×** |
+
+Two conclusions, one fixed and one escalated:
+
+**Fixed here, byte-for-byte digest-preserving.** `src/sim/snapshotTrace.ts` now memoizes canonical
+trace text per **deep-frozen** node. Accepted events are deep-frozen at append, so their canonical
+bytes can never change, yet every accepted command re-ran `Object.keys().sort()` +
+`JSON.stringify` over the whole retained history. The memo verdict is *deep* (not
+`Object.isFrozen`, which is shallow) and a negative verdict is also remembered, so a frozen parent
+with mutable children keeps the incremental walk. Byte-identity is not asserted from reasoning:
+1 002 randomized payloads (frozen / mutable / shallow-frozen-with-mutable-children / sparse arrays
+/ mutate-after-first-hash) matched the HEAD implementation exactly, digests `09ade752`, `8074bea5`,
+`2480e628` matched at 2 000 / 5 000 / 20 000 events, and two permanent regression tests now hold the
+contract in `tests/sim/snapshotTrace.test.ts`.
+
+**The byte-identical ceiling is ~2×, and that is a hard limit, not an unfinished optimization.**
+`SNAPSHOT_TRACE_ALGORITHM` hashes the canonical bytes of `{checkpoint, events}`; sorted keys put
+`checkpoint` **before** `events`, and the checkpoint changes on every command. FNV-1a is a strictly
+sequential accumulator and is not composable across a changed prefix, so no incremental or rolling
+form can reproduce the existing digest. The per-command cost therefore stays O(retained history),
+and the Phase 1 flat-curve gate **cannot** be met without changing the trace algorithm.
+
+**Escalated — maintainer decision, not mine to make unilaterally.** The asymptotic fix is a
+versioned trace algorithm (e.g. fold a rolling event digest that excludes the mutable checkpoint
+prefix, under a new `SNAPSHOT_TRACE_ALGORITHM` id, verifying legacy artifacts by recorded id). That
+changes trace identity, which AGENTS.md treats as a reproducibility contract ("fixed scenario + seed
++ engine version must produce a reproducible trace"), so it needs an explicit decision plus an
+artifact-migration/verification plan before any code changes. Sizing that decision is the next
+action; the `seed_replay_matrix` run is the gate that proves whether today's change is trace-neutral.
+
+The array-copy chunking item is **superseded by measurement, not passed**: at 0.23 ms of a ~34 ms
+per-command cost it cannot move the ≤1.15 gate. It stays listed so the number is not re-litigated.
+
+
 ## Phase 2 — Publication and React decoupling (#876, #850, #630)
 
 - Replace the 20 Hz whole-state `setInterval` publication in `useExperimentRuntime.ts` with
@@ -289,13 +333,13 @@ second.
 ## Execution tracker
 
 - [x] Plan written and committed
-- [ ] P0 `npm run build` succeeds; `vite preview` declared as release-candidate target
+- [x] P0 `npm run build` succeeds — verified `BUILD_EXIT=0` on 2026-09-28; `vite preview` declared as release-candidate target
 - [ ] P0 `tools/perf_baseline.py` exists and runs against the production bundle
 - [ ] P0 baseline numbers committed; dev-vs-build split recorded; posted to #642/#850
-- [ ] P1 event-history chunking — soak curve flat, late/early ≤ 1.15
-- [ ] P1 `liveAnalysisHistory.snapshot()` no longer deep-clones full history
+- [~] P1 event-history chunking — soak curve flat, late/early ≤ 1.15 — **superseded by measurement, not met.** Copy is 0.23 ms of a ~34 ms per-command cost at n=20 000; the gate is held shut by the trace hash (G13), not the copy. Do not re-attempt chunking as the fix for this gate.
+- [x] P1 `liveAnalysisHistory.snapshot()` no longer deep-clones full history
 - [ ] P1 footprint incremental index (#1081)
-- [ ] P1 `traceHash` unchanged (`seed_replay_matrix`)
+- [x] P1 `traceHash` unchanged — `seed_replay_matrix` `SRM_EXIT=0` **plus** the stronger check it cannot make: 17 real `SimulationEngine` snapshots (to 207 events) and 1 002 randomized payloads all digest identically against the pre-change implementation
 - [ ] P2 rAF-coalesced publication; React ≤ 1 commit/frame, commit < 4 ms
 - [ ] P3 per-layer cache invalidation; camera-only frames allocate no rasters/contours/selection
 - [ ] P3 camera gate passes at t≈0 **and** post-growth (#1054 evidence)
@@ -309,3 +353,39 @@ second.
 
 Append one dated entry per meaningful checkpoint: what ran, measured numbers, what is still
 unproven. Claims without a measurement under this heading are not allowed.
+
+### 2026-09-28 — trace-hash hot path fixed; Phase 1 diagnosis corrected by measurement
+
+Ran locally (CI freeze respected): `npm run typecheck` → 0. `npm run build` → 0.
+`seed_replay_matrix` experiment → `SRM_EXIT=0` (1 passed, 20.66 s). Targeted suite
+`snapshotTrace + eventHistory + eventDeltaTransport` → 19/19.
+
+Full-suite claim is from a **controlled same-run A/B**, not the older note above: with these two
+files stashed at the same commit the suite gives **24 failed / 1953 passed (1977)**, and with them
+applied **24 failed / 1955 passed (1979)**. `Compare-Object` on the per-file failure counts is
+**identical** — same 17 files, same failure count in each — and passed rises by exactly the 2 tests
+added here. So this change introduces no failure. The earlier "25 failure / 18 file" figure in this
+document was a looser comparison and should be read as superseded by this controlled one.
+
+Measured, in this session, first numbers of their kind for this lane:
+
+- Event-history append is genuinely quadratic: 16.4 → 42.7 → 145.9 ms per 1000 events at
+  n = 2 000 / 8 000 / 20 000; late/early per-append ratio 4.8×–27× (gate is ≤ 1.15).
+- But per accepted command at n = 20 000: array copy **0.23 ms** vs `simulationSnapshotTraceHash`
+  **~51 ms**. The plan's Phase 1 fix targeted 0.5% of the cost. Recorded as G13.
+- Fix shipped in `src/sim/snapshotTrace.ts`: canonical trace text memoized per **deep-frozen**
+  node (deep verdict, negatives remembered). Steady-state per-command hash 6.09 → 2.37 ms at
+  n = 2 000 (2.57×), 14.91 → 6.10 ms at n = 5 000 (2.44×), 56.54 → 33.49 ms at n = 20 000 (1.69×).
+- Byte-identity evidence, because a digest change here would silently break replay identity:
+  1 002 randomized payloads and 17 real engine snapshots (up to 207 events) digest identically to
+  the pre-change implementation; digests `09ade752` / `8074bea5` / `2480e628` match at 2 k / 5 k /
+  20 k events. Two permanent regression tests added, including the shallow-frozen-with-mutable-child
+  cache-poisoning case.
+
+Still unproven / open: the ~2× is the **hard byte-identical ceiling** — FNV-1a over
+`{checkpoint, events}` cannot be made incremental because the mutable checkpoint serializes first.
+Meeting the ≤1.15 gate requires a versioned trace algorithm, which changes trace identity and is
+therefore escalated as a maintainer decision with a migration plan, not applied here. #1081,
+`tools/perf_baseline.py`, and Phases 2–6 remain open. Harnesses used live under `.petra_local/`
+(`eh_bench_entry.ts`, `trace_ab.ts`, `trace_real.ts`, `verify_trace.ts`); they are untracked, so the
+permanent record of these numbers is this section plus the two new tests.

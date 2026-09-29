@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
+import {
+  EMPTY_SIMULATION_EVENT_HISTORY,
+  appendSimulationEventHistory,
+} from '../../src/sim/eventHistory'
 import { SimulationEngine } from '../../src/sim/engine'
 import { createRunIdentity } from '../../src/sim/protocol'
 import {
@@ -129,5 +133,69 @@ describe('canonical simulation snapshot trace authority', () => {
         actualTraceHash: second.traceHash,
       }),
     )
+  })
+
+  it('keeps the frozen-node canonical memo byte-identical on the hot path', () => {
+    const legacyHash = (value: unknown): string => {
+      const text = stableSnapshotStringify(value)
+      let hash = 0x811c9dc5
+      for (let index = 0; index < text.length; index += 1) {
+        hash ^= text.charCodeAt(index)
+        hash = Math.imul(hash, 0x01000193) >>> 0
+      }
+      return hash.toString(16).padStart(8, '0')
+    }
+
+    // Accepted histories are append-only and deep-frozen, which is exactly the
+    // shape the canonical memo caches. Every command supplies a new mutable
+    // checkpoint, so this also proves the memo cannot leak across snapshots.
+    let events = EMPTY_SIMULATION_EVENT_HISTORY
+    for (let sequence = 0; sequence < 64; sequence += 1) {
+      events = appendSimulationEventHistory(events, {
+        sequence,
+        tick: sequence * 2,
+        simulationTimeHours: sequence * 0.04,
+        type: sequence === 0 ? 'initialized' : 'advanced',
+        commandId: 'advance',
+        value: 2,
+      })
+    }
+
+    for (let tick = 0; tick < 6; tick += 1) {
+      const payload = { checkpoint: { tick, occupancy: tick * 3 }, events }
+      expect(snapshotTraceHash(payload)).toBe(legacyHash(payload))
+      expect(snapshotTraceHash(payload)).toBe(legacyHash(payload))
+    }
+    expect(snapshotTraceHash({ checkpoint: { tick: 0 }, events })).not.toBe(
+      snapshotTraceHash({ checkpoint: { tick: 1 }, events }),
+    )
+  })
+
+  it('refuses to canonical-memo a shallow-frozen node with mutable children', () => {
+    const legacyHash = (value: unknown): string => {
+      const text = stableSnapshotStringify(value)
+      let hash = 0x811c9dc5
+      for (let index = 0; index < text.length; index += 1) {
+        hash ^= text.charCodeAt(index)
+        hash = Math.imul(hash, 0x01000193) >>> 0
+      }
+      return hash.toString(16).padStart(8, '0')
+    }
+
+    // Object.isFrozen() is shallow. A frozen parent whose child is still
+    // mutable must keep the incremental walk, otherwise the first hash would
+    // freeze a stale canonical string and later mutations would be invisible.
+    const child: { b: number; nested: { c: number } } = { b: 1, nested: { c: 3 } }
+    const payload = Object.freeze({ a: child, tick: 1 })
+
+    const before = snapshotTraceHash(payload)
+    expect(before).toBe(legacyHash({ a: { b: 1, nested: { c: 3 } }, tick: 1 }))
+
+    child.b = 2
+    child.nested.c = 4
+
+    const after = snapshotTraceHash(payload)
+    expect(after).toBe(legacyHash({ a: { b: 2, nested: { c: 4 } }, tick: 1 }))
+    expect(after).not.toBe(before)
   })
 })

@@ -53,6 +53,45 @@ export function stableSnapshotStringify(value: unknown): string {
     .join(',')}}`
 }
 
+/**
+ * Per-node memo for the trace canonicalizer.
+ *
+ * `null` records a verified *negative* verdict so a mutable node is never
+ * re-tested. Verdicts are remembered for the lifetime of the node, so the deep
+ * immutability probe costs O(node) exactly once and then O(1) per hash.
+ */
+const canonicalTraceText = new WeakMap<object, string | null>()
+
+function isDeepFrozen(value: unknown): boolean {
+  if (value === null || typeof value !== 'object') {
+    return true
+  }
+  if (!Object.isFrozen(value)) {
+    return false
+  }
+  for (const nested of Object.values(value as Record<string, unknown>)) {
+    if (!isDeepFrozen(nested)) {
+      return false
+    }
+  }
+  return true
+}
+
+/**
+ * Canonical trace text for a node that can never change again, or `null` when
+ * the node must keep the incremental walk because something inside it is
+ * still mutable.
+ */
+function canonicalFrozenTraceText(node: object): string | null {
+  const cached = canonicalTraceText.get(node)
+  if (cached !== undefined) {
+    return cached
+  }
+  const verdict = isDeepFrozen(node) ? stableSnapshotStringify(node) : null
+  canonicalTraceText.set(node, verdict)
+  return verdict
+}
+
 /** FNV-1a 32-bit regression identity. It is deterministic, not cryptographic. */
 export function snapshotTraceHash(value: unknown): string {
   let hash = 0x811c9dc5
@@ -95,6 +134,18 @@ export function snapshotTraceHash(value: unknown): string {
         }
       }
       write(']')
+      return
+    }
+
+    // Accepted event histories are append-only and deep-frozen, so the exact
+    // canonical bytes of a deeply frozen node can never change again. The
+    // retained history is re-hashed on every accepted command, so without this
+    // memo every command re-runs Object.keys().sort() plus JSON.stringify over
+    // the whole history. Cached text goes through the same charCodeAt loop, so
+    // SNAPSHOT_TRACE_ALGORITHM stays byte-for-byte identical.
+    const frozenText = canonicalFrozenTraceText(current)
+    if (frozenText !== null) {
+      write(frozenText)
       return
     }
 

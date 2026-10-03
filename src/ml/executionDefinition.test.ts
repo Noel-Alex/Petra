@@ -401,12 +401,18 @@ describe("mechanistic execution-definition provenance", () => {
 
     const result = await executor.execute(makeTask());
     expect(result.taskId).toBe("ml-execution-fixture-task");
-    expect(result.samples).toHaveLength(1);
+    expect(result.samples).toHaveLength(3);
+    expect(result.samples.map((sample) => sample.snapshotIndex)).toEqual([0, 1, 2]);
     expect(result.samples[0]).toMatchObject({
       snapshotIndex: 0,
-      terminationReason: "completed-horizon",
       input: { biomass: 3 },
       target: { resource: 16 },
+    });
+    expect(result.samples[0]?.terminationReason).toBeUndefined();
+    expect(result.samples[1]?.terminationReason).toBeUndefined();
+    expect(result.samples[2]).toMatchObject({
+      snapshotIndex: 2,
+      terminationReason: "completed-horizon",
     });
   });
 });

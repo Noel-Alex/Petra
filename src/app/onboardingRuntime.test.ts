@@ -58,8 +58,10 @@ function runtimeState(
       pendingCommandId: null,
       queuedRequests: 0,
       error: null,
+      errorCode: null,
     },
     snapshot,
+    ecologyObservation: null,
     timeline: [],
     integrationError: null,
   };
@@ -68,7 +70,7 @@ function runtimeState(
 describe("onboarding runtime bridge", () => {
   it("refuses to treat synthetic protocol activity as causal onboarding evidence", () => {
     const events: readonly SimulationEvent[] = [
-      { sequence: 0, tick: 0, type: "initialized" },
+      { sequence: 0, tick: 0, simulationTimeHours: 0, type: "initialized" },
       { sequence: 1, tick: 2, simulationTimeHours: 0.2, type: "advanced", commandId: "advance-1", value: 2 },
       {
         sequence: 2,

@@ -81,9 +81,13 @@ describe("render grid cell-center geometry", () => {
       events: [],
     };
 
+    // Representative-glyph culling uses the exact visible aperture radius
+    // 0.5 / zoom, so this camera keeps cell 8's center (0.7, 0.3) inside the
+    // aperture while remaining offset from it: a camera-relative placement
+    // cannot coincidentally match the expected absolute cell center.
     const glyphs = sampleRepresentativeGlyphs(
       snapshot,
-      { centerX: 0.5, centerY: 0.5, zoom: 2.25 },
+      { centerX: 0.6, centerY: 0.4, zoom: 2.25 },
       "colony",
       { maxGlyphs: 10, minimumDensity: 0.1 },
     );

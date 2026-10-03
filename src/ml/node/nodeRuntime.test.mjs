@@ -68,6 +68,14 @@ function definition() {
     ],
     seeds: [1, 2],
     maxTrajectories: 20,
+    // Fixture exercises the worker-thread staging/resume path, not held-out
+    // generalisation; its single group cannot supply validation/test.
+    // Separately versioned train-only policy, so no held-out evidence implied.
+    splitCoveragePolicy: Object.freeze({
+      version: "node-runtime-fixture-coverage-v1",
+      requiredSplits: Object.freeze(["train"]),
+      minimumGroupsPerSplit: 1,
+    }),
   };
 }
 

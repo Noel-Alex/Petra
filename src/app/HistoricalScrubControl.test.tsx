@@ -12,8 +12,6 @@ import {
   planHistoricalScrubControl,
 } from "./HistoricalScrubControl";
 
-// Vite resolves raw assets in Vitest; this project intentionally omits vite/client globals.
-// @ts-expect-error Vite raw asset import is runtime-supported but not declared in tsconfig types.
 import scrubSource from "./HistoricalScrubControl.tsx?raw";
 
 function keyframe(

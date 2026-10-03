@@ -18,7 +18,7 @@ function branch(
   branchId: string,
   seed: number,
   interventionCommandIds: readonly string[],
-  traceHash = origin.checkpointTraceHash,
+  traceHash: string = origin.checkpointTraceHash,
 ): CounterfactualBranch {
   return {
     branchId,

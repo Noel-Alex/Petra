@@ -2,8 +2,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { App } from "./App";
 
-// Vite resolves raw modules in Vitest; this project intentionally omits vite/client globals.
-// @ts-expect-error Vite raw source import is runtime-supported but not declared in tsconfig types.
 import appSource from "./App.tsx?raw";
 
 describe("App authoritative runtime boundary", () => {

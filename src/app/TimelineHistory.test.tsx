@@ -8,8 +8,6 @@ import {
   planTimelineHistory,
 } from "./TimelineHistory";
 
-// Vite resolves raw assets in Vitest; this project intentionally omits vite/client globals.
-// @ts-expect-error Vite raw asset import is runtime-supported but not declared in tsconfig types.
 import timelineHistorySource from "./TimelineHistory.tsx?raw";
 
 function event(sequence: number): TimelineEntry {

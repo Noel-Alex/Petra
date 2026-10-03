@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-// Vite resolves raw stylesheet imports at test runtime.
-// @ts-expect-error Vite raw asset imports are runtime-supported but not in tsconfig globals.
 import sourcesCss from "./sourcesDrawer.css?raw";
-// @ts-expect-error Vite raw asset imports are runtime-supported but not in tsconfig globals.
 import appSource from "./App.tsx?raw";
 
 describe("Sources drawer motion lifecycle styles", () => {

@@ -123,8 +123,10 @@ describe('authoritative historical-state index', () => {
 
   it('refuses histories that mix branches or run identity', () => {
     const keyframes = history()
-    const mixedBranch = structuredClone(keyframes)
-    mixedBranch[1]!.runBranchIdentity = 'other-branch'
+    // Keyframes are frozen contracts; rebuild a corrupted branch instead of mutating.
+    const mixedBranch = keyframes.map((keyframe, index) =>
+      index === 1 ? { ...keyframe, runBranchIdentity: 'other-branch' } : keyframe,
+    )
     expect(() => createAuthoritativeHistoryIndex(mixedBranch)).toThrow(/mix run branches/)
 
     const mixedRun = structuredClone(keyframes)

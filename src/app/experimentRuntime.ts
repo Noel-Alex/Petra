@@ -3,6 +3,7 @@ import type { SourceOwnedFixedLineageDensityPresentationScale } from "../render/
 import type { ComposedEcologyObservationEnvelope } from "../sim/composedEcologyObservation";
 import {
   PROTOCOL_VERSION,
+  isComposedSimulationSnapshot,
   type RunIdentity,
   type SimulationCheckpoint,
   type SimulationCommand,
@@ -478,7 +479,7 @@ export class ExperimentRuntime {
 
       const runBranchIdentity = this.current.runBranchIdentity;
       const ecologyObservation =
-        candidate.checkpoint.authority === "composed" &&
+        isComposedSimulationSnapshot(candidate) &&
         candidate.ecologyObservation !== undefined
           ? {
               runBranchIdentity,

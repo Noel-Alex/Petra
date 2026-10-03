@@ -113,7 +113,7 @@ describe("runtime historical keyframe transaction", () => {
       transaction.scientific.snapshot.checkpoint.composedState.resource[0],
     ).toBe(capturedResource);
     const resourceField = transaction.dish.snapshot.fields.find(
-      (field) => field.kind === "resource",
+      (field) => field.kind === "nutrient",
     );
     expect(resourceField?.values).not.toBe(
       transaction.scientific.snapshot.checkpoint.composedState.resource,

@@ -57,6 +57,14 @@ function definition(): MechanisticSweepDefinition {
     ],
     seeds: [1, 2],
     maxTrajectories: 20,
+    // Fixture exercises staging/resume durability, not held-out generalisation;
+    // its single group cannot supply validation/test. Declares a separately
+    // versioned train-only policy so held-out evidence is never implied.
+    splitCoveragePolicy: Object.freeze({
+      version: "incremental-generator-fixture-coverage-v1",
+      requiredSplits: Object.freeze(["train"] as const),
+      minimumGroupsPerSplit: 1,
+    }),
   };
 }
 

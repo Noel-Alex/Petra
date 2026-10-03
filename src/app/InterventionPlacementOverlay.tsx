@@ -32,7 +32,7 @@ export interface InterventionPlacementOverlayProps {
   readonly tool: InterventionTool;
   readonly point: NormalizedDishPoint;
   readonly motion: MotionPreference;
-  readonly onPointChange?: (point: NormalizedDishPoint) => void;
+  readonly onPointChange?: ((point: NormalizedDishPoint) => void) | undefined;
 }
 
 export function clientPointToDishPlacement(

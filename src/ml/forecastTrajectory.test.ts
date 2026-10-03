@@ -6,7 +6,11 @@ import {
   type MechanisticDatasetSchemaIdentity,
   type TrajectoryIdentity,
 } from "./dataset";
-import { createMechanisticExecutionSchedule } from "./executionSchedule";
+import {
+  createMechanisticExecutionSchedule,
+  mechanisticExecutionScheduleIdentity,
+  type MechanisticExecutionSchedule,
+} from "./executionSchedule";
 import { buildMechanisticForecastRowsFromTrajectory } from "./forecastTrajectory";
 import type { MechanisticTrajectoryResult } from "./generator";
 import type { MechanisticSweepTask } from "./sweep";
@@ -17,7 +21,15 @@ const DATASET_SCHEMA: MechanisticDatasetSchemaIdentity = Object.freeze({
   targetSchemaVersion: "fixture-target-v1",
 });
 
-function fixtureTask(): MechanisticSweepTask {
+/**
+ * A planned task always carries the execution schedule it was planned under
+ * plus the identity string the sweep pipeline records for provenance. Each
+ * test hands the adapter the same schedule object it baked into the task, so
+ * task identity and tick reconstruction can never silently disagree.
+ */
+function fixtureTask(
+  schedule: MechanisticExecutionSchedule,
+): MechanisticSweepTask {
   const trajectory: TrajectoryIdentity = {
     group: {
       engineVersion: "engine-v1",
@@ -36,6 +48,8 @@ function fixtureTask(): MechanisticSweepTask {
     datasetVersion: "dataset-v1",
     normalizationProfileId: "normalization-v1",
     datasetSchema: DATASET_SCHEMA,
+    executionSchedule: schedule,
+    executionScheduleIdentity: mechanisticExecutionScheduleIdentity(schedule),
     parameterPointId: "parameter-a",
     runConditionId: "condition-a",
     interventionFamilyId: "none",
@@ -76,7 +90,11 @@ function fixtureResult(
 
 describe("mechanistic forecast trajectory adapter", () => {
   it("reconstructs exact schedule ticks including a final remainder", () => {
-    const task = fixtureTask();
+    const schedule = createMechanisticExecutionSchedule({
+      totalTicks: 5,
+      snapshotEveryTicks: 2,
+    });
+    const task = fixtureTask(schedule);
     const result = fixtureResult(task, [
       { simulationTimeHours: 0, biomass: 0 },
       { simulationTimeHours: 0.2, biomass: 2 },
@@ -87,10 +105,7 @@ describe("mechanistic forecast trajectory adapter", () => {
     const rows = buildMechanisticForecastRowsFromTrajectory({
       task,
       result,
-      schedule: createMechanisticExecutionSchedule({
-        totalTicks: 5,
-        snapshotEveryTicks: 2,
-      }),
+      schedule,
       requestedHorizonTicks: [2, 5],
     });
 
@@ -113,7 +128,11 @@ describe("mechanistic forecast trajectory adapter", () => {
   });
 
   it("keeps unsampled target ticks as omissions instead of interpolating by time", () => {
-    const task = fixtureTask();
+    const schedule = createMechanisticExecutionSchedule({
+      totalTicks: 4,
+      snapshotEveryTicks: 2,
+    });
+    const task = fixtureTask(schedule);
     const result = fixtureResult(task, [
       { simulationTimeHours: 0, biomass: 0 },
       { simulationTimeHours: 0.2, biomass: 2 },
@@ -123,10 +142,7 @@ describe("mechanistic forecast trajectory adapter", () => {
     const rows = buildMechanisticForecastRowsFromTrajectory({
       task,
       result,
-      schedule: createMechanisticExecutionSchedule({
-        totalTicks: 4,
-        snapshotEveryTicks: 2,
-      }),
+      schedule,
       requestedHorizonTicks: [1],
     });
 
@@ -137,7 +153,11 @@ describe("mechanistic forecast trajectory adapter", () => {
   });
 
   it("rejects completed results whose sample count disagrees with the schedule", () => {
-    const task = fixtureTask();
+    const schedule = createMechanisticExecutionSchedule({
+      totalTicks: 5,
+      snapshotEveryTicks: 2,
+    });
+    const task = fixtureTask(schedule);
     const result = fixtureResult(task, [
       { simulationTimeHours: 0, biomass: 0 },
       { simulationTimeHours: 0.2, biomass: 2 },
@@ -148,17 +168,18 @@ describe("mechanistic forecast trajectory adapter", () => {
       buildMechanisticForecastRowsFromTrajectory({
         task,
         result,
-        schedule: createMechanisticExecutionSchedule({
-          totalTicks: 5,
-          snapshotEveryTicks: 2,
-        }),
+        schedule,
         requestedHorizonTicks: [2],
       }),
     ).toThrow(/sample count does not match execution schedule/);
   });
 
   it("rejects foreign result and task trajectory identities", () => {
-    const task = fixtureTask();
+    const schedule = createMechanisticExecutionSchedule({
+      totalTicks: 0,
+      snapshotEveryTicks: 1,
+    });
+    const task = fixtureTask(schedule);
     const result = fixtureResult(task, [
       { simulationTimeHours: 0, biomass: 0 },
     ]);
@@ -167,10 +188,7 @@ describe("mechanistic forecast trajectory adapter", () => {
       buildMechanisticForecastRowsFromTrajectory({
         task,
         result: { ...result, taskId: "other-task" },
-        schedule: createMechanisticExecutionSchedule({
-          totalTicks: 0,
-          snapshotEveryTicks: 1,
-        }),
+        schedule,
         requestedHorizonTicks: [1],
       }),
     ).toThrow(/does not match planned task/);
@@ -179,22 +197,23 @@ describe("mechanistic forecast trajectory adapter", () => {
       buildMechanisticForecastRowsFromTrajectory({
         task: { ...task, splitGroupKey: "foreign-group" },
         result,
-        schedule: createMechanisticExecutionSchedule({
-          totalTicks: 0,
-          snapshotEveryTicks: 1,
-        }),
+        schedule,
         requestedHorizonTicks: [1],
       }),
     ).toThrow(/splitGroupKey/);
   });
 
   it("preserves existing trajectory validation before forecast pairing", () => {
-    const task = fixtureTask();
+    const schedule = createMechanisticExecutionSchedule({
+      totalTicks: 2,
+      snapshotEveryTicks: 2,
+    });
+    const task = fixtureTask(schedule);
     const result = fixtureResult(task, [
       { simulationTimeHours: 0, biomass: 0 },
       { simulationTimeHours: 0.2, biomass: 2 },
     ]);
-    const foreign = fixtureTask().trajectory;
+    const foreign = fixtureTask(schedule).trajectory;
     const malformed: MechanisticTrajectoryResult<
       { readonly biomass: number },
       { readonly futureBiomass: number }

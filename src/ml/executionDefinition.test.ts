@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createMechanisticExecutionSchedule } from "./executionSchedule";
+import {
+  createMechanisticExecutionSchedule,
+  mechanisticExecutionScheduleIdentity,
+} from "./executionSchedule";
 
 import {
   composedConfigurationFingerprint,
@@ -75,6 +78,11 @@ const binding: ComposedParameterSetBinding = {
   configurationFingerprint: composedConfigurationFingerprint(config),
 };
 
+const fixtureExecutionSchedule = createMechanisticExecutionSchedule({
+  totalTicks: 4,
+  snapshotEveryTicks: 2,
+});
+
 function makeTask(args?: {
   parameterSetHash?: string;
   runConditionId?: string;
@@ -109,6 +117,10 @@ function makeTask(args?: {
       inputSchemaVersion: "fixture-input-v1",
       targetSchemaVersion: "fixture-target-v1",
     },
+    executionSchedule: fixtureExecutionSchedule,
+    executionScheduleIdentity: mechanisticExecutionScheduleIdentity(
+      fixtureExecutionSchedule,
+    ),
     parameterPointId: parameterPoint.id,
     runConditionId,
     interventionFamilyId,
@@ -137,7 +149,7 @@ function executionDefinition(familyId = "untreated") {
       "baseline-condition",
       config,
     ),
-    executionSchedule: createMechanisticExecutionSchedule({ totalTicks: 4, snapshotEveryTicks: 2 }),
+    executionSchedule: fixtureExecutionSchedule,
     intervention: createNoInterventionExecutionDefinition(familyId),
   });
 }
@@ -389,12 +401,18 @@ describe("mechanistic execution-definition provenance", () => {
 
     const result = await executor.execute(makeTask());
     expect(result.taskId).toBe("ml-execution-fixture-task");
-    expect(result.samples).toHaveLength(1);
+    expect(result.samples).toHaveLength(3);
+    expect(result.samples.map((sample) => sample.snapshotIndex)).toEqual([0, 1, 2]);
     expect(result.samples[0]).toMatchObject({
       snapshotIndex: 0,
-      terminationReason: "completed-horizon",
       input: { biomass: 3 },
       target: { resource: 16 },
+    });
+    expect(result.samples[0]?.terminationReason).toBeUndefined();
+    expect(result.samples[1]?.terminationReason).toBeUndefined();
+    expect(result.samples[2]).toMatchObject({
+      snapshotIndex: 2,
+      terminationReason: "completed-horizon",
     });
   });
 });

@@ -106,7 +106,7 @@ export function migrateLegacyRuntimeLineageEcologyAuthorityV1(args: {
       );
     }
 
-    const parent = recordByLineageId(records, origin.parentLineageId);
+    const parent = recordByLineageId(records, requireParentLineageId(origin));
     if (args.dynamicLossPolicy === null) {
       throw new Error(
         "legacy mutation child requires explicit baseline non-drug loss policy",
@@ -236,7 +236,7 @@ export function appendMutationChildRuntimeLineageEcologyAuthorityV1(args: {
 
   const parent = recordByLineageId(
     args.authority.records,
-    origin.parentLineageId,
+    requireParentLineageId(origin),
   );
   const hazard = resolveBaselineNonDrugDeathHazardPerHour(
     args.dynamicLossPolicy,
@@ -405,7 +405,10 @@ function validateAuthorityRecords(
       continue;
     }
 
-    const parent = recordByLineageId(records.slice(0, index), origin.parentLineageId);
+    const parent = recordByLineageId(
+      records.slice(0, index),
+      requireParentLineageId(origin),
+    );
     if (
       parent.sourceLineageDefinitionId !== record.sourceLineageDefinitionId ||
       !Object.is(
@@ -561,6 +564,22 @@ function definitionById(
     );
   }
   return definition;
+}
+
+/**
+ * A mutation-child lineage origin must carry its parent lineage id.
+ *
+ * `LineageOriginRecordV2` flattens origin kind and parent into one shape, so
+ * narrowing `originKind` cannot prove `parentLineageId` is a string. Re-check
+ * the invariant here instead of widening the parent lookup to accept null.
+ */
+function requireParentLineageId(origin: LineageOriginRecordV2): string {
+  const parentLineageId = origin.parentLineageId;
+  canonicalIdentity(
+    `runtime lineage origin ${origin.lineageId} parent lineage id`,
+    parentLineageId,
+  );
+  return parentLineageId;
 }
 
 function recordByLineageId(

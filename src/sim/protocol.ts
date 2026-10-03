@@ -127,6 +127,30 @@ export type SimulationSnapshot =
   | SyntheticSimulationSnapshot
   | ComposedSimulationSnapshot
 
+/**
+ * Narrows a snapshot through the nested `checkpoint.authority` discriminant.
+ *
+ * `SimulationSnapshot` is a genuine union, but the discriminant lives one level
+ * down inside `checkpoint`, so TypeScript cannot narrow it from an inline
+ * `snapshot.checkpoint.authority === 'composed'` comparison. Every
+ * composed-authority consumer must therefore go through this predicate instead
+ * of comparing the field inline; that keeps the runtime invariant that already
+ * exists in the engine expressible to the type system without widening any
+ * type or casting through `unknown`.
+ */
+export function isComposedSimulationSnapshot(
+  snapshot: SimulationSnapshot,
+): snapshot is ComposedSimulationSnapshot {
+  return snapshot.checkpoint.authority === 'composed'
+}
+
+/** Complement of {@link isComposedSimulationSnapshot}: infrastructure-fixture authority only. */
+export function isSyntheticSimulationSnapshot(
+  snapshot: SimulationSnapshot,
+): snapshot is SyntheticSimulationSnapshot {
+  return snapshot.checkpoint.authority !== 'composed'
+}
+
 export type WorkerErrorCode = 'advance-execution-policy-refusal'
 
 export type WorkerResponse =

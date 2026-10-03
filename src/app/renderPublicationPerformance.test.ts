@@ -10,7 +10,10 @@ import {
 } from "./renderPublicationPerformance";
 
 afterEach(() => {
-  delete globalThis.__petraRenderPublicationPerformanceProbe;
+  // Ambient `var` declarations cannot be marked optional, so the harness clears
+  // the sink to `undefined` (equivalent to absent for activeProbe()) instead of
+  // deleting the property.
+  globalThis.__petraRenderPublicationPerformanceProbe = undefined;
 });
 
 function snapshot(): ComposedSimulationSnapshot {

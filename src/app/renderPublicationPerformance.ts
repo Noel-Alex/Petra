@@ -3,6 +3,7 @@ import {
   estimateDishRenderSnapshotPayload,
   type DishRenderPayloadEstimate,
 } from "../render/renderPayloadEstimate";
+import { isComposedSimulationSnapshot } from "../sim/protocol";
 import type { SimulationSnapshot } from "../sim/protocol";
 
 export const RENDER_PUBLICATION_PERFORMANCE_SAMPLE_VERSION = 2 as const;
@@ -113,7 +114,7 @@ export function observeRuntimeSnapshotPublication(
     ...identity,
     observedAtMs: safeNow(probe),
     hasEcologyObservation:
-      snapshot.checkpoint.authority === "composed" &&
+      isComposedSimulationSnapshot(snapshot) &&
       snapshot.ecologyObservation !== undefined,
   });
 }

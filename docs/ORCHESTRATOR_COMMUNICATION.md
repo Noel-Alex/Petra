@@ -301,3 +301,129 @@ Authenticated coordination contributor/session: Noel-Alex via the connected GitH
 - #1069 / `3a86931619349b60c7aede4228192832c57c7def` puts the explicit lineage-origin **v2 target** on `main`: `configured-founder | mutation-child | external-inoculation`, with strict migration/allocator semantics that refuse ambiguous later parentless roots rather than guessing ancestry. This is the correct future replay identity for external inoculation.
 - The live `LineageRegistryCheckpoint` remains v1. The v2 target is not yet adopted through composed checkpoint / Worker protocol / replay authority; that migration must coordinate with the active #918 resource-command protocol/replay versioning. Until that lands, #980 may validate/admit an external inoculum reference but must not make it executable by encoding a fake mutation child or silently appending an untyped root.
 - UI/render consequence: no new visual authority was introduced by either merge. Keep consuming the existing accepted `DishSceneTransaction` / `DishRenderSnapshot` data plane, treat load diagnostics as profiling-only, and keep external-organism controls unavailable until the replay-critical lineage-origin + atomic append command path is real.
+
+## 2026-09-26 — local suite repair, Vitest `?raw`/CSS contract, EOL false-reds
+
+- #1110 / `9c637f77` on `Noel/local-suite-repair-2026-09-26` carries the type-check
+  and stale-assertion repair across the app/render/sim-phage seams, plus the
+  `vitest.config.ts` and `.gitattributes` changes. **No scientific behavior,
+  parameter, or claim-ledger change**, and no simulation or rendering outcome was
+  altered to make a test pass.
+- **Honest baseline, measured in a throwaway detached worktree of clean `main`
+  (`e6936167`)**: 31 failed / 258 passed files, 64 failed / 1907 passed tests. On
+  this branch: 28 failed / 261 passed files. `main`'s suite was already red before
+  this work; the branch reduces it and does not claim a green suite. Remaining
+  failures sit in other lanes (`src/ml/**` dominates with 27 failing tests across
+  generator/incremental/execution-definition/runner/node-runtime, then
+  `tests/sim/composedEngine.test.ts`, `src/sim/evolution/lineage.test.ts`,
+  `src/app/runControls.test.ts`, `tests/app/experimentRuntime.test.ts`, compare and
+  typography). They are reported, not rewritten.
+- Vitest must keep reading `vitest.config.ts` (merged config) and `css: true` must
+  stay on: `?raw` stylesheet imports resolve to `''` without CSS processing, which
+  makes three style-contract tests assert against an empty string. The reasoning and
+  the anti-pattern now live in `tools/AGENTS.md`.
+- Several failures were **stale assertions against committed refactors**, not
+  regressions: renamed `composedLineageAuthority`/`authoritative` validator
+  messages, the deleted `genotype order` check, the `ink` to `inkSoft` token rename,
+  and the `demoSnapshot` `>= 12` floor introduced by `751e97af` (#69), which made
+  all six `dishReplayKeyframe` tests throw during fixture setup before asserting
+  anything. Each replacement assertion was checked against live source to confirm
+  the current validator still rejects the same condition; in particular
+  `src/sim/authoritative.ts:768-775` really does cover the corrupted `genotypeIds`
+  channel, so the rewritten expectation is not matching an unrelated error.
+- **A hypothesis that failed, recorded so nobody re-spends the effort.** The red
+  Windows suite looked like a CRLF artifact: no `.gitattributes`,
+  `core.autocrlf=true`, and `git ls-files --eol` reporting `i/lf w/crlf` everywhere.
+  Reproducing in an LF-normalized clean worktree disproved the broad version: 6 of 8
+  sampled failures still failed with LF. Measured EOL impact is limited to
+  `CounterfactualCompareStyles.test.ts` and `AnalysisPanel.test.tsx`. The
+  `.gitattributes` in #1110 is worth merging for platform-independent `?raw`
+  behavior, but it is **not** the fix for the rest of the red suite, and the sweep
+  must not be re-attributed to line endings.
+- **Same-day refinement of the entry above — its scope was too narrow.** A later
+  full-suite pass measured EOL at **4 files / 6 tests**, not 2: normalizing the
+  working tree also fixed `composedDishProjectionIntegration.test.ts` and
+  `firstAggregateDatasetPackage.test.ts`. The earlier 2-file figure came from the
+  wrong probe — grepping *test* files for literal `\n`. These assertions read the
+  raw bytes of an *import target*, so the CRLFs hide in e.g. `App.tsx` (915 pairs)
+  while every test file looks clean. Scale: 910 of 914 tracked files were CRLF on
+  disk against an entirely LF index, because `.gitattributes` post-dates the
+  checkout. Both conclusions of the entry above still hold: EOL is not the whole
+  red suite (**17 files still fail on a normalized tree**), and the correct habit is
+  per-failure verification rather than blanket attribution. A probe that returns a
+  clean answer on the wrong artifact is a false negative, not evidence.
+- **Correction recorded:** `firstAggregateDatasetPackage.test.ts` was first reported
+  as load-sensitive under full-suite parallelism. It is not; it is the EOL artifact
+  above and passes deterministically once the tree is LF.
+- Evidence-hygiene note other agents should copy: an issue number cited in the first
+  commit draft for the `demoSnapshot` floor was wrong. `git log -S` traced it to
+  `751e97af` (#69), and the commit and PR text were amended before review.
+  Provenance claims need a command behind them, not a plausible number.
+- **Windows tooling hazard that caused real damage during this sweep and was
+  reverted:** PowerShell 5.1 `Get-Content` decodes UTF-8-without-BOM as ANSI, so
+  round-tripping this file through `Get-Content` plus file-write mangled every
+  non-ASCII character (56 broken sequences, verified by byte inspection). This file
+  is UTF-8 without BOM and full of em dashes and arrows. Edit it with the editor
+  tool or with explicit `[System.Text.UTF8Encoding]::new($false)` APIs, never with
+  `Get-Content`/`Set-Content` round-trips, and verify with `git diff --stat` (an
+  unrelated whole-file churn means encoding damage, not an edit).
+- Shared-file note: `src/app/App.tsx`, `src/app/DishViewport.tsx`, and
+  `src/render/pixi/PixiDish.tsx` are hot. The `App.tsx`/`DishViewport.tsx` deltas
+  here are prop-type and call-site corrections only, but viewport/camera lanes
+  should rebase before merge.
+- `docs/TEAM_BOARD.md` was deliberately **not** edited, to keep the conflict surface
+  low while several lanes hold claims; #1110 remains the canonical work surface.
+
+Authenticated coordination contributor/session: Noel-Alex via the connected GitHub account.
+
+## 2026-09-26 (late) — research source-sheet lanes: 3 of 4 produced zero admissible values; `fungi_v1` independently verified, one prose defect
+
+Content audit after all four research lanes terminated (wall-clock / socket / stream errors). An
+earlier status line — "all four sheets have valid headers, three parse-clean JSONs" — was true but
+**misleading**: it validated syntax, not content. Same failure mode as the line-ending trap above:
+a check that passes while measuring the wrong thing.
+
+Measured content of the untracked `research/source_sheets/` drafts:
+
+| sheet | `AWAITING SOURCE` markers | DOI strings | JSON records | records with value **and** citation |
+|---|---|---|---|---|
+| `enterobacteriaceae_v1` | 23 | 0 | 1 | **0** |
+| `antimicrobial_pkpd_v1` | 9 | 0 | 2 | **0** |
+| `gram_positive_v1` | 28 | 0 | none (no JSON) | **0** |
+| `fungi_v1` | 0 | 6 | 12 | **12** |
+
+- Three lanes wrote scaffolds and died before sourcing anything. `enterobacteriaceae_v1.json`
+  contains a self-labelled placeholder (`record_id: SKELETON`,
+  `parameter: PLACEHOLDER_skeleton_only`, `value`/`doi`/`url` all `null`) whose `organism` field is
+  misspelled `Escherichichia coli K-12 MG1655`. Left in place for its owning lane; it must not be
+  admitted to a parameter pack, and the misspelled taxon must not propagate into one.
+- `fungi_v1` was verified independently rather than trusting the lane's own
+  `verification: "source-verified"` field. Both cited tables were re-fetched and matched exactly:
+  PMC13038894 Table 2 row `Calsa 0.21 ± 0.00 B 0.16–0.25 / 7.46 ± 0.13 A 1.24–13.68 /
+  31.86 ± 0.67 A 27.75–35.96 / 45.28 ± 0.22 A 43.19–47.37` confirms `FUN-CTMI-001..004`;
+  PMC7251540 Table 5 row `CEN.PK113-7D 30 °C 0.498±0.011 1.717±0.033 1.636±0.032 0.144±0.003`
+  confirms `FUN-YLD-033/034/035` including SDs and 95% CI bounds. The values are faithful.
+- **Defect found — in interpretation, not in data:** `FUN-YLD-034.transfer_note` says glycerol
+  yield "rises with temperature in ADY5/Ethanol Red but falls in CEN.PK". The very table that
+  record cites gives Ethanol Red 0.210 → 0.178 → 0.176 (12 → 30 → 39 °C, monotonically **falling**)
+  and ADY5 0.165 → 0.174 → 0.125 (rises only across 12 → 30, then falls). The CEN.PK half is
+  correct (0.162 → 0.144 → 0.113). No numeric record needs to change; the note should be corrected.
+  This matters precisely because Petra's rule is *do not pool strain-dependent behaviour* — a wrong
+  trend description is what would make pooling look justified. Left unedited: the file belongs to
+  its owning lane and needs that lane's claim-ledger pass.
+- The surviving sheet's discipline is good and worth keeping as the template: unresolved fields
+  carry `see Gaps G-01` instead of an invented value, and cross-system values carry explicit
+  `transfer_note` caveats.
+- Housekeeping hazard: `research/source_sheets/` is untracked and **not** ignored, so a
+  `git add -A` would sweep these scaffolds into a commit. Stage explicit paths only; `.gitignore`
+  covers `_cache/` alone, which is where the ~15 MB Adobe/Apache POI vendor binaries live.
+- Re-issue shape for the dead lanes: full organism-list scopes are the observed failure mode (4 of
+  4 died on transport/wall-clock). Re-issue per organism or per parameter family so one fetch-set
+  fits the budget, and write records incrementally rather than scaffold-then-fill.
+
+This entry is documentation only; it changes no scientific behaviour and no code, so the #1110
+verification numbers above are unaffected.
+
+Authenticated coordination session: agent session operating under the repository maintainer's
+GitHub account; research drafts left uncommitted for their owning lane.
+

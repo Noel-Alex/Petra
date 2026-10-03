@@ -60,6 +60,7 @@ function runtimeState(runBranchIdentity: string): ExperimentRuntimeState {
       errorCode: null,
     },
     snapshot,
+    ecologyObservation: null,
     timeline: [],
     integrationError: null,
   };

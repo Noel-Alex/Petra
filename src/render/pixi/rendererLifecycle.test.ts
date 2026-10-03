@@ -33,7 +33,7 @@ describe("renderer initialization lifecycle", () => {
     const ready: string[] = [];
 
     const first = beginRendererInitialization(
-      async () => {
+      async (): Promise<FakeRenderer> => {
         throw new Error("WebGL unavailable");
       },
       {

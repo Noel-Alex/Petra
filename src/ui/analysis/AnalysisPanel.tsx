@@ -363,7 +363,7 @@ function LineageSourceData({
 }: {
   readonly tree: LineageTreeLayout;
   readonly selectedLineageId: string | null;
-  readonly onLineageSelect?: (lineageId: string) => void;
+  readonly onLineageSelect?: ((lineageId: string) => void) | undefined;
 }): ReactElement {
   if (tree.nodes.length === 0) {
     return <></>;
@@ -572,7 +572,7 @@ function LineageTree({
 }: {
   readonly tree: LineageTreeLayout;
   readonly selectedLineageId: string | null;
-  readonly onLineageSelect?: (lineageId: string) => void;
+  readonly onLineageSelect?: ((lineageId: string) => void) | undefined;
   readonly maxVisibleNodes: number;
 }): ReactElement {
   if (tree.nodes.length === 0) {
@@ -716,7 +716,7 @@ function LineageNode({
   readonly x: number;
   readonly y: number;
   readonly selected: boolean;
-  readonly onSelect?: (lineageId: string) => void;
+  readonly onSelect?: ((lineageId: string) => void) | undefined;
   readonly hiddenDescendantCount: number;
 }): ReactElement {
   const identityStyle = {

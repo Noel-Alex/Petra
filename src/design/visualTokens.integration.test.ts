@@ -27,7 +27,7 @@ describe("shared visual-token integration", () => {
   it("binds lineage and Pixi vessel chrome to the same token module", () => {
     expect(lineageSource).toContain('../design/visualTokens');
     expect(rendererSource).toContain('../../design/visualTokens');
-    expect(rendererSource).toContain('petraVisualColor("ink")');
+    expect(rendererSource).toContain('petraVisualColor("inkSoft")');
     expect(rendererSource).toContain('petraVisualColor("creamMuted")');
     expect(rendererSource).toContain('petraVisualColor("teal")');
   });

@@ -204,7 +204,9 @@ describe('authoritative composed state', () => {
     const missingAuthority = {
       ...config,
     } as Partial<ComposedSimulationConfig>
-    delete missingAuthority.ciprofloxacin
+    // Deliberately omit the field entirely (not `ciprofloxacin: null`) to prove
+    // the validator fails closed on absence rather than defaulting it.
+    Reflect.deleteProperty(missingAuthority, "ciprofloxacin")
     expect(() =>
       createComposedState(missingAuthority as ComposedSimulationConfig),
     ).toThrow(/ciprofloxacin authority must be explicit null/)
@@ -293,7 +295,8 @@ describe('authoritative composed state', () => {
 
   it('keeps population authority opt-in and refuses omitted or inconsistent checkpoint state', () => {
     const missing = { ...config } as Partial<ComposedSimulationConfig>
-    delete missing.populationAuthority
+    // Omit the key outright to assert the validator rejects absence, not just null.
+    Reflect.deleteProperty(missing, "populationAuthority")
     expect(() =>
       createComposedState(missing as ComposedSimulationConfig),
     ).toThrow(/populationAuthority must be explicit/)
@@ -404,7 +407,8 @@ describe('authoritative composed state', () => {
     ).toThrow(/exactTrialLimit/)
 
     const missing = { ...config } as Partial<ComposedSimulationConfig>
-    delete missing.samplingExecutionPolicy
+    // Omit the key outright to assert the validator rejects absence, not just null.
+    Reflect.deleteProperty(missing, "samplingExecutionPolicy")
     expect(() =>
       createComposedState(missing as ComposedSimulationConfig),
     ).toThrow(/sampling execution policy must be explicit null/)
@@ -435,7 +439,9 @@ describe('authoritative composed state', () => {
     const state = createComposedState(config)
     state.genotypeIds[0] = 'ISO'
 
-    expect(() => stepComposedState(state, config)).toThrow(/genotype order/)
+    expect(() => stepComposedState(state, config)).toThrow(
+      /dynamic lineage identity channels must match registry creation order/,
+    )
   })
 
   it('sources relative fitness from the curated genotype graph', () => {
@@ -541,7 +547,7 @@ describe('authoritative composed state', () => {
     const malformedValue = createComposedState(config)
     ;(malformedValue.genotypeIds as unknown[])[0] = 7
     expect(() => stepComposedState(malformedValue, config)).toThrow(
-      /composed state genotype id.*non-empty string/,
+      /dynamic genotype id at index 0 must be a canonical non-empty string/,
     )
 
     const malformedContainer = createComposedState(config)
@@ -551,7 +557,7 @@ describe('authoritative composed state', () => {
       }
     ).genotypeIds = 'WT'
     expect(() => stepComposedState(malformedContainer, config)).toThrow(
-      /identity channels must be arrays/,
+      /composed state lineage channels must be arrays/,
     )
   })
 

@@ -217,6 +217,9 @@ export function validatePhageSpatialInfectionState(
       throw new Error("phage spatial cohort lineage identity mismatch");
     }
 
+    // Narrow the wire-shaped value before the typed index check below; this is
+    // the same integer assertion validateCellIndex repeats internally.
+    nonNegativeSafeInteger("phage spatial cohort cellIndex", target.cellIndex);
     validateCellIndex("phage spatial cohort cellIndex", target.cellIndex, config);
     positiveSafeInteger(
       "phage spatial cohort infectionCount",
@@ -704,13 +707,19 @@ function safeCountAdd(name: string, left: number, right: number): number {
   return value;
 }
 
-function nonNegativeSafeInteger(name: string, value: unknown): void {
+function nonNegativeSafeInteger(
+  name: string,
+  value: unknown,
+): asserts value is number {
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
     throw new RangeError(name + " must be a non-negative safe integer");
   }
 }
 
-function positiveSafeInteger(name: string, value: unknown): void {
+function positiveSafeInteger(
+  name: string,
+  value: unknown,
+): asserts value is number {
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value <= 0) {
     throw new RangeError(name + " must be a positive safe integer");
   }

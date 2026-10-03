@@ -62,7 +62,9 @@ export interface DishViewportProps {
   readonly placement?: InterventionPlacementState | null;
   readonly onPlacementPointChange?: (point: NormalizedDishPoint) => void;
   /** Presentation-only point selection; scientific values are resolved by app authority. */
-  readonly onRegionPointActivate?: (point: NormalizedDishPoint) => void;
+  readonly onRegionPointActivate?:
+    | ((point: NormalizedDishPoint) => void)
+    | undefined;
   readonly selection?: DishSelectionHighlight | null;
   readonly regionSelectionActive?: boolean;
   readonly onClearRegionSelection?: () => void;

@@ -30,6 +30,7 @@ const config: ComposedSimulationConfig = {
   mask: [1],
   initialResource: [8],
   initialLineageBiomass: [[1]],
+  ciprofloxacinConcentrationMgPerL: [0],
   growth: {
     maxDivisionRate: 0.5,
     halfSaturation: 1,
@@ -50,6 +51,7 @@ const config: ComposedSimulationConfig = {
     scenarioVersion: graph.scenarioVersion,
   },
   samplingExecutionPolicy: null,
+  ciprofloxacin: null,
   dynamicLineageLossPolicy: null,
   populationAuthority: null,
   hoursPerTick: 0.01,

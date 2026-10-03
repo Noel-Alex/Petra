@@ -74,6 +74,7 @@ function experimentRuntimeState(
       errorCode: null,
     },
     snapshot,
+    ecologyObservation: null,
     timeline: [],
     integrationError: null,
   };
@@ -83,7 +84,7 @@ describe("authoritative dish replay keyframe bridge", () => {
   it("binds exact runtime command order without changing biological time", () => {
     const runtime = simulationSnapshot(1, 9);
     const dish = {
-      ...createRendererDemoSnapshot(8),
+      ...createRendererDemoSnapshot(12),
       snapshotId: "authoritative-9",
       samplingIdentity: "authoritative-run",
       simulationTimeHours: 1,
@@ -109,7 +110,7 @@ describe("authoritative dish replay keyframe bridge", () => {
       runBranchIdentity: "run-1/branch-main",
       simulationSnapshot: simulationSnapshot(1, 9),
       dishSnapshot: {
-        ...createRendererDemoSnapshot(8),
+        ...createRendererDemoSnapshot(12),
         snapshotId: "before",
         samplingIdentity: "authoritative-run",
         simulationTimeHours: 1,
@@ -119,7 +120,7 @@ describe("authoritative dish replay keyframe bridge", () => {
       runBranchIdentity: "run-1/branch-main",
       simulationSnapshot: simulationSnapshot(1, 10),
       dishSnapshot: {
-        ...createRendererDemoSnapshot(8),
+        ...createRendererDemoSnapshot(12),
         snapshotId: "after",
         samplingIdentity: "authoritative-run",
         simulationTimeHours: 1,
@@ -140,7 +141,7 @@ describe("authoritative dish replay keyframe bridge", () => {
         runBranchIdentity: "run-1/branch-main",
         simulationSnapshot: simulationSnapshot(1, 9),
         dishSnapshot: {
-          ...createRendererDemoSnapshot(8),
+          ...createRendererDemoSnapshot(12),
           snapshotId: "wrong-time",
           samplingIdentity: "authoritative-run",
           simulationTimeHours: 2,
@@ -155,7 +156,7 @@ describe("authoritative dish replay keyframe bridge", () => {
         runBranchIdentity: " branch-main ",
         simulationSnapshot: simulationSnapshot(1, 9),
         dishSnapshot: {
-          ...createRendererDemoSnapshot(8),
+          ...createRendererDemoSnapshot(12),
           snapshotId: "bad-branch",
           samplingIdentity: "authoritative-run",
           simulationTimeHours: 1,
@@ -163,11 +164,7 @@ describe("authoritative dish replay keyframe bridge", () => {
       }),
     ).toThrow(/runBranchIdentity/);
 
-    const malformed = simulationSnapshot(1, 9) as {
-      checkpoint: SimulationSnapshot["checkpoint"];
-      events: SimulationSnapshot["events"];
-      traceHash: string;
-    };
+    const malformed = simulationSnapshot(1, 9);
     (malformed.checkpoint as { commandCount: number }).commandCount = 1.5;
 
     expect(() =>
@@ -175,7 +172,7 @@ describe("authoritative dish replay keyframe bridge", () => {
         runBranchIdentity: "run-1/branch-main",
         simulationSnapshot: malformed,
         dishSnapshot: {
-          ...createRendererDemoSnapshot(8),
+          ...createRendererDemoSnapshot(12),
           snapshotId: "bad-order",
           samplingIdentity: "authoritative-run",
           simulationTimeHours: 1,
@@ -187,7 +184,7 @@ describe("authoritative dish replay keyframe bridge", () => {
     const snapshot = composedSimulationSnapshot(1, 9);
     const branchIdentity = "run-1/generation-1";
     const matchingDish = {
-      ...createRendererDemoSnapshot(8),
+      ...createRendererDemoSnapshot(12),
       snapshotId: `composed-trace:${snapshot.traceHash}`,
       samplingIdentity: `runtime-branch:${branchIdentity}`,
       simulationTimeHours: 1,
@@ -224,7 +221,7 @@ describe("authoritative dish replay keyframe bridge", () => {
   it("binds equal command positions to distinct runtime-owned history generations", () => {
     const snapshot = simulationSnapshot(1, 9);
     const dish = {
-      ...createRendererDemoSnapshot(8),
+      ...createRendererDemoSnapshot(12),
       snapshotId: "runtime-bound",
       samplingIdentity: "authoritative-run",
       simulationTimeHours: 1,

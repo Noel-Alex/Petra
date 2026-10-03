@@ -17,7 +17,19 @@ import {
   restoreFungalRuntimeStateEnvelope,
   validateFungalRuntimeAuthority,
   validateFungalRuntimeStateEnvelope,
+  type DormantAspergillusNo10RuntimeAuthority,
 } from './fungalRuntimeAuthority'
+
+/**
+ * A dormant authority that deviates from the live production type only by a
+ * widened `taxonContentVersion`. That is the shape a checkpoint written against
+ * a superseded content revision actually has on the wire; the narrowed
+ * production literal type cannot express it, so stale-load tests must.
+ */
+type StaleContentVersionDormantAuthority = Omit<
+  DormantAspergillusNo10RuntimeAuthority,
+  'taxonContentVersion'
+> & { readonly taxonContentVersion: string }
 
 describe('dormant fungal runtime authority', () => {
   it('binds only the exact supported Aspergillus source identity/treatment', () => {
@@ -62,11 +74,24 @@ describe('dormant fungal runtime authority', () => {
   it('fails closed on stale identities, treatment drift, live-state claims, and unknown fields', () => {
     const valid = createDormantAspergillusNo10RuntimeAuthority(120)
 
+    // A stale checkpoint carries the same source-pack identity at a superseded
+    // content revision (`..._v1` -> `..._v0`), so it is well-formed apart from
+    // that one field and the identity check must still refuse it.
+    const staleContentRevision: StaleContentVersionDormantAuthority = {
+      ...valid,
+      taxonContentVersion: ASPERGILLUS_NO10_TAXON_CONTENT_VERSION.replace(
+        /_v1$/,
+        '_v0',
+      ),
+    }
+    expect(staleContentRevision.taxonContentVersion).not.toBe(
+      ASPERGILLUS_NO10_TAXON_CONTENT_VERSION,
+    )
+
     expect(() =>
-      validateFungalRuntimeAuthority({
-        ...valid,
-        taxonContentVersion: 'stale-content-version',
-      } as typeof valid),
+      validateFungalRuntimeAuthority(
+        staleContentRevision as DormantAspergillusNo10RuntimeAuthority,
+      ),
     ).toThrow(/identity mismatch/)
 
     expect(() =>

@@ -115,6 +115,21 @@ function row(args: {
   };
 }
 
+/**
+ * Reads an authoritative target value out of a fixture row. The evaluation row
+ * stores targets in an open record, so a missing target is a fixture bug and
+ * must fail loudly instead of silently becoming NaN/undefined arithmetic.
+ */
+function actualTarget(row: RegressionEvaluationRow, targetId: string): number {
+  const value = row.actual[targetId];
+  if (value === undefined) {
+    throw new Error(
+      `fixture row ${row.trajectoryKey}/${row.horizonId} has no actual ${targetId} target`,
+    );
+  }
+  return value;
+}
+
 const goodRows: readonly RegressionEvaluationRow[] = [
   row({
     groupKey: "group-a",
@@ -414,19 +429,22 @@ describe("surrogate held-out benchmarks", () => {
   });
 
   it("refuses long-horizon degradation even when balanced overall metrics still beat baseline", () => {
-    const horizonRows = goodRows.map((item) => ({
-      ...item,
-      candidate: {
-        ...item.candidate,
-        population:
-          item.actual.population + (item.horizonId === "short" ? 0 : 2.5),
-      },
-      baseline: {
-        ...item.baseline,
-        population:
-          item.actual.population + (item.horizonId === "short" ? 3 : 2),
-      },
-    }));
+    const horizonRows = goodRows.map((item) => {
+      const actualPopulation = actualTarget(item, "population");
+      return {
+        ...item,
+        candidate: {
+          ...item.candidate,
+          population:
+            actualPopulation + (item.horizonId === "short" ? 0 : 2.5),
+        },
+        baseline: {
+          ...item.baseline,
+          population:
+            actualPopulation + (item.horizonId === "short" ? 3 : 2),
+        },
+      };
+    });
     const benchmark = computeStratifiedRegressionBenchmark({
       targetIds: requirements.targetIds,
       requiredGroupKeys: requirements.requiredGroupKeys,

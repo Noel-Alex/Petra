@@ -3,6 +3,7 @@ import {
   projectAcceptedInterventionFootprint,
   type AcceptedInterventionFootprint,
 } from "../render/acceptedInterventionFootprint";
+import { isComposedSimulationSnapshot } from "../sim/protocol";
 import type {
   ComposedSimulationSnapshot,
   RunIdentity,
@@ -261,7 +262,7 @@ function validateRuntimeFootprintAuthority(
       "runtime intervention footprints require an authoritative runtime snapshot",
     );
   }
-  if (snapshot.checkpoint.authority !== "composed") {
+  if (!isComposedSimulationSnapshot(snapshot)) {
     throw new Error(
       "runtime intervention footprints require composed simulation authority",
     );

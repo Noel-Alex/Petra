@@ -144,7 +144,7 @@ export function projectAuthoritativeLineageAnalysis(args: {
     evidenceByGenotype.set(evidence.genotypeId, {
       genotypeId: evidence.genotypeId,
       label: evidence.label,
-      ciprofloxacin,
+      ...(ciprofloxacin === undefined ? {} : { ciprofloxacin }),
       sourceKeys: validateKeys(
         `genotype evidence ${evidence.genotypeId} sourceKeys`,
         evidence.sourceKeys,

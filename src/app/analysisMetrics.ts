@@ -380,8 +380,10 @@ export function buildAuthoritativeMetricSeries(
       samples.map((sample) => ({
         timeHours: sample.simulationTimeHours,
         value:
-          sample.genotypes.find((item) => item.genotypeId === genotypeId)
-            ?.fraction ?? 0,
+          sample.genotypes.find(
+            (item: AuthoritativeMetricSample["genotypes"][number]) =>
+              item.genotypeId === genotypeId,
+          )?.fraction ?? 0,
       })),
     )
   })

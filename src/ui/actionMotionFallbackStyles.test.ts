@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-// Vite resolves raw stylesheet imports at test runtime.
-// @ts-expect-error Vite raw asset imports are runtime-supported but not in tsconfig globals.
 import actionCss from "./petraAction.css?raw";
-// @ts-expect-error Vite raw asset imports are runtime-supported but not in tsconfig globals.
 import compactActionCss from "./petraCompactAction.css?raw";
 
 function ruleBody(css: string, selector: string): string {

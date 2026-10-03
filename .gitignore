@@ -365,3 +365,12 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 
+# Research source-sheet caches (Petra)
+# Upstream vendor workbooks (e.g. EUCAST .xlsx), unzipped Office internals
+# (sheets, printerSettings, media PNGs) and intermediate .tsv dumps are bulky
+# local inputs, not repository evidence. Per root/AGENTS.md and
+# experiments/AGENTS.md, caches and raw datasets stay local and only compact,
+# reviewed outputs are committed. Also guards against an accidental `git add -A`
+# sweeping ~15 MB of third-party binaries into a source PR.
+research/source_sheets/_cache/
+

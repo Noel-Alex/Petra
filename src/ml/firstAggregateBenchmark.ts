@@ -404,11 +404,37 @@ function validateFirstAggregateBenchmarkDataset(
     }
   }
 
+  const taskOrder = new Map(
+    plan.tasks.map((task, index) => [task.taskId, index] as const),
+  );
+  const canonicalizeSplit = (
+    splitRows: readonly MechanisticDatasetRow<
+      FirstAggregateDatasetInput,
+      FirstAggregateDatasetTarget
+    >[],
+  ) =>
+    Object.freeze(
+      [...splitRows].sort((left, right) => {
+        const leftTaskIndex = taskOrder.get(left.taskId);
+        const rightTaskIndex = taskOrder.get(right.taskId);
+        if (leftTaskIndex === undefined || rightTaskIndex === undefined) {
+          throw new RangeError(
+            "first aggregate benchmark canonical ordering requires known tasks",
+          );
+        }
+        return (
+          leftTaskIndex - rightTaskIndex ||
+          left.sample.input.sourceSnapshotIndex -
+            right.sample.input.sourceSnapshotIndex
+        );
+      }),
+    );
+
   return Object.freeze({
     rowsBySplit: Object.freeze({
-      train: Object.freeze([...rowsBySplit.train]),
-      validation: Object.freeze([...rowsBySplit.validation]),
-      test: Object.freeze([...rowsBySplit.test]),
+      train: canonicalizeSplit(rowsBySplit.train),
+      validation: canonicalizeSplit(rowsBySplit.validation),
+      test: canonicalizeSplit(rowsBySplit.test),
     }),
   });
 }

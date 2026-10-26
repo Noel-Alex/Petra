@@ -295,3 +295,14 @@ export function buildFlagshipRunFromPreset(value: unknown): DefaultFlagshipRun {
 export function buildDefaultFlagshipRun(): DefaultFlagshipRun {
   return buildFlagshipRunFromPreset(runPresetData);
 }
+
+/**
+ * Rebuild the bundled flagship authority for the runtime-selected seed.
+ *
+ * Run controls may start a new run with another seed while keeping the same
+ * versioned scenario/configuration. Analysis and presentation adapters use
+ * this helper to bind their evidence to that exact run identity.
+ */
+export function buildDefaultFlagshipRunForSeed(seed: number): DefaultFlagshipRun {
+  return buildFlagshipRunFromPreset({ ...runPresetData, seed });
+}

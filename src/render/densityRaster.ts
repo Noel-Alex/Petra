@@ -13,8 +13,8 @@ export const COLONY_MASS_RASTER_MAX_ALPHA = 0.86;
  * Linear-filtered display texture for authoritative lineage density.
  *
  * Each lineage uses the same snapshot-wide density denominator. Exact source
- * zero stays transparent; the continuous colony-mass transfer suppresses sparse
- * noise while making dense, contiguous source regions read as coherent masses.
+ * zero stays transparent; the continuous colony-mass transfer preserves faint
+ * positive density while making connected source regions read as coherent masses.
  * There is no renderer-side biological merge, dilation, blur, or cell-count
  * interpretation.
  */

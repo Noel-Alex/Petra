@@ -2,21 +2,24 @@
  * Presentation-only revision policy for expensive dish preparation work.
  *
  * These counters are renderer scheduling metadata. They are deliberately
- * independent of simulation/replay identity and object identity: visual
- * interpolation may reuse mutable/preallocated presentation buffers while
- * still advancing the scientific-frame revision on every changed frame.
+ * independent of simulation/replay identity and object identity: intermediate
+ * interpolation frames use a separate lightweight revision so expensive vector
+ * geometry can remain cached until the next exact keyframe.
  */
-export const DISH_RENDER_PREPARATION_REVISION_VERSION = 1 as const;
+export const DISH_RENDER_PREPARATION_REVISION_VERSION = 2 as const;
 
 export interface DishRenderPreparationRevision {
   readonly version: typeof DISH_RENDER_PREPARATION_REVISION_VERSION;
   readonly scientificFrame: number;
+  /** Lightweight raster changes during a presentation-only transition. */
+  readonly visualFrame: number;
   readonly overlaySelection: number;
   readonly organismPresentation: number;
 }
 
 export type DishRenderPreparationChange =
   | "scientific-frame"
+  | "visual-frame"
   | "overlay-selection"
   | "organism-presentation";
 
@@ -52,6 +55,7 @@ export function initialDishRenderPreparationRevision(): DishRenderPreparationRev
   return Object.freeze({
     version: DISH_RENDER_PREPARATION_REVISION_VERSION,
     scientificFrame: 0,
+    visualFrame: 0,
     overlaySelection: 0,
     organismPresentation: 0,
   });
@@ -66,6 +70,7 @@ export function advanceDishRenderPreparationRevision(
   const next = {
     version: DISH_RENDER_PREPARATION_REVISION_VERSION,
     scientificFrame: revision.scientificFrame,
+    visualFrame: revision.visualFrame,
     overlaySelection: revision.overlaySelection,
     organismPresentation: revision.organismPresentation,
   };
@@ -74,6 +79,11 @@ export function advanceDishRenderPreparationRevision(
     next.scientificFrame = incrementRevision(
       revision.scientificFrame,
       "scientificFrame",
+    );
+  } else if (change === "visual-frame") {
+    next.visualFrame = incrementRevision(
+      revision.visualFrame,
+      "visualFrame",
     );
   } else if (change === "overlay-selection") {
     next.overlaySelection = incrementRevision(
@@ -102,14 +112,15 @@ export function resolveDishRenderPreparationInvalidation(
 
   const scientificFrame =
     previous.scientificFrame !== current.scientificFrame;
+  const visualFrame = previous.visualFrame !== current.visualFrame;
   const overlaySelection =
     previous.overlaySelection !== current.overlaySelection;
   const organismPresentation =
     previous.organismPresentation !== current.organismPresentation;
 
   return Object.freeze({
-    fieldRaster: scientificFrame || overlaySelection,
-    densityRaster: scientificFrame,
+    fieldRaster: scientificFrame || visualFrame || overlaySelection,
+    densityRaster: scientificFrame || visualFrame,
     fieldContours: scientificFrame || overlaySelection,
     lineageContours: scientificFrame,
     representativeGlyphCandidates: scientificFrame,
@@ -129,6 +140,7 @@ export function assertDishRenderPreparationRevision(
     );
   }
   requireRevision(value.scientificFrame, "scientificFrame");
+  requireRevision(value.visualFrame, "visualFrame");
   requireRevision(value.overlaySelection, "overlaySelection");
   requireRevision(value.organismPresentation, "organismPresentation");
 }

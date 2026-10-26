@@ -50,6 +50,20 @@ import {
 } from "../ui/interventionPlacement";
 import { AnalysisSurface } from "./AnalysisSurface";
 import type { AuthoritativeAnalysisRecords } from "./analysisView";
+import {
+  composeRuntimeAnalysisTransaction,
+} from "./runtimeAnalysisTransaction";
+import {
+  createFlagshipRuntimeAnalysisDefinition,
+  isFlagshipRuntimeAnalysisCompatible,
+  type FlagshipRuntimeAnalysisDefinition,
+} from "./flagshipRuntimeAnalysis";
+import { projectRuntimeLineageAnalysis } from "./runtimeLineageAnalysis";
+import {
+  createRuntimeLineageSelectionFromFrames,
+  type RuntimeLineageSelection,
+} from "./runtimeLineageSelection";
+import type { LiveAnalysisHistory } from "./liveAnalysisHistory";
 import { buildFlagshipProvenanceView } from "./flagshipProvenance";
 import { surfaceMotionCss } from "./motionAdapter";
 import {
@@ -81,6 +95,7 @@ import {
   useExperimentRuntime,
   type ExperimentRuntimeFactory,
 } from "./useExperimentRuntime";
+import type { ExperimentRuntimeState } from "./experimentRuntime";
 
 function useSystemReducedMotion(): boolean {
   const [reduced, setReduced] = useState(() =>
@@ -122,6 +137,18 @@ export interface AppProps {
 }
 
 const SOURCES_TRIGGER_ID = "petra-sources-trigger";
+const LIVE_ANALYSIS_REFRESH_INTERVAL_MS = 500;
+
+interface LiveAnalysisBridge {
+  readonly runBranchIdentity: string;
+  readonly definition: FlagshipRuntimeAnalysisDefinition;
+  readonly history: LiveAnalysisHistory;
+}
+
+interface RequestedLineageSelection {
+  readonly lineageId: string;
+  readonly runBranchIdentity: string;
+}
 
 
 function focusSourcesTrigger(): void {
@@ -129,9 +156,22 @@ function focusSourcesTrigger(): void {
   document.getElementById(SOURCES_TRIGGER_ID)?.focus();
 }
 
+function sameAnalysisRecordFrontier(
+  left: AuthoritativeAnalysisRecords | null,
+  right: AuthoritativeAnalysisRecords | null,
+): boolean {
+  if (left === right) return true;
+  if (left === null || right === null) return false;
+  return (
+    left.identity.runIdentity === right.identity.runIdentity &&
+    left.identity.stateIdentity === right.identity.stateIdentity &&
+    left.identity.simulationTimeHours === right.identity.simulationTimeHours
+  );
+}
+
 export function App({
   runtimeFactory,
-  analysisRecords = null,
+  analysisRecords,
   causalEvents = null,
   onboardingGates = null,
 }: AppProps) {
@@ -169,6 +209,12 @@ export function App({
   );
   const [regionInspectionRequest, setRegionInspectionRequest] =
     useState<RegionInspectionRequest | null>(null);
+  const [analysisOpen, setAnalysisOpen] = useState(false);
+  const [liveAnalysisRecords, setLiveAnalysisRecords] =
+    useState<AuthoritativeAnalysisRecords | null>(null);
+  const liveAnalysisBridgeRef = useRef<LiveAnalysisBridge | null>(null);
+  const [requestedLineageSelection, setRequestedLineageSelection] =
+    useState<RequestedLineageSelection | null>(null);
   const [motionSetting, setMotionSetting] = useState<MotionSetting>(() => {
     try {
       return loadMotionSetting(globalThis.localStorage);
@@ -188,6 +234,22 @@ export function App({
   const provenance = useMemo(() => buildFlagshipProvenanceView(), []);
   const runtimeSnapshot = experiment.state?.snapshot ?? null;
   const runBranchIdentity = experiment.state?.runBranchIdentity ?? null;
+  const runtimeIdentity = experiment.state?.controls.identity ?? null;
+  const analysisDefinition = useMemo(
+    () =>
+      runtimeIdentity === null
+        ? null
+        : createFlagshipRuntimeAnalysisDefinition(runtimeIdentity.seed),
+    [runtimeIdentity?.seed],
+  );
+  const analysisRunCompatible =
+    analysisDefinition !== null &&
+    runtimeIdentity !== null &&
+    isFlagshipRuntimeAnalysisCompatible(analysisDefinition, runtimeIdentity);
+  const liveAnalysisRuntimeRef = useRef<ExperimentRuntimeState | null>(
+    experiment.state,
+  );
+  liveAnalysisRuntimeRef.current = experiment.state;
   const ecologyObservation = experiment.state?.ecologyObservation ?? null;
   const lineageDensityPresentationScale =
     experiment.lineageDensityPresentationScale;
@@ -237,6 +299,67 @@ export function App({
     runtimeSnapshot,
   ]);
 
+  const liveLineageSelection = useMemo(() => {
+    if (
+      requestedLineageSelection === null ||
+      requestedLineageSelection.runBranchIdentity !== runBranchIdentity ||
+      runtimeSnapshot === null ||
+      dishSnapshot === null ||
+      runBranchIdentity === null ||
+      analysisDefinition === null ||
+      !analysisRunCompatible
+    ) {
+      return null;
+    }
+
+    try {
+      const analysis = projectRuntimeLineageAnalysis(
+        { snapshot: runtimeSnapshot, runBranchIdentity },
+        analysisDefinition.lineageAuthority,
+      );
+      if (analysis === null) return null;
+      const selection = createRuntimeLineageSelectionFromFrames({
+        lineageId: requestedLineageSelection.lineageId,
+        analysis,
+        snapshot: runtimeSnapshot,
+        runBranchIdentity,
+        dish: dishSnapshot,
+      });
+      if (selection === null) return null;
+      const record = analysis.analysis.records.find(
+        (candidate) => candidate.lineageId === selection.lineageId,
+      );
+      return record === undefined ? null : { selection, record };
+    } catch {
+      return null;
+    }
+  }, [
+    analysisDefinition,
+    analysisRunCompatible,
+    dishSnapshot,
+    requestedLineageSelection,
+    runBranchIdentity,
+    runtimeSnapshot,
+  ]);
+
+  const selectLineage = (lineageId: string | null) => {
+    if (lineageId === null || runBranchIdentity === null) {
+      setRequestedLineageSelection(null);
+      return;
+    }
+    setRequestedLineageSelection({ lineageId, runBranchIdentity });
+  };
+
+  const liveAnalysisConnected =
+    analysisRunCompatible &&
+    runtimeSnapshot?.checkpoint.authority === "composed";
+  const visibleAnalysisRecords =
+    analysisRecords === undefined ? liveAnalysisRecords : analysisRecords;
+  const analysisConnected =
+    analysisRecords === undefined
+      ? liveAnalysisConnected
+      : analysisRecords !== null;
+
   useEffect(() => {
     if (runBranchIdentity === null) return;
     observeDishReactCommit(runtimeSnapshot, runBranchIdentity, dishSnapshot);
@@ -251,6 +374,119 @@ export function App({
   );
   const regionInspectionAvailable =
     experiment.state?.snapshot?.checkpoint.authority === "composed";
+
+  useEffect(() => {
+    if (
+      requestedLineageSelection !== null &&
+      requestedLineageSelection.runBranchIdentity !== runBranchIdentity
+    ) {
+      setRequestedLineageSelection(null);
+    }
+  }, [requestedLineageSelection, runBranchIdentity]);
+
+  useEffect(() => {
+    if (
+      !liveAnalysisConnected ||
+      runtimeSnapshot?.checkpoint.authority !== "composed" ||
+      runBranchIdentity === null ||
+      analysisDefinition === null
+    ) {
+      liveAnalysisBridgeRef.current = null;
+      setLiveAnalysisRecords(null);
+      return;
+    }
+
+    let bridge = liveAnalysisBridgeRef.current;
+    if (
+      bridge === null ||
+      bridge.runBranchIdentity !== runBranchIdentity ||
+      bridge.definition !== analysisDefinition
+    ) {
+      bridge = {
+        runBranchIdentity,
+        definition: analysisDefinition,
+        history: analysisDefinition.createHistory(),
+      };
+      liveAnalysisBridgeRef.current = bridge;
+      setLiveAnalysisRecords(null);
+    }
+
+    try {
+      bridge.history.append(runtimeSnapshot);
+    } catch {
+      liveAnalysisBridgeRef.current = null;
+      setLiveAnalysisRecords(null);
+    }
+  }, [
+    analysisDefinition,
+    liveAnalysisConnected,
+    runBranchIdentity,
+    runtimeSnapshot,
+  ]);
+
+  useEffect(() => {
+    if (
+      !analysisOpen ||
+      analysisRecords !== undefined ||
+      !liveAnalysisConnected ||
+      analysisDefinition === null
+    ) {
+      return;
+    }
+
+    const refresh = () => {
+      const runtime = liveAnalysisRuntimeRef.current;
+      const snapshot = runtime?.snapshot ?? null;
+      const branch = runtime?.runBranchIdentity ?? null;
+      const bridge = liveAnalysisBridgeRef.current;
+      if (
+        snapshot?.checkpoint.authority !== "composed" ||
+        branch === null ||
+        bridge === null ||
+        bridge.runBranchIdentity !== branch ||
+        bridge.definition !== analysisDefinition
+      ) {
+        return;
+      }
+
+      try {
+        bridge.history.append(snapshot);
+        const lineage = projectRuntimeLineageAnalysis(
+          runtime,
+          analysisDefinition.lineageAuthority,
+        );
+        if (lineage === null) return;
+        const transaction = composeRuntimeAnalysisTransaction({
+          lineage,
+          metrics: {
+            runBranchIdentity: branch,
+            history: bridge.history.snapshot(),
+          },
+          seriesConfig: analysisDefinition.seriesConfig,
+        });
+        const nextRecords = transaction?.records ?? null;
+        setLiveAnalysisRecords((current) =>
+          sameAnalysisRecordFrontier(current, nextRecords)
+            ? current
+            : nextRecords,
+        );
+      } catch {
+        setLiveAnalysisRecords(null);
+      }
+    };
+
+    refresh();
+    const timer = globalThis.setInterval(
+      refresh,
+      LIVE_ANALYSIS_REFRESH_INTERVAL_MS,
+    );
+    return () => globalThis.clearInterval(timer);
+  }, [
+    analysisDefinition,
+    analysisOpen,
+    analysisRecords,
+    liveAnalysisConnected,
+  ]);
 
   useEffect(() => {
     setOnboardingSession((current) =>
@@ -802,9 +1038,42 @@ export function App({
                     );
                     if (request !== null) {
                       setRegionInspectionRequest(request);
+                      const projected = projectRegionInspector(
+                        experiment.state?.snapshot ?? null,
+                        request,
+                      );
+                      const readout = projected.state;
+                      if (
+                        readout.status === "ready" &&
+                        readout.readout.kind === "measured"
+                      ) {
+                        const dominant = readout.readout.lineageBiomass.reduce<
+                          { readonly lineageId: string; readonly biomass: number } | null
+                        >((current, candidate) => {
+                          if (candidate.biomass <= 0) return current;
+                          if (
+                            current === null ||
+                            candidate.biomass > current.biomass
+                          ) {
+                            return {
+                              lineageId: candidate.lineageId,
+                              biomass: candidate.biomass,
+                            };
+                          }
+                          return current;
+                        }, null);
+                        selectLineage(dominant?.lineageId ?? null);
+                      } else {
+                        selectLineage(null);
+                      }
                     }
                   }
                 : undefined
+            }
+            selectedLineageId={
+              liveLineageSelection?.selection.presentInCurrentDish === true
+                ? liveLineageSelection.selection.lineageId
+                : null
             }
             selection={regionInspector.state.status === "ready" ? regionInspectionRequest?.selection ?? null : null}
             regionSelectionActive={regionInspectionRequest !== null}
@@ -861,6 +1130,16 @@ export function App({
             state={regionInspector.state}
             title="Colony Details"
             className="inspector-shell__region"
+            selectedLineage={
+              liveLineageSelection === null
+                ? null
+                : {
+                    record: liveLineageSelection.record,
+                    presentInCurrentDish:
+                      liveLineageSelection.selection.presentInCurrentDish,
+                  }
+            }
+            onClearSelectedLineage={() => selectLineage(null)}
             emptyStateAdornment={
               regionInspectionRequest === null ? (
                 <InspectorSelectionGlyph />
@@ -868,7 +1147,18 @@ export function App({
             }
           />
           <AnalysisSurface
-            records={analysisRecords}
+            records={visibleAnalysisRecords}
+            connected={analysisConnected}
+            open={analysisOpen}
+            onOpenChange={setAnalysisOpen}
+            selectedLineageId={
+              liveLineageSelection?.selection.lineageId ?? null
+            }
+            onLineageSelect={
+              analysisRecords === undefined && liveAnalysisConnected
+                ? selectLineage
+                : undefined
+            }
             motion={motionPreference}
             contrastMode={visualContrast}
           />

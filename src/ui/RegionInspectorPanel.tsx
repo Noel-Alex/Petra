@@ -2,6 +2,7 @@ import { resolveLineageVisualIdentity } from "../design/lineageIdentity";
 import { useId, type ReactElement, type ReactNode } from "react";
 
 import type { AuthoritativeRegionInspection } from "../sim/regionInspector";
+import type { AuthoritativeLineageAnalysisRecord } from "../sim/evolution/analysis";
 import {
   activeSelectionId,
   visibleReadout,
@@ -15,6 +16,11 @@ export interface RegionInspectorPanelProps {
   readonly title?: string;
   readonly className?: string;
   readonly emptyStateAdornment?: ReactNode;
+  readonly selectedLineage?: {
+    readonly record: AuthoritativeLineageAnalysisRecord;
+    readonly presentInCurrentDish: boolean;
+  } | null;
+  readonly onClearSelectedLineage?: () => void;
 }
 
 /**
@@ -30,6 +36,8 @@ export function RegionInspectorPanel({
   title = "Selected region",
   className,
   emptyStateAdornment,
+  selectedLineage = null,
+  onClearSelectedLineage,
 }: RegionInspectorPanelProps): ReactElement {
   const titleId = useId();
   const statusId = useId();
@@ -70,6 +78,14 @@ export function RegionInspectorPanel({
         {statusCopy(state)}
       </p>
 
+      {selectedLineage === null ? null : (
+        <SelectedLineageDetails
+          record={selectedLineage.record}
+          presentInCurrentDish={selectedLineage.presentInCurrentDish}
+          onClear={onClearSelectedLineage}
+        />
+      )}
+
       {readout === null ? (
         <EmptyReadout state={state} adornment={emptyStateAdornment} />
       ) : (
@@ -88,6 +104,83 @@ export function RegionInspectorPanel({
         </p>
       </details>
     </aside>
+  );
+}
+
+function SelectedLineageDetails({
+  record,
+  presentInCurrentDish,
+  onClear,
+}: {
+  readonly record: AuthoritativeLineageAnalysisRecord;
+  readonly presentInCurrentDish: boolean;
+  readonly onClear?: () => void;
+}): ReactElement {
+  return (
+    <section
+      className="region-inspector-selected-lineage"
+      aria-label={`Selected lineage ${record.lineageId}`}
+      data-lineage-id={record.lineageId}
+      data-lineage-status={record.status}
+    >
+      <header className="region-inspector-selected-lineage__header">
+        <div>
+          <p className="region-inspector-panel__kicker">Selected colony</p>
+          <strong>{record.genotypeLabel}</strong>
+          <code>{record.lineageId}</code>
+        </div>
+        {onClear === undefined ? null : (
+          <button
+            type="button"
+            className="region-inspector-selected-lineage__clear"
+            onClick={onClear}
+            aria-label={`Clear selected lineage ${record.lineageId}`}
+          >
+            Clear
+          </button>
+        )}
+      </header>
+
+      <dl className="region-inspector-readout__metrics">
+        <Metric
+          label="Lineage status"
+          value={
+            record.status === "extant" && presentInCurrentDish
+              ? "Active in dish"
+              : "Extinct · history only"
+          }
+        />
+        <Metric
+          label="Abundance"
+          value={`${formatNumber(record.abundanceModelBiomass)} model-biomass`}
+        />
+        <Metric
+          label="Relative fitness"
+          value={formatNumber(record.relativeFitness)}
+        />
+        {record.ciprofloxacin == null ? null : (
+          <Metric
+            label="Scenario MIC"
+            value={`${formatNumber(record.ciprofloxacin.micMgPerL)} mg/L`}
+          />
+        )}
+      </dl>
+
+      <details className="region-inspector-selected-lineage__evidence">
+        <summary>Evidence keys</summary>
+        <dl>
+          <Metric
+            label="Sources"
+            value={record.sourceKeys.length === 0 ? "None recorded" : record.sourceKeys.join(", ")}
+          />
+          <Metric
+            label="Assumptions"
+            value={record.assumptionKeys.length === 0 ? "None recorded" : record.assumptionKeys.join(", ")}
+          />
+        </dl>
+        <p>Keys identify attached evidence; they are not resolved citations.</p>
+      </details>
+    </section>
   );
 }
 

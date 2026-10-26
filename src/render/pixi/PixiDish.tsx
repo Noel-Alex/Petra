@@ -25,6 +25,7 @@ export interface PixiDishProps {
   readonly lineageDensityPresentationScale: LineageDensityPresentationScale | null;
   readonly sourceKind: PixiDishSourceKind;
   readonly selection?: DishSelectionHighlight | null;
+  readonly selectedLineageId?: string | null;
   readonly organismPresentation?: OrganismPresentationIdentity | null;
   readonly motion?: RendererMotionMode;
   readonly cameraMotion: CameraMotionSpec;
@@ -80,6 +81,7 @@ export function PixiDish({
   sourceKind,
   organismPresentation = null,
   selection = null,
+  selectedLineageId = null,
   motion = "full",
   cameraMotion,
   visualMotion,
@@ -94,6 +96,7 @@ export function PixiDish({
   const hostRef = useRef<HTMLDivElement | null>(null);
   const rendererRef = useRef<PixiDishRenderer | null>(null);
   const selectionRef = useRef(selection);
+  const selectedLineageIdRef = useRef(selectedLineageId);
   const motionRef = useRef(motion);
   const cameraMotionRef = useRef(cameraMotion);
   const visualMotionRef = useRef(visualMotion);
@@ -123,6 +126,7 @@ export function PixiDish({
 
   useLayoutEffect(() => {
     selectionRef.current = selection;
+    selectedLineageIdRef.current = selectedLineageId;
     motionRef.current = motion;
     cameraMotionRef.current = cameraMotion;
     visualMotionRef.current = visualMotion;
@@ -134,6 +138,7 @@ export function PixiDish({
     densityScaleRef.current = lineageDensityPresentationScale;
   }, [
     selection,
+    selectedLineageId,
     cameraMotion,
     motion,
     onSemanticZoomLevelChange,
@@ -180,6 +185,7 @@ export function PixiDish({
         onReady(renderer) {
           rendererRef.current = renderer;
           renderer.setSelection(selectionRef.current);
+          renderer.setSelectedLineageId(selectedLineageIdRef.current);
           renderer.setCameraMotion(cameraMotionRef.current);
           renderer.setVisualMotion(visualMotionRef.current);
           renderer.setMotionMode(motionRef.current);
@@ -243,6 +249,9 @@ export function PixiDish({
   ]);
 
   useEffect(() => { rendererRef.current?.setSelection(selection); }, [selection]);
+  useEffect(() => {
+    rendererRef.current?.setSelectedLineageId(selectedLineageId);
+  }, [selectedLineageId]);
 
   const resolvedAriaLabel =
     startup.status === "failed"

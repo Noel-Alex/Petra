@@ -57,6 +57,25 @@ describe("dish render preparation invalidation", () => {
     });
   });
 
+  it("refreshes scalar rasters without rebuilding vector geometry between exact frames", () => {
+    const settled = initialDishRenderPreparationRevision();
+    const next = advanceDishRenderPreparationRevision(
+      settled,
+      "visual-frame",
+    );
+
+    expect(
+      resolveDishRenderPreparationInvalidation(settled, next),
+    ).toEqual({
+      fieldRaster: true,
+      densityRaster: true,
+      fieldContours: false,
+      lineageContours: false,
+      representativeGlyphCandidates: false,
+      representativeGlyphAppearance: false,
+    });
+  });
+
   it("invalidates only selected-field preparation when the overlay changes", () => {
     const settled = initialDishRenderPreparationRevision();
     const next = advanceDishRenderPreparationRevision(
@@ -127,8 +146,9 @@ describe("dish render preparation invalidation", () => {
 
   it("fails closed on invalid or exhausted revision counters", () => {
     const invalid = {
-      version: 1,
+      version: 2,
       scientificFrame: -1,
+      visualFrame: 0,
       overlaySelection: 0,
       organismPresentation: 0,
     } as DishRenderPreparationRevision;
@@ -140,8 +160,9 @@ describe("dish render preparation invalidation", () => {
     ).toThrow(/scientificFrame/);
 
     const exhausted = {
-      version: 1,
+      version: 2,
       scientificFrame: Number.MAX_SAFE_INTEGER,
+      visualFrame: 0,
       overlaySelection: 0,
       organismPresentation: 0,
     } as DishRenderPreparationRevision;

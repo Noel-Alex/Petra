@@ -8,6 +8,9 @@ import {
   RUNTIME_ANALYSIS_TRANSACTION_SCHEMA_VERSION,
   type RuntimeAnalysisTransaction,
 } from "./runtimeAnalysisTransaction";
+import type { RuntimeLineageAnalysisFrame } from "./runtimeLineageAnalysis";
+import type { DishRenderSnapshot } from "../render/model";
+import type { SimulationSnapshot } from "../sim/protocol";
 
 export const RUNTIME_LINEAGE_SELECTION_SCHEMA_VERSION = 1 as const;
 
@@ -167,6 +170,102 @@ export function createRuntimeLineageSelection(args: {
     tick: accepted.tick,
     acceptedCommandCount: accepted.acceptedCommandCount,
     biologicalTimeHours: accepted.biologicalTimeHours,
+    presentInCurrentDish,
+  });
+}
+
+/**
+ * Re-admit a controlled selection against the current accepted runtime frame
+ * and the exact app-projected dish snapshot without rescanning its grid arrays.
+ *
+ * `projectComposedDishSnapshot` already validates and detaches the render
+ * snapshot. This path checks the shared trace/branch/time and lineage identity
+ * metadata only, so playback does not repeat an O(grid cells) scene validation
+ * merely to keep a selected lineage highlighted.
+ */
+export function createRuntimeLineageSelectionFromFrames(args: {
+  readonly lineageId: string;
+  readonly analysis: RuntimeLineageAnalysisFrame | null;
+  readonly snapshot: SimulationSnapshot | null;
+  readonly runBranchIdentity: string | null;
+  readonly dish: DishRenderSnapshot | null;
+}): RuntimeLineageSelection | null {
+  assertCanonicalText("selected lineage id", args.lineageId);
+
+  const snapshot = args.snapshot;
+  const frame = args.analysis;
+  const dish = args.dish;
+  const branch = args.runBranchIdentity;
+  if (
+    snapshot?.checkpoint.authority !== "composed" ||
+    frame === null ||
+    dish === null ||
+    branch === null
+  ) {
+    return null;
+  }
+
+  const checkpoint = snapshot.checkpoint;
+  if (
+    frame.schemaVersion !== 1 ||
+    frame.runBranchIdentity !== branch ||
+    frame.traceHash !== snapshot.traceHash ||
+    frame.tick !== checkpoint.tick ||
+    frame.commandCount !== checkpoint.commandCount ||
+    frame.simulationTimeHours !== checkpoint.simulationTimeHours ||
+    frame.analysis.simulationTimeHours !== checkpoint.simulationTimeHours ||
+    frame.analysis.configurationFingerprint !==
+      checkpoint.composedState.configurationFingerprint ||
+    dish.snapshotId !== `composed-trace:${snapshot.traceHash}` ||
+    dish.samplingIdentity !== `runtime-branch:${branch}` ||
+    dish.simulationTimeHours !== checkpoint.simulationTimeHours
+  ) {
+    return null;
+  }
+
+  try {
+    assertReplayCompatibility({
+      artifactIdentity: frame.analysis.identity,
+      targetIdentity: checkpoint.identity,
+      artifactAuthority: "composed",
+      targetAuthority: "composed",
+    });
+  } catch {
+    return null;
+  }
+
+  const records = frame.analysis.records;
+  const matchingRecords = records.filter(
+    (record) => record.lineageId === args.lineageId,
+  );
+  if (matchingRecords.length !== 1) return null;
+
+  const record = matchingRecords[0]!;
+  const expectedStatus = record.extinctAtHours === null ? "extant" : "extinct";
+  if (record.status !== expectedStatus) return null;
+
+  const matchingDishLineages = dish.lineages.filter(
+    (lineage) => lineage.id === args.lineageId,
+  );
+  if (matchingDishLineages.length > 1) return null;
+
+  const presentInCurrentDish = matchingDishLineages.length === 1;
+  if (
+    (record.status === "extant" && !presentInCurrentDish) ||
+    (record.status === "extinct" && presentInCurrentDish)
+  ) {
+    return null;
+  }
+
+  return Object.freeze({
+    schemaVersion: RUNTIME_LINEAGE_SELECTION_SCHEMA_VERSION,
+    lineageId: args.lineageId,
+    lineageStatus: record.status,
+    runBranchIdentity: branch,
+    traceHash: snapshot.traceHash,
+    tick: checkpoint.tick,
+    acceptedCommandCount: checkpoint.commandCount,
+    biologicalTimeHours: checkpoint.simulationTimeHours,
     presentInCurrentDish,
   });
 }

@@ -64,6 +64,7 @@ export interface DishViewportProps {
   /** Presentation-only point selection; scientific values are resolved by app authority. */
   readonly onRegionPointActivate?: (point: NormalizedDishPoint) => void;
   readonly selection?: DishSelectionHighlight | null;
+  readonly selectedLineageId?: string | null;
   readonly regionSelectionActive?: boolean;
   readonly onClearRegionSelection?: () => void;
 }
@@ -90,6 +91,7 @@ export function DishViewport({
   onRegionPointActivate,
   regionSelectionActive = false,
   selection = null,
+  selectedLineageId = null,
   onClearRegionSelection,
 }: DishViewportProps) {
   const interactionHintId = useId();
@@ -243,6 +245,7 @@ export function DishViewport({
       <div className="dish-renderer-frame">
         <PixiDish
           selection={selection}
+          selectedLineageId={selectedLineageId}
           snapshot={activeSnapshot}
           lineageDensityPresentationScale={activeLineageDensityPresentationScale}
           organismPresentation={renderSource.organismPresentation}

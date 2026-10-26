@@ -111,6 +111,92 @@
   border-style: dashed;
 }
 
+.region-inspector-selected-lineage {
+  display: grid;
+  gap: 0.65rem;
+  min-width: 0;
+  padding: 0.8rem;
+  border: 1px solid rgb(var(--petra-rgb-coral) / 0.34);
+  border-radius: 0.95rem;
+  background:
+    linear-gradient(135deg, rgb(var(--petra-rgb-coral) / 0.085), transparent 68%),
+    rgb(var(--petra-rgb-ink) / 0.62);
+}
+
+.region-inspector-selected-lineage__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.region-inspector-selected-lineage__header > div {
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+}
+
+.region-inspector-selected-lineage__header strong {
+  color: var(--petra-color-cream);
+  overflow-wrap: anywhere;
+}
+
+.region-inspector-selected-lineage__header code {
+  color: var(--region-inspector-muted);
+  font-size: var(--petra-type-caption);
+  overflow-wrap: anywhere;
+}
+
+.region-inspector-selected-lineage__clear {
+  flex: none;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid rgb(var(--petra-rgb-cream-muted) / 0.2);
+  border-radius: 0.7rem;
+  background: rgb(var(--petra-rgb-ink-soft) / 0.72);
+  color: var(--petra-color-cream);
+  font: inherit;
+  font-size: var(--petra-type-caption);
+  cursor: pointer;
+}
+
+.region-inspector-selected-lineage__clear:hover {
+  border-color: rgb(var(--petra-rgb-mint) / 0.52);
+}
+
+.region-inspector-selected-lineage__clear:focus-visible {
+  outline: 3px solid var(--petra-focus-ring);
+  outline-offset: 2px;
+}
+
+.region-inspector-selected-lineage__evidence {
+  border-top: 1px solid rgb(var(--petra-rgb-cream-muted) / 0.12);
+}
+
+.region-inspector-selected-lineage__evidence > summary {
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  color: var(--region-inspector-muted);
+  font-size: var(--petra-type-caption);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.region-inspector-selected-lineage__evidence dl {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0 0 0.45rem;
+}
+
+.region-inspector-selected-lineage__evidence p {
+  margin: 0;
+  color: var(--region-inspector-muted);
+  font-size: var(--petra-type-caption);
+  line-height: 1.45;
+}
+
 .region-inspector-readout--empty {
   min-height: 6rem;
   place-items: center;

@@ -97,6 +97,7 @@ import {
   rendererTouchActionForNextGesture,
 } from "./touchOwnership";
 import { resolveDishActivationPoint } from "./dishActivation";
+import { resolveDishTransitionRefresh } from "./transitionRefresh";
 import {
   indexLineageGlyphPresentations,
   lineageGlyphPresentationContractEqual,
@@ -128,6 +129,7 @@ export interface PixiDishRenderer {
     lineageDensityPresentationScale: LineageDensityPresentationScale,
   ): void;
   setSelection(selection: DishSelectionHighlight | null): void;
+  setSelectedLineageId(lineageId: string | null): void;
   setOverlay(overlayId: string | null): void;
   setCameraMotion(spec: CameraMotionSpec): void;
   setVisualMotion(spec: DishVisualMotionSpec): void;
@@ -144,7 +146,6 @@ const DISH_RIM_COLOR = petraVisualColor("creamMuted");
 const DISH_HIGHLIGHT_COLOR = petraVisualColor("cream");
 const DISH_GLYPH_EDGE_COLOR = petraVisualColor("inkDeep");
 const DISH_ACCENT_COLOR = petraVisualColor("teal");
-
 type ClientCoordinateEvent = Pick<MouseEvent, "clientX" | "clientY">;
 
 export async function createPixiDishRenderer(
@@ -212,6 +213,7 @@ export async function createPixiDishRenderer(
   app.stage.addChild(root);
 
   let selection: DishSelectionHighlight | null = null;
+  let selectedLineageId: string | null = null;
   let organismPresentation: OrganismPresentationIdentity | null = null;
   let lineageDensityPresentationScale: LineageDensityPresentationScale | null = null;
   let snapshot: DishRenderSnapshot | null = null;
@@ -221,6 +223,8 @@ export async function createPixiDishRenderer(
   let renderPreparationRevision =
     initialDishRenderPreparationRevision();
   let preparedRevision: DishRenderPreparationRevision | null = null;
+  let lastVectorSourcePreparedAt = Number.NEGATIVE_INFINITY;
+  let lastRasterPreparedAt = Number.NEGATIVE_INFINITY;
   let overlayId = options.overlayId ?? null;
   let motion: RendererMotionMode = options.motion ?? "full";
   let cameraMotion = copyCameraMotionSpec(options.cameraMotion);
@@ -280,8 +284,10 @@ export async function createPixiDishRenderer(
   const frameGaps: number[] = [];
   let lastFrameAt = performance.now();
   let lastReportAt = lastFrameAt;
-  const render = () => {
+  const render = (options: { readonly preserveVectorPresentation?: boolean } = {}) => {
     const drawStartedAt = import.meta.env.DEV ? performance.now() : 0;
+    const preserveVectorPresentation =
+      options.preserveVectorPresentation === true;
     if (destroyed) return;
     syncHostTouchAction();
     if (drawableState === null) return;
@@ -304,12 +310,15 @@ export async function createPixiDishRenderer(
       preparedRepresentativeGlyphMinimumDensity = null;
     }
 
-    preparedCameraLayer.position.set(0, 0);
-    preparedCameraLayer.scale.set(1, 1);
+    if (!preserveVectorPresentation) {
+      preparedCameraLayer.position.set(0, 0);
+      preparedCameraLayer.scale.set(1, 1);
+    }
 
     drawScene({
       app,
       snapshot: drawableState,
+      preserveVectorPresentation,
       densitySprite,
       fieldSprite,
       updateFieldTexture(field) {
@@ -367,6 +376,7 @@ export async function createPixiDishRenderer(
       representativeGlyphsForCamera,
       organismPresentation,
       selection,
+      selectedLineageId,
       camera,
       overlayId,
       motion,
@@ -397,12 +407,39 @@ export async function createPixiDishRenderer(
       glyphLayer,
       accentLayer,
     });
-    preparedCamera = { ...camera };
+    if (!preserveVectorPresentation) {
+      preparedCamera = { ...camera };
+      if (
+        invalidation.fieldContours ||
+        invalidation.lineageContours ||
+        invalidation.representativeGlyphCandidates
+      ) {
+        lastVectorSourcePreparedAt = performance.now();
+      }
+    }
+    if (invalidation.fieldRaster || invalidation.densityRaster) {
+      lastRasterPreparedAt = performance.now();
+    }
     preparedRevision = renderPreparationRevision;
     if (import.meta.env.DEV) {
       drawTimes.push(performance.now() - drawStartedAt);
       if (drawTimes.length > 600) drawTimes.shift();
     }
+  };
+
+  const pendingPreparation = () => {
+    const invalidation = resolveDishRenderPreparationInvalidation(
+      preparedRevision,
+      renderPreparationRevision,
+    );
+    return {
+      vector:
+        invalidation.fieldContours ||
+        invalidation.lineageContours ||
+        invalidation.representativeGlyphCandidates ||
+        invalidation.representativeGlyphAppearance,
+      raster: invalidation.fieldRaster || invalidation.densityRaster,
+    };
   };
 
   const renderCameraOnly = () => {
@@ -547,16 +584,42 @@ export async function createPixiDishRenderer(
         visualMotion,
       );
       if (plan.kind === "interpolate") {
-        const initial = advanceDishVisualTransition(plan.transition, 0);
-        drawableState = initial.state;
-        visualTransition = initial.complete ? null : plan.transition;
+        const instantaneous = plan.transition.motion.durationMs === 0;
+        drawableState = instantaneous
+          ? plan.transition.to
+          : plan.transition.frame;
+        visualTransition = instantaneous ? null : plan.transition;
         visualElapsedMs = 0;
-        renderPreparationRevision =
-          advanceDishRenderPreparationRevision(
-            renderPreparationRevision,
-            "scientific-frame",
-          );
-        render();
+        if (instantaneous) {
+          renderPreparationRevision =
+            advanceDishRenderPreparationRevision(
+              renderPreparationRevision,
+              "scientific-frame",
+            );
+          render();
+          return;
+        }
+
+        const now = performance.now();
+        const refresh = resolveDishTransitionRefresh({
+          nowMs: now,
+          elapsedMs: 0,
+          durationMs: plan.transition.motion.durationMs,
+          lastVectorSourcePreparedAtMs: lastVectorSourcePreparedAt,
+          lastRasterPreparedAtMs: lastRasterPreparedAt,
+          hasPreparedFrame: preparedRevision !== null,
+        });
+        const pending = pendingPreparation();
+        const vectorRefreshDue = refresh.refreshVectorSource || pending.vector;
+        const rasterRefreshDue = refresh.refreshRaster || pending.raster;
+        if (vectorRefreshDue || rasterRefreshDue) {
+          renderPreparationRevision =
+            advanceDishRenderPreparationRevision(
+              renderPreparationRevision,
+              vectorRefreshDue ? "scientific-frame" : "visual-frame",
+            );
+          render({ preserveVectorPresentation: !vectorRefreshDue });
+        }
         return;
       }
     }
@@ -652,6 +715,8 @@ export async function createPixiDishRenderer(
 
     let cameraChanged = false;
     let visualChanged = false;
+    let vectorRefreshDue = false;
+    let rasterRefreshDue = false;
     if (
       !cameraTransitionComplete({
         elapsedMs: cameraElapsedMs,
@@ -670,25 +735,49 @@ export async function createPixiDishRenderer(
 
     if (visualTransition !== null) {
       visualElapsedMs += app.ticker.deltaMS;
-      const step = advanceDishVisualTransition(
-        visualTransition,
-        visualElapsedMs,
-      );
-      drawableState = step.state;
-      renderPreparationRevision =
-        advanceDishRenderPreparationRevision(
-          renderPreparationRevision,
-          "scientific-frame",
+      const now = performance.now();
+      const refresh = resolveDishTransitionRefresh({
+        nowMs: now,
+        elapsedMs: visualElapsedMs,
+        durationMs: visualTransition.motion.durationMs,
+        lastVectorSourcePreparedAtMs: lastVectorSourcePreparedAt,
+        lastRasterPreparedAtMs: lastRasterPreparedAt,
+        hasPreparedFrame: preparedRevision !== null,
+      });
+      const pending = pendingPreparation();
+      vectorRefreshDue = refresh.refreshVectorSource || pending.vector;
+      rasterRefreshDue = refresh.refreshRaster || pending.raster;
+      if (refresh.evaluateFrame || vectorRefreshDue || rasterRefreshDue) {
+        const step = advanceDishVisualTransition(
+          visualTransition,
+          visualElapsedMs,
         );
-      if (step.complete) {
-        visualTransition = null;
-        visualElapsedMs = 0;
+        drawableState = step.state;
+        if (refresh.complete || step.complete) {
+          visualTransition = null;
+          visualElapsedMs = 0;
+        }
+        visualChanged = true;
       }
-      visualChanged = true;
     }
 
     if (visualChanged) {
-      render();
+      if (vectorRefreshDue || rasterRefreshDue) {
+        renderPreparationRevision =
+          advanceDishRenderPreparationRevision(
+            renderPreparationRevision,
+            vectorRefreshDue ? "scientific-frame" : "visual-frame",
+          );
+        render({
+          preserveVectorPresentation:
+            visualTransition !== null && !vectorRefreshDue,
+        });
+        if (cameraChanged && !vectorRefreshDue) {
+          renderCameraState(true);
+        }
+      } else if (cameraChanged) {
+        renderCameraState(true);
+      }
     } else if (cameraChanged) {
       renderCameraState(true);
     }
@@ -973,6 +1062,14 @@ export async function createPixiDishRenderer(
       renderCameraOnly();
     },
 
+    setSelectedLineageId(nextLineageId) {
+      if (selectedLineageId === nextLineageId) return;
+      selectedLineageId = nextLineageId;
+      // Selected contours reuse prepared geometry; no density raster or grid
+      // scan is repeated for a selection-only change.
+      render();
+    },
+
     setOverlay(nextOverlayId) {
       if (
         nextOverlayId !== null &&
@@ -1099,6 +1196,7 @@ function lineageDensityPresentationScaleEqual(
 
 function drawScene(args: {
   readonly app: Application;
+  readonly preserveVectorPresentation: boolean;
   readonly densitySprite: Sprite;
   readonly fieldSprite: Sprite;
   readonly updateFieldTexture: (field: RenderField | null) => void;
@@ -1118,6 +1216,7 @@ function drawScene(args: {
   readonly snapshot: DishDrawableState;
   readonly organismPresentation: OrganismPresentationIdentity | null;
   readonly selection: DishSelectionHighlight | null;
+  readonly selectedLineageId: string | null;
   readonly camera: CameraView;
   readonly overlayId: string | null;
   readonly motion: RendererMotionMode;
@@ -1132,6 +1231,7 @@ function drawScene(args: {
 }): void {
   const {
     app,
+    preserveVectorPresentation,
     densitySprite,
     fieldSprite,
     updateFieldTexture,
@@ -1147,6 +1247,7 @@ function drawScene(args: {
     prepareLineageDensityMaximum,
     organismPresentation,
     selection,
+    selectedLineageId,
     plateLayer,
     dishInteriorMask,
     fieldLayer,
@@ -1163,14 +1264,12 @@ function drawScene(args: {
   const centerX = geometry.centerX;
   const centerY = geometry.centerY;
   const radius = geometry.radius;
-  for (const layer of [
-    plateLayer,
-    dishInteriorMask,
-    fieldLayer,
-    densityLayer,
-    accentLayer,
-  ]) {
+  for (const layer of [plateLayer, dishInteriorMask, accentLayer]) {
     layer.clear();
+  }
+  if (!preserveVectorPresentation) {
+    fieldLayer.clear();
+    densityLayer.clear();
   }
 
   dishInteriorMask
@@ -1193,10 +1292,12 @@ function drawScene(args: {
       : snapshot.fields.find((field) => field.id === overlayId) ?? null;
 
   updateFieldTexture(overlay);
-  fieldSprite.position.set(centerX - camera.centerX * dishSize * camera.zoom, centerY - camera.centerY * dishSize * camera.zoom);
-  fieldSprite.width = dishSize * camera.zoom;
-  fieldSprite.height = dishSize * camera.zoom;
-  if (overlay !== null) {
+  if (!preserveVectorPresentation) {
+    fieldSprite.position.set(centerX - camera.centerX * dishSize * camera.zoom, centerY - camera.centerY * dishSize * camera.zoom);
+    fieldSprite.width = dishSize * camera.zoom;
+    fieldSprite.height = dishSize * camera.zoom;
+  }
+  if (overlay !== null && !preserveVectorPresentation) {
     drawField(
       fieldLayer,
       resolveOverlayPresentation(overlay.kind),
@@ -1211,33 +1312,52 @@ function drawScene(args: {
   const lineageDensityMaximum = prepareLineageDensityMaximum();
 
   updateDensityTexture(lineageDensityMaximum);
-  densitySprite.position.set(centerX - camera.centerX * dishSize * camera.zoom, centerY - camera.centerY * dishSize * camera.zoom);
-  densitySprite.width = dishSize * camera.zoom;
-  densitySprite.height = dishSize * camera.zoom;
-  snapshot.lineages.forEach((lineage) => {
-    drawLineageDensity(
-      densityLayer,
-      prepareLineageContours(lineage, lineageDensityMaximum),
-      lineage.patternToken,
-      camera,
-      centerX,
-      centerY,
-      dishSize,
-      resolveLineageAppearance(lineage.appearanceToken).color,
+  if (!preserveVectorPresentation) {
+    densitySprite.position.set(centerX - camera.centerX * dishSize * camera.zoom, centerY - camera.centerY * dishSize * camera.zoom);
+    densitySprite.width = dishSize * camera.zoom;
+    densitySprite.height = dishSize * camera.zoom;
+  }
+  if (!preserveVectorPresentation) {
+    snapshot.lineages.forEach((lineage) => {
+      drawLineageDensity(
+        densityLayer,
+        prepareLineageContours(lineage, lineageDensityMaximum),
+        lineage.patternToken,
+        camera,
+        centerX,
+        centerY,
+        dishSize,
+        resolveLineageAppearance(lineage.appearanceToken).color,
+      );
+    });
+    const selectedLineage = snapshot.lineages.find(
+      (lineage) => lineage.id === selectedLineageId,
     );
-  });
+    if (selectedLineage !== undefined) {
+      drawSelectedLineageOutline(
+        densityLayer,
+        prepareLineageContours(selectedLineage, lineageDensityMaximum),
+        camera,
+        centerX,
+        centerY,
+        dishSize,
+      );
+    }
+  }
 
-  drawGlyphAndSelectionLayer({
-    app,
-    snapshot,
-    representativeGlyphsForCamera,
-    organismPresentation,
-    selection,
-    camera,
-    maxRepresentativeGlyphs,
-    lineageDensityMaximum,
-    glyphLayer,
-  });
+  if (!preserveVectorPresentation) {
+    drawGlyphAndSelectionLayer({
+      app,
+      snapshot,
+      representativeGlyphsForCamera,
+      organismPresentation,
+      selection,
+      camera,
+      maxRepresentativeGlyphs,
+      lineageDensityMaximum,
+      glyphLayer,
+    });
+  }
 
   const accentAlpha = motion === "off" ? 0.12 : 0.16;
   accentLayer
@@ -1509,6 +1629,53 @@ function drawLineageDensity(
     path();
     graphics.stroke({ color, alpha: .15 + contourLevel * .32, width: contourBaseWidth });
   }
+}
+
+function drawSelectedLineageOutline(
+  graphics: Graphics,
+  contourSegments: ReturnType<typeof extractLineageDensityContourSegments>,
+  camera: CameraView,
+  centerX: number,
+  centerY: number,
+  dishSize: number,
+): void {
+  if (contourSegments.length === 0) return;
+  const selectedLevel = Math.max(
+    ...contourSegments.map((segment) => segment.level),
+  );
+  const selectedSegments = contourSegments.filter(
+    (segment) => segment.level === selectedLevel,
+  );
+  const path = () => {
+    for (const segment of selectedSegments) {
+      const from = dishToScreen(
+        segment.from.x,
+        segment.from.y,
+        camera,
+        centerX,
+        centerY,
+        dishSize,
+      );
+      const to = dishToScreen(
+        segment.to.x,
+        segment.to.y,
+        camera,
+        centerX,
+        centerY,
+        dishSize,
+      );
+      graphics.moveTo(from.x, from.y).lineTo(to.x, to.y);
+    }
+  };
+  const width = Math.max(1.6, Math.min(3.2, dishSize * 0.0032));
+  path();
+  graphics.stroke({ color: petraVisualColor("mint"), alpha: 0.94, width });
+  path();
+  graphics.stroke({
+    color: petraVisualColor("cream"),
+    alpha: 0.92,
+    width: Math.max(0.8, width * 0.42),
+  });
 }
 
 function drawLineagePatternRings(

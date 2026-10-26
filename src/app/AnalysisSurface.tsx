@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import type { ReactElement, SyntheticEvent } from "react";
 
 import { AnalysisPanel } from "../ui/analysis/AnalysisPanel";
 import type { LineageContrastMode } from "../design/lineageIdentity";
@@ -14,6 +14,11 @@ export interface AnalysisSurfaceProps {
   readonly records?: AuthoritativeAnalysisRecords | null;
   readonly motion: MotionPreference;
   readonly contrastMode?: LineageContrastMode;
+  readonly connected?: boolean;
+  readonly open?: boolean;
+  readonly onOpenChange?: (open: boolean) => void;
+  readonly selectedLineageId?: string | null;
+  readonly onLineageSelect?: (lineageId: string) => void;
 }
 
 /**
@@ -27,29 +32,56 @@ export function AnalysisSurface({
   records = null,
   motion,
   contrastMode = "standard",
+  connected = false,
+  open,
+  onOpenChange,
+  selectedLineageId = null,
+  onLineageSelect,
 }: AnalysisSurfaceProps): ReactElement {
   const view = projectAuthoritativeAnalysis(records, { contrastMode });
+  const disclosureProps =
+    open === undefined
+      ? {}
+      : {
+          open,
+          onToggle: (event: SyntheticEvent<HTMLDetailsElement>) =>
+            onOpenChange?.(event.currentTarget.open),
+        };
 
   if (view.status === "unavailable") {
     return (
       <details
+        {...disclosureProps}
         className="analysis-surface analysis-surface--unavailable"
-        data-analysis-status="unavailable"
+        data-analysis-status={connected ? "connected" : "unavailable"}
       >
         <summary>
           <span>
             <span className="petra-kicker">Analysis</span>
-            <strong>Authoritative analysis unavailable</strong>
+            <strong>
+              {connected
+                ? "Authoritative analysis connected"
+                : "Authoritative analysis unavailable"}
+            </strong>
           </span>
-          <span className="analysis-surface__identity">not connected</span>
+          <span className="analysis-surface__identity">
+            {connected ? "open to inspect" : "not connected"}
+          </span>
         </summary>
-        <p className="analysis-surface__unavailable-note">{view.message}</p>
+        {open === false ? null : (
+          <p className="analysis-surface__unavailable-note">
+            {connected
+              ? "The live source is connected. Analysis appears after the first eligible authoritative metric sample."
+              : view.message}
+          </p>
+        )}
       </details>
     );
   }
 
   return (
     <details
+      {...disclosureProps}
       className="analysis-surface analysis-surface--available"
       data-analysis-status="available"
       data-run-identity={view.identity.runIdentity}
@@ -66,11 +98,15 @@ export function AnalysisSurface({
         </span>
       </summary>
 
-      <AnalysisPanel
-        charts={view.charts}
-        lineageTree={view.lineageTree}
-        motion={motion}
-      />
+      {open === false ? null : (
+        <AnalysisPanel
+          charts={view.charts}
+          lineageTree={view.lineageTree}
+          motion={motion}
+          selectedLineageId={selectedLineageId}
+          onLineageSelect={onLineageSelect}
+        />
+      )}
     </details>
   );
 }

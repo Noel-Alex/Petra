@@ -23,7 +23,7 @@ describe("density-driven colony mass presentation", () => {
       height: 1,
       sharedDensityMaximum: 1,
     });
-    expect([...field.alpha]).toEqual([0, 0.5, 0, 1]);
+    expect([...field.alpha]).toEqual([0, Math.fround(Math.sqrt(0.5)), 0, 1]);
   });
 
   it("strengthens opacity monotonically without a biological threshold", () => {

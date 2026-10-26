@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import rendererSource from "./renderer.ts?raw";
+import rawRendererSource from "./renderer.ts?raw";
+
+const rendererSource = rawRendererSource.replace(/\r\n/g, "\n");
 
 describe("Pixi dish visual continuity integration", () => {
   it("keeps authoritative snapshots separate from drawable presentation state", () => {
@@ -10,10 +12,10 @@ describe("Pixi dish visual continuity integration", () => {
       "let drawableState: DishDrawableState | null = null;",
     );
     expect(rendererSource).toContain(
-      "update(snapshot: DishRenderSnapshot): void;",
+      "snapshot: DishRenderSnapshot,\n    lineageDensityPresentationScale: LineageDensityPresentationScale,",
     );
     expect(rendererSource).toContain(
-      "snapshot: DishRenderSnapshot,\n    overlayId: string | null,",
+      "nextSnapshot: DishRenderSnapshot,\n    requestedOverlayId: string | null,",
     );
     expect(rendererSource).not.toContain(
       "update(snapshot: DishDrawableState): void;",
@@ -31,10 +33,10 @@ describe("Pixi dish visual continuity integration", () => {
     const updateSource = rendererSource.slice(updateStart, resizeStart);
 
     expect(updateSource).toContain(
-      "const previousSnapshotId = snapshot?.snapshotId ?? null;",
+      "const previousSnapshotId = previousSnapshot?.snapshotId ?? null;",
     );
     expect(updateSource).toContain(
-      "const previousSamplingIdentity = snapshot?.samplingIdentity ?? null;",
+      "const previousSamplingIdentity =\n      previousSnapshot?.samplingIdentity ?? null;",
     );
     expect(updateSource).toContain(
       "previousSnapshotId === next.snapshot.snapshotId &&",
@@ -95,11 +97,16 @@ describe("Pixi dish visual continuity integration", () => {
 
     expect(tickerSource).toContain("cameraElapsedMs += app.ticker.deltaMS;");
     expect(tickerSource).toContain("visualElapsedMs += app.ticker.deltaMS;");
+    expect(tickerSource).toContain("resolveDishTransitionRefresh({");
     expect(tickerSource).toContain("advanceDishVisualTransition(");
+    expect(
+      tickerSource.indexOf("resolveDishTransitionRefresh({"),
+    ).toBeLessThan(tickerSource.indexOf("advanceDishVisualTransition("));
+    expect(tickerSource).toContain("if (refresh.evaluateFrame) {");
     expect(tickerSource).toContain("drawableState = step.state;");
     expect(tickerSource).toContain("visualTransition = null;");
     expect(tickerSource).toContain("if (visualChanged) {");
-    expect(tickerSource).toContain("render();");
+    expect(tickerSource).toContain("preserveVectorPresentation:");
     expect(tickerSource).toContain("else if (cameraChanged) {");
     expect(tickerSource).toContain("renderCameraState(true);");
   });
@@ -126,7 +133,7 @@ describe("Pixi dish visual continuity integration", () => {
     const tickerSource = rendererSource.slice(tickerStart, listenerStart);
     const frameWrite = tickerSource.indexOf("drawableState = step.state;");
     const revisionAdvance = tickerSource.indexOf(
-      '"scientific-frame"',
+      'vectorRefreshDue ? "scientific-frame" : "visual-frame"',
       frameWrite,
     );
     expect(frameWrite).toBeGreaterThanOrEqual(0);
@@ -141,6 +148,50 @@ describe("Pixi dish visual continuity integration", () => {
     );
     const pointerSource = rendererSource.slice(pointerStart, pointerEnd);
     expect(pointerSource).not.toContain('"scientific-frame"');
+  });
+
+  it("keeps expensive vector presentation cached between exact transition keyframes", () => {
+    const tickerStart = rendererSource.indexOf("const ticker = () => {");
+    const listenerStart = rendererSource.indexOf(
+      "app.ticker.add(ticker);",
+      tickerStart,
+    );
+    const tickerSource = rendererSource.slice(tickerStart, listenerStart);
+    expect(tickerSource).toContain(
+      "visualTransition !== null && !vectorRefreshDue,",
+    );
+    expect(rendererSource).toContain(
+      "lastVectorSourcePreparedAt = performance.now();",
+    );
+    expect(rendererSource).toContain(
+      "lastRasterPreparedAt = performance.now();",
+    );
+    expect(rendererSource).toContain(
+      "resolveDishTransitionRefresh",
+    );
+
+    const renderStart = rendererSource.indexOf("const render = (");
+    const cameraRenderStart = rendererSource.indexOf(
+      "const renderCameraOnly =",
+      renderStart,
+    );
+    const renderSource = rendererSource.slice(renderStart, cameraRenderStart);
+    expect(renderSource).toContain("invalidation.fieldContours ||");
+    expect(renderSource).toContain("invalidation.lineageContours ||");
+    expect(renderSource).toContain(
+      "invalidation.representativeGlyphCandidates",
+    );
+
+    const sceneStart = rendererSource.indexOf("function drawScene(args: {");
+    const sceneEnd = rendererSource.indexOf(
+      "function drawGlyphAndSelectionLayer(args: {",
+      sceneStart,
+    );
+    const sceneSource = rendererSource.slice(sceneStart, sceneEnd);
+    expect(sceneSource).toContain("if (!preserveVectorPresentation) {");
+    expect(sceneSource).toContain("fieldLayer.clear();");
+    expect(sceneSource).toContain("densityLayer.clear();");
+    expect(sceneSource).toContain("drawGlyphAndSelectionLayer({");
   });
 
   it("collapses reduced/off state transitions to the exact authoritative snapshot", () => {

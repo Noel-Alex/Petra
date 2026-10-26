@@ -17,7 +17,7 @@ describe("bounded density and overlay textures", () => {
     const state = fixture(), output = new Uint8ClampedArray(144 * 4);
     writeDensityRaster(state, 2, output);
     expect(output[3]).toBe(0); expect(output[7]).toBe(0);
-    expect(output[11]).toBe(110); expect(output[15]).toBe(219); expect(output[19]).toBe(0);
+    expect(output[11]).toBe(155); expect(output[15]).toBe(219); expect(output[19]).toBe(0);
     expect(state.lineages[0]!.density[3]).toBe(2);
   });
   it("uses a high-opacity but bounded presentation cap for dense colony mass", () => {

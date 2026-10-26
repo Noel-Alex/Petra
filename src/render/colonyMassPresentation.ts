@@ -12,12 +12,10 @@ export interface ColonyMassAlphaField {
 /**
  * Continuous presentation-only density transfer for coherent colony masses.
  *
- * The cubic smoothstep has no non-zero threshold: source zero stays exactly
- * transparent, while positive source density remains ordered monotonically.
- * It intentionally suppresses very sparse coverage and strengthens dense
- * coverage so a linearly filtered raster reads as a small number of connected
- * masses instead of a field of equally prominent dots. This is not colony
- * fusion, a measured boundary, CFU/cell count, or biological state.
+ * Square-root compression matches the renderer's comparable-density transfer:
+ * it keeps sparse but positive source density visible while preserving the
+ * shared scale and relative ordering. Exact zero remains transparent. This is
+ * not colony fusion, a measured boundary, CFU/cell count, or biological state.
  */
 export function projectColonyMassAlpha(
   density: number,
@@ -31,9 +29,7 @@ export function projectColonyMassAlpha(
 
   if (density === 0 || sharedDensityMaximum === 0) return 0;
 
-  const normalized = Math.min(1, density / sharedDensityMaximum);
-  const alpha = normalized * normalized * (3 - 2 * normalized);
-  return Math.fround(alpha);
+  return Math.fround(Math.sqrt(Math.min(1, density / sharedDensityMaximum)));
 }
 
 /**

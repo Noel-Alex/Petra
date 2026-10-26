@@ -1,0 +1,20 @@
+[
+  {
+    "record_id": "SKELETON",
+    "organism": "Escherichichia coli K-12 MG1655",
+    "parameter": "PLACEHOLDER_skeleton_only",
+    "value": null,
+    "unit": null,
+    "classification": "hypothesis",
+    "temperature_c": null,
+    "medium": null,
+    "assay": null,
+    "strain_background": null,
+    "doi": null,
+    "url": null,
+    "quote": "skeleton record, not a real value",
+    "verification": "unverified-secondary",
+    "uncertainty": null,
+    "transfer_note": "Placeholder written before sourcing so later writes are incremental. DELETE once real records exist."
+  }
+]

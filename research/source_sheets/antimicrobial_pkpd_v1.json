@@ -1,0 +1,40 @@
+[
+  {
+    "drug": "ciprofloxacin",
+    "organism": "Escherichia coli",
+    "parameter": "AWAITING SOURCE (ECOFF)",
+    "value": null,
+    "unit": "mg/L",
+    "classification": "unfilled-skeleton",
+    "method": null,
+    "breakpoint_standard_and_version": null,
+    "inoculum_cfu_per_ml": null,
+    "temperature_c": null,
+    "model_form": null,
+    "doi": null,
+    "url": null,
+    "quote": null,
+    "verification": "unverified-secondary",
+    "uncertainty": "skeleton placeholder — not a value",
+    "transfer_note": "placeholder row showing the record shape; delete/replace as sources land"
+  },
+  {
+    "drug": "ciprofloxacin",
+    "organism": "Pseudomonas aeruginosa",
+    "parameter": "AWAITING SOURCE (ECOFF)",
+    "value": null,
+    "unit": "mg/L",
+    "classification": "unfilled-skeleton",
+    "method": null,
+    "breakpoint_standard_and_version": null,
+    "inoculum_cfu_per_ml": null,
+    "temperature_c": null,
+    "model_form": null,
+    "doi": null,
+    "url": null,
+    "quote": null,
+    "verification": "unverified-secondary",
+    "uncertainty": "skeleton placeholder — not a value",
+    "transfer_note": "placeholder row showing the record shape; delete/replace as sources land"
+  }
+]

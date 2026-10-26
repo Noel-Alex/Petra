@@ -374,3 +374,12 @@ vite.config.ts.timestamp-*
 # sweeping ~15 MB of third-party binaries into a source PR.
 research/source_sheets/_cache/
 
+
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+*.pfx
